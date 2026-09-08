@@ -67,11 +67,17 @@ function traverseConfigs( _config, _buttons )
 {
 	if( ! _buttons )
 	{
-		_buttons = new Array(6);
-		for( let i = 0; i < 6; i++ )
-		{
-			_buttons[i] = new Array();
-		}
+	    const buttonCount = Math.max(
+    	    1,
+        	Math.min((_config.buttons || []).length, 10)
+	    );
+
+	    _buttons = new Array(buttonCount);
+
+	    for( let i = 0; i < buttonCount; i++ )
+	    {
+    	    _buttons[i] = new Array();
+	    }
 	}
 
     function bindButtons( _cfg )
@@ -383,7 +389,7 @@ class HoneycombMenu extends LitElement
     _assignButtons()
     {
         this.buttons = [];
-        for( let i = 0; i < 6; i++ )
+        for( let i = 0; i < this.config.buttons.length; i++ )
         {
             let button = {};
 
