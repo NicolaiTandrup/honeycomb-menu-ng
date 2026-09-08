@@ -74,18 +74,24 @@ function bindButtons( _cfg )
 {
     if( _cfg.buttons )
     {
-   	    _cfg.buttons.forEach( (b, i) => {
-       	    let position = (b.position !== undefined) ? b.position : i;
+        _cfg.buttons.forEach( (b, i) => {
+            let slot;
 
-			// Maximum 10 button positions
-            if( position < 0 || position > 9 )
-               	return;
+            if( b.slot !== undefined )
+                slot = b.slot - 1;
+            else if( b.position !== undefined )
+                slot = b.position;
+            else
+                slot = i;
 
-			// Create the position when it is actually needed
-            if( ! _buttons[position] )
-   	            _buttons[position] = [];
+            // Support slots 1-12 / positions 0-11
+            if( slot < 0 || slot > 11 )
+                return;
 
-			_buttons[position].unshift(b);
+            if( ! _buttons[slot] )
+                _buttons[slot] = [];
+
+            _buttons[slot].unshift(b);
         });
     }
 
