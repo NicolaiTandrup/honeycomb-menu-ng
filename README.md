@@ -2,7 +2,7 @@
 Enhanced fork of Sian-Lee-SA/honeycomb-menu.
 
 Goals:
-- Flexible 1–10 button layouts
+- Flexible 1–12 button layouts
 - Global button defaults/styling
 - Mouse hover activation
 - Touch drag activation
