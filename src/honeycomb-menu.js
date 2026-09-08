@@ -313,7 +313,8 @@ class HoneycombMenu extends LitElement
             variables: {},
             size: 225,
             spacing: 2,
-            animation_speed: 100
+            animation_speed: 100,
+			button_defaults: {}
         });
         this.config = config;
         // These aren't perfect calculations but produces the result we want
@@ -540,7 +541,23 @@ class HoneycombMenu extends LitElement
     {
         if( isEmpty(item) )
             return item;
-        return omit( merge( {}, this.config, item ), ['buttons', 'size', 'action', 'xy_pad', 'spacing'] );
+
+        return omit(
+            merge(
+                {},
+                this.config,
+                this.config.button_defaults || {},
+                item
+            ),
+            [
+                'buttons',
+                'size',
+                'action',
+                'xy_pad',
+                'spacing',
+                'button_defaults'
+            ]
+        );
     }
 
     _computeAnimateDelay( i )
