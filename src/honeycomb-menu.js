@@ -67,30 +67,30 @@ function traverseConfigs( _config, _buttons )
 {
 	if( ! _buttons )
 	{
-	    const buttonCount = Math.max(
-    	    1,
-        	Math.min((_config.buttons || []).length, 10)
-	    );
-
-	    _buttons = new Array(buttonCount);
-
-	    for( let i = 0; i < buttonCount; i++ )
-	    {
-    	    _buttons[i] = new Array();
-	    }
+	    _buttons = [];
 	}
 
-    function bindButtons( _cfg )
+function bindButtons( _cfg )
+{
+    if( _cfg.buttons )
     {
-        if( _cfg.buttons )
-            _cfg.buttons.forEach( (b, i) => {
-                if( b.position )
-                    _buttons[b.position].unshift(b);
-                else
-                    _buttons[i].unshift(b);
-            });
-        return { buttons: _buttons };
+   	    _cfg.buttons.forEach( (b, i) => {
+       	    let position = (b.position !== undefined) ? b.position : i;
+
+			// Maximum 10 button positions
+            if( position < 0 || position > 9 )
+               	return;
+
+			// Create the position when it is actually needed
+            if( ! _buttons[position] )
+   	            _buttons[position] = [];
+
+			_buttons[position].unshift(b);
+        });
     }
+
+    return { buttons: _buttons };
+}
 
     // Allow non extensible to be a new object that can be extended. Using
     // merge will also affect sub properties
@@ -391,7 +391,10 @@ class HoneycombMenu extends LitElement
         this.buttons = [];
         for( let i = 0; i < this.config.buttons.length; i++ )
         {
-            let button = {};
+            if( ! this.config.buttons[i] )
+    			continue;
+			
+			let button = {};
 
 			for( let b of this.config.buttons[i] )
 			{
