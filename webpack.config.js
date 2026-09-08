@@ -13,7 +13,7 @@ module.exports = {
     entry: './src/honeycomb-menu.js',
     mode: 'production',
     output: {
-        filename: 'honeycomb-menu.js',
+        filename: 'honeycomb-menu-ns.js',
         path: path.resolve(__dirname)
     }
 };
