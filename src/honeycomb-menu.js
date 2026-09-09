@@ -32,13 +32,11 @@ window.honeycomb_menu = (config) => {
     if( honeycombConfig.entity_id && ! honeycombConfig.entity )
         honeycombConfig.entity = honeycombConfig.entity_id;
 
-    // console.dir(honeycombConfig);
     showHoneycombMenu( honeycombConfig );
 };
 
 document.addEventListener('touchstart', manager.handleXYPosition, false);
 document.addEventListener('mousedown', manager.handleXYPosition, false);
-// document.addEventListener("mousemove", manager.handleXYPosition, false);
 
 document.body.addEventListener("ll-custom", e => {
     if(e.detail.honeycomb_menu)
@@ -49,14 +47,11 @@ document.body.addEventListener("ll-custom", e => {
 
 function showHoneycombMenu( _config )
 {
-    // Remove any lingering honeycom menus as there should only be one active at a time
     if( manager.honeycomb )
         manager.honeycomb.close();
 
     manager.honeycomb = document.createElement('honeycomb-menu');
-    // Some configs can be non extensible so we make them
-    // extensible
-    manager.honeycomb.setConfig( _config )
+    manager.honeycomb.setConfig( _config );
     manager.honeycomb.display( lovelace_view(), manager.position.x, manager.position.y );
     manager.honeycomb.addEventListener('closing', e => {
         manager.honeycomb = null;
@@ -65,41 +60,39 @@ function showHoneycombMenu( _config )
 
 function traverseConfigs( _config, _buttons )
 {
-	if( ! _buttons )
-	{
-	    _buttons = [];
-	}
-
-function bindButtons( _cfg )
-{
-    if( _cfg.buttons )
+    if( ! _buttons )
     {
-        _cfg.buttons.forEach( (b, i) => {
-            let slot;
-
-            if( b.slot !== undefined )
-                slot = b.slot - 1;
-            else if( b.position !== undefined )
-                slot = b.position;
-            else
-                slot = i;
-
-            // Support slots 1-12 / positions 0-11
-            if( slot < 0 || slot > 11 )
-                return;
-
-            if( ! _buttons[slot] )
-                _buttons[slot] = [];
-
-            _buttons[slot].unshift(b);
-        });
+        _buttons = [];
     }
 
-    return { buttons: _buttons };
-}
+    function bindButtons( _cfg )
+    {
+        if( _cfg.buttons )
+        {
+            _cfg.buttons.forEach( (b, i) => {
+                let slot;
 
-    // Allow non extensible to be a new object that can be extended. Using
-    // merge will also affect sub properties
+                if( b.slot !== undefined )
+                    slot = Number(b.slot) - 1;
+                else if( b.position !== undefined )
+                    slot = Number(b.position);
+                else
+                    slot = i;
+
+                // Support physical slots 1-18 / legacy positions 0-17
+                if( ! Number.isInteger(slot) || slot < 0 || slot > 17 )
+                    return;
+
+                if( ! _buttons[slot] )
+                    _buttons[slot] = [];
+
+                _buttons[slot].unshift(b);
+            });
+        }
+
+        return { buttons: _buttons };
+    }
+
     _config = merge({}, _config );
 
     const honeycomb_templates = honeycomb_menu_templates();
@@ -108,7 +101,6 @@ function bindButtons( _cfg )
 
     let parentConfig = traverseConfigs( honeycomb_templates[_config.template], _buttons );
 
-    // Delete the template property so the button doesn't hook into it
     delete _config.template;
 
     return Object.assign({}, parentConfig, _config, bindButtons( _config ));
@@ -152,16 +144,20 @@ class HoneycombMenu extends LitElement
         }
     }
 
-    constructor() 
+    constructor()
     {
         super();
 
         this.closing = false;
         this.buttons = [];
+        this._rings = {
+            inner: true,
+            outer: false
+        };
         this._service = {
             x: false,
             y: false
-        }
+        };
     }
 
     static get styles()
@@ -215,7 +211,7 @@ class HoneycombMenu extends LitElement
 
             :host {
                 position: absolute;
-                z-index: 8; /*200;*/
+                z-index: 8;
             }
             :host([closing]), :host([closing]) * {
                 pointer-events: none !important;
@@ -250,6 +246,9 @@ class HoneycombMenu extends LitElement
                 width: var(--item-size);
                 padding: var(--spacing);
             }
+            honeycomb-menu-item.center-item {
+                z-index: 2;
+            }
             honeycomb-menu-item, xy-pad {
                 animation-duration: 0.5s;
                 animation-fill-mode: both;
@@ -270,6 +269,9 @@ class HoneycombMenu extends LitElement
 
     render()
     {
+        const centerConfig = this._computeCenterConfig();
+        const centerPos = this._computeCenterPosition();
+
         return html`
             <div id="shade" class="shade" @click=${this._handleShadeClick}></div>
 
@@ -287,26 +289,42 @@ class HoneycombMenu extends LitElement
                 </xy-pad>`:''}
 
             <div id="honeycombs" class="honeycombs">
-               ${this.buttons.map((v, i) => {
+                ${centerConfig ? html`
+                    <honeycomb-menu-item
+                        class="center-item"
+                        style="
+                            animation-delay: ${this._computeAnimateDelay(0)};
+                            left: calc(var(--item-size) * ${centerPos.x});
+                            top: calc(var(--item-size) * ${centerPos.y});
+                        "
+                        .hass=${this.hass}
+                        .config=${centerConfig}
+                        @action=${this._handleItemAction}>
+                    </honeycomb-menu-item>
+                ` : ''}
 
-			    const pos = this._computeButtonPosition(i);
+                ${this.buttons.map((v, i) => {
+                    if( v === undefined )
+                        return '';
 
-			    if( ! pos )
-			        return '';
+                    const pos = this._computeButtonPosition(i);
 
-    			return html`
-			        <honeycomb-menu-item
-            			style="
-			                animation-delay: ${this._computeAnimateDelay(i)};
-            			    left: calc(var(--item-size) * ${pos.x});
-			                top: calc(var(--item-size) * ${pos.y});
-            			"
-			            .hass=${this.hass}
-            			.config=${this._computeItemConfig(v)}
-			            @action=${this._handleItemAction}>
-        			</honeycomb-menu-item>
-    			`;
-			})}
+                    if( ! pos )
+                        return '';
+
+                    return html`
+                        <honeycomb-menu-item
+                            style="
+                                animation-delay: ${this._computeAnimateDelay(i + 1)};
+                                left: calc(var(--item-size) * ${pos.x});
+                                top: calc(var(--item-size) * ${pos.y});
+                            "
+                            .hass=${this.hass}
+                            .config=${this._computeItemConfig(v)}
+                            @action=${this._handleItemAction}>
+                        </honeycomb-menu-item>
+                    `;
+                })}
             </div>`;
     }
 
@@ -324,20 +342,23 @@ class HoneycombMenu extends LitElement
             size: 225,
             spacing: 2,
             animation_speed: 100,
-			button_defaults: {},
-			empty_slots: 'visible'
+            button_defaults: {},
+            empty_slots: 'visible',
+            center_button: {}
         });
         this.config = config;
-        // These aren't perfect calculations but produces the result we want
-        // honey combs are not 1:1 ratio's
-		let itemSize = this.config.size / 3.586;
-		let outerRing = this._hasOuterRing();
 
-		this.sizes = {
-		    item: itemSize,
-		    containerWidth: itemSize * (outerRing ? 4 : 3),
-		    containerHeight: itemSize * (outerRing ? 4.63 : 2.9)
-		};
+        // Resolve the buttons first because the active ring(s) determine size.
+        this._assignButtons();
+
+        let itemSize = this.config.size / 3.586;
+        let outerRing = this._hasOuterRing();
+
+        this.sizes = {
+            item: itemSize,
+            containerWidth: itemSize * (outerRing ? 5 : 3),
+            containerHeight: itemSize * (outerRing ? 4.63 : 2.9)
+        };
 
         if( this.config.xy_pad )
         {
@@ -348,8 +369,6 @@ class HoneycombMenu extends LitElement
                 this.config.xy_pad["y"].data = this.config.xy_pad["y"].data || this.config.xy_pad["y"].service_data;
             }
         }
-
-        this._assignButtons();        
     }
 
     display(_view, _x, _y)
@@ -367,96 +386,194 @@ class HoneycombMenu extends LitElement
         this._setCssVars();
     }
 
-	close( _item = null )
-	{
-    	if( this.closing )
-	        return;
+    close( _item = null )
+    {
+        if( this.closing )
+            return;
 
-    	this.closing = true;
+        this.closing = true;
 
-	    const items = this.shadowRoot.querySelectorAll('honeycomb-menu-item');
-	    let ele = _item || items[items.length - 1];
+        const items = this.shadowRoot.querySelectorAll('honeycomb-menu-item');
+        let ele = _item || items[items.length - 1];
 
-	    if( _item )
-    	{
-	        _item.setAttribute('selected', '');
-    	    _item.style.animationDelay = this._computeAnimateDelay(3);
-    	}
+        if( _item )
+        {
+            _item.setAttribute('selected', '');
+            _item.style.animationDelay = this._computeAnimateDelay(3);
+        }
 
-	    fireEvent(this, 'closing', { item: _item });
+        fireEvent(this, 'closing', { item: _item });
 
-	    this.shadowRoot
-    	    .querySelector('#shade')
-        	.addEventListener('animationend', function(e) {
-	            this.remove();
-    	    });
+        const shade = this.shadowRoot.querySelector('#shade');
+        if( shade )
+        {
+            shade.addEventListener('animationend', function(e) {
+                this.remove();
+            });
+        }
 
-	    if( ele )
-    	{
-	        ele.addEventListener('animationend', e => {
-    	        this.remove();
-        	    fireEvent(this, 'closed', { item: _item });
-	        });
-    	}
-    	else
-    	{
-        	this.remove();
-        	fireEvent(this, 'closed', { item: _item });
-    	}
-	}
+        if( ele )
+        {
+            ele.addEventListener('animationend', e => {
+                this.remove();
+                fireEvent(this, 'closed', { item: _item });
+            });
+        }
+        else
+        {
+            this.remove();
+            fireEvent(this, 'closed', { item: _item });
+        }
+    }
 
-	_assignButtons()
-	{
-    	this.buttons = [];
+    _assignButtons()
+    {
+        const resolved = [];
 
-	    const outerRing = this._hasOuterRing();
-    	const slotCount = outerRing ? 12 : 6;
-	    const showEmptySlots = this.config.empty_slots !== 'hidden';
+        for( let i = 0; i < this.config.buttons.length; i++ )
+        {
+            const stack = this.config.buttons[i];
 
-    	for( let i = 0; i < slotCount; i++ )
-	    {
-        	if( ! this.config.buttons[i] )
-	        {
-    	        if( showEmptySlots )
-        	        this.buttons[i] = {};
+            if( ! stack )
+                continue;
 
-	            continue;
-    	    }
+            let button = {};
 
-        	let button = {};
+            for( let b of stack )
+            {
+                if( b.show !== undefined )
+                {
+                    b.show = stringToBool(
+                        getTemplateOrValue(
+                            this.hass,
+                            this.hass.states[this.config.entity],
+                            this.config.variables,
+                            b.show
+                        )
+                    );
+                }
+                else if( b != 'break' && b != 'skip' )
+                {
+                    b.show = true;
+                }
 
-	        for( let b of this.config.buttons[i] )
-    	    {
-        	    if( b.show !== undefined )
-            	{
-	                b.show = stringToBool(
-    	                getTemplateOrValue(
-        	                this.hass,
-            	            this.hass.states[this.config.entity],
-                	        this.config.variables,
-                    	    b.show
-	                    )
-    	            );
-        	    }
-            	else if( b != 'break' && b != 'skip' )
-	            {
-    	            b.show = true;
-        	    }
+                if( b != 'break' && (! b.show || b == 'skip') )
+                    continue;
 
-            	if( b != 'break' && (! b.show || b == 'skip') )
-	                continue;
-	
-    	        button = b;
-        	    break;
-        	}
+                button = b;
+                break;
+            }
 
-	        if( button == 'break' )
-    	        button = {};
+            if( button == 'break' )
+                button = {};
 
-	        if( ! isEmpty(button) || showEmptySlots )
-    	        this.buttons[i] = merge({}, button);
-    	}
-	}
+            if( ! isEmpty(button) )
+            {
+                resolved.push({
+                    button: merge({}, button),
+                    sourceIndex: i
+                });
+            }
+        }
+
+        const assigned = new Array(18);
+        const explicit = [];
+        const automatic = [];
+
+        resolved.forEach(entry => {
+            const button = entry.button;
+            let target = null;
+
+            if( button.slot !== undefined )
+                target = Number(button.slot) - 1;
+            else if( button.position !== undefined )
+                target = Number(button.position);
+
+            if( Number.isInteger(target) && target >= 0 && target <= 17 )
+                explicit.push({ ...entry, target });
+            else
+                automatic.push(entry);
+        });
+
+        // Explicit slots are physical positions in this phase.
+        // Soft/hard slot behaviour will be added in the next phase.
+        explicit.forEach(entry => {
+            if( assigned[entry.target] === undefined )
+            {
+                assigned[entry.target] = entry.button;
+            }
+            else
+            {
+                console.warn(
+                    `[Honeycomb Menu NG] Slot ${entry.target + 1} is already occupied. Ignoring duplicate explicit slot.`
+                );
+            }
+        });
+
+        const totalCount = resolved.length;
+        let autoPool;
+
+        if( totalCount <= 6 )
+        {
+            // 1-6 buttons: inner ring only.
+            autoPool = [0, 1, 2, 3, 4, 5];
+        }
+        else if( totalCount <= 12 )
+        {
+            // 7-12 buttons: outer ring only.
+            autoPool = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+        }
+        else
+        {
+            // 13-18 buttons: inner ring first, then outer ring.
+            autoPool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+        }
+
+        automatic.forEach(entry => {
+            let target = autoPool.find(index => assigned[index] === undefined);
+
+            // If explicit slots consumed the automatic pool, use the first
+            // remaining physical slot rather than dropping a button.
+            if( target === undefined )
+                target = assigned.findIndex(value => value === undefined);
+
+            if( target !== -1 && target !== undefined )
+                assigned[target] = entry.button;
+        });
+
+        const hasInner = assigned.slice(0, 6).some(button => button !== undefined);
+        const hasOuter = assigned.slice(6, 18).some(button => button !== undefined);
+
+        this._rings = {
+            inner: hasInner || (! hasOuter && totalCount === 0),
+            outer: hasOuter
+        };
+
+        const showEmptySlots = this.config.empty_slots !== 'hidden';
+
+        if( showEmptySlots )
+        {
+            if( this._rings.inner )
+            {
+                for( let i = 0; i < 6; i++ )
+                {
+                    if( assigned[i] === undefined )
+                        assigned[i] = {};
+                }
+            }
+
+            if( this._rings.outer )
+            {
+                for( let i = 6; i < 18; i++ )
+                {
+                    if( assigned[i] === undefined )
+                        assigned[i] = {};
+                }
+            }
+        }
+
+        this.buttons = assigned;
+    }
 
     _setPosition( _x, _y )
     {
@@ -474,7 +591,7 @@ class HoneycombMenu extends LitElement
                 x: this.view.clientWidth - container.w,
                 y: this.view.clientHeight - container.h
             }
-        }
+        };
 
         let rect = this.view.getBoundingClientRect();
         _x = clamp( _x - rect.left, bounds.min.x, bounds.max.x - 5 );
@@ -603,63 +720,122 @@ class HoneycombMenu extends LitElement
                 'xy_pad',
                 'spacing',
                 'button_defaults',
-				'empty_slots',
-				'slot'
+                'empty_slots',
+                'center_button',
+                'slot',
+                'slot_mode'
             ]
         );
     }
 
-	_hasOuterRing()
-	{
-	    return this.config.buttons
-        	.slice(6, 12)
-    	    .some(slot => slot && slot.length);
-	}
-	_computeButtonPosition( slot )
-	{
-	    const innerRing = [
-    	    { x: 0,   y: 0.865 }, // 1 - left
-        	{ x: 0.5, y: 0 },     // 2 - upper left
-	        { x: 1.5, y: 0 },     // 3 - upper right
-    	    { x: 2,   y: 0.865 }, // 4 - right
-        	{ x: 1.5, y: 1.725 }, // 5 - lower right
-	        { x: 0.5, y: 1.725 }  // 6 - lower left
-    	];
+    _computeCenterConfig()
+    {
+        if( this.config.center_button === false )
+            return null;
 
-	    const outerRing = [
-    	    { x: -0.5, y: 0 },     // 7
-        	{ x: 1,  y: -0.865 },// 8
-	        { x: 2.5,    y: 0 },     // 9
-    	    { x: 2.5,    y: 1.725 }, // 10
-        	{ x: 1,  y: 2.59 },  // 11
-	        { x: -0.5, y: 1.725 }  // 12
-    	];
+        const center = merge(
+            {},
+            {
+                entity: this.config.entity,
+                active: this.config.active,
+                autoclose: true,
+                tap_action: {
+                    action: 'more-info'
+                }
+            },
+            this.config.center_button || {}
+        );
 
-	    let position;
-		
-		if( slot < 6 )
- 	       position = innerRing[slot];
-    	else
-        	position = outerRing[slot - 6];
+        return this._computeItemConfig(center);
+    }
 
-	    if( ! position )
-    	    return null;
+    _computeCenterPosition()
+    {
+        if( this._hasOuterRing() )
+        {
+            return {
+                x: 2,
+                y: 1.73
+            };
+        }
 
-	    if( this._hasOuterRing() )
-    	{
-	        return {
-    	        x: position.x + 0.5,
-        	    y: position.y + 0.865
-        	};
-    	}
+        return {
+            x: 1,
+            y: 0.865
+        };
+    }
 
-	    return position;
-	}
+    _hasInnerRing()
+    {
+        return this._rings && this._rings.inner;
+    }
+
+    _hasOuterRing()
+    {
+        return this._rings && this._rings.outer;
+    }
+
+    _computeButtonPosition( slot )
+    {
+        const innerRing = [
+            { x: 0,   y: 0.865 }, // 1 - left
+            { x: 0.5, y: 0 },     // 2 - upper left
+            { x: 1.5, y: 0 },     // 3 - upper right
+            { x: 2,   y: 0.865 }, // 4 - right
+            { x: 1.5, y: 1.725 }, // 5 - lower right
+            { x: 0.5, y: 1.725 }  // 6 - lower left
+        ];
+
+        const outerRing = [
+            { x: -1,   y: 0.865 }, // 7  - left
+            { x: -0.5, y: 0 },     // 8  - upper-left outer
+            { x: 0,    y: -0.865 },// 9  - upper-left top
+            { x: 1,    y: -0.865 },// 10 - top-left
+            { x: 2,    y: -0.865 },// 11 - top-right
+            { x: 2.5,  y: 0 },     // 12 - upper-right outer
+            { x: 3,    y: 0.865 }, // 13 - right
+            { x: 2.5,  y: 1.725 }, // 14 - lower-right outer
+            { x: 2,    y: 2.59 },  // 15 - lower-right bottom
+            { x: 1,    y: 2.59 },  // 16 - bottom-right
+            { x: 0,    y: 2.59 },  // 17 - bottom-left
+            { x: -0.5, y: 1.725 }  // 18 - lower-left outer
+        ];
+
+        let position;
+
+        if( slot < 6 )
+        {
+            if( ! this._hasInnerRing() )
+                return null;
+
+            position = innerRing[slot];
+        }
+        else
+        {
+            if( ! this._hasOuterRing() )
+                return null;
+
+            position = outerRing[slot - 6];
+        }
+
+        if( ! position )
+            return null;
+
+        if( this._hasOuterRing() )
+        {
+            return {
+                x: position.x + 1,
+                y: position.y + 0.865
+            };
+        }
+
+        return position;
+    }
 
     _computeAnimateDelay( i )
     {
         return this.config.animation_speed * i + 'ms';
     }
-	
 }
+
 customElements.define(HoneycombMenu.is, HoneycombMenu);
