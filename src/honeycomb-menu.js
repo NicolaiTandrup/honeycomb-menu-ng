@@ -70,23 +70,23 @@ function traverseConfigs( _config, _buttons )
         if( _cfg.buttons )
         {
             _cfg.buttons.forEach( (b, i) => {
-                let slot;
+                let storageIndex;
 
-                if( b.slot !== undefined )
-                    slot = Number(b.slot) - 1;
-                else if( b.position !== undefined )
-                    slot = Number(b.position);
+                // Legacy position keeps its original physical/index semantics
+                // for backwards compatibility. New slot is resolved later by
+                // the v0.4 soft/hard allocator, so keep it at list position here.
+                if( b.position !== undefined )
+                    storageIndex = Number(b.position);
                 else
-                    slot = i;
+                    storageIndex = i;
 
-                // Support physical slots 1-18 / legacy positions 0-17
-                if( ! Number.isInteger(slot) || slot < 0 || slot > 17 )
+                if( ! Number.isInteger(storageIndex) || storageIndex < 0 || storageIndex > 17 )
                     return;
 
-                if( ! _buttons[slot] )
-                    _buttons[slot] = [];
+                if( ! _buttons[storageIndex] )
+                    _buttons[storageIndex] = [];
 
-                _buttons[slot].unshift(b);
+                _buttons[storageIndex].unshift(b);
             });
         }
 
@@ -249,6 +249,9 @@ class HoneycombMenu extends LitElement
             honeycomb-menu-item.center-item {
                 z-index: 2;
             }
+            honeycomb-menu-item.center-item.center-auto-style {
+                filter: brightness(var(--honeycomb-center-brightness, 1.10));
+            }
             honeycomb-menu-item, xy-pad {
                 animation-duration: 0.5s;
                 animation-fill-mode: both;
@@ -291,7 +294,7 @@ class HoneycombMenu extends LitElement
             <div id="honeycombs" class="honeycombs">
                 ${centerConfig ? html`
                     <honeycomb-menu-item
-                        class="center-item"
+                        class="center-item ${this._centerHasExplicitBackground() ? '' : 'center-auto-style'}"
                         style="
                             animation-delay: ${this._computeAnimateDelay(0)};
                             left: calc(var(--item-size) * ${centerPos.x});
@@ -468,36 +471,91 @@ class HoneycombMenu extends LitElement
                 button = {};
 
             if( ! isEmpty(button) )
-            {
-                resolved.push({
-                    button: merge({}, button),
-                    sourceIndex: i
-                });
-            }
+                resolved.push({ button: merge({}, button), sourceIndex: i });
         }
 
         const assigned = new Array(18);
-        const explicit = [];
+        const hard = [];
+        const soft = [];
         const automatic = [];
 
         resolved.forEach(entry => {
             const button = entry.button;
-            let target = null;
+
+            // Legacy position remains an absolute physical position.
+            if( button.position !== undefined )
+            {
+                const target = Number(button.position);
+
+                if( Number.isInteger(target) && target >= 0 && target <= 17 )
+                    hard.push({ ...entry, target, legacy: true });
+
+                return;
+            }
 
             if( button.slot !== undefined )
-                target = Number(button.slot) - 1;
-            else if( button.position !== undefined )
-                target = Number(button.position);
+            {
+                const requestedSlot = Number(button.slot);
 
-            if( Number.isInteger(target) && target >= 0 && target <= 17 )
-                explicit.push({ ...entry, target });
-            else
-                automatic.push(entry);
+                if( Number.isInteger(requestedSlot) && requestedSlot >= 1 && requestedSlot <= 18 )
+                {
+                    if( button.slot_mode === 'hard' )
+                        hard.push({ ...entry, target: requestedSlot - 1 });
+                    else
+                        soft.push({ ...entry, requestedSlot });
+                }
+
+                return;
+            }
+
+            automatic.push(entry);
         });
 
-        // Explicit slots are physical positions in this phase.
-        // Soft/hard slot behaviour will be added in the next phase.
-        explicit.forEach(entry => {
+        const totalCount = resolved.length;
+
+        // Base ring selection is determined by the number of buttons.
+        let innerActive = totalCount <= 6;
+        let outerActive = totalCount >= 7 && totalCount <= 12;
+
+        if( totalCount >= 13 )
+        {
+            innerActive = true;
+            outerActive = true;
+        }
+
+        if( totalCount === 0 )
+        {
+            innerActive = true;
+            outerActive = false;
+        }
+
+        // Hard/legacy physical positions can force one or both rings active.
+        hard.forEach(entry => {
+            if( entry.target < 6 )
+                innerActive = true;
+            else
+                outerActive = true;
+        });
+
+        this._rings = {
+            inner: innerActive,
+            outer: outerActive
+        };
+
+        const innerPool = [0, 1, 2, 3, 4, 5];
+        const outerPool = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+
+        let activePool;
+
+        if( innerActive && outerActive )
+            activePool = [...innerPool, ...outerPool];
+        else if( outerActive )
+            activePool = outerPool;
+        else
+            activePool = innerPool;
+
+        // Hard slots are absolute. Never move them.
+        hard.forEach(entry => {
             if( assigned[entry.target] === undefined )
             {
                 assigned[entry.target] = entry.button;
@@ -505,49 +563,47 @@ class HoneycombMenu extends LitElement
             else
             {
                 console.warn(
-                    `[Honeycomb Menu NG] Slot ${entry.target + 1} is already occupied. Ignoring duplicate explicit slot.`
+                    `[Honeycomb Menu NG] Hard slot ${entry.target + 1} is already occupied. Ignoring duplicate hard slot.`
                 );
             }
         });
 
-        const totalCount = resolved.length;
-        let autoPool;
+        // Soft slots are preferences inside the currently active layout.
+        // Example: soft slot 7 with an inner-only layout wraps to inner slot 1.
+        // If the preferred position is occupied, move clockwise to the first free slot.
+        soft.forEach(entry => {
+            if( activePool.length === 0 )
+                return;
 
-        if( totalCount <= 6 )
-        {
-            // 1-6 buttons: inner ring only.
-            autoPool = [0, 1, 2, 3, 4, 5];
-        }
-        else if( totalCount <= 12 )
-        {
-            // 7-12 buttons: outer ring only.
-            autoPool = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-        }
-        else
-        {
-            // 13-18 buttons: inner ring first, then outer ring.
-            autoPool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-        }
+            const preferredPoolIndex = (entry.requestedSlot - 1) % activePool.length;
+            let target;
 
-        automatic.forEach(entry => {
-            let target = autoPool.find(index => assigned[index] === undefined);
+            for( let offset = 0; offset < activePool.length; offset++ )
+            {
+                const candidate = activePool[(preferredPoolIndex + offset) % activePool.length];
 
-            // If explicit slots consumed the automatic pool, use the first
-            // remaining physical slot rather than dropping a button.
-            if( target === undefined )
-                target = assigned.findIndex(value => value === undefined);
+                if( assigned[candidate] === undefined )
+                {
+                    target = candidate;
+                    break;
+                }
+            }
 
-            if( target !== -1 && target !== undefined )
+            if( target !== undefined )
                 assigned[target] = entry.button;
+            else
+                console.warn('[Honeycomb Menu NG] No free slot available for soft slot button.');
         });
 
-        const hasInner = assigned.slice(0, 6).some(button => button !== undefined);
-        const hasOuter = assigned.slice(6, 18).some(button => button !== undefined);
+        // Buttons without slot information use the first free active position.
+        automatic.forEach(entry => {
+            const target = activePool.find(index => assigned[index] === undefined);
 
-        this._rings = {
-            inner: hasInner || (! hasOuter && totalCount === 0),
-            outer: hasOuter
-        };
+            if( target !== undefined )
+                assigned[target] = entry.button;
+            else
+                console.warn('[Honeycomb Menu NG] No free slot available for automatic button.');
+        });
 
         const showEmptySlots = this.config.empty_slots !== 'hidden';
 
@@ -726,6 +782,28 @@ class HoneycombMenu extends LitElement
                 'slot_mode'
             ]
         );
+    }
+
+    _centerHasExplicitBackground()
+    {
+        const center = this.config.center_button;
+
+        if( ! center || center === false || ! center.styles )
+            return false;
+
+        const cardStyles = center.styles.card;
+
+        if( ! Array.isArray(cardStyles) )
+            return false;
+
+        return cardStyles.some(style => {
+            if( ! style || typeof style !== 'object' )
+                return false;
+
+            return Object.prototype.hasOwnProperty.call(style, 'background') ||
+                   Object.prototype.hasOwnProperty.call(style, 'background-color') ||
+                   Object.prototype.hasOwnProperty.call(style, 'backgroundColor');
+        });
     }
 
     _computeCenterConfig()
