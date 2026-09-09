@@ -1,13 +1,31 @@
 # Honeycomb Menu NG for Home Assistant
-Enhanced fork of Sian-Lee-SA/honeycomb-menu.
+Enhanced fork of Sian-Lee-SA/honeycomb-menu with flexible 18-slot layouts, center buttons, shared styling, nested menus and advanced slot positioning.
 
-Goals:
-- Flexible 1–12 button layouts
+## Goals
+
+- Flexible 1–18 button layouts
+- Automatic center button support
+- Inner and outer honeycomb ring layouts
+- Soft and hard slot positioning
 - Global button defaults/styling
+- Dynamic empty-slot visibility
+- Nested honeycomb menus
 - Mouse hover activation
 - Touch drag activation
-- Improved nested honeycomb menus
 - Backwards compatibility with existing honeycomb-menu YAML
+
+## Current features
+
+- 6-slot inner ring
+- 12-slot outer ring
+- Automatic layout selection based on button count
+- Optional center button
+- `empty_slots: visible|hidden`
+- `slot: 1-18`
+- `slot_mode: hard`
+- Global `button_defaults`
+- Nested honeycomb menus via `fire-dom-event`
+- Backwards-compatible legacy `position` support
 
 <a href="https://www.paypal.com/donate/?business=A82MM255CXF9L&no_recurring=0&item_name=Donating+will+help+justify+my+time+coding+and+doing+projects+that+also+benifits+others.+Any+amount+is+greatly+appreciated%21&currency_code=AUD"><img src="https://github.com/andreostrovsky/donate-with-paypal/raw/master/blue.svg" height="38"></a>
 [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/SianLee)
