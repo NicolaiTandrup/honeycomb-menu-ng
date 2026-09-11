@@ -945,8 +945,48 @@ class HoneycombMenu extends LitElement
         {
             e.preventDefault();
             e.stopPropagation();
-            item.click();
+            this._triggerMenuItemTap(item);
         }
+    }
+
+    _triggerMenuItemTap(item)
+    {
+        // honeycomb-menu-item is a wrapper around a Lovelace card (normally
+        // custom:button-card). Clicking the wrapper itself does not execute the
+        // wrapped card action. Trigger a normal tap on the actual action-handler
+        // element inside the wrapped card instead.
+        const wrappedCard = item.shadowRoot
+            ? item.shadowRoot.querySelector('#item > *')
+            : null;
+
+        if( ! wrappedCard )
+        {
+            console.warn('[Honeycomb Menu NG] Unable to find wrapped card for drag-select.');
+            return;
+        }
+
+        let actionTarget = wrappedCard;
+
+        // custom:button-card attaches the Home Assistant action-handler to its
+        // rendered card element. Prefer that element when it can be located.
+        if( wrappedCard.shadowRoot )
+        {
+            const candidate =
+                wrappedCard.shadowRoot.querySelector('ha-card') ||
+                wrappedCard.shadowRoot.querySelector('[role="button"]');
+
+            if( candidate )
+                actionTarget = candidate;
+        }
+
+        // The HA/button-card action-handler reacts to an `action` event with
+        // action: tap. This follows the same path as a normal tap and therefore
+        // preserves toggle, call-service, fire-dom-event, navigation, etc.
+        actionTarget.dispatchEvent(new CustomEvent('action', {
+            bubbles: true,
+            composed: true,
+            detail: { action: 'tap' }
+        }));
     }
 
     _playButtonSound( _item )
