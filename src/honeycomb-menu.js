@@ -250,7 +250,7 @@ class HoneycombMenu extends LitElement
                 z-index: 2;
             }
             honeycomb-menu-item.center-item.center-auto-style {
-                filter: brightness(var(--honeycomb-center-brightness, 1.10));
+                filter: brightness(var(--honeycomb-center-brightness, 1.15));
             }
             honeycomb-menu-item, xy-pad {
                 animation-duration: 0.5s;
@@ -294,7 +294,7 @@ class HoneycombMenu extends LitElement
             <div id="honeycombs" class="honeycombs">
                 ${centerConfig ? html`
                     <honeycomb-menu-item
-                        class="center-item ${this._centerHasExplicitBackground() ? '' : 'center-auto-style'}"
+                        class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''}"
                         style="
                             animation-delay: ${this._computeAnimateDelay(0)};
                             left: calc(var(--item-size) * ${centerPos.x});
@@ -347,7 +347,8 @@ class HoneycombMenu extends LitElement
             animation_speed: 100,
             button_defaults: {},
             empty_slots: 'visible',
-            center_button: {}
+            center_button: {},
+            center_brightness: 15
         });
         this.config = config;
 
@@ -569,13 +570,43 @@ class HoneycombMenu extends LitElement
         });
 
         // Soft slots are preferences inside the currently active layout.
-        // Example: soft slot 7 with an inner-only layout wraps to inner slot 1.
+        // Keep the requested physical slot when its ring is active.
+        // Otherwise map it to the corresponding position in the active ring.
         // If the preferred position is occupied, move clockwise to the first free slot.
         soft.forEach(entry => {
             if( activePool.length === 0 )
                 return;
 
-            const preferredPoolIndex = (entry.requestedSlot - 1) % activePool.length;
+            const requestedIndex = entry.requestedSlot - 1;
+            let preferredTarget;
+
+            if( activePool.includes(requestedIndex) )
+            {
+                // Requested physical slot already belongs to an active ring.
+                preferredTarget = requestedIndex;
+            }
+            else if( innerActive && ! outerActive )
+            {
+                // Inner-only layout: wrap any soft slot onto slots 1-6.
+                preferredTarget = requestedIndex % 6;
+            }
+            else if( outerActive && ! innerActive )
+            {
+                // Outer-only layout: map inner slots 1-6 onto outer slots 7-12.
+                // Outer slot requests 7-18 are already handled above.
+                preferredTarget = 6 + (requestedIndex % 12);
+            }
+            else
+            {
+                // Both rings active: all valid requested slots are physical.
+                preferredTarget = requestedIndex;
+            }
+
+            let preferredPoolIndex = activePool.indexOf(preferredTarget);
+
+            if( preferredPoolIndex < 0 )
+                preferredPoolIndex = 0;
+
             let target;
 
             for( let offset = 0; offset < activePool.length; offset++ )
@@ -669,6 +700,12 @@ class HoneycombMenu extends LitElement
         this.style.setProperty('--container-height', `${this.sizes.containerHeight}px`);
 
         this.style.setProperty('--spacing', `${this.config.spacing}px`);
+
+        const centerBrightness = Number(this.config.center_brightness);
+        const centerBrightnessFactor = Number.isFinite(centerBrightness)
+            ? Math.max(0, 1 + (centerBrightness / 100))
+            : 1.15;
+        this.style.setProperty('--honeycomb-center-brightness', `${centerBrightnessFactor}`);
 
         this._setCssVarProperty('--paper-item-icon-color', '--honeycomb-menu-icon-color');
         this._setCssVarProperty('--paper-item-icon-active-color', '--honeycomb-menu-icon-active-color');
@@ -778,6 +815,7 @@ class HoneycombMenu extends LitElement
                 'button_defaults',
                 'empty_slots',
                 'center_button',
+                'center_brightness',
                 'slot',
                 'slot_mode'
             ]
@@ -806,6 +844,98 @@ class HoneycombMenu extends LitElement
         });
     }
 
+    _lightenColorString( color, percent )
+    {
+        if( typeof color !== 'string' )
+            return null;
+
+        const amount = Math.max(0, Number(percent) || 0) / 100;
+        const value = color.trim();
+
+        const rgbaMatch = value.match(
+            /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/i
+        );
+
+        if( rgbaMatch )
+        {
+            const r = Number(rgbaMatch[1]);
+            const g = Number(rgbaMatch[2]);
+            const b = Number(rgbaMatch[3]);
+            const a = rgbaMatch[4] !== undefined ? Number(rgbaMatch[4]) : null;
+
+            const lighten = channel =>
+                Math.round(channel + ((255 - channel) * amount));
+
+            if( a !== null )
+                return `rgba(${lighten(r)}, ${lighten(g)}, ${lighten(b)}, ${a})`;
+
+            return `rgb(${lighten(r)}, ${lighten(g)}, ${lighten(b)})`;
+        }
+
+        const hexMatch = value.match(/^#([0-9a-f]{6}|[0-9a-f]{3})$/i);
+
+        if( hexMatch )
+        {
+            let hex = hexMatch[1];
+
+            if( hex.length === 3 )
+                hex = hex.split('').map(c => c + c).join('');
+
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+
+            const lighten = channel =>
+                Math.round(channel + ((255 - channel) * amount))
+                    .toString(16)
+                    .padStart(2, '0');
+
+            return `#${lighten(r)}${lighten(g)}${lighten(b)}`;
+        }
+
+        return null;
+    }
+
+    _applyCenterBrightness( config )
+    {
+        if( this._centerHasExplicitBackground() )
+            return false;
+
+        const brightness = Number(this.config.center_brightness);
+
+        if( ! Number.isFinite(brightness) || brightness === 0 )
+            return true;
+
+        if( ! config.styles || ! Array.isArray(config.styles.card) )
+            return false;
+
+        let adjusted = false;
+
+        config.styles.card = config.styles.card.map(style => {
+            if( ! style || typeof style !== 'object' )
+                return style;
+
+            const copy = { ...style };
+
+            ['background', 'background-color', 'backgroundColor'].forEach(key => {
+                if( Object.prototype.hasOwnProperty.call(copy, key) )
+                {
+                    const lightened = this._lightenColorString(copy[key], brightness);
+
+                    if( lightened )
+                    {
+                        copy[key] = lightened;
+                        adjusted = true;
+                    }
+                }
+            });
+
+            return copy;
+        });
+
+        return adjusted;
+    }
+
     _computeCenterConfig()
     {
         if( this.config.center_button === false )
@@ -824,7 +954,18 @@ class HoneycombMenu extends LitElement
             this.config.center_button || {}
         );
 
-        return this._computeItemConfig(center);
+        const computed = this._computeItemConfig(center);
+
+        // Prefer changing only the inherited card background. If the color
+        // cannot be parsed (for example a theme variable), fall back to CSS
+        // brightness on the whole center item.
+        const adjustedBackground = this._applyCenterBrightness(computed);
+        this._centerUseFilterFallback =
+            ! this._centerHasExplicitBackground() &&
+            ! adjustedBackground &&
+            Number(this.config.center_brightness) !== 0;
+
+        return computed;
     }
 
     _computeCenterPosition()
