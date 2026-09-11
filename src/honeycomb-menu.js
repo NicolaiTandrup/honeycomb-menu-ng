@@ -250,7 +250,7 @@ class HoneycombMenu extends LitElement
                 z-index: 2;
             }
             honeycomb-menu-item.center-item.center-auto-style {
-                filter: brightness(var(--honeycomb-center-brightness, 1.15));
+                filter: brightness(var(--honeycomb-center-brightness, 1.25));
             }
             honeycomb-menu-item, xy-pad {
                 animation-duration: 0.5s;
@@ -348,7 +348,7 @@ class HoneycombMenu extends LitElement
             button_defaults: {},
             empty_slots: 'visible',
             center_button: {},
-            center_brightness: 15
+            center_brightness: 25
         });
         this.config = config;
 
