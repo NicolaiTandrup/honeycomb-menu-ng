@@ -18,6 +18,8 @@ const manager = new function() {
     this.honeycomb = null;
     this.stack = [];
     this.currentConfig = null;
+    this.pointerDown = false;
+    this.pointerId = null;
     this.position = {
         x: 0,
         y: 0
@@ -25,6 +27,21 @@ const manager = new function() {
     this.handleXYPosition = function(e) {
         this.position.x = (e.type === "touchstart") ? e.touches[0].clientX : e.clientX;
         this.position.y = (e.type === "touchstart") ? e.touches[0].clientY : e.clientY;
+    }.bind(this);
+
+    this.handlePointerDown = function(e) {
+        this.pointerDown = true;
+        this.pointerId = e.pointerId;
+        this.position.x = e.clientX;
+        this.position.y = e.clientY;
+    }.bind(this);
+
+    this.handlePointerUp = function(e) {
+        if( this.pointerId === null || e.pointerId === this.pointerId )
+        {
+            this.pointerDown = false;
+            this.pointerId = null;
+        }
     }.bind(this);
 };
 
@@ -42,6 +59,9 @@ window.honeycomb_menu = (config) => {
 
 document.addEventListener('touchstart', manager.handleXYPosition, false);
 document.addEventListener('mousedown', manager.handleXYPosition, false);
+document.addEventListener('pointerdown', manager.handlePointerDown, true);
+document.addEventListener('pointerup', manager.handlePointerUp, true);
+document.addEventListener('pointercancel', manager.handlePointerUp, true);
 
 document.body.addEventListener("ll-custom", e => {
     if(e.detail.honeycomb_menu)
@@ -450,7 +470,13 @@ class HoneycombMenu extends LitElement
 
         this._setPosition( _x, _y );
 
-        // Global pointer listeners make hold-and-drag selection work even when
+        // If the menu was opened from button-card press_action, the pointer is
+        // still physically held down. Adopt that pointer so the same gesture
+        // can continue directly into drag-select.
+        if( this.config.drag_select && manager.pointerDown )
+            this._dragPointerId = manager.pointerId;
+
+        // Global pointer listeners make press-and-drag selection work even when
         // the pointer/touch started on the card that opened the menu.
         document.addEventListener('pointermove', this._boundPointerMove, true);
         document.addEventListener('pointerup', this._boundPointerUp, true);
@@ -876,6 +902,11 @@ class HoneycombMenu extends LitElement
 
         // Only drag-select while the pointer is physically held down.
         if( e.buttons === 0 && e.pointerType === 'mouse' )
+            return;
+
+        // When the menu was opened by press_action, keep following the same
+        // pointer that started the gesture.
+        if( this._dragPointerId !== null && e.pointerId !== this._dragPointerId )
             return;
 
         this._dragPointerActive = true;
