@@ -318,7 +318,7 @@ class HoneycombMenu extends LitElement
                     return html`
                         <honeycomb-menu-item
                             style="
-                                animation-delay: ${this._computeAnimateDelay(i + 1)};
+                                animation-delay: ${this._computeButtonAnimateDelay(i)};
                                 left: calc(var(--item-size) * ${pos.x});
                                 top: calc(var(--item-size) * ${pos.y});
                             "
@@ -344,7 +344,8 @@ class HoneycombMenu extends LitElement
             variables: {},
             size: 225,
             spacing: 2,
-            animation_speed: 100,
+            animation_speed: 80,
+            animation_mode: 'paired',
             button_defaults: {},
             empty_slots: 'visible',
             center_button: {},
@@ -812,6 +813,8 @@ class HoneycombMenu extends LitElement
                 'action',
                 'xy_pad',
                 'spacing',
+                'animation_speed',
+                'animation_mode',
                 'button_defaults',
                 'empty_slots',
                 'center_button',
@@ -1049,6 +1052,25 @@ class HoneycombMenu extends LitElement
         }
 
         return position;
+    }
+
+    _computeButtonAnimateStep( slot )
+    {
+        if( this.config.animation_mode === 'sequential' )
+            return slot + 1;
+
+        // Paired mode animates opposite physical positions together.
+        // Inner ring: 1+4, 2+5, 3+6.
+        if( slot < 6 )
+            return (slot % 3) + 1;
+
+        // Outer ring: 7+13, 8+14, 9+15, 10+16, 11+17, 12+18.
+        return ((slot - 6) % 6) + 1;
+    }
+
+    _computeButtonAnimateDelay( slot )
+    {
+        return this._computeAnimateDelay(this._computeButtonAnimateStep(slot));
     }
 
     _computeAnimateDelay( i )
