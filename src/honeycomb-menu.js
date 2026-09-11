@@ -16,6 +16,8 @@ const _defaults = require('lodash/defaults');
 
 const manager = new function() {
     this.honeycomb = null;
+    this.stack = [];
+    this.currentConfig = null;
     this.position = {
         x: 0,
         y: 0
@@ -32,7 +34,10 @@ window.honeycomb_menu = (config) => {
     if( honeycombConfig.entity_id && ! honeycombConfig.entity )
         honeycombConfig.entity = honeycombConfig.entity_id;
 
-    showHoneycombMenu( honeycombConfig );
+    // If a menu is already open, treat a newly opened menu as a nested menu.
+    // The previous config is kept so honeycomb-back can restore it.
+    const nested = !! manager.honeycomb && !! manager.currentConfig;
+    showHoneycombMenu( honeycombConfig, { nested } );
 };
 
 document.addEventListener('touchstart', manager.handleXYPosition, false);
@@ -45,18 +50,52 @@ document.body.addEventListener("ll-custom", e => {
     }
 });
 
-function showHoneycombMenu( _config )
+function showHoneycombMenu( _config, options = {} )
 {
-    if( manager.honeycomb )
-        manager.honeycomb.close();
+    const previous = manager.honeycomb;
 
-    manager.honeycomb = document.createElement('honeycomb-menu');
-    manager.honeycomb.setConfig( _config );
-    manager.honeycomb.display( lovelace_view(), manager.position.x, manager.position.y );
-    manager.honeycomb.addEventListener('closing', e => {
-        manager.honeycomb = null;
+    if( options.resetStack )
+        manager.stack = [];
+
+    if( options.nested && manager.currentConfig )
+        manager.stack.push(manager.currentConfig);
+
+    if( previous )
+        previous.close();
+
+    const menu = document.createElement('honeycomb-menu');
+    manager.honeycomb = menu;
+    manager.currentConfig = merge({}, _config);
+
+    menu.setConfig( _config );
+    menu.display( lovelace_view(), manager.position.x, manager.position.y );
+    menu.addEventListener('closing', e => {
+        if( manager.honeycomb === menu )
+            manager.honeycomb = null;
     });
 }
+
+function honeycombBack()
+{
+    if( manager.stack.length === 0 )
+        return false;
+
+    const previousConfig = manager.stack.pop();
+    showHoneycombMenu(previousConfig, { nested: false });
+    return true;
+}
+
+function honeycombClose()
+{
+    manager.stack = [];
+    manager.currentConfig = null;
+
+    if( manager.honeycomb )
+        manager.honeycomb.close();
+}
+
+window.honeycomb_menu_back = honeycombBack;
+window.honeycomb_menu_close = honeycombClose;
 
 function traverseConfigs( _config, _buttons )
 {
@@ -140,6 +179,9 @@ class HoneycombMenu extends LitElement
             },
             _service: {
                 type: Object
+            },
+            _dragHoverSlot: {
+                type: Number
             }
         }
     }
@@ -158,6 +200,11 @@ class HoneycombMenu extends LitElement
             x: false,
             y: false
         };
+        this._dragHoverSlot = -1;
+        this._dragPointerActive = false;
+        this._dragPointerId = null;
+        this._boundPointerMove = this._handleGlobalPointerMove.bind(this);
+        this._boundPointerUp = this._handleGlobalPointerUp.bind(this);
     }
 
     static get styles()
@@ -252,6 +299,14 @@ class HoneycombMenu extends LitElement
             honeycomb-menu-item.center-item.center-auto-style {
                 filter: brightness(var(--honeycomb-center-brightness, 1.25));
             }
+            honeycomb-menu-item.drag-hover {
+                filter: brightness(1.18);
+                transform: scale3d(1.08, 1.08, 1.08);
+                z-index: 3;
+            }
+            honeycomb-menu-item.center-item.center-auto-style.drag-hover {
+                filter: brightness(calc(var(--honeycomb-center-brightness, 1.25) * 1.18));
+            }
             honeycomb-menu-item, xy-pad {
                 animation-duration: 0.5s;
                 animation-fill-mode: both;
@@ -294,7 +349,10 @@ class HoneycombMenu extends LitElement
             <div id="honeycombs" class="honeycombs">
                 ${centerConfig ? html`
                     <honeycomb-menu-item
-                        class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''}"
+                        class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''} ${this._dragHoverSlot === 18 ? 'drag-hover' : ''}"
+                        data-honeycomb-slot="center"
+                        @pointerenter=${() => this._setDragHoverSlot(18)}
+                        @pointerleave=${() => this._clearDragHoverSlot(18)}
                         style="
                             animation-delay: ${this._computeAnimateDelay(0)};
                             left: calc(var(--item-size) * ${centerPos.x});
@@ -317,6 +375,10 @@ class HoneycombMenu extends LitElement
 
                     return html`
                         <honeycomb-menu-item
+                            class="${this._dragHoverSlot === i ? 'drag-hover' : ''}"
+                            data-honeycomb-slot="${i}"
+                            @pointerenter=${() => this._setDragHoverSlot(i)}
+                            @pointerleave=${() => this._clearDragHoverSlot(i)}
                             style="
                                 animation-delay: ${this._computeButtonAnimateDelay(i)};
                                 left: calc(var(--item-size) * ${pos.x});
@@ -346,6 +408,9 @@ class HoneycombMenu extends LitElement
             spacing: 2,
             animation_speed: 80,
             animation_mode: 'paired',
+            drag_select: true,
+            hover_highlight: true,
+            nested_center_back: true,
             button_defaults: {},
             empty_slots: 'visible',
             center_button: {},
@@ -384,6 +449,12 @@ class HoneycombMenu extends LitElement
         this.view.append( this );
 
         this._setPosition( _x, _y );
+
+        // Global pointer listeners make hold-and-drag selection work even when
+        // the pointer/touch started on the card that opened the menu.
+        document.addEventListener('pointermove', this._boundPointerMove, true);
+        document.addEventListener('pointerup', this._boundPointerUp, true);
+        document.addEventListener('pointercancel', this._boundPointerUp, true);
     }
 
     firstUpdated()
@@ -397,6 +468,10 @@ class HoneycombMenu extends LitElement
             return;
 
         this.closing = true;
+
+        document.removeEventListener('pointermove', this._boundPointerMove, true);
+        document.removeEventListener('pointerup', this._boundPointerUp, true);
+        document.removeEventListener('pointercancel', this._boundPointerUp, true);
 
         const items = this.shadowRoot.querySelectorAll('honeycomb-menu-item');
         let ele = _item || items[items.length - 1];
@@ -705,7 +780,7 @@ class HoneycombMenu extends LitElement
         const centerBrightness = Number(this.config.center_brightness);
         const centerBrightnessFactor = Number.isFinite(centerBrightness)
             ? Math.max(0, 1 + (centerBrightness / 100))
-            : 1.15;
+            : 1.25;
         this.style.setProperty('--honeycomb-center-brightness', `${centerBrightnessFactor}`);
 
         this._setCssVarProperty('--paper-item-icon-color', '--honeycomb-menu-icon-color');
@@ -717,6 +792,8 @@ class HoneycombMenu extends LitElement
     _handleShadeClick(e)
     {
         e.stopPropagation();
+        manager.stack = [];
+        manager.currentConfig = null;
         this.close();
     }
 
@@ -725,10 +802,120 @@ class HoneycombMenu extends LitElement
         if( ! e.detail.item )
             return;
 
-        this._playButtonSound( e.detail.item );
+        const item = e.detail.item;
+        const actionType = e.detail.action || 'tap';
+        const actionKey = actionType === 'hold'
+            ? 'hold_action'
+            : actionType === 'double_tap'
+                ? 'double_tap_action'
+                : 'tap_action';
+        const configuredAction = item.config && item.config[actionKey]
+            ? item.config[actionKey].action
+            : null;
+
+        if( configuredAction === 'honeycomb-back' )
+        {
+            e.stopPropagation();
+            honeycombBack();
+            return;
+        }
+
+        if( configuredAction === 'honeycomb-close' )
+        {
+            e.stopPropagation();
+            honeycombClose();
+            return;
+        }
+
+        this._playButtonSound( item );
 
         if( e.detail.autoclose )
-            this.close(e.detail.item);
+        {
+            manager.stack = [];
+            manager.currentConfig = null;
+            this.close(item);
+        }
+    }
+
+    _setDragHoverSlot(slot)
+    {
+        if( ! this.config.hover_highlight )
+            return;
+
+        this._dragHoverSlot = slot;
+    }
+
+    _clearDragHoverSlot(slot)
+    {
+        if( this._dragHoverSlot === slot )
+            this._dragHoverSlot = -1;
+    }
+
+    _findMenuItemAtPoint(x, y)
+    {
+        if( ! this.shadowRoot || ! this.shadowRoot.elementFromPoint )
+            return null;
+
+        let element = this.shadowRoot.elementFromPoint(x, y);
+
+        while( element && element !== this.shadowRoot )
+        {
+            if( element.tagName && element.tagName.toLowerCase() === 'honeycomb-menu-item' )
+                return element;
+
+            element = element.parentElement;
+        }
+
+        return null;
+    }
+
+    _handleGlobalPointerMove(e)
+    {
+        if( ! this.config.drag_select )
+            return;
+
+        // Only drag-select while the pointer is physically held down.
+        if( e.buttons === 0 && e.pointerType === 'mouse' )
+            return;
+
+        this._dragPointerActive = true;
+        this._dragPointerId = e.pointerId;
+
+        const item = this._findMenuItemAtPoint(e.clientX, e.clientY);
+
+        if( ! item )
+        {
+            this._dragHoverSlot = -1;
+            return;
+        }
+
+        const slot = item.dataset.honeycombSlot === 'center'
+            ? 18
+            : Number(item.dataset.honeycombSlot);
+
+        this._dragHoverSlot = Number.isFinite(slot) ? slot : -1;
+    }
+
+    _handleGlobalPointerUp(e)
+    {
+        if( ! this.config.drag_select || ! this._dragPointerActive )
+            return;
+
+        if( this._dragPointerId !== null && e.pointerId !== this._dragPointerId )
+            return;
+
+        const item = this._findMenuItemAtPoint(e.clientX, e.clientY);
+
+        this._dragPointerActive = false;
+        this._dragPointerId = null;
+        this._dragHoverSlot = -1;
+
+        if( item )
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            item.click();
+        }
     }
 
     _playButtonSound( _item )
@@ -815,6 +1002,9 @@ class HoneycombMenu extends LitElement
                 'spacing',
                 'animation_speed',
                 'animation_mode',
+                'drag_select',
+                'hover_highlight',
+                'nested_center_back',
                 'button_defaults',
                 'empty_slots',
                 'center_button',
@@ -944,16 +1134,28 @@ class HoneycombMenu extends LitElement
         if( this.config.center_button === false )
             return null;
 
-        const center = merge(
-            {},
-            {
+        const nestedDefaultCenter = manager.stack.length > 0 && this.config.nested_center_back
+            ? {
+                entity: this.config.entity,
+                active: false,
+                autoclose: false,
+                icon: 'mdi:arrow-left',
+                tap_action: {
+                    action: 'honeycomb-back'
+                }
+            }
+            : {
                 entity: this.config.entity,
                 active: this.config.active,
                 autoclose: true,
                 tap_action: {
                     action: 'more-info'
                 }
-            },
+            };
+
+        const center = merge(
+            {},
+            nestedDefaultCenter,
             this.config.center_button || {}
         );
 
