@@ -223,6 +223,7 @@ class HoneycombMenu extends LitElement
         this._dragHoverSlot = -1;
         this._dragPointerActive = false;
         this._dragPointerId = null;
+        this._idleTimer = null;
         this._boundPointerMove = this._handleGlobalPointerMove.bind(this);
         this._boundPointerUp = this._handleGlobalPointerUp.bind(this);
     }
@@ -434,7 +435,8 @@ class HoneycombMenu extends LitElement
             button_defaults: {},
             empty_slots: 'visible',
             center_button: {},
-            center_brightness: 25
+            center_brightness: 25,
+            idle_timeout: 0
         });
         this.config = config;
 
@@ -481,6 +483,8 @@ class HoneycombMenu extends LitElement
         document.addEventListener('pointermove', this._boundPointerMove, true);
         document.addEventListener('pointerup', this._boundPointerUp, true);
         document.addEventListener('pointercancel', this._boundPointerUp, true);
+
+        this._resetIdleTimeout();
     }
 
     firstUpdated()
@@ -494,6 +498,8 @@ class HoneycombMenu extends LitElement
             return;
 
         this.closing = true;
+
+        this._clearIdleTimeout();
 
         document.removeEventListener('pointermove', this._boundPointerMove, true);
         document.removeEventListener('pointerup', this._boundPointerUp, true);
@@ -860,7 +866,10 @@ class HoneycombMenu extends LitElement
             manager.stack = [];
             manager.currentConfig = null;
             this.close(item);
+            return;
         }
+
+        this._resetIdleTimeout();
     }
 
     _setDragHoverSlot(slot)
@@ -911,6 +920,7 @@ class HoneycombMenu extends LitElement
 
         this._dragPointerActive = true;
         this._dragPointerId = e.pointerId;
+        this._resetIdleTimeout();
 
         const item = this._findMenuItemAtPoint(e.clientX, e.clientY);
 
@@ -987,6 +997,36 @@ class HoneycombMenu extends LitElement
             composed: true,
             detail: { action: 'tap' }
         }));
+    }
+
+    _clearIdleTimeout()
+    {
+        if( this._idleTimer )
+        {
+            clearTimeout(this._idleTimer);
+            this._idleTimer = null;
+        }
+    }
+
+    _resetIdleTimeout()
+    {
+        this._clearIdleTimeout();
+
+        const timeout = Number(this.config && this.config.idle_timeout);
+
+        if( ! Number.isFinite(timeout) || timeout <= 0 || this.closing )
+            return;
+
+        this._idleTimer = setTimeout(() => {
+            this._idleTimer = null;
+
+            if( this.closing )
+                return;
+
+            manager.stack = [];
+            manager.currentConfig = null;
+            this.close();
+        }, timeout);
     }
 
     _playButtonSound( _item )
@@ -1080,6 +1120,7 @@ class HoneycombMenu extends LitElement
                 'empty_slots',
                 'center_button',
                 'center_brightness',
+                'idle_timeout',
                 'slot',
                 'slot_mode'
             ]
