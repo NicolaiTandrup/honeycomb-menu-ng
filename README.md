@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="assets/honeycomb-menu-ng-logo.png" width="220" alt="Honeycomb Menu NG">
+</p>
 # Honeycomb Menu NG for Home Assistant
 
 Enhanced fork of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu) with flexible 18-slot layouts, an optional center button, shared styling, nested menus, and soft/hard slot positioning.
