@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="assets/honeycomb-menu-ng-logo.png" width="220" alt="Honeycomb Menu NG">
+  <img src="https://raw.githubusercontent.com/NicolaiTandrup/honeycomb-menu-ng/master/assets/honeycomb-menu-ng-logo.png"
+       width="220"
+       alt="Honeycomb Menu NG">
 </p>
 # Honeycomb Menu NG for Home Assistant
 
