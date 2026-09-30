@@ -52,8 +52,23 @@ window.honeycomb_menu = (config) => {
         honeycombConfig.entity = honeycombConfig.entity_id;
 
     // If a menu is already open, treat a newly opened menu as a nested menu.
-    // The previous config is kept so honeycomb-back can restore it.
+    // nested_expand keeps the current Honeycomb element alive and only updates
+    // its config, so existing inner-ring buttons do not animate out/in again.
     const nested = !! manager.honeycomb && !! manager.currentConfig;
+
+    if( nested && honeycombConfig.nested_expand === true )
+    {
+        manager.stack.push({
+            __honeycomb_stack_entry: true,
+            config: merge({}, manager.currentConfig),
+            inPlace: true
+        });
+
+        manager.currentConfig = merge({}, honeycombConfig);
+        manager.honeycomb.replaceConfig(honeycombConfig);
+        return;
+    }
+
     showHoneycombMenu( honeycombConfig, { nested } );
 };
 
@@ -100,7 +115,19 @@ function honeycombBack()
     if( manager.stack.length === 0 )
         return false;
 
-    const previousConfig = manager.stack.pop();
+    const previous = manager.stack.pop();
+
+    if( previous && previous.__honeycomb_stack_entry && previous.inPlace && manager.honeycomb )
+    {
+        manager.currentConfig = merge({}, previous.config);
+        manager.honeycomb.replaceConfig(previous.config);
+        return true;
+    }
+
+    const previousConfig = previous && previous.__honeycomb_stack_entry
+        ? previous.config
+        : previous;
+
     showHoneycombMenu(previousConfig, { nested: false });
     return true;
 }
@@ -227,6 +254,8 @@ class HoneycombMenu extends LitElement
         this._dragStartY = null;
         this._idleTimer = null;
         this._stateRefreshTimer = null;
+        this._anchorX = null;
+        this._anchorY = null;
         this._boundPointerMove = this._handleGlobalPointerMove.bind(this);
         this._boundPointerUp = this._handleGlobalPointerUp.bind(this);
     }
@@ -474,6 +503,8 @@ class HoneycombMenu extends LitElement
 
         this.view.append( this );
 
+        this._anchorX = _x;
+        this._anchorY = _y;
         this._setPosition( _x, _y );
 
         // If the menu was opened from button-card press_action, the pointer is
@@ -494,6 +525,21 @@ class HoneycombMenu extends LitElement
 
         this._resetIdleTimeout();
         this._startStateRefresh();
+    }
+
+    replaceConfig(_config)
+    {
+        if( this.closing )
+            return;
+
+        this.setConfig(_config);
+        this._setCssVars();
+
+        if( this._anchorX !== null && this._anchorY !== null )
+            this._setPosition(this._anchorX, this._anchorY);
+
+        this._resetIdleTimeout();
+        this.requestUpdate();
     }
 
     firstUpdated()
@@ -1184,6 +1230,7 @@ class HoneycombMenu extends LitElement
                 'drag_deadzone',
                 'hover_highlight',
                 'nested_center_back',
+                'nested_expand',
                 'button_defaults',
                 'empty_slots',
                 'center_button',
