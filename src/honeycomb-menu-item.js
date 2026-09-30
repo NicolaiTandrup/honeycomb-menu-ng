@@ -40,12 +40,15 @@ class HoneycombMenuItem extends LitElement
 
     set hass(obj)
     {
+        const oldHass = this._hass;
         this._hass = obj;
         this._computeIsActive();
 
         // Keep the wrapped Lovelace card on the newest HA state.
         if( this._card )
             this._card.hass = obj;
+
+        this.requestUpdate('hass', oldHass);
     }
 
     get hass()
@@ -63,7 +66,7 @@ class HoneycombMenuItem extends LitElement
 
         this.disabled = false;
 
-        // Work on a private copy so parsed actions never mutate the source config.
+        // Always keep a private copy. Never mutate the source menu config.
         this._config = assign({
             autoclose: true,
             audio: false,
@@ -84,8 +87,6 @@ class HoneycombMenuItem extends LitElement
         this._parseTemplates();
         this._computeIsActive();
 
-        // Existing wrapped button-card must receive the refreshed, re-evaluated
-        // action configuration while the Honeycomb remains open.
         if( this._card )
             this._updateLovelaceCard();
     }
@@ -185,6 +186,23 @@ class HoneycombMenuItem extends LitElement
         }
     }
 
+    _containsButtonCardTemplate(value)
+    {
+        if( isString(value) )
+        {
+            const trimmed = value.trim();
+            return trimmed.startsWith('[[[') && trimmed.endsWith(']]]');
+        }
+
+        if( Array.isArray(value) )
+            return value.some(v => this._containsButtonCardTemplate(v));
+
+        if( value && typeof value === 'object' )
+            return Object.values(value).some(v => this._containsButtonCardTemplate(v));
+
+        return false;
+    }
+
     _parseTemplates()
     {
         if( ! this.hass || ! this.config )
@@ -199,27 +217,46 @@ class HoneycombMenuItem extends LitElement
 
         for( let key in this.config )
         {
-            if( ['tap_action', 'hold_action', 'double_tap_action'].indexOf(key) > -1 )
-            {
-                if( 'honeycomb_menu' in this.config[key] )
-                {
-                    if( this.config.variables )
-                    {
-                        this.config[key].honeycomb_menu.variables = {
-                            ...this.config.variables,
-                            ...this.config[key].honeycomb_menu.variables
-                        };
-                    }
-                    continue;
-                }
+            if( ['tap_action', 'hold_action', 'double_tap_action'].indexOf(key) === -1 )
+                continue;
 
-                this.config[key] = objectEvalTemplate(
-                    this.hass,
-                    this.hass.states[this.config.entity],
-                    this.config.variables,
-                    this.config[key]
-                );
+            const actionConfig = this.config[key];
+
+            if( ! actionConfig )
+                continue;
+
+            if( 'honeycomb_menu' in actionConfig )
+            {
+                if( this.config.variables )
+                {
+                    actionConfig.honeycomb_menu.variables = {
+                        ...this.config.variables,
+                        ...actionConfig.honeycomb_menu.variables
+                    };
+                }
+                continue;
             }
+
+            // v0.7.5:
+            // Preserve custom:button-card JS templates such as:
+            //   temperature: >
+            //     [[[ return states['climate.x'].attributes.temperature + 0.5; ]]]
+            //
+            // Previously Honeycomb evaluated these once when the menu opened,
+            // freezing the value for every later click. Passing them through
+            // untouched lets button-card evaluate them against the current hass
+            // state for every render/action.
+            if( this._containsButtonCardTemplate(actionConfig) )
+                continue;
+
+            // Preserve existing Honeycomb template behaviour for legacy action
+            // configs that do not contain button-card [[[ ... ]]] templates.
+            this.config[key] = objectEvalTemplate(
+                this.hass,
+                this.hass.states[this.config.entity],
+                this.config.variables,
+                actionConfig
+            );
         }
     }
 
