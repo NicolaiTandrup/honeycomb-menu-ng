@@ -226,6 +226,7 @@ class HoneycombMenu extends LitElement
         this._dragStartX = null;
         this._dragStartY = null;
         this._idleTimer = null;
+        this._stateRefreshTimer = null;
         this._boundPointerMove = this._handleGlobalPointerMove.bind(this);
         this._boundPointerUp = this._handleGlobalPointerUp.bind(this);
     }
@@ -492,6 +493,7 @@ class HoneycombMenu extends LitElement
         document.addEventListener('pointercancel', this._boundPointerUp, true);
 
         this._resetIdleTimeout();
+        this._startStateRefresh();
     }
 
     firstUpdated()
@@ -507,6 +509,7 @@ class HoneycombMenu extends LitElement
         this.closing = true;
 
         this._clearIdleTimeout();
+        this._stopStateRefresh();
 
         document.removeEventListener('pointermove', this._boundPointerMove, true);
         document.removeEventListener('pointerup', this._boundPointerUp, true);
@@ -1038,6 +1041,37 @@ class HoneycombMenu extends LitElement
             composed: true,
             detail: { action: 'tap' }
         }));
+    }
+
+    _startStateRefresh()
+    {
+        this._stopStateRefresh();
+
+        // Honeycomb is appended dynamically and does not automatically receive
+        // every new Home Assistant hass object. Refresh it while the menu is open
+        // so button-card templates (state, labels, icons and actions) stay live.
+        this._stateRefreshTimer = setInterval(() => {
+            if( this.closing )
+                return;
+
+            const homeAssistant = document.querySelector('home-assistant');
+            const latestHass = homeAssistant ? homeAssistant.hass : null;
+
+            if( latestHass && latestHass !== this.hass )
+            {
+                this.hass = latestHass;
+                this.requestUpdate();
+            }
+        }, 200);
+    }
+
+    _stopStateRefresh()
+    {
+        if( this._stateRefreshTimer )
+        {
+            clearInterval(this._stateRefreshTimer);
+            this._stateRefreshTimer = null;
+        }
     }
 
     _clearIdleTimeout()
