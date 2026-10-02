@@ -469,12 +469,18 @@ class HoneycombMenu extends LitElement
             empty_slots: 'visible',
             center_button: {},
             center_brightness: 25,
-            idle_timeout: 0
+            idle_timeout: 0,
+            layout_envelope: 'auto'
         });
         this.config = config;
 
         // Resolve the buttons first because the active ring(s) determine size.
         this._assignButtons();
+
+        // Reserve enough geometry for any reachable nested_expand submenu.
+        // This prevents the current inner ring from being repositioned when an
+        // outer-ring submenu is expanded in place later.
+        this._layoutEnvelopeOuter = this._computeLayoutEnvelopeOuter(this.config);
 
         let itemSize = this.config.size / 3.586;
         let outerRing = this._hasOuterRing();
@@ -1236,6 +1242,7 @@ class HoneycombMenu extends LitElement
                 'center_button',
                 'center_brightness',
                 'idle_timeout',
+                'layout_envelope',
                 'slot',
                 'slot_mode'
             ]
@@ -1400,6 +1407,108 @@ class HoneycombMenu extends LitElement
         return computed;
     }
 
+    _getConfiguredButtons(config)
+    {
+        if( ! config || ! Array.isArray(config.buttons) )
+            return [];
+
+        const buttons = [];
+
+        config.buttons.forEach(entry => {
+            if( Array.isArray(entry) )
+            {
+                entry.forEach(button => {
+                    if( button && typeof button === 'object' )
+                        buttons.push(button);
+                });
+            }
+            else if( entry && typeof entry === 'object' )
+            {
+                buttons.push(entry);
+            }
+        });
+
+        return buttons;
+    }
+
+    _configUsesOuterRing(config)
+    {
+        const buttons = this._getConfiguredButtons(config);
+
+        // More than six configured buttons necessarily needs the outer ring in
+        // one of the supported automatic layouts. Be conservative here: this is
+        // an envelope calculation, so reserving a little extra space is safer
+        // than allowing the menu to jump when a dynamic button becomes visible.
+        if( buttons.length > 6 )
+            return true;
+
+        return buttons.some(button => {
+            // Legacy position is zero-based and absolute.
+            if( button.position !== undefined )
+            {
+                const position = Number(button.position);
+                if( Number.isInteger(position) && position >= 6 && position <= 17 )
+                    return true;
+            }
+
+            // Only hard slots force a physical ring. Soft slots may wrap into
+            // the currently active ring and therefore do not require an outer
+            // envelope by themselves.
+            if( button.slot_mode === 'hard' && button.slot !== undefined )
+            {
+                const slot = Number(button.slot);
+                if( Number.isInteger(slot) && slot >= 7 && slot <= 18 )
+                    return true;
+            }
+
+            return false;
+        });
+    }
+
+    _configHasExpandableOuter(config, seen = new Set())
+    {
+        if( ! config || typeof config !== 'object' || seen.has(config) )
+            return false;
+
+        seen.add(config);
+
+        const buttons = this._getConfiguredButtons(config);
+        const actionKeys = ['tap_action', 'hold_action', 'double_tap_action', 'press_action'];
+
+        for( const button of buttons )
+        {
+            for( const actionKey of actionKeys )
+            {
+                const action = button[actionKey];
+                const nested = action && action.honeycomb_menu;
+
+                if( ! nested || nested.nested_expand !== true )
+                    continue;
+
+                if( nested.layout_envelope === 'outer' || this._configUsesOuterRing(nested) )
+                    return true;
+
+                if( nested.layout_envelope !== 'inner' && this._configHasExpandableOuter(nested, seen) )
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    _computeLayoutEnvelopeOuter(config)
+    {
+        const mode = config && config.layout_envelope;
+
+        if( mode === 'outer' )
+            return true;
+
+        if( mode === 'inner' )
+            return false;
+
+        return !!(this._rings && this._rings.outer) || this._configHasExpandableOuter(config);
+    }
+
     _computeCenterPosition()
     {
         if( this._hasOuterRing() )
@@ -1423,7 +1532,10 @@ class HoneycombMenu extends LitElement
 
     _hasOuterRing()
     {
-        return this._rings && this._rings.outer;
+        return !!(
+            (this._rings && this._rings.outer) ||
+            this._layoutEnvelopeOuter
+        );
     }
 
     _computeButtonPosition( slot )

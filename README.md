@@ -22,6 +22,7 @@ Honeycomb Menu NG is a **Home Assistant dashboard module**, not a standalone car
 - Global `button_defaults` styling
 - `empty_slots: visible|hidden`
 - Nested Honeycomb menus
+- Stable nested expansion with automatic layout envelopes
 - Existing template and XY-pad support
 - Legacy `position` support
 
@@ -142,6 +143,24 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 | 13–18 | Inner + outer ring |
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
+
+## Layout envelope for nested expansion
+
+When a menu contains a reachable nested menu with `nested_expand: true`, Honeycomb Menu NG can reserve the geometry needed by that submenu before it is opened. This keeps the center and inner ring in the same position when an outer ring is expanded later.
+
+The default is:
+
+```yaml
+layout_envelope: auto
+```
+
+Modes:
+
+- `auto` — inspect reachable `nested_expand` menus and reserve outer-ring space when needed
+- `inner` — reserve only the current inner-ring footprint
+- `outer` — always reserve the full inner + outer footprint
+
+The envelope only affects geometry and positioning. It does not render empty outer-ring buttons.
 
 ## Empty slots
 
