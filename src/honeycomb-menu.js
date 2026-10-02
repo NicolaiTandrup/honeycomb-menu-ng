@@ -834,25 +834,47 @@ class HoneycombMenu extends LitElement
 
     _setPosition( _x, _y )
     {
-        let container = {
+        const container = {
             w: ( this.sizes.containerWidth / 2 ),
             h: ( this.sizes.containerHeight / 2 )
         };
 
-        let bounds =  {
-            min: {
-                x: parseFloat( window.getComputedStyle(this.view, null).getPropertyValue('padding-left') ) + container.w,
-                y: parseFloat( window.getComputedStyle(this.view, null).getPropertyValue('padding-top') ) + container.h
-            },
-            max: {
-                x: this.view.clientWidth - container.w,
-                y: this.view.clientHeight - container.h
-            }
-        };
+        const rect = this.view.getBoundingClientRect();
+        const viewStyle = window.getComputedStyle(this.view, null);
 
-        let rect = this.view.getBoundingClientRect();
-        _x = clamp( _x - rect.left, bounds.min.x, bounds.max.x - 5 );
-        _y = clamp( _y - rect.top, bounds.min.y, bounds.max.y - 5 );
+        const paddingLeft = parseFloat( viewStyle.getPropertyValue('padding-left') ) || 0;
+        const paddingTop = parseFloat( viewStyle.getPropertyValue('padding-top') ) || 0;
+
+        // Clamp against the visible intersection of the Lovelace view and the
+        // browser viewport, not the full scrollable dashboard surface.
+        const visibleLeft = Math.max(rect.left, 0);
+        const visibleTop = Math.max(rect.top, 0);
+        const visibleRight = Math.min(rect.right, window.innerWidth);
+        const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+
+        let minX = ( visibleLeft - rect.left ) + paddingLeft + container.w;
+        let minY = ( visibleTop - rect.top ) + paddingTop + container.h;
+        let maxX = ( visibleRight - rect.left ) - container.w - 5;
+        let maxY = ( visibleBottom - rect.top ) - container.h - 5;
+
+        // If the menu is larger than the visible viewport in one axis, keep the
+        // calculation stable instead of producing an inverted clamp range.
+        if( maxX < minX )
+        {
+            const centerX = ( ( visibleLeft + visibleRight ) / 2 ) - rect.left;
+            minX = centerX;
+            maxX = centerX;
+        }
+
+        if( maxY < minY )
+        {
+            const centerY = ( ( visibleTop + visibleBottom ) / 2 ) - rect.top;
+            minY = centerY;
+            maxY = centerY;
+        }
+
+        _x = clamp( _x - rect.left, minX, maxX );
+        _y = clamp( _y - rect.top, minY, maxY );
 
         this.style.left = `${_x - container.w}px`;
         this.style.top = `${_y - container.h}px`;
