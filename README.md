@@ -23,6 +23,7 @@ Honeycomb Menu NG is a **Home Assistant dashboard module**, not a standalone car
 - `empty_slots: visible|hidden`
 - Nested Honeycomb menus
 - Stable nested expansion with automatic layout envelopes
+- Visible-viewport-aware menu positioning near screen edges
 - Existing template and XY-pad support
 - Legacy `position` support
 
