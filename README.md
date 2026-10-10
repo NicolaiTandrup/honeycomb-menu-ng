@@ -146,6 +146,15 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.13 — Preset text layout fix
+
+v1.0.13 fixes the visual layout of generated preset controls:
+
+- preset buttons now use a dedicated three-row grid for icon, stored preset value and current light value
+- stored values such as `60%` and `2700K` are centered inside the hexagon instead of being pushed toward or below the edge
+- current values such as `Now 43%` and `Now 3200K` use a smaller secondary line underneath
+- the fix applies to brightness, Kelvin and HS color preset controls without changing ordinary Honeycomb buttons
+
 ## v1.0.12 — Preset template runtime fix
 
 v1.0.12 fixes a runtime regression in the new preset controls:
