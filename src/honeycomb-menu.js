@@ -104,7 +104,15 @@ function showHoneycombMenu( _config, options = {} )
     manager.currentConfig = merge({}, _config);
 
     menu.setConfig( _config );
-    menu.display( lovelace_view(), manager.position.x, manager.position.y );
+
+    const anchorX = Number.isFinite(Number(_config.anchor_x))
+        ? Number(_config.anchor_x)
+        : manager.position.x;
+    const anchorY = Number.isFinite(Number(_config.anchor_y))
+        ? Number(_config.anchor_y)
+        : manager.position.y;
+
+    menu.display( lovelace_view(), anchorX, anchorY );
     menu.addEventListener('closing', e => {
         if( manager.honeycomb === menu )
             manager.honeycomb = null;
@@ -347,8 +355,15 @@ class HoneycombMenu extends LitElement
                 width: var(--item-size);
                 padding: var(--spacing);
             }
-            honeycomb-menu-item.center-item {
+            honeycomb-menu-item.center-item,
+            honeycomb-persistent-control.center-item {
                 z-index: 2;
+            }
+            honeycomb-persistent-control.center-item {
+                position: absolute;
+                width: var(--item-size);
+                pointer-events: all;
+                box-sizing: border-box;
             }
             honeycomb-menu-item.center-item.center-auto-style {
                 filter: brightness(var(--honeycomb-center-brightness, 1.25));
@@ -401,7 +416,19 @@ class HoneycombMenu extends LitElement
                 </xy-pad>`:''}
 
             <div id="honeycombs" class="honeycombs">
-                ${centerConfig ? html`
+                ${this.config.persistent_center ? html`
+                    <honeycomb-persistent-control
+                        class="center-item persistent-center-item"
+                        style="
+                            left: calc(var(--item-size) * ${centerPos.x});
+                            top: calc(var(--item-size) * ${centerPos.y});
+                            --honeycomb-persistent-size: var(--item-size);
+                        "
+                        .hass=${this.hass}
+                        .config=${this.config.persistent_center}
+                        .size=${this.sizes.item}>
+                    </honeycomb-persistent-control>
+                ` : (centerConfig ? html`
                     <honeycomb-menu-item
                         class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''} ${this._dragHoverSlot === 18 ? 'drag-hover' : ''}"
                         data-honeycomb-slot="center"
@@ -416,7 +443,7 @@ class HoneycombMenu extends LitElement
                         .config=${centerConfig}
                         @action=${this._handleItemAction}>
                     </honeycomb-menu-item>
-                ` : ''}
+                ` : '')}
 
                 ${this.buttons.map((v, i) => {
                     if( v === undefined )
@@ -471,7 +498,9 @@ class HoneycombMenu extends LitElement
             center_button: {},
             center_brightness: 25,
             idle_timeout: 0,
-            layout_envelope: 'auto'
+            layout_envelope: 'auto',
+            position_mode: 'viewport',
+            persistent_center: null
         });
         this.config = config;
 
@@ -841,13 +870,26 @@ class HoneycombMenu extends LitElement
         };
 
         const rect = this.view.getBoundingClientRect();
+
+        // Persistent controls are real dashboard/floorplan anchors. Their
+        // center must stay at the exact same screen coordinate while the ring
+        // expands around them, even when part of the ring reaches an edge.
+        if( this.config.position_mode === 'anchored' )
+        {
+            const anchoredX = _x - rect.left;
+            const anchoredY = _y - rect.top;
+
+            this.style.left = `${anchoredX - container.w}px`;
+            this.style.top = `${anchoredY - container.h}px`;
+            return;
+        }
+
         const viewStyle = window.getComputedStyle(this.view, null);
 
         const paddingLeft = parseFloat( viewStyle.getPropertyValue('padding-left') ) || 0;
         const paddingTop = parseFloat( viewStyle.getPropertyValue('padding-top') ) || 0;
 
-        // Clamp against the visible intersection of the Lovelace view and the
-        // browser viewport, not the full scrollable dashboard surface.
+        // Standard popup menus still clamp against the visible viewport.
         const visibleLeft = Math.max(rect.left, 0);
         const visibleTop = Math.max(rect.top, 0);
         const visibleRight = Math.min(rect.right, window.innerWidth);
@@ -858,8 +900,6 @@ class HoneycombMenu extends LitElement
         let maxX = ( visibleRight - rect.left ) - container.w - 5;
         let maxY = ( visibleBottom - rect.top ) - container.h - 5;
 
-        // If the menu is larger than the visible viewport in one axis, keep the
-        // calculation stable instead of producing an inverted clamp range.
         if( maxX < minX )
         {
             const centerX = ( ( visibleLeft + visibleRight ) / 2 ) - rect.left;
@@ -1266,6 +1306,10 @@ class HoneycombMenu extends LitElement
                 'center_brightness',
                 'idle_timeout',
                 'layout_envelope',
+                'position_mode',
+                'persistent_center',
+                'anchor_x',
+                'anchor_y',
                 'slot',
                 'slot_mode'
             ]
