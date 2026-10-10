@@ -146,6 +146,25 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.14 — Auto light controls
+
+v1.0.14 makes the light-specific Honeycomb controls capability-aware and usable with or without Shelly/HA preset helpers:
+
+- `control: light-palette` reads the light's `supported_color_modes`
+  - color-capable lights (for example `xy`, `hs`, `rgb`) automatically open a 12-color outer ring
+  - color-temperature-only lights automatically open a 12-step warm-to-cool white outer ring using the light's own min/max Kelvin attributes
+- `control: preset-standard` automatically chooses the correct standard control
+  - color-capable light + Hue/Saturation helpers: stored HS color
+  - color-temperature light + Kelvin helper: stored Kelvin
+  - no helper configured: warm-white fallback at 2700K
+- `control: preset-brightness` now works without a helper and falls back to 60%
+- `control: preset-kelvin` works without a helper and falls back to 2700K
+- helper-backed controls retain tap-to-apply and hold-to-store behavior
+- fallback controls are apply-only
+- null Home Assistant brightness/Kelvin attributes no longer display as misleading `Now 0%` / `Now 0K`
+
+This allows the same compact YAML to be reused for White Ambiance and full-color lights.
+
 ## v1.0.13 — Preset text layout fix
 
 v1.0.13 fixes the visual layout of generated preset controls:
