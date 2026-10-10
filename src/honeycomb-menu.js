@@ -55,10 +55,9 @@ function applyEntityToAction(action, entity)
 
     if( actionName === 'perform-action' )
     {
+        // Any explicit target wins, including area/device based targets.
         if( ! action.target )
             action.target = { entity_id: entity };
-        else if( action.target.entity_id === undefined )
-            action.target.entity_id = entity;
     }
     else if( actionName === 'call-service' )
     {
