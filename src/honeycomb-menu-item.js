@@ -122,7 +122,7 @@ class HoneycombMenuItem extends LitElement
                 height: 100%;
                 transform: skewY(-30deg) rotate(60deg);
                 overflow: hidden;
-                background: #000;
+                background: var(--honeycomb-menu-item-shell-background, #000);
             }
             .comb * {
                 visibility: visible;
