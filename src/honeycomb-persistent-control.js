@@ -385,6 +385,9 @@ class HoneycombPersistentControl extends LitElement
         if( ! menu.entity )
             menu.entity = this.config.entity;
 
+        if( this.config.presets )
+            menu.presets = merge({}, this.config.presets, menu.presets || {});
+
         menu.position_mode = 'anchored';
 
         // If any reachable nested menu expands into the outer physical ring,
