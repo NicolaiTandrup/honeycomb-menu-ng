@@ -146,6 +146,16 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.5 — Static outer border and stable outer-ring envelope
+
+v1.0.5 refines the persistent light visual and outer-ring expansion:
+
+- the persistent center outer border is now a static dark gray by default, so bright light colors remain visually separated from the dashboard/floorplan background
+- inner border still follows the active/last-known light color
+- center fill still follows the actual light color when on
+- persistent menus now explicitly reserve the full outer-ring layout envelope before the first ring opens when a reachable nested menu uses the outer physical ring
+- opening Color into slots 7–18 therefore does not recalculate the menu footprint and move the anchored center
+
 ## v1.0.4 — Smart center contrast and outer color palette
 
 v1.0.4 improves light-focused persistent controls:

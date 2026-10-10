@@ -164,7 +164,7 @@ class HoneycombPersistentControl extends LitElement
             colors: {
                 center: 'auto',
                 inner_border: 'auto',
-                outer_border: 'auto',
+                outer_border: '#34383d',
                 unavailable: '#555b63'
             },
             off: {
@@ -386,6 +386,44 @@ class HoneycombPersistentControl extends LitElement
             menu.entity = this.config.entity;
 
         menu.position_mode = 'anchored';
+
+        // If any reachable nested menu expands into the outer physical ring,
+        // reserve that full envelope before the first ring opens. The center
+        // then stays on the exact same pixel when Color (or another submenu)
+        // reveals slots 7-18.
+        const hasNestedOuterExpansion = (buttons) => {
+            if( ! Array.isArray(buttons) )
+                return false;
+
+            for( let i = 0; i < buttons.length; i++ )
+            {
+                const button = buttons[i];
+
+                if( ! button || typeof button !== 'object' )
+                    continue;
+
+                const nested = button.tap_action && button.tap_action.honeycomb_menu;
+
+                if( nested && nested.nested_expand === true )
+                {
+                    if( nested.inherit_inner === true )
+                        return true;
+
+                    if( Array.isArray(nested.buttons) && nested.buttons.some(item => {
+                        return item && Number(item.slot) >= 7;
+                    }) )
+                        return true;
+                }
+
+                if( nested && hasNestedOuterExpansion(nested.buttons) )
+                    return true;
+            }
+
+            return false;
+        };
+
+        if( hasNestedOuterExpansion(menu.buttons) )
+            menu.layout_envelope = 'outer';
 
         const anchorSize = Number(this._anchorRenderedSize) || this.size;
 
