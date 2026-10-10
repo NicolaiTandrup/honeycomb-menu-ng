@@ -146,6 +146,18 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.1 — Anchored persistent controls
+
+v1.0.1 refines the persistent-control foundation introduced in v1.0.0:
+
+- persistent hexagons now use SVG geometry so all six sides and both borders remain homogeneous at every size
+- an opened persistent menu is anchored to the exact center of the persistent cube instead of being viewport-clamped away from it
+- the expanded menu renders the same persistent-center visual in its center, including live light color and border state
+- ring button size automatically matches the persistent anchor size by default (`match_anchor_size: true`)
+- standard non-persistent Honeycomb popups continue to use visible-viewport positioning
+
+This establishes the model needed for future persistent room clusters where lights, thermostats and media controls can each expand their own Honeycomb ring from their fixed floorplan position.
+
 ## Persistent center control (v1.0)
 
 v1.0 adds an opt-in persistent Honeycomb center that can stay visible on a dashboard or floorplan while the surrounding menu remains hidden until a hold gesture.
