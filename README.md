@@ -24,6 +24,7 @@ Honeycomb Menu NG is a **Home Assistant dashboard module**, not a standalone car
 - Nested Honeycomb menus
 - Stable nested expansion with automatic layout envelopes
 - Visible-viewport-aware menu positioning near screen edges
+- Persistent center controls for floorplans and compact dashboards (v1.0)
 - Existing template and XY-pad support
 - Legacy `position` support
 
@@ -144,6 +145,50 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 | 13–18 | Inner + outer ring |
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
+
+## Persistent center control (v1.0)
+
+v1.0 adds an opt-in persistent Honeycomb center that can stay visible on a dashboard or floorplan while the surrounding menu remains hidden until a hold gesture.
+
+The persistent control reuses the existing Honeycomb center geometry and the existing menu engine. Existing popup/menu configurations remain unchanged.
+
+Basic example:
+
+```yaml
+type: custom:honeycomb-persistent-control
+entity: light.hue_kontor
+icon: mdi:lightbulb
+size: 72
+
+tap_action:
+  action: toggle
+
+menu:
+  size: 225
+  empty_slots: hidden
+  buttons:
+    - slot: 1
+      slot_mode: hard
+      entity: light.hue_kontor
+      icon: mdi:brightness-7
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        target:
+          entity_id: light.hue_kontor
+        data:
+          brightness_pct: 100
+```
+
+Initial v1.0 persistent behavior:
+
+- the center stays visible while idle
+- tap executes the configured primary action
+- hold opens the configured Honeycomb menu
+- closing the menu returns to the persistent center
+- Home Assistant state updates are passed live to the center card
+
+Dynamic light colors, double borders and brightness text build on this persistent-center foundation.
 
 ## Layout envelope for nested expansion
 
