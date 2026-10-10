@@ -588,7 +588,18 @@ class HoneycombPersistentControl extends LitElement
         menu.anchor_x = rect.left + (rect.width / 2);
         menu.anchor_y = rect.top + (rect.height / 2);
 
-        window.honeycomb_menu(menu);
+        const openedMenu = window.honeycomb_menu(menu);
+
+        if( openedMenu )
+        {
+            this.style.visibility = 'hidden';
+
+            const restore = () => {
+                this.style.visibility = '';
+            };
+
+            openedMenu.addEventListener('closed', restore, { once: true });
+        }
     }
 
     _executeAction(action)
