@@ -616,11 +616,12 @@ class HoneycombMenu extends LitElement
 
         if( this.config.position_mode === 'anchored' )
         {
-            // Persistent menus are viewport overlays. Keeping the menu out of
-            // the Lovelace view prevents it from increasing scrollable overflow
-            // and triggering browser scroll anchoring near the bottom edge.
+            // Keep anchored menus in the Lovelace subtree so wrapped cards
+            // retain the same Home Assistant action/event context as normal
+            // Honeycomb menus. position:fixed keeps the overlay out of layout
+            // flow, so it still cannot increase scrollable document height.
             this.style.position = 'fixed';
-            document.body.append(this);
+            this.view.append(this);
         }
         else
         {
