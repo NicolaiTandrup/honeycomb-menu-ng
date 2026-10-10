@@ -146,6 +146,20 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.10 — Entity inheritance
+
+v1.0.10 adds entity inheritance to reduce repeated entity IDs in Honeycomb YAML:
+
+- the top-level `entity` becomes the default entity for the menu tree
+- menu center, ring buttons and nested Honeycomb menus inherit it automatically
+- `perform-action` actions automatically receive `target.entity_id` when no target is explicitly supplied
+- legacy `call-service` actions automatically receive `service_data.entity_id` when no explicit target/entity is supplied
+- a button or nested menu can still override inheritance simply by setting its own `entity`
+- explicitly configured action targets always win
+- existing YAML remains backwards compatible
+
+This means a persistent light control can define `entity: light.hue_kontor` once at the root and omit the repeated entity and target blocks from its buttons and nested color palette.
+
 ## v1.0.8 — Restore persistent button actions in fixed overlay mode
 
 v1.0.8 fixes a regression introduced by the fixed-overlay placement change:
@@ -227,6 +241,27 @@ v1.0.1 refines the persistent-control foundation introduced in v1.0.0:
 - standard non-persistent Honeycomb popups continue to use visible-viewport positioning
 
 This establishes the model needed for future persistent room clusters where lights, thermostats and media controls can each expand their own Honeycomb ring from their fixed floorplan position.
+
+## Entity inheritance
+
+From v1.0.10, the root Honeycomb `entity` is inherited throughout the menu tree.
+
+```yaml
+type: custom:honeycomb-persistent-control
+entity: light.hue_kontor
+
+menu:
+  buttons:
+    - slot: 1
+      icon: mdi:brightness-7
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        data:
+          brightness_pct: 100
+```
+
+The button above automatically uses `light.hue_kontor` as both its entity and action target. Nested Honeycomb menus inherit the same entity unless they explicitly set another one.
 
 ## Persistent center control (v1.0)
 
