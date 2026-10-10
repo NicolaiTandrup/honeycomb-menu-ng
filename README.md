@@ -146,6 +146,15 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.12 — Preset template runtime fix
+
+v1.0.12 fixes a runtime regression in the new preset controls:
+
+- button-card JavaScript templates used for preset labels are now emitted as literal templates instead of being evaluated while Honeycomb is opening
+- this fixes the long-press failure where a persistent control with `presets:` could not open its base menu
+- stored brightness/Kelvin values and current light values can now be rendered dynamically after the menu opens
+- no configuration changes are required from v1.0.11
+
 ## v1.0.11 — Preset controls
 
 v1.0.11 adds native preset controls for persistent light menus:
