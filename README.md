@@ -146,6 +146,15 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.6 — Border cleanup and theme-independent ring contrast
+
+v1.0.6 fixes two visual issues found during persistent-control testing:
+
+- the persistent center no longer creates a double dark outline; outer border, inner accent border and center fill are now three uniformly scaled copies of the same SVG hexagon
+- the outer border remains static dark gray while the inner border continues to follow the active/last-known light color
+- persistent ring labels and icons now use an explicit light foreground on the default dark-gray ring background, so they remain readable in both Home Assistant light and dark themes
+- center icon/brightness contrast still adapts automatically to the actual center fill color
+
 ## v1.0.5 — Static outer border and stable outer-ring envelope
 
 v1.0.5 refines the persistent light visual and outer-ring expansion:

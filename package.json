@@ -1,7 +1,7 @@
 {
   "name": "honeycomb-menu-ng",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Enhanced Honeycomb popup menu for Home Assistant with flexible layouts, shared styling and improved interaction.",
     "scripts": {
         "build": "webpack",

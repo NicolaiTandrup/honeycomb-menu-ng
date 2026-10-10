@@ -434,7 +434,8 @@ class HoneycombPersistentControl extends LitElement
             styles: {
                 card: [
                     { background: 'rgba(52, 66, 78, 0.94)' },
-                    { border: '1px solid rgba(255, 255, 255, 0.10)' }
+                    { border: '1px solid rgba(255, 255, 255, 0.10)' },
+                    { color: '#f6f7f9' }
                 ],
                 grid: [
                     { 'grid-template-areas': '"i" "n"' },
@@ -445,10 +446,12 @@ class HoneycombPersistentControl extends LitElement
                 ],
                 icon: [
                     { width: '28px' },
-                    { 'align-self': 'end' }
+                    { 'align-self': 'end' },
+                    { color: '#f6f7f9' }
                 ],
                 name: [
                     { 'font-size': '12px' },
+                    { color: '#f6f7f9' },
                     { 'line-height': '1.05' },
                     { 'align-self': 'start' },
                     { 'padding-top': '2px' },
@@ -668,10 +671,15 @@ class HoneycombPersistentControl extends LitElement
         const outerWidth = Math.max(0, Number(border.outer_width !== undefined ? border.outer_width : 3));
         const innerWidth = Math.max(0, Number(border.inner_width !== undefined ? border.inner_width : 3));
 
-        // One polygon geometry is used for fill and both strokes. This prevents
-        // the border shape from changing as it is inset/scaled.
-        const totalStroke = Math.max(0, (outerWidth + innerWidth) * 2);
-        const innerStroke = Math.max(0, innerWidth * 2);
+        // Build the two borders as uniformly scaled copies of the exact same
+        // hexagon. This keeps the shape homogeneous while avoiding the double
+        // dark stripe that occurs when two centered SVG strokes overlap.
+        const outerScale = 1;
+        const innerScale = Math.max(0.55, 1 - ((outerWidth * 2) / this.size));
+        const centerScale = Math.max(
+            0.45,
+            innerScale - ((innerWidth * 2) / this.size)
+        );
         const foreground = this._foregroundForBackground(colors.center);
         const secondary = this._brightnessLabel();
 
@@ -692,17 +700,24 @@ class HoneycombPersistentControl extends LitElement
                     <polygon
                         class="hex-polygon"
                         points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
-                        fill="${colors.center}"
-                        stroke="${colors.outer}"
-                        stroke-width="${totalStroke}">
+                        fill="${colors.outer}">
                     </polygon>
-                    <polygon
-                        class="hex-polygon"
-                        points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
-                        fill="none"
-                        stroke="${colors.inner}"
-                        stroke-width="${innerStroke}">
-                    </polygon>
+
+                    <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
+                        <polygon
+                            class="hex-polygon"
+                            points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
+                            fill="${colors.inner}">
+                        </polygon>
+                    </g>
+
+                    <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
+                        <polygon
+                            class="hex-polygon"
+                            points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
+                            fill="${colors.center}">
+                        </polygon>
+                    </g>
                 </svg>
 
                 <div class="content ${secondary ? 'has-secondary' : ''}">
