@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import "./honeycomb-menu-item.js";
+import "./honeycomb-persistent-control.js";
 import "./xy-pad.js";
 import { objectEvalTemplate, getTemplateOrValue, stringToBool, fireEvent, lovelace_view, provideHass, honeycomb_menu_templates } from "./helpers.js";
 
