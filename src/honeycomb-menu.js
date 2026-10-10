@@ -134,12 +134,204 @@ function applyEntityInheritance(config, inheritedEntity)
     return config;
 }
 
+function presetTemplateNumber(entityId, suffix = '')
+{
+    return `[[[
+        const state = states['${entityId}'];
+        const value = state ? Number(state.state) : NaN;
+        return Number.isFinite(value) ? \`${Math.round(value)}${suffix}\` : '—';
+    ]]]`;
+}
+
+function presetCurrentBrightnessTemplate()
+{
+    return `[[[
+        const value = Number(entity && entity.attributes ? entity.attributes.brightness : NaN);
+        return Number.isFinite(value)
+            ? \`Now ${Math.max(0, Math.min(100, Math.round((value / 255) * 100)))}%\`
+            : 'Now —';
+    ]]]`;
+}
+
+function presetCurrentKelvinTemplate()
+{
+    return `[[[
+        const value = Number(entity && entity.attributes ? entity.attributes.color_temp_kelvin : NaN);
+        return Number.isFinite(value) ? \`Now ${Math.round(value)}K\` : 'Now —';
+    ]]]`;
+}
+
+function presetHsTemplate(hueEntity, saturationEntity, current = false)
+{
+    if( current )
+    {
+        return `[[[
+            const hs = entity && entity.attributes ? entity.attributes.hs_color : null;
+            if( ! Array.isArray(hs) || hs.length < 2 )
+                return 'Now —';
+            return \`Now ${Math.round(Number(hs[0]))}° · ${Math.round(Number(hs[1]))}%\`;
+        ]]]`;
+    }
+
+    return `[[[
+        const hueState = states['${hueEntity}'];
+        const satState = states['${saturationEntity}'];
+        const hue = hueState ? Number(hueState.state) : NaN;
+        const sat = satState ? Number(satState.state) : NaN;
+        return Number.isFinite(hue) && Number.isFinite(sat)
+            ? \`${Math.round(hue)}° · ${Math.round(sat)}%\`
+            : '—';
+    ]]]`;
+}
+
+function expandPresetControl(button, presets, inheritedEntity)
+{
+    if( ! button || typeof button !== 'object' || ! button.control )
+        return;
+
+    const control = button.control;
+    const lightEntity = button.entity || inheritedEntity;
+
+    if( control === 'preset-brightness' )
+    {
+        const preset = presets && presets.brightness;
+        const helper = preset && preset.entity;
+
+        if( ! helper )
+            return;
+
+        _defaults(button, {
+            entity: lightEntity,
+            icon: 'mdi:brightness-percent',
+            show_name: true,
+            show_label: true,
+            autoclose: false,
+            name: presetTemplateNumber(helper, '%'),
+            label: presetCurrentBrightnessTemplate(),
+            tap_action: {
+                action: 'honeycomb-preset-apply',
+                preset_type: 'brightness',
+                helper_entity: helper
+            },
+            hold_action: {
+                action: 'honeycomb-preset-store',
+                preset_type: 'brightness',
+                helper_entity: helper
+            }
+        });
+        return;
+    }
+
+    if( control === 'preset-kelvin' )
+    {
+        const preset = presets && presets.kelvin;
+        const helper = preset && preset.entity;
+
+        if( ! helper )
+            return;
+
+        _defaults(button, {
+            entity: lightEntity,
+            icon: 'mdi:temperature-kelvin',
+            show_name: true,
+            show_label: true,
+            autoclose: false,
+            name: presetTemplateNumber(helper, 'K'),
+            label: presetCurrentKelvinTemplate(),
+            tap_action: {
+                action: 'honeycomb-preset-apply',
+                preset_type: 'kelvin',
+                helper_entity: helper
+            },
+            hold_action: {
+                action: 'honeycomb-preset-store',
+                preset_type: 'kelvin',
+                helper_entity: helper
+            }
+        });
+        return;
+    }
+
+    if( control === 'preset-color' )
+    {
+        const preset = presets && presets.color;
+        const hueEntity = preset && preset.hue_entity;
+        const saturationEntity = preset && preset.saturation_entity;
+
+        if( ! hueEntity || ! saturationEntity )
+            return;
+
+        _defaults(button, {
+            entity: lightEntity,
+            icon: 'mdi:palette',
+            show_name: true,
+            show_label: true,
+            autoclose: false,
+            name: presetHsTemplate(hueEntity, saturationEntity, false),
+            label: presetHsTemplate(hueEntity, saturationEntity, true),
+            tap_action: {
+                action: 'honeycomb-preset-apply',
+                preset_type: 'color',
+                hue_entity: hueEntity,
+                saturation_entity: saturationEntity
+            },
+            hold_action: {
+                action: 'honeycomb-preset-store',
+                preset_type: 'color',
+                hue_entity: hueEntity,
+                saturation_entity: saturationEntity
+            }
+        });
+    }
+}
+
+function applyPresetControls(config, inheritedPresets, inheritedEntity)
+{
+    if( ! config || typeof config !== 'object' )
+        return config;
+
+    const localEntity = config.entity || inheritedEntity || null;
+    const localPresets = merge({}, inheritedPresets || {}, config.presets || {});
+
+    if( Object.keys(localPresets).length > 0 )
+        config.presets = localPresets;
+
+    const visitButton = button => {
+        if( ! button || typeof button !== 'object' )
+            return;
+
+        const buttonEntity = button.entity || localEntity;
+        expandPresetControl(button, localPresets, buttonEntity);
+
+        ['tap_action', 'hold_action', 'double_tap_action', 'press_action'].forEach(key => {
+            const action = button[key];
+            const nested = action && action.honeycomb_menu;
+
+            if( nested )
+                applyPresetControls(nested, localPresets, buttonEntity);
+        });
+    };
+
+    if( Array.isArray(config.buttons) )
+    {
+        config.buttons.forEach(entry => {
+            if( Array.isArray(entry) )
+                entry.forEach(visitButton);
+            else
+                visitButton(entry);
+        });
+    }
+
+    return config;
+}
+
 window.honeycomb_menu = (config) => {
     var honeycombConfig = traverseConfigs( config );
 
     if( honeycombConfig.entity_id && ! honeycombConfig.entity )
         honeycombConfig.entity = honeycombConfig.entity_id;
 
+    applyPresetControls(honeycombConfig, honeycombConfig.presets || {}, honeycombConfig.entity);
     applyEntityInheritance(honeycombConfig, honeycombConfig.entity);
 
     // If a menu is already open, treat a newly opened menu as a nested menu.
@@ -1166,6 +1358,27 @@ class HoneycombMenu extends LitElement
             return;
         }
 
+        if(
+            configuredAction === 'honeycomb-preset-apply' ||
+            configuredAction === 'honeycomb-preset-store'
+        )
+        {
+            e.stopPropagation();
+
+            const actionConfig = item.config && item.config[actionKey]
+                ? item.config[actionKey]
+                : null;
+
+            this._handlePresetAction(
+                configuredAction === 'honeycomb-preset-store' ? 'store' : 'apply',
+                actionConfig,
+                item.config ? item.config.entity : null
+            );
+
+            this._resetIdleTimeout();
+            return;
+        }
+
         this._playButtonSound( item );
 
         if( e.detail.autoclose )
@@ -1177,6 +1390,142 @@ class HoneycombMenu extends LitElement
         }
 
         this._resetIdleTimeout();
+    }
+
+    _setNumberHelper(entityId, value)
+    {
+        if( ! this.hass || ! entityId || ! Number.isFinite(Number(value)) )
+            return;
+
+        this.hass.callService(
+            'number',
+            'set_value',
+            { value: Number(value) },
+            { entity_id: entityId }
+        );
+    }
+
+    _handlePresetAction(mode, actionConfig, lightEntity)
+    {
+        if( ! this.hass || ! actionConfig || ! lightEntity )
+            return;
+
+        const light = this.hass.states[lightEntity];
+
+        if( ! light )
+            return;
+
+        const type = actionConfig.preset_type;
+
+        if( type === 'brightness' )
+        {
+            const helper = actionConfig.helper_entity;
+            const helperState = helper ? this.hass.states[helper] : null;
+
+            if( mode === 'apply' )
+            {
+                const value = helperState ? Number(helperState.state) : NaN;
+
+                if( Number.isFinite(value) )
+                {
+                    this.hass.callService(
+                        'light',
+                        'turn_on',
+                        { brightness_pct: Math.max(0, Math.min(100, value)) },
+                        { entity_id: lightEntity }
+                    );
+                }
+            }
+            else
+            {
+                const brightness = Number(light.attributes && light.attributes.brightness);
+
+                if( Number.isFinite(brightness) )
+                {
+                    this._setNumberHelper(
+                        helper,
+                        Math.max(0, Math.min(100, Math.round((brightness / 255) * 100)))
+                    );
+                }
+            }
+
+            return;
+        }
+
+        if( type === 'kelvin' )
+        {
+            const helper = actionConfig.helper_entity;
+            const helperState = helper ? this.hass.states[helper] : null;
+
+            if( mode === 'apply' )
+            {
+                const value = helperState ? Number(helperState.state) : NaN;
+
+                if( Number.isFinite(value) )
+                {
+                    this.hass.callService(
+                        'light',
+                        'turn_on',
+                        { color_temp_kelvin: Math.round(value) },
+                        { entity_id: lightEntity }
+                    );
+                }
+            }
+            else
+            {
+                const kelvin = Number(light.attributes && light.attributes.color_temp_kelvin);
+
+                if( Number.isFinite(kelvin) )
+                    this._setNumberHelper(helper, Math.round(kelvin));
+            }
+
+            return;
+        }
+
+        if( type === 'color' )
+        {
+            const hueEntity = actionConfig.hue_entity;
+            const saturationEntity = actionConfig.saturation_entity;
+
+            if( mode === 'apply' )
+            {
+                const hueState = hueEntity ? this.hass.states[hueEntity] : null;
+                const satState = saturationEntity ? this.hass.states[saturationEntity] : null;
+                const hue = hueState ? Number(hueState.state) : NaN;
+                const saturation = satState ? Number(satState.state) : NaN;
+
+                if( Number.isFinite(hue) && Number.isFinite(saturation) )
+                {
+                    this.hass.callService(
+                        'light',
+                        'turn_on',
+                        {
+                            hs_color: [
+                                Math.max(0, Math.min(360, hue)),
+                                Math.max(0, Math.min(100, saturation))
+                            ]
+                        },
+                        { entity_id: lightEntity }
+                    );
+                }
+            }
+            else
+            {
+                const hs = light.attributes && light.attributes.hs_color;
+
+                if( Array.isArray(hs) && hs.length >= 2 )
+                {
+                    this._setNumberHelper(
+                        hueEntity,
+                        Math.max(0, Math.min(360, Number(hs[0])))
+                    );
+                    this._setNumberHelper(
+                        saturationEntity,
+                        Math.max(0, Math.min(100, Number(hs[1])))
+                    );
+                }
+            }
+        }
     }
 
     _setDragHoverSlot(slot)
@@ -1490,6 +1839,8 @@ class HoneycombMenu extends LitElement
                 'layout_envelope',
                 'position_mode',
                 'persistent_center',
+                'presets',
+                'control',
                 'inherit_inner',
                 'anchor_x',
                 'anchor_y',
