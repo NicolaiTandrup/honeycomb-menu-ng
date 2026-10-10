@@ -100,7 +100,7 @@ class HoneycombPersistentControl extends LitElement
             ha-icon {
                 width: 34%;
                 height: 34%;
-                color: var(--paper-item-icon-color, var(--state-icon-color, #8aa6c2));
+                color: var(--honeycomb-persistent-icon-color, var(--paper-item-icon-color, var(--state-icon-color, #8aa6c2)));
             }
         `;
     }
@@ -291,8 +291,45 @@ class HoneycombPersistentControl extends LitElement
 
         menu.position_mode = 'anchored';
 
+        const anchorSize = Number(this._anchorRenderedSize) || this.size;
+
         if( this.config.match_anchor_size !== false )
-            menu.size = this.size * 3.586;
+            menu.size = anchorSize * 3.586;
+
+        const persistentDefaults = {
+            styles: {
+                card: [
+                    { background: 'rgba(52, 66, 78, 0.94)' },
+                    { border: '1px solid rgba(255, 255, 255, 0.10)' }
+                ],
+                grid: [
+                    { 'grid-template-areas': '"i" "n"' },
+                    { 'grid-template-columns': '1fr' },
+                    { 'grid-template-rows': '58% 42%' },
+                    { height: '100%' },
+                    { 'align-items': 'center' }
+                ],
+                icon: [
+                    { width: '28px' },
+                    { 'align-self': 'end' }
+                ],
+                name: [
+                    { 'font-size': '12px' },
+                    { 'line-height': '1.05' },
+                    { 'align-self': 'start' },
+                    { 'padding-top': '2px' },
+                    { 'white-space': 'nowrap' },
+                    { overflow: 'hidden' },
+                    { 'text-overflow': 'ellipsis' }
+                ]
+            }
+        };
+
+        menu.button_defaults = merge(
+            {},
+            persistentDefaults,
+            menu.button_defaults || {}
+        );
 
         const center = merge({}, this.config);
         delete center.menu;
@@ -399,6 +436,18 @@ class HoneycombPersistentControl extends LitElement
             return;
 
         const rect = this.getBoundingClientRect();
+
+        // Use the actual rendered width, not only the configured number. This
+        // prevents the center from subtly growing when the surrounding ring is
+        // opened inside responsive Lovelace layouts.
+        this._anchorRenderedSize = rect.width;
+
+        if( this.config.match_anchor_size !== false )
+            menu.size = rect.width * 3.586;
+
+        if( menu.persistent_center )
+            menu.persistent_center.size = rect.width;
+
         menu.anchor_x = rect.left + (rect.width / 2);
         menu.anchor_y = rect.top + (rect.height / 2);
 
@@ -414,6 +463,13 @@ class HoneycombPersistentControl extends LitElement
 
         if( actionName === 'none' )
             return;
+
+        if( actionName === 'honeycomb-back' )
+        {
+            if( typeof window.honeycomb_menu_back === 'function' )
+                window.honeycomb_menu_back();
+            return;
+        }
 
         if( actionName === 'toggle' )
         {

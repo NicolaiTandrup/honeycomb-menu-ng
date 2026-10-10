@@ -59,11 +59,43 @@ window.honeycomb_menu = (config) => {
 
     if( nested && honeycombConfig.nested_expand === true )
     {
+        const current = manager.currentConfig || {};
+
         manager.stack.push({
             __honeycomb_stack_entry: true,
-            config: merge({}, manager.currentConfig),
+            config: merge({}, current),
             inPlace: true
         });
+
+        // Persistent menus expand in-place around a real dashboard/floorplan
+        // anchor. Preserve that context through nested menus so the screen does
+        // not jump and the center keeps the same physical size and styling.
+        if( current.persistent_center )
+        {
+            honeycombConfig.position_mode = current.position_mode || 'anchored';
+            honeycombConfig.size = current.size;
+
+            if( honeycombConfig.spacing === undefined && current.spacing !== undefined )
+                honeycombConfig.spacing = current.spacing;
+
+            if( honeycombConfig.idle_timeout === undefined && current.idle_timeout !== undefined )
+                honeycombConfig.idle_timeout = current.idle_timeout;
+
+            if( honeycombConfig.button_defaults === undefined && current.button_defaults !== undefined )
+                honeycombConfig.button_defaults = merge({}, current.button_defaults);
+
+            honeycombConfig.persistent_center = merge(
+                {},
+                current.persistent_center,
+                {
+                    interactive: true,
+                    icon: 'mdi:arrow-left',
+                    tap_action: { action: 'honeycomb-back' }
+                }
+            );
+
+            honeycombConfig.center_button = null;
+        }
 
         manager.currentConfig = merge({}, honeycombConfig);
         manager.honeycomb.replaceConfig(honeycombConfig);

@@ -146,6 +146,17 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.3 — Persistent nested stability and ring polish
+
+v1.0.3 focuses on the expanded persistent-control experience:
+
+- persistent rings now use a built-in neutral card background and centered icon/name layout when no more specific button styling is supplied
+- the actual rendered persistent-center width is reused when the first ring opens, preventing the center from growing in responsive layouts
+- nested `nested_expand` menus inherit anchored positioning, size, idle timeout and button defaults from the persistent parent
+- nested expansion therefore stays on the same floorplan/dashboard anchor instead of viewport-clamping and causing scroll-position jumps
+- nested menus retain the same persistent hex geometry in the center and use the center as a back control
+- standard non-persistent Honeycomb behavior is unchanged
+
 ## v1.0.2 — Persistent gesture and geometry fix
 
 v1.0.2 fixes two regressions found while testing the new persistent control:
