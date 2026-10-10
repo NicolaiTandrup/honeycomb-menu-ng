@@ -221,8 +221,8 @@ class HoneycombPersistentControl extends LitElement
     _resolveColors()
     {
         const state = this._entityState();
-        const configured = this.config?.colors || {};
-        const off = this.config?.off || {};
+        const configured = (this.config && this.config.colors) || {};
+        const off = (this.config && this.config.off) || {};
 
         if( ! state || ['unavailable', 'unknown'].includes(state.state) )
         {
@@ -310,8 +310,9 @@ class HoneycombPersistentControl extends LitElement
             return html``;
 
         const colors = this._resolveColors();
-        const outerWidth = Math.max(0, Number(this.config?.border?.outer_width ?? 3));
-        const innerWidth = Math.max(0, Number(this.config?.border?.inner_width ?? 3));
+        const border = (this.config && this.config.border) || {};
+        const outerWidth = Math.max(0, Number(border.outer_width !== undefined ? border.outer_width : 3));
+        const innerWidth = Math.max(0, Number(border.inner_width !== undefined ? border.inner_width : 3));
 
         return html`
             <div
