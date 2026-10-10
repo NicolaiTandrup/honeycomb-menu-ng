@@ -146,6 +146,16 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.8 — Restore persistent button actions in fixed overlay mode
+
+v1.0.8 fixes a regression introduced by the fixed-overlay placement change:
+
+- anchored persistent menus remain fixed-position overlays, preserving the scroll/placement fix from v1.0.7
+- the overlay is now attached back inside the Lovelace view subtree instead of directly to `document.body`
+- wrapped Honeycomb button cards therefore retain their normal Home Assistant action/event context
+- tap actions, service calls and nested `fire-dom-event` actions work again while the menu remains fixed to the viewport
+- persistent source hiding/restoring and nested anchored expansion are unchanged
+
 ## v1.0.7 — Fixed persistent overlay positioning
 
 v1.0.7 fixes the remaining placement jump visible when opening persistent controls near the bottom of a scrolled dashboard:
