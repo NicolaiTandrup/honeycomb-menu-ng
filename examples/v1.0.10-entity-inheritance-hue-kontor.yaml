@@ -1,0 +1,276 @@
+type: custom:honeycomb-persistent-control
+entity: light.hue_kontor
+icon: mdi:lightbulb
+size: 82
+active: true
+
+style:
+  left: 42%
+  top: 45%
+
+tap_action:
+  action: toggle
+
+menu:
+  size: 250
+  empty_slots: hidden
+  center_brightness: 25
+  drag_select: true
+  drag_deadzone: 12
+  hover_highlight: true
+  idle_timeout: 8000
+
+  buttons:
+    - slot: 1
+      slot_mode: hard
+      icon: mdi:brightness-7
+      name: 100%
+      show_name: true
+      autoclose: false
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        data:
+          brightness_pct: 100
+
+    - slot: 2
+      slot_mode: hard
+      icon: mdi:brightness-percent
+      name: 60%
+      show_name: true
+      autoclose: false
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        data:
+          brightness_pct: 60
+
+    - slot: 3
+      slot_mode: hard
+      icon: mdi:palette
+      name: Color
+      show_name: true
+      autoclose: false
+      tap_action:
+        action: fire-dom-event
+        honeycomb_menu:
+          nested_expand: true
+          inherit_inner: true
+          empty_slots: hidden
+          idle_timeout: 8000
+          buttons:
+            - slot: 7
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(255,45,45)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [255, 45, 45]
+
+            - slot: 8
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(255,105,30)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [255, 105, 30]
+
+            - slot: 9
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(255,190,35)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [255, 190, 35]
+
+            - slot: 10
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(220,255,45)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [220, 255, 45]
+
+            - slot: 11
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(90,235,70)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [90, 235, 70]
+
+            - slot: 12
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(35,220,175)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [35, 220, 175]
+
+            - slot: 13
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(35,190,255)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [35, 190, 255]
+
+            - slot: 14
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(45,95,255)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [45, 95, 255]
+
+            - slot: 15
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(105,65,255)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [105, 65, 255]
+
+            - slot: 16
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(180,55,255)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [180, 55, 255]
+
+            - slot: 17
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(245,55,210)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [245, 55, 210]
+
+            - slot: 18
+              slot_mode: hard
+              show_icon: false
+              show_name: false
+              autoclose: false
+              styles:
+                card:
+                  - background: rgb(255,80,125)
+                  - border: 1px solid rgba(255, 255, 255, 0.20)
+              tap_action:
+                action: perform-action
+                perform_action: light.turn_on
+                data:
+                  rgb_color: [255, 80, 125]
+
+    - slot: 4
+      slot_mode: hard
+      icon: mdi:temperature-kelvin
+      name: 2700K
+      show_name: true
+      autoclose: false
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        data:
+          color_temp_kelvin: 2700
+
+    - slot: 5
+      slot_mode: hard
+      icon: mdi:minus
+      name: 5%
+      show_name: true
+      autoclose: false
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        data:
+          brightness_step_pct: -5
+
+    - slot: 6
+      slot_mode: hard
+      icon: mdi:plus
+      name: 5%
+      show_name: true
+      autoclose: false
+      tap_action:
+        action: perform-action
+        perform_action: light.turn_on
+        data:
+          brightness_step_pct: 5
