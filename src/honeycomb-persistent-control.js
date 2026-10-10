@@ -1,6 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import "./honeycomb-menu-item.js";
-import { provideHass } from "./helpers.js";
+import { fireEvent, provideHass } from "./helpers.js";
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
@@ -28,6 +27,11 @@ class HoneycombPersistentControl extends LitElement
         this.config = null;
         this.size = 72;
         this._lastKnownColor = null;
+        this._holdTimer = null;
+        this._holdTriggered = false;
+        this._pointerId = null;
+        this._pointerStartX = 0;
+        this._pointerStartY = 0;
     }
 
     static get styles()
@@ -38,6 +42,8 @@ class HoneycombPersistentControl extends LitElement
                 width: var(--honeycomb-persistent-size, 72px);
                 line-height: normal;
                 position: relative;
+                user-select: none;
+                -webkit-user-select: none;
             }
 
             .persistent-center {
@@ -59,15 +65,42 @@ class HoneycombPersistentControl extends LitElement
 
             .hex-polygon {
                 vector-effect: non-scaling-stroke;
+                stroke-linejoin: round;
             }
 
-            honeycomb-menu-item {
+            .interaction-surface {
                 position: absolute;
                 inset: 0;
-                width: 100%;
-                box-sizing: border-box;
                 z-index: 2;
-                --honeycomb-menu-item-shell-background: transparent;
+                cursor: pointer;
+                touch-action: none;
+                clip-path: polygon(
+                    50% 0%,
+                    100% 25%,
+                    100% 75%,
+                    50% 100%,
+                    0% 75%,
+                    0% 25%
+                );
+                background: transparent;
+                -webkit-tap-highlight-color: transparent;
+                outline: none;
+            }
+
+            .content {
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: none;
+            }
+
+            ha-icon {
+                width: 34%;
+                height: 34%;
+                color: var(--paper-item-icon-color, var(--state-icon-color, #8aa6c2));
             }
         `;
     }
@@ -109,6 +142,7 @@ class HoneycombPersistentControl extends LitElement
             center_button: {},
             show_brightness: 'when_on',
             match_anchor_size: true,
+            hold_time: 500,
             colors: {
                 center: 'auto',
                 inner_border: 'auto',
@@ -140,6 +174,12 @@ class HoneycombPersistentControl extends LitElement
             this._lastKnownColor = color;
 
         this.requestUpdate();
+    }
+
+    disconnectedCallback()
+    {
+        super.disconnectedCallback();
+        this._clearHoldTimer();
     }
 
     getCardSize()
@@ -239,37 +279,6 @@ class HoneycombPersistentControl extends LitElement
         };
     }
 
-    _computeCenterConfig()
-    {
-        if( ! this.config )
-            return null;
-
-        const interactive = this.config.interactive !== false;
-
-        return merge(
-            {},
-            {
-                entity: this.config.entity,
-                icon: this.config.icon,
-                active: this.config.active,
-                autoclose: false,
-                show_name: false,
-                show_label: false,
-                tap_action: interactive ? this.config.tap_action : { action: 'none' },
-                hold_action: { action: 'none' },
-                styles: {
-                    card: [
-                        { background: 'transparent' },
-                        { 'background-color': 'transparent' },
-                        { 'box-shadow': 'none' },
-                        { border: 'none' }
-                    ]
-                }
-            },
-            this.config.center_button || {}
-        );
-    }
-
     _persistentMenuConfig()
     {
         if( ! this.config || ! this.config.menu )
@@ -302,22 +311,92 @@ class HoneycombPersistentControl extends LitElement
         return menu;
     }
 
-    _handleCenterAction(e)
+    _clearHoldTimer()
+    {
+        if( this._holdTimer )
+        {
+            clearTimeout(this._holdTimer);
+            this._holdTimer = null;
+        }
+    }
+
+    _handlePointerDown(e)
     {
         if( ! this.config || this.config.interactive === false )
             return;
 
-        const actionType = e && e.detail ? e.detail.action : null;
-
-        if( actionType !== 'hold' )
+        if( e.button !== undefined && e.button !== 0 )
             return;
 
+        this._clearHoldTimer();
+        this._pointerId = e.pointerId;
+        this._pointerStartX = e.clientX;
+        this._pointerStartY = e.clientY;
+        this._holdTriggered = false;
+
+        if( e.currentTarget && e.currentTarget.setPointerCapture )
+        {
+            try { e.currentTarget.setPointerCapture(e.pointerId); }
+            catch(err) { /* Pointer capture is best-effort. */ }
+        }
+
+        const holdTime = Math.max(250, Number(this.config.hold_time) || 500);
+
+        this._holdTimer = setTimeout(() => {
+            this._holdTimer = null;
+            this._holdTriggered = true;
+            this._openMenu();
+        }, holdTime);
+    }
+
+    _handlePointerMove(e)
+    {
+        if( this._pointerId === null || e.pointerId !== this._pointerId )
+            return;
+
+        const distance = Math.hypot(
+            e.clientX - this._pointerStartX,
+            e.clientY - this._pointerStartY
+        );
+
+        if( distance > 12 && ! this._holdTriggered )
+            this._clearHoldTimer();
+    }
+
+    _handlePointerUp(e)
+    {
+        if( this._pointerId === null || e.pointerId !== this._pointerId )
+            return;
+
+        const wasHold = this._holdTriggered;
+
+        this._clearHoldTimer();
+        this._pointerId = null;
+        this._holdTriggered = false;
+
+        if( wasHold )
+        {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        this._executeAction(this.config.tap_action || { action: 'toggle' });
+    }
+
+    _handlePointerCancel()
+    {
+        this._clearHoldTimer();
+        this._pointerId = null;
+        this._holdTriggered = false;
+    }
+
+    _openMenu()
+    {
         const menu = this._persistentMenuConfig();
 
         if( ! menu || typeof window.honeycomb_menu !== 'function' )
             return;
-
-        e.stopPropagation();
 
         const rect = this.getBoundingClientRect();
         menu.anchor_x = rect.left + (rect.width / 2);
@@ -326,11 +405,72 @@ class HoneycombPersistentControl extends LitElement
         window.honeycomb_menu(menu);
     }
 
+    _executeAction(action)
+    {
+        if( ! action || ! this.hass )
+            return;
+
+        const actionName = action.action || 'toggle';
+
+        if( actionName === 'none' )
+            return;
+
+        if( actionName === 'toggle' )
+        {
+            this.hass.callService(
+                'homeassistant',
+                'toggle',
+                {},
+                { entity_id: this.config.entity }
+            );
+            return;
+        }
+
+        if( actionName === 'more-info' )
+        {
+            fireEvent(this, 'hass-more-info', { entityId: this.config.entity });
+            return;
+        }
+
+        if( actionName === 'perform-action' )
+        {
+            const serviceName = action.perform_action || action.service;
+
+            if( serviceName && serviceName.indexOf('.') > 0 )
+            {
+                const parts = serviceName.split('.');
+                this.hass.callService(
+                    parts[0],
+                    parts.slice(1).join('.'),
+                    action.data || {},
+                    action.target || { entity_id: this.config.entity }
+                );
+            }
+            return;
+        }
+
+        if( actionName === 'call-service' )
+        {
+            const serviceName = action.service;
+
+            if( serviceName && serviceName.indexOf('.') > 0 )
+            {
+                const parts = serviceName.split('.');
+                const data = action.service_data || action.data || {};
+
+                this.hass.callService(
+                    parts[0],
+                    parts.slice(1).join('.'),
+                    data,
+                    action.target || null
+                );
+            }
+        }
+    }
+
     render()
     {
-        const centerConfig = this._computeCenterConfig();
-
-        if( ! centerConfig )
+        if( ! this.config )
             return html``;
 
         const colors = this._resolveColors();
@@ -338,14 +478,10 @@ class HoneycombPersistentControl extends LitElement
         const outerWidth = Math.max(0, Number(border.outer_width !== undefined ? border.outer_width : 3));
         const innerWidth = Math.max(0, Number(border.inner_width !== undefined ? border.inner_width : 3));
 
-        // Three geometrically identical polygons are scaled around the exact
-        // same center. This keeps all six edges homogeneous at every size.
-        const outerScale = 1;
-        const innerScale = Math.max(0.5, 1 - ((outerWidth * 2) / this.size));
-        const centerScale = Math.max(
-            0.4,
-            innerScale - ((innerWidth * 2) / this.size)
-        );
+        // One polygon geometry is used for fill and both strokes. This prevents
+        // the border shape from changing as it is inset/scaled.
+        const totalStroke = Math.max(0, (outerWidth + innerWidth) * 2);
+        const innerStroke = Math.max(0, innerWidth * 2);
 
         return html`
             <div
@@ -355,37 +491,41 @@ class HoneycombPersistentControl extends LitElement
                 <svg
                     class="hex-svg"
                     viewBox="0 0 100 115.47"
-                    preserveAspectRatio="none"
+                    preserveAspectRatio="xMidYMid meet"
                     aria-hidden="true"
                 >
                     <polygon
                         class="hex-polygon"
-                        points="50,0 100,28.8675 100,86.6025 50,115.47 0,86.6025 0,28.8675"
-                        fill="${colors.outer}">
+                        points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
+                        fill="${colors.center}"
+                        stroke="${colors.outer}"
+                        stroke-width="${totalStroke}">
                     </polygon>
-
-                    <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
-                        <polygon
-                            class="hex-polygon"
-                            points="50,0 100,28.8675 100,86.6025 50,115.47 0,86.6025 0,28.8675"
-                            fill="${colors.inner}">
-                        </polygon>
-                    </g>
-
-                    <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
-                        <polygon
-                            class="hex-polygon"
-                            points="50,0 100,28.8675 100,86.6025 50,115.47 0,86.6025 0,28.8675"
-                            fill="${colors.center}">
-                        </polygon>
-                    </g>
+                    <polygon
+                        class="hex-polygon"
+                        points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
+                        fill="none"
+                        stroke="${colors.inner}"
+                        stroke-width="${innerStroke}">
+                    </polygon>
                 </svg>
 
-                <honeycomb-menu-item
-                    .hass=${this.hass}
-                    .config=${centerConfig}
-                    @action=${this._handleCenterAction}>
-                </honeycomb-menu-item>
+                <div class="content">
+                    <ha-icon .icon=${this.config.icon}></ha-icon>
+                </div>
+
+                ${this.config.interactive !== false ? html`
+                    <div
+                        class="interaction-surface"
+                        role="button"
+                        tabindex="0"
+                        @pointerdown=${this._handlePointerDown}
+                        @pointermove=${this._handlePointerMove}
+                        @pointerup=${this._handlePointerUp}
+                        @pointercancel=${this._handlePointerCancel}
+                        @contextmenu=${e => e.preventDefault()}>
+                    </div>
+                ` : ''}
             </div>
         `;
     }
@@ -401,7 +541,7 @@ if( ! window.customCards.some(card => card.type === HoneycombPersistentControl.i
     window.customCards.push({
         type: HoneycombPersistentControl.is,
         name: 'Honeycomb Persistent Control',
-        description: 'Persistent Honeycomb center control with an anchored expandable ring.'
+        description: 'Persistent Honeycomb center control with anchored hold-to-open menus.'
     });
 }
 
