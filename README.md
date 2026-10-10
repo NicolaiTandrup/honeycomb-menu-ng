@@ -146,6 +146,50 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.11 — Preset controls
+
+v1.0.11 adds native preset controls for persistent light menus:
+
+- `control: preset-brightness` reads a configured Home Assistant `number` entity, displays the stored preset and the light's current brightness, applies the stored value on tap, and stores the current brightness back to the helper on hold
+- `control: preset-kelvin` provides the same tap/apply and hold/store workflow for color temperature
+- `control: preset-color` stores and applies Hue/Saturation using two number entities
+- preset controls inherit the root light entity introduced in v1.0.10, so the light entity still only needs to be declared once
+- helper targets remain explicit under a root `presets:` block
+- normal Honeycomb buttons and existing YAML are unchanged
+
+Example:
+
+```yaml
+type: custom:honeycomb-persistent-control
+entity: light.hue_kontor
+
+presets:
+  brightness:
+    entity: number.ia_stue_20_2_kokken_kokkeno_stue_normal_brightness
+  kelvin:
+    entity: number.ia_stue_20_2_kokken_kokkeno_stue_standard_kelvin
+
+menu:
+  buttons:
+    - slot: 2
+      control: preset-brightness
+    - slot: 4
+      control: preset-kelvin
+```
+
+A preset button shows the stored value as its primary text and the light's current value as secondary text. Tap applies the preset; hold stores the current light value back into the number entity.
+
+For RGB/HS capable lights, configure:
+
+```yaml
+presets:
+  color:
+    hue_entity: number.example_standard_hue
+    saturation_entity: number.example_standard_saturation
+```
+
+and use `control: preset-color`. Tap applies the stored HS color; hold stores the light's current `hs_color` into the two number helpers.
+
 ## v1.0.10 — Entity inheritance
 
 v1.0.10 adds entity inheritance to reduce repeated entity IDs in Honeycomb YAML:
