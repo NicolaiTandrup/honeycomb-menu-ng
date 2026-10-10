@@ -37,50 +37,28 @@ class HoneycombPersistentControl extends LitElement
                 display: block;
                 width: var(--honeycomb-persistent-size, 72px);
                 line-height: normal;
+                position: relative;
             }
 
             .persistent-center {
                 position: relative;
                 width: 100%;
-                height: calc(var(--honeycomb-persistent-size, 72px) * 1.1476);
+                height: calc(var(--honeycomb-persistent-size, 72px) * 1.1547);
                 overflow: visible;
-
-                --honeycomb-outer-border-width: 3px;
-                --honeycomb-inner-border-width: 3px;
-                --honeycomb-outer-color: #303030;
-                --honeycomb-inner-color: #4f7fae;
-                --honeycomb-center-color: #202020;
             }
 
-            .hex-layer {
+            .hex-svg {
                 position: absolute;
-                clip-path: polygon(
-                    50% 0%,
-                    100% 25%,
-                    100% 75%,
-                    50% 100%,
-                    0% 75%,
-                    0% 25%
-                );
-                pointer-events: none;
-            }
-
-            .hex-outer {
                 inset: 0;
-                background: var(--honeycomb-outer-color);
+                width: 100%;
+                height: 100%;
+                overflow: visible;
+                pointer-events: none;
+                z-index: 0;
             }
 
-            .hex-inner {
-                inset: var(--honeycomb-outer-border-width);
-                background: var(--honeycomb-inner-color);
-            }
-
-            .hex-center {
-                inset: calc(
-                    var(--honeycomb-outer-border-width) +
-                    var(--honeycomb-inner-border-width)
-                );
-                background: var(--honeycomb-center-color);
+            .hex-polygon {
+                vector-effect: non-scaling-stroke;
             }
 
             honeycomb-menu-item {
@@ -126,9 +104,11 @@ class HoneycombPersistentControl extends LitElement
             size: 72,
             icon: 'mdi:hexagon-outline',
             active: true,
+            interactive: true,
             tap_action: { action: 'toggle' },
             center_button: {},
             show_brightness: 'when_on',
+            match_anchor_size: true,
             colors: {
                 center: 'auto',
                 inner_border: 'auto',
@@ -155,6 +135,7 @@ class HoneycombPersistentControl extends LitElement
 
         const color = this._currentLightColor();
         const state = this._entityState();
+
         if( state && state.state === 'on' && color )
             this._lastKnownColor = color;
 
@@ -263,20 +244,7 @@ class HoneycombPersistentControl extends LitElement
         if( ! this.config )
             return null;
 
-        let holdAction = this.config.hold_action;
-
-        if( ! holdAction && this.config.menu )
-        {
-            const menu = merge({}, this.config.menu);
-
-            if( ! menu.entity )
-                menu.entity = this.config.entity;
-
-            holdAction = {
-                action: 'fire-dom-event',
-                honeycomb_menu: menu
-            };
-        }
+        const interactive = this.config.interactive !== false;
 
         return merge(
             {},
@@ -287,8 +255,8 @@ class HoneycombPersistentControl extends LitElement
                 autoclose: false,
                 show_name: false,
                 show_label: false,
-                tap_action: this.config.tap_action,
-                hold_action: holdAction || { action: 'none' },
+                tap_action: interactive ? this.config.tap_action : { action: 'none' },
+                hold_action: { action: 'none' },
                 styles: {
                     card: [
                         { background: 'transparent' },
@@ -300,6 +268,62 @@ class HoneycombPersistentControl extends LitElement
             },
             this.config.center_button || {}
         );
+    }
+
+    _persistentMenuConfig()
+    {
+        if( ! this.config || ! this.config.menu )
+            return null;
+
+        const menu = merge({}, this.config.menu);
+
+        if( ! menu.entity )
+            menu.entity = this.config.entity;
+
+        menu.position_mode = 'anchored';
+
+        if( this.config.match_anchor_size !== false )
+            menu.size = this.size * 3.586;
+
+        const center = merge({}, this.config);
+        delete center.menu;
+        center.interactive = false;
+        center.size = this.size;
+
+        if( ! center.off )
+            center.off = {};
+
+        if( this._lastKnownColor )
+            center.off.preview_color = this._lastKnownColor;
+
+        menu.persistent_center = center;
+        menu.center_button = null;
+
+        return menu;
+    }
+
+    _handleCenterAction(e)
+    {
+        if( ! this.config || this.config.interactive === false )
+            return;
+
+        const actionType = e && e.detail ? e.detail.action : null;
+
+        if( actionType !== 'hold' )
+            return;
+
+        const menu = this._persistentMenuConfig();
+
+        if( ! menu || typeof window.honeycomb_menu !== 'function' )
+            return;
+
+        e.stopPropagation();
+
+        const rect = this.getBoundingClientRect();
+        menu.anchor_x = rect.left + (rect.width / 2);
+        menu.anchor_y = rect.top + (rect.height / 2);
+
+        window.honeycomb_menu(menu);
     }
 
     render()
@@ -314,25 +338,53 @@ class HoneycombPersistentControl extends LitElement
         const outerWidth = Math.max(0, Number(border.outer_width !== undefined ? border.outer_width : 3));
         const innerWidth = Math.max(0, Number(border.inner_width !== undefined ? border.inner_width : 3));
 
+        // Three geometrically identical polygons are scaled around the exact
+        // same center. This keeps all six edges homogeneous at every size.
+        const outerScale = 1;
+        const innerScale = Math.max(0.5, 1 - ((outerWidth * 2) / this.size));
+        const centerScale = Math.max(
+            0.4,
+            innerScale - ((innerWidth * 2) / this.size)
+        );
+
         return html`
             <div
                 class="persistent-center"
-                style="
-                    --honeycomb-persistent-size: ${this.size}px;
-                    --honeycomb-outer-border-width: ${outerWidth}px;
-                    --honeycomb-inner-border-width: ${innerWidth}px;
-                    --honeycomb-outer-color: ${colors.outer};
-                    --honeycomb-inner-color: ${colors.inner};
-                    --honeycomb-center-color: ${colors.center};
-                "
+                style="--honeycomb-persistent-size: ${this.size}px;"
             >
-                <div class="hex-layer hex-outer"></div>
-                <div class="hex-layer hex-inner"></div>
-                <div class="hex-layer hex-center"></div>
+                <svg
+                    class="hex-svg"
+                    viewBox="0 0 100 115.47"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                >
+                    <polygon
+                        class="hex-polygon"
+                        points="50,0 100,28.8675 100,86.6025 50,115.47 0,86.6025 0,28.8675"
+                        fill="${colors.outer}">
+                    </polygon>
+
+                    <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
+                        <polygon
+                            class="hex-polygon"
+                            points="50,0 100,28.8675 100,86.6025 50,115.47 0,86.6025 0,28.8675"
+                            fill="${colors.inner}">
+                        </polygon>
+                    </g>
+
+                    <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
+                        <polygon
+                            class="hex-polygon"
+                            points="50,0 100,28.8675 100,86.6025 50,115.47 0,86.6025 0,28.8675"
+                            fill="${colors.center}">
+                        </polygon>
+                    </g>
+                </svg>
 
                 <honeycomb-menu-item
                     .hass=${this.hass}
-                    .config=${centerConfig}>
+                    .config=${centerConfig}
+                    @action=${this._handleCenterAction}>
                 </honeycomb-menu-item>
             </div>
         `;
@@ -349,7 +401,7 @@ if( ! window.customCards.some(card => card.type === HoneycombPersistentControl.i
     window.customCards.push({
         type: HoneycombPersistentControl.is,
         name: 'Honeycomb Persistent Control',
-        description: 'Persistent Honeycomb center control with tap action and hold-to-open menu.'
+        description: 'Persistent Honeycomb center control with an anchored expandable ring.'
     });
 }
 
