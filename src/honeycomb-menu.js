@@ -139,7 +139,7 @@ function presetTemplateNumber(entityId, suffix = '')
     return `[[[
         const state = states['${entityId}'];
         const value = state ? Number(state.state) : NaN;
-        return Number.isFinite(value) ? \`${Math.round(value)}${suffix}\` : '—';
+        return Number.isFinite(value) ? \`\${Math.round(value)}${suffix}\` : '—';
     ]]]`;
 }
 
@@ -148,7 +148,7 @@ function presetCurrentBrightnessTemplate()
     return `[[[
         const value = Number(entity && entity.attributes ? entity.attributes.brightness : NaN);
         return Number.isFinite(value)
-            ? \`Now ${Math.max(0, Math.min(100, Math.round((value / 255) * 100)))}%\`
+            ? \`Now \${Math.max(0, Math.min(100, Math.round((value / 255) * 100)))}%\`
             : 'Now —';
     ]]]`;
 }
@@ -157,7 +157,7 @@ function presetCurrentKelvinTemplate()
 {
     return `[[[
         const value = Number(entity && entity.attributes ? entity.attributes.color_temp_kelvin : NaN);
-        return Number.isFinite(value) ? \`Now ${Math.round(value)}K\` : 'Now —';
+        return Number.isFinite(value) ? \`Now \${Math.round(value)}K\` : 'Now —';
     ]]]`;
 }
 
@@ -169,7 +169,7 @@ function presetHsTemplate(hueEntity, saturationEntity, current = false)
             const hs = entity && entity.attributes ? entity.attributes.hs_color : null;
             if( ! Array.isArray(hs) || hs.length < 2 )
                 return 'Now —';
-            return \`Now ${Math.round(Number(hs[0]))}° · ${Math.round(Number(hs[1]))}%\`;
+            return \`Now \${Math.round(Number(hs[0]))}° · \${Math.round(Number(hs[1]))}%\`;
         ]]]`;
     }
 
@@ -179,7 +179,7 @@ function presetHsTemplate(hueEntity, saturationEntity, current = false)
         const hue = hueState ? Number(hueState.state) : NaN;
         const sat = satState ? Number(satState.state) : NaN;
         return Number.isFinite(hue) && Number.isFinite(sat)
-            ? \`${Math.round(hue)}° · ${Math.round(sat)}%\`
+            ? \`\${Math.round(hue)}° · \${Math.round(sat)}%\`
             : '—';
     ]]]`;
 }
