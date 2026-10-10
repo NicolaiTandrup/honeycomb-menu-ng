@@ -143,10 +143,10 @@ window.honeycomb_menu = (config) => {
 
         manager.currentConfig = merge({}, honeycombConfig);
         manager.honeycomb.replaceConfig(honeycombConfig);
-        return;
+        return manager.honeycomb;
     }
 
-    showHoneycombMenu( honeycombConfig, { nested } );
+    return showHoneycombMenu( honeycombConfig, { nested } );
 };
 
 document.addEventListener('touchstart', manager.handleXYPosition, false);
@@ -193,6 +193,8 @@ function showHoneycombMenu( _config, options = {} )
         if( manager.honeycomb === menu )
             manager.honeycomb = null;
     });
+
+    return menu;
 }
 
 function honeycombBack()
@@ -611,9 +613,20 @@ class HoneycombMenu extends LitElement
     display(_view, _x, _y)
     {
         this.view = _view;
-        this.view.style.position = 'relative';
 
-        this.view.append( this );
+        if( this.config.position_mode === 'anchored' )
+        {
+            // Persistent menus are viewport overlays. Keeping the menu out of
+            // the Lovelace view prevents it from increasing scrollable overflow
+            // and triggering browser scroll anchoring near the bottom edge.
+            this.style.position = 'fixed';
+            document.body.append(this);
+        }
+        else
+        {
+            this.view.style.position = 'relative';
+            this.view.append(this);
+        }
 
         this._anchorX = _x;
         this._anchorY = _y;
@@ -952,11 +965,13 @@ class HoneycombMenu extends LitElement
         // expands around them, even when part of the ring reaches an edge.
         if( this.config.position_mode === 'anchored' )
         {
-            const anchoredX = _x - rect.left;
-            const anchoredY = _y - rect.top;
+            const centerPos = this._computeCenterPosition();
+            const itemSize = this.sizes.item;
+            const centerOffsetX = (centerPos.x * itemSize) + (itemSize / 2);
+            const centerOffsetY = (centerPos.y * itemSize) + ((itemSize * 1.1547) / 2);
 
-            this.style.left = `${anchoredX - container.w}px`;
-            this.style.top = `${anchoredY - container.h}px`;
+            this.style.left = `${_x - centerOffsetX}px`;
+            this.style.top = `${_y - centerOffsetY}px`;
             return;
         }
 
