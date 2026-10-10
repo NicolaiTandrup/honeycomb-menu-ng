@@ -146,6 +146,16 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.4 — Smart center contrast and outer color palette
+
+v1.0.4 improves light-focused persistent controls:
+
+- persistent center icons automatically switch between a light and dark foreground based on the current center color, keeping the icon readable across bright and dark RGB colors
+- persistent light centers can show live brightness as secondary text; the default remains `show_brightness: when_on`
+- nested menus can use `inherit_inner: true` to keep the existing six inner controls while adding a nested control surface in the physical outer ring
+- the Hue reference test now expands Color into a 12-color palette in slots 7–18 instead of replacing the inner ring with three text buttons
+- standard nested-menu behavior remains unchanged unless `inherit_inner` is enabled
+
 ## v1.0.3 — Persistent nested stability and ring polish
 
 v1.0.3 focuses on the expanded persistent-control experience:

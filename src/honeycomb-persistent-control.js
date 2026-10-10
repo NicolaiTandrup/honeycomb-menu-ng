@@ -92,15 +92,33 @@ class HoneycombPersistentControl extends LitElement
                 inset: 0;
                 z-index: 1;
                 display: flex;
+                flex-direction: column;
                 align-items: center;
                 justify-content: center;
                 pointer-events: none;
+                color: var(--honeycomb-persistent-foreground, #f6f7f9);
             }
 
             ha-icon {
                 width: 34%;
                 height: 34%;
-                color: var(--honeycomb-persistent-icon-color, var(--paper-item-icon-color, var(--state-icon-color, #8aa6c2)));
+                color: inherit;
+            }
+
+            .content.has-secondary ha-icon {
+                width: 30%;
+                height: 30%;
+                transform: translateY(-2px);
+            }
+
+            .secondary {
+                margin-top: 2px;
+                font-size: calc(var(--honeycomb-persistent-size, 72px) * 0.16);
+                font-weight: 650;
+                line-height: 1;
+                letter-spacing: -0.01em;
+                color: inherit;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
             }
         `;
     }
@@ -277,6 +295,84 @@ class HoneycombPersistentControl extends LitElement
                 ? configured.outer_border
                 : automaticOuter
         };
+    }
+
+    _parseColor(color)
+    {
+        if( typeof color !== 'string' )
+            return null;
+
+        const value = color.trim();
+
+        const rgb = value.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
+        if( rgb )
+            return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
+
+        const hex = value.match(/^#([0-9a-f]{6}|[0-9a-f]{3})$/i);
+        if( hex )
+        {
+            let raw = hex[1];
+
+            if( raw.length === 3 )
+                raw = raw.split('').map(c => c + c).join('');
+
+            return [
+                parseInt(raw.substring(0, 2), 16),
+                parseInt(raw.substring(2, 4), 16),
+                parseInt(raw.substring(4, 6), 16)
+            ];
+        }
+
+        return null;
+    }
+
+    _foregroundForBackground(background)
+    {
+        const rgb = this._parseColor(background);
+
+        if( ! rgb )
+            return '#f6f7f9';
+
+        const linear = rgb.map(channel => {
+            const value = Math.max(0, Math.min(255, channel)) / 255;
+            return value <= 0.03928
+                ? value / 12.92
+                : Math.pow((value + 0.055) / 1.055, 2.4);
+        });
+
+        const luminance =
+            (0.2126 * linear[0]) +
+            (0.7152 * linear[1]) +
+            (0.0722 * linear[2]);
+
+        return luminance > 0.42 ? '#17212b' : '#f6f7f9';
+    }
+
+    _brightnessLabel()
+    {
+        if( ! this.config )
+            return null;
+
+        const mode = this.config.show_brightness || 'when_on';
+
+        if( mode === 'never' )
+            return null;
+
+        const state = this._entityState();
+
+        if( ! state || ! state.attributes )
+            return null;
+
+        if( mode === 'when_on' && state.state !== 'on' )
+            return null;
+
+        const brightness = Number(state.attributes.brightness);
+
+        if( ! Number.isFinite(brightness) )
+            return null;
+
+        const percentage = Math.max(0, Math.min(100, Math.round((brightness / 255) * 100)));
+        return `${percentage}%`;
     }
 
     _persistentMenuConfig()
@@ -538,11 +634,16 @@ class HoneycombPersistentControl extends LitElement
         // the border shape from changing as it is inset/scaled.
         const totalStroke = Math.max(0, (outerWidth + innerWidth) * 2);
         const innerStroke = Math.max(0, innerWidth * 2);
+        const foreground = this._foregroundForBackground(colors.center);
+        const secondary = this._brightnessLabel();
 
         return html`
             <div
                 class="persistent-center"
-                style="--honeycomb-persistent-size: ${this.size}px;"
+                style="
+                    --honeycomb-persistent-size: ${this.size}px;
+                    --honeycomb-persistent-foreground: ${foreground};
+                "
             >
                 <svg
                     class="hex-svg"
@@ -566,8 +667,9 @@ class HoneycombPersistentControl extends LitElement
                     </polygon>
                 </svg>
 
-                <div class="content">
+                <div class="content ${secondary ? 'has-secondary' : ''}">
                     <ha-icon .icon=${this.config.icon}></ha-icon>
+                    ${secondary ? html`<div class="secondary">${secondary}</div>` : ''}
                 </div>
 
                 ${this.config.interactive !== false ? html`
