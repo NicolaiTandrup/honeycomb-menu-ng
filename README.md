@@ -146,6 +146,16 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.7 — Fixed persistent overlay positioning
+
+v1.0.7 fixes the remaining placement jump visible when opening persistent controls near the bottom of a scrolled dashboard:
+
+- anchored persistent menus are now rendered as fixed viewport overlays instead of absolute children of the Lovelace view
+- opening a large reserved outer-ring envelope can therefore no longer increase the dashboard scrollable overflow and trigger browser scroll anchoring
+- anchored positioning now aligns the exact rendered center hexagon to the source control coordinate, instead of positioning from the menu container midpoint
+- the original persistent source cube is hidden while the overlay menu is open and restored when the menu closes, removing the temporary duplicate-center effect
+- nested in-place expansion continues to use the same fixed anchor
+
 ## v1.0.6 — Border cleanup and theme-independent ring contrast
 
 v1.0.6 fixes two visual issues found during persistent-control testing:
