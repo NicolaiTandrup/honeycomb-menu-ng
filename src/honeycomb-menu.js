@@ -67,6 +67,50 @@ window.honeycomb_menu = (config) => {
             inPlace: true
         });
 
+        // Optional expansion mode used by palettes and similar controls:
+        // keep the currently visible inner ring and add the nested menu to the
+        // outer physical slots. The nested menu remains generic and can still
+        // override any of the inherited buttons explicitly.
+        if( honeycombConfig.inherit_inner === true && manager.honeycomb )
+        {
+            const combined = new Array(18);
+            const currentButtons = manager.honeycomb.buttons || [];
+
+            for( let i = 0; i < 6; i++ )
+            {
+                const button = currentButtons[i];
+
+                if( button && ! isEmpty(button) )
+                {
+                    combined[i] = [
+                        merge({}, button, {
+                            slot: i + 1,
+                            slot_mode: 'hard'
+                        })
+                    ];
+                }
+            }
+
+            const nestedButtons = honeycombConfig.buttons || [];
+
+            nestedButtons.forEach((stack, index) => {
+                if( ! stack )
+                    return;
+
+                let target = 6 + index;
+
+                if( target > 17 )
+                    return;
+
+                combined[target] = Array.isArray(stack)
+                    ? stack.map(button => merge({}, button))
+                    : [merge({}, stack)];
+            });
+
+            honeycombConfig.buttons = combined;
+            honeycombConfig.empty_slots = 'hidden';
+        }
+
         // Persistent menus expand in-place around a real dashboard/floorplan
         // anchor. Preserve that context through nested menus so the screen does
         // not jump and the center keeps the same physical size and styling.
@@ -1340,6 +1384,7 @@ class HoneycombMenu extends LitElement
                 'layout_envelope',
                 'position_mode',
                 'persistent_center',
+                'inherit_inner',
                 'anchor_x',
                 'anchor_y',
                 'slot',
