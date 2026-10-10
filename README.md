@@ -146,6 +146,16 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.0.2 — Persistent gesture and geometry fix
+
+v1.0.2 fixes two regressions found while testing the new persistent control:
+
+- persistent center geometry now uses one shared SVG polygon for the center fill and both border strokes, eliminating the visible shape mismatch caused by scaling multiple hexagons
+- persistent tap/hold handling is now owned by the persistent control itself instead of the wrapped button-card, restoring reliable long-press opening
+- removes the temporary button-card interaction surface from the persistent center, preventing the rotated yellow/active Honeycomb flash on tap
+- single tap still executes the configured primary action; hold opens the anchored Honeycomb menu
+- expanded menus continue to render the same persistent center appearance in the middle
+
 ## v1.0.1 — Anchored persistent controls
 
 v1.0.1 refines the persistent-control foundation introduced in v1.0.0:
