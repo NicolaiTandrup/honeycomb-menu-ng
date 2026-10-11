@@ -1,4 +1,5 @@
 const { persistentLauncher } = require('../shared.js');
+const presentation = require('./presentation.js');
 
 function playPauseIcon()
 {
@@ -123,6 +124,8 @@ module.exports = {
     id: 'media',
     aliases: ['generic-media'],
     priority: 100,
+    persistentModes: ['media'],
+    presentation,
 
     matches(item)
     {

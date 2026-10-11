@@ -1,4 +1,5 @@
 const { merge, persistentLauncher } = require('../shared.js');
+const presentation = require('./presentation.js');
 
 function buildMenu({ item })
 {
@@ -95,6 +96,8 @@ module.exports = {
     id: 'light',
     aliases: ['hue'],
     priority: 500,
+    persistentModes: ['persistent', 'light'],
+    presentation,
 
     matches(item)
     {

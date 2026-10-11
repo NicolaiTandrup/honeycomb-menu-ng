@@ -3,6 +3,7 @@ const assert = require('assert');
 const navigation = require('../src/core/navigation-context.js');
 const layout = require('../src/core/layout.js');
 const { ModuleRegistry } = require('../src/core/module-registry.js');
+const { moduleRegistry } = require('../src/modules/index.js');
 
 function testNavigationAnchorLock()
 {
@@ -114,12 +115,148 @@ function testModuleRegistry()
     );
 }
 
+function testBuiltInModuleResolution()
+{
+    assert.strictEqual(
+        moduleRegistry.resolve({ type: 'light' }).id,
+        'light'
+    );
+
+    // Backwards compatibility: type: media remains Sonos-oriented.
+    assert.strictEqual(
+        moduleRegistry.resolve({ type: 'media' }).id,
+        'sonos'
+    );
+
+    // Explicit generic media opt-in.
+    assert.strictEqual(
+        moduleRegistry.resolve({ type: 'media', module: 'media' }).id,
+        'media'
+    );
+}
+
+function testPersistentPresentations()
+{
+    const light = moduleRegistry.resolvePresentation('persistent');
+    const media = moduleRegistry.resolvePresentation('media');
+
+    const lightRuntime = { lastKnownColor: null };
+    const lightOn = light.presentation.resolve({
+        config: {
+            show_brightness: 'when_on',
+            colors: { outer_border: '#34383d' },
+            off: { center_color: '#202224' }
+        },
+        state: {
+            state: 'on',
+            attributes: {
+                brightness: 128,
+                rgb_color: [255, 128, 0]
+            }
+        },
+        runtime: lightRuntime
+    });
+
+    assert.strictEqual(lightOn.secondary, '50%');
+    assert.strictEqual(lightOn.colors.center, 'rgb(255, 128, 0)');
+    assert.strictEqual(lightRuntime.lastKnownColor, 'rgb(255, 128, 0)');
+
+    const lightOff = light.presentation.resolve({
+        config: {
+            show_brightness: 'when_on',
+            colors: { outer_border: '#34383d' },
+            off: { center_color: '#202224' }
+        },
+        state: {
+            state: 'off',
+            attributes: {}
+        },
+        runtime: lightRuntime
+    });
+
+    assert.strictEqual(lightOff.secondary, null);
+    assert.strictEqual(lightOff.colors.center, '#202224');
+    assert.strictEqual(lightOff.colors.inner, 'rgb(255, 128, 0)');
+
+    const mediaPlaying = media.presentation.resolve({
+        config: {
+            show_volume: 'when_playing',
+            active_color: '#ff9800',
+            colors: { outer_border: '#34383d' },
+            off: { center_color: '#202224' }
+        },
+        state: {
+            state: 'playing',
+            attributes: { volume_level: 0.34 }
+        }
+    });
+
+    assert.strictEqual(mediaPlaying.secondary, '34%');
+    assert.strictEqual(mediaPlaying.colors.center, '#ff9800');
+    assert.strictEqual(mediaPlaying.colors.inner, '#ff9800');
+
+    const mediaIdle = media.presentation.resolve({
+        config: {
+            show_volume: 'when_playing',
+            active_color: '#ff9800',
+            colors: { outer_border: '#34383d' },
+            off: { center_color: '#202224' }
+        },
+        state: {
+            state: 'paused',
+            attributes: { volume_level: 0.34 }
+        }
+    });
+
+    assert.strictEqual(mediaIdle.secondary, null);
+    assert.strictEqual(mediaIdle.colors.center, '#202224');
+    assert.strictEqual(mediaIdle.colors.inner, '#ff9800');
+}
+
+function testModuleMenusAreDeclarative()
+{
+    const light = moduleRegistry.resolve({ type: 'light' });
+    const lightMenu = light.buildMenu({
+        item: {
+            type: 'light',
+            entity: 'light.test',
+            presets: {}
+        }
+    });
+
+    assert.strictEqual(lightMenu.buttons.length, 6);
+    assert.strictEqual(lightMenu.promote_to_center, true);
+
+    const sonos = moduleRegistry.resolve({ type: 'media' });
+    const sonosMenu = sonos.buildMenu({
+        item: {
+            type: 'media',
+            entity: 'media_player.test',
+            favorites_sensor: 'sensor.favorites',
+            favorites_cache_sensor: 'sensor.favorites_cache'
+        }
+    });
+
+    assert.strictEqual(sonosMenu.buttons.length, 6);
+    assert.strictEqual(
+        sonosMenu.buttons[4].tap_action.action,
+        'honeycomb-open-nested'
+    );
+    assert.strictEqual(
+        sonosMenu.buttons[4].tap_action.honeycomb_nested_menu.buttons[0].slot,
+        7
+    );
+}
+
 function run()
 {
     testNavigationAnchorLock();
     testGlobalNavigationDoesNotLock();
     testLayoutGrowthKeepsCenterDefinition();
     testModuleRegistry();
+    testBuiltInModuleResolution();
+    testPersistentPresentations();
+    testModuleMenusAreDeclarative();
 
     console.log('Honeycomb NG core tests: OK');
 }

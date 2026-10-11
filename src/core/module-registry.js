@@ -27,6 +27,18 @@ class ModuleRegistry
         ) || null;
     }
 
+    resolvePresentation(mode)
+    {
+        if( ! mode )
+            return null;
+
+        return this._modules.find(module =>
+            module.presentation &&
+            Array.isArray(module.persistentModes) &&
+            module.persistentModes.includes(mode)
+        ) || null;
+    }
+
     resolve(item, hass)
     {
         const explicit = item && (item.module || item.profile);
