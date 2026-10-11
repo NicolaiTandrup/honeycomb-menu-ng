@@ -384,7 +384,11 @@ const st=n(26);function at(t,e,n={},i={}){const o=new Event(e,Object.assign({bub
             .hex-shell,
             .hex-face {
                 position: absolute;
-                inset: 0;
+                left: var(--tile-spacing, 0px);
+                right: var(--tile-spacing, 0px);
+                top: 50%;
+                aspect-ratio: 1 / 1.1476;
+                transform: translateY(-50%);
                 clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
             }
 
@@ -394,8 +398,8 @@ const st=n(26);function at(t,e,n={},i={}){const o=new Event(e,Object.assign({bub
             }
 
             .hex-face {
-                transform: scale(0.965);
-                transform-origin: center;
+                left: calc(var(--tile-spacing, 0px) + 1px);
+                right: calc(var(--tile-spacing, 0px) + 1px);
                 background: var(--tile-background, rgba(52,66,78,0.94));
                 background-image: var(--tile-background-image, none);
                 background-position: center;
@@ -502,22 +506,22 @@ const st=n(26);function at(t,e,n={},i={}){const o=new Event(e,Object.assign({bub
                 <path d="M35 23 Q40 27 45 23"
                       fill="none" stroke="#17191c" stroke-width="2.4" stroke-linecap="round"></path>
             </svg>
-        `}_renderTile(t,e,n,i=this._size){const o=this._styleValue(t,"card","background","rgba(52,66,78,0.94)"),r=this._styleValue(t,"card","border","2px solid rgba(20,24,28,0.96)"),s=this._styleValue(t,"card","background-image","none"),a=this._styleValue(t,"card","background-size","56% auto"),c=this._styleValue(t,"icon","color","#f6f7f9"),l=this._styleValue(t,"name","color",c),u=this._styleValue(t,"label","color",l),h=c||"#f6f7f9",p="honeycomb:bee"===t.icon,d=!1!==t.show_icon&&Boolean(t.icon),f=!1!==t.show_name&&Boolean(t.name),_=!0===t.show_label&&Boolean(t.label),m=String(r).match(/(?:#[0-9a-fA-F]{3,8}|rgba?\([^\)]+\))/),b=[`--x:${e[0]}px`,`--y:${e[1]}px`,`--tile-size:${Number(i)||this._size}px`,"--tile-background:"+o,"--tile-border:"+(m?m[0]:"rgba(20,24,28,0.96)"),"--tile-background-image:"+s,"--tile-background-size:"+a,"--tile-foreground:"+h].join(";");return F`
-            <div class="tile" style=${b}>
+        `}_renderTile(t,e,n,i=this._size,o=0){const r=this._styleValue(t,"card","background","rgba(52,66,78,0.94)"),s=this._styleValue(t,"card","border","2px solid rgba(20,24,28,0.96)"),a=this._styleValue(t,"card","background-image","none"),c=this._styleValue(t,"card","background-size","56% auto"),l=this._styleValue(t,"icon","color","#f6f7f9"),u=this._styleValue(t,"name","color",l),h=this._styleValue(t,"label","color",u),p=l||"#f6f7f9",d="honeycomb:bee"===t.icon,f=!1!==t.show_icon&&Boolean(t.icon),_=!1!==t.show_name&&Boolean(t.name),m=!0===t.show_label&&Boolean(t.label),b=String(s).match(/(?:#[0-9a-fA-F]{3,8}|rgba?\([^\)]+\))/),g=[`--x:${e[0]}px`,`--y:${e[1]}px`,`--tile-size:${Number(i)||this._size}px`,`--tile-spacing:${Math.max(0,Number(o)||0)}px`,"--tile-background:"+r,"--tile-border:"+(b?b[0]:"rgba(20,24,28,0.96)"),"--tile-background-image:"+a,"--tile-background-size:"+c,"--tile-foreground:"+p].join(";");return F`
+            <div class="tile" style=${g}>
                 <div class="hex-shell"></div>
                 <div class="hex-face"
                      @pointerdown=${t=>{t.preventDefault(),t.stopPropagation();try{t.currentTarget.setPointerCapture(t.pointerId)}catch(t){}this._pressStart(n,t.pointerId)}}
                      @pointerup=${t=>{t.preventDefault(),t.stopPropagation(),this._pressEnd(t.pointerId)}}
                      @pointercancel=${t=>this._pressCancel(t.pointerId)}
                      @contextmenu=${t=>t.preventDefault()}>
-                    <div class="content ${_?"":"no-label"}">
-                        ${p?this._beeSvg():d?F`<ha-icon .icon=${t.icon} style="color:${c}"></ha-icon>`:F`<span></span>`}
-                        ${f?F`<div class="name" style="color:${l}">${t.name}</div>`:F`<span></span>`}
-                        ${_?F`<div class="label" style="color:${u}">${t.label}</div>`:""}
+                    <div class="content ${m?"":"no-label"}">
+                        ${d?this._beeSvg():f?F`<ha-icon .icon=${t.icon} style="color:${l}"></ha-icon>`:F`<span></span>`}
+                        ${_?F`<div class="name" style="color:${u}">${t.name}</div>`:F`<span></span>`}
+                        ${m?F`<div class="label" style="color:${h}">${t.label}</div>`:""}
                     </div>
                 </div>
             </div>
-        `}_renderHub(){const t=this._items(),e=this._shouldShowLogo(),n=this._hubSlots(t.length,e),i=t.map((t,e)=>{const i=void 0!==t.slot?Number(t.slot):n[e];return this._renderTile(this._rootItemConfig(t),this._offsetForSlot(i),{role:"root",item:t,slot:i})});return e&&i.push(this._renderTile(this._logoConfig(),this._innerOffset(0),{role:"logo"})),i}_detailButtons(t){return"media"===t.type?this._mediaControlButtons(t):this._lightControlButtons(t)}_renderDetail(){const t=this._selectedItem;if(!t)return this._renderHub();const e=this._offsetForSlot(this._selectedOriginSlot||0,this._size),n=this._detailItemSize||250/3.586,i=[];i.push(this._renderTile(this._centerItemConfig(t),e,{role:"center",item:t},n)),this._detailButtons(t).forEach(o=>{const r=this._innerOffset(o.slot,n),s=[e[0]+r[0],e[1]+r[1]];i.push(this._renderTile(o,s,{role:"control",item:t,control:o},n))});let o=[];return"palette"===this._nestedView?o=this._paletteButtons(t):"join"===this._nestedView?o=this._joinButtons(t):"radio"===this._nestedView&&(o=this._radioButtons(t)),o.forEach(o=>{const r=this._outerOffset(o.slot,n),s=[e[0]+r[0],e[1]+r[1]];i.push(this._renderTile(o,s,{role:"outer",item:t,control:o},n))}),i}render(){return F`
+        `}_renderHub(){const t=this._items(),e=this._shouldShowLogo(),n=this._hubSlots(t.length,e),i=t.map((t,e)=>{const i=void 0!==t.slot?Number(t.slot):n[e];return this._renderTile(this._rootItemConfig(t),this._offsetForSlot(i),{role:"root",item:t,slot:i})});return e&&i.push(this._renderTile(this._logoConfig(),this._innerOffset(0),{role:"logo"})),i}_detailButtons(t){return"media"===t.type?this._mediaControlButtons(t):this._lightControlButtons(t)}_renderDetail(){const t=this._selectedItem;if(!t)return this._renderHub();const e=this._offsetForSlot(this._selectedOriginSlot||0,this._size),n=this._detailItemSize||250/3.586,i=[];i.push(this._renderTile(this._centerItemConfig(t),e,{role:"center",item:t},n,2)),this._detailButtons(t).forEach(o=>{const r=this._innerOffset(o.slot,n),s=[e[0]+r[0],e[1]+r[1]];i.push(this._renderTile(o,s,{role:"control",item:t,control:o},n,2))});let o=[];return"palette"===this._nestedView?o=this._paletteButtons(t):"join"===this._nestedView?o=this._joinButtons(t):"radio"===this._nestedView&&(o=this._radioButtons(t)),o.forEach(o=>{const r=this._outerOffset(o.slot,n),s=[e[0]+r[0],e[1]+r[1]];i.push(this._renderTile(o,s,{role:"outer",item:t,control:o},n,2))}),i}render(){return F`
             <div class="stage">
                 ${"hub"===this._view?this._renderHub():this._renderDetail()}
             </div>
