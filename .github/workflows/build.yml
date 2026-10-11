@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test core contracts
+        run: npm test
+
       - name: Build
         env:
           NODE_OPTIONS: --openssl-legacy-provider
