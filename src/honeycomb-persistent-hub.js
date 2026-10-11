@@ -757,6 +757,32 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         ]]]`;
     }
 
+    _persistentLightLauncher(item, index, slot, submenu)
+    {
+        const requestedIcon = this._itemIcon(item);
+        const icon = requestedIcon && requestedIcon !== 'honeycomb:bee'
+            ? requestedIcon
+            : 'mdi:lightbulb';
+
+        return merge(
+            {},
+            {
+                _persistent_launcher: true,
+                slot: item.slot !== undefined ? item.slot : (slot !== undefined ? slot : (index + 1)),
+                slot_mode: 'hard',
+                entity: item.entity,
+                icon,
+                mode: 'persistent',
+                interactive: true,
+                show_brightness: 'when_on',
+                tap_action: { action: 'toggle' },
+                menu: submenu,
+                presets: merge({}, item.presets || {})
+            },
+            item.persistent || {}
+        );
+    }
+
     _launcherButton(item, index, slot)
     {
         const icon = this._itemIcon(item);
@@ -769,6 +795,9 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             else if( item.type === 'media' )
                 submenu = this._mediaMenu(item);
         }
+
+        if( item.type === 'light' )
+            return this._persistentLightLauncher(item, index, slot, submenu);
 
         const button = {
             slot: item.slot !== undefined ? item.slot : (slot !== undefined ? slot : (index + 1)),
