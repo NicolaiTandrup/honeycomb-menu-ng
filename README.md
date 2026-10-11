@@ -146,6 +146,22 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.1.2 — Direct Hub and branded bee
+
+v1.1.2 removes the extra Hub click and turns the bee into branding rather than a navigation gate:
+
+- Hub launcher rings open automatically as soon as the card is rendered
+- two to six Hub items use balanced inner-ring positions around the center
+- the bee logo is shown automatically in the center when two or more Hub items are present
+- set `logo: false` to remove the automatic center logo
+- a Hub item without an icon now uses the built-in Honeycomb bee; set `icon: false` to render no icon
+- the bee has been redrawn as an embedded SVG with yellow/black body, white wings and a friendlier logo-style face
+- tapping a bee triggers a short wing-flap animation without adding a navigation step
+- media launchers now use the established Sonos layout: volume down, play/pause, Join, volume up, Radio and Browse
+- optional Sonos group-volume scripts, Join members and favorites/cache sensors can be configured per media launcher
+
+The bee remains embedded directly in the JavaScript bundle; no separate image asset is required.
+
 ## v1.1.1 — Hub launcher label fix
 
 v1.1.1 fixes the initial Hub configuration error where the light launcher status template was evaluated too early and raised `b is not defined`.
