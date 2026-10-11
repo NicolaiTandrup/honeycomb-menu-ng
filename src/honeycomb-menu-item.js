@@ -358,17 +358,11 @@ class HoneycombMenuItem extends LitElement
             if( ! Array.isArray(config.styles.card) )
                 config.styles.card = [];
 
-            const inlineHub = config._inline_hub === true;
-
             config.styles.card.push({
                 height: '100%',
-                position: inlineHub ? 'relative' : 'fixed',
-                inset: inlineHub ? undefined : undefined,
-                width: inlineHub ? '100%' : undefined,
+                position: 'fixed',
                 padding: '0'
             });
-
-            delete config._inline_hub;
 
             if( config.icon === 'honeycomb:bee' )
             {
