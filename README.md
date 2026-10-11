@@ -146,6 +146,39 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.1.3 — Hub state and center slot
+
+v1.1.3 makes Hub launchers state-aware and introduces center slot `0` for Hub layouts.
+
+- Hub light tiles now reflect the live light state before opening:
+  - off = neutral dark tile
+  - on + RGB = current RGB color
+  - on + color temperature = current warm/cool white color
+  - brightness remains visible as the secondary value
+- media tiles use a distinct active color while playing and continue to show the current media title/source/state
+- Hub slot `0` means the physical center position
+- explicit `slot: 0` is supported for Hub items
+- when the logo is disabled, auto-layout may place a real Hub item in slot 0
+- seven Hub items always use slots `0–6` and suppress the logo
+
+Automatic Hub layouts:
+
+Without logo:
+- 2 items: `2,3`
+- 3 items: `2,3,0`
+- 4 items: `1,2,0,3`
+- 5 items: `1,2,0,3,4`
+- 6 items: `1,2,3,4,5,6`
+- 7 items: `0,1,2,3,4,5,6`
+
+With logo in slot 0:
+- 2 items: `2,3`
+- 3 items: `2,4,6`
+- 4 items: `2,3,1,4`
+- 5 items: `1,2,3,4,5`
+- 6 items: `1,2,3,4,5,6`
+- 7 items: logo is suppressed and the no-logo 7-item layout is used
+
 ## v1.1.2 — Direct Hub and branded bee
 
 v1.1.2 removes the extra Hub click and turns the bee into branding rather than a navigation gate:
