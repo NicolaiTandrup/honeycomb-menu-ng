@@ -670,7 +670,8 @@ function applyPresetControls(config, inheritedPresets, inheritedEntity)
     return config;
 }
 
-window.honeycomb_menu = (config) => {
+function openHoneycombMenu(context, config)
+{
     var honeycombConfig = traverseConfigs( config );
 
     if( honeycombConfig.entity_id && ! honeycombConfig.entity )
@@ -682,13 +683,13 @@ window.honeycomb_menu = (config) => {
     // If a menu is already open, treat a newly opened menu as a nested menu.
     // nested_expand keeps the current Honeycomb element alive and only updates
     // its config, so existing inner-ring buttons do not animate out/in again.
-    const nested = !! manager.honeycomb && !! manager.currentConfig;
+    const nested = !! context.honeycomb && !! context.currentConfig;
 
     if( nested && honeycombConfig.nested_expand === true )
     {
-        const current = manager.currentConfig || {};
+        const current = context.currentConfig || {};
 
-        manager.stack.push({
+        context.stack.push({
             __honeycomb_stack_entry: true,
             config: merge({}, current),
             inPlace: true
@@ -698,10 +699,10 @@ window.honeycomb_menu = (config) => {
         // keep the currently visible inner ring and add the nested menu to the
         // outer physical slots. The nested menu remains generic and can still
         // override any of the inherited buttons explicitly.
-        if( honeycombConfig.inherit_inner === true && manager.honeycomb )
+        if( honeycombConfig.inherit_inner === true && context.honeycomb )
         {
             const combined = new Array(18);
-            const currentButtons = manager.honeycomb.buttons || [];
+            const currentButtons = context.honeycomb.buttons || [];
 
             for( let i = 0; i < 6; i++ )
             {
@@ -783,27 +784,43 @@ window.honeycomb_menu = (config) => {
             honeycombConfig.center_button = null;
         }
 
-        manager.currentConfig = merge({}, honeycombConfig);
-        manager.honeycomb.replaceConfig(honeycombConfig);
+        context.currentConfig = merge({}, honeycombConfig);
+        context.honeycomb.replaceConfig(honeycombConfig);
 
         if(
             Number.isFinite(Number(honeycombConfig.anchor_x)) &&
             Number.isFinite(Number(honeycombConfig.anchor_y)) &&
-            typeof manager.honeycomb.reanchor === 'function'
+            typeof context.honeycomb.reanchor === 'function'
         )
         {
-            manager.honeycomb.reanchor(
+            context.honeycomb.reanchor(
                 Number(honeycombConfig.anchor_x),
                 Number(honeycombConfig.anchor_y)
             );
         }
 
-        return manager.honeycomb;
+        return context.honeycomb;
     }
 
-    return showHoneycombMenu( honeycombConfig, { nested } );
+    return showHoneycombMenu( honeycombConfig, { nested, context } );
 };
 
+
+window.honeycomb_menu = (config) => openHoneycombMenu(manager, config);
+
+window.honeycomb_menu_create_context = () => ({
+    honeycomb: null,
+    stack: [],
+    currentConfig: null,
+    local: true
+});
+
+window.honeycomb_menu_in_context = (context, config) => {
+    if( ! context || typeof context !== 'object' )
+        return openHoneycombMenu(manager, config);
+
+    return openHoneycombMenu(context, config);
+};
 document.addEventListener('touchstart', manager.handleXYPosition, false);
 document.addEventListener('mousedown', manager.handleXYPosition, false);
 document.addEventListener('pointerdown', manager.handlePointerDown, true);
@@ -814,10 +831,18 @@ document.body.addEventListener("ll-custom", e => {
     if(e.detail.honeycomb_menu)
     {
         const nestedConfig = merge({}, e.detail.honeycomb_menu);
+        const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+        const sourceMenu = path.find(node =>
+            node &&
+            node.tagName &&
+            node.tagName.toLowerCase() === 'honeycomb-menu'
+        );
+        const context = sourceMenu && sourceMenu._menuContext
+            ? sourceMenu._menuContext
+            : manager;
 
         if( nestedConfig.promote_to_center === true )
         {
-            const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
             const sourceItem = path.find(node =>
                 node &&
                 node.tagName &&
@@ -833,26 +858,28 @@ document.body.addEventListener("ll-custom", e => {
             }
         }
 
-        window.honeycomb_menu( nestedConfig );
+        openHoneycombMenu(context, nestedConfig);
     }
 });
 
 function showHoneycombMenu( _config, options = {} )
 {
-    const previous = manager.honeycomb;
+    const context = options.context || manager;
+    const previous = context.honeycomb;
 
     if( options.resetStack )
-        manager.stack = [];
+        context.stack = [];
 
-    if( options.nested && manager.currentConfig )
-        manager.stack.push(manager.currentConfig);
+    if( options.nested && context.currentConfig )
+        context.stack.push(context.currentConfig);
 
     if( previous )
         previous.close();
 
     const menu = document.createElement('honeycomb-menu');
-    manager.honeycomb = menu;
-    manager.currentConfig = merge({}, _config);
+    menu._menuContext = context;
+    context.honeycomb = menu;
+    context.currentConfig = merge({}, _config);
 
     menu.setConfig( _config );
 
@@ -865,32 +892,32 @@ function showHoneycombMenu( _config, options = {} )
 
     menu.display( lovelace_view(), anchorX, anchorY );
     menu.addEventListener('closing', e => {
-        if( manager.honeycomb === menu )
-            manager.honeycomb = null;
+        if( context.honeycomb === menu )
+            context.honeycomb = null;
     });
 
     return menu;
 }
 
-function honeycombBack()
+function honeycombBack(context = manager)
 {
-    if( manager.stack.length === 0 )
+    if( context.stack.length === 0 )
         return false;
 
-    const previous = manager.stack.pop();
+    const previous = context.stack.pop();
 
-    if( previous && previous.__honeycomb_stack_entry && previous.inPlace && manager.honeycomb )
+    if( previous && previous.__honeycomb_stack_entry && previous.inPlace && context.honeycomb )
     {
-        manager.currentConfig = merge({}, previous.config);
-        manager.honeycomb.replaceConfig(previous.config);
+        context.currentConfig = merge({}, previous.config);
+        context.honeycomb.replaceConfig(previous.config);
 
         if(
             Number.isFinite(Number(previous.config && previous.config.anchor_x)) &&
             Number.isFinite(Number(previous.config && previous.config.anchor_y)) &&
-            typeof manager.honeycomb.reanchor === 'function'
+            typeof context.honeycomb.reanchor === 'function'
         )
         {
-            manager.honeycomb.reanchor(
+            context.honeycomb.reanchor(
                 Number(previous.config.anchor_x),
                 Number(previous.config.anchor_y)
             );
@@ -903,21 +930,23 @@ function honeycombBack()
         ? previous.config
         : previous;
 
-    showHoneycombMenu(previousConfig, { nested: false });
+    showHoneycombMenu(previousConfig, { nested: false, context });
     return true;
 }
 
-function honeycombClose()
+function honeycombClose(context = manager)
 {
-    manager.stack = [];
-    manager.currentConfig = null;
+    context.stack = [];
+    context.currentConfig = null;
 
-    if( manager.honeycomb )
-        manager.honeycomb.close();
+    if( context.honeycomb )
+        context.honeycomb.close();
 }
 
-window.honeycomb_menu_back = honeycombBack;
-window.honeycomb_menu_close = honeycombClose;
+window.honeycomb_menu_back = () => honeycombBack(manager);
+window.honeycomb_menu_close = () => honeycombClose(manager);
+window.honeycomb_menu_context_back = context => honeycombBack(context || manager);
+window.honeycomb_menu_context_close = context => honeycombClose(context || manager);
 
 function traverseConfigs( _config, _buttons )
 {
@@ -1166,7 +1195,9 @@ class HoneycombMenu extends LitElement
         const centerPos = this._computeCenterPosition();
 
         return html`
-            <div id="shade" class="shade" @click=${this._handleShadeClick}></div>
+            ${this._menuContext && this._menuContext.local ? '' : html`
+                <div id="shade" class="shade" @click=${this._handleShadeClick}></div>
+            `}
 
             ${(this.config.xy_pad) ? html`
                 <xy-pad
@@ -1654,10 +1685,12 @@ class HoneycombMenu extends LitElement
             this.config.anchor_y = y;
         }
 
-        if( manager.honeycomb === this && manager.currentConfig )
+        const context = this._menuContext || manager;
+
+        if( context.honeycomb === this && context.currentConfig )
         {
-            manager.currentConfig.anchor_x = x;
-            manager.currentConfig.anchor_y = y;
+            context.currentConfig.anchor_x = x;
+            context.currentConfig.anchor_y = y;
         }
 
         this._setPosition(x, y);
@@ -1752,8 +1785,9 @@ class HoneycombMenu extends LitElement
     _handleShadeClick(e)
     {
         e.stopPropagation();
-        manager.stack = [];
-        manager.currentConfig = null;
+        const context = this._menuContext || manager;
+        context.stack = [];
+        context.currentConfig = null;
         this.close();
     }
 
@@ -1776,14 +1810,14 @@ class HoneycombMenu extends LitElement
         if( configuredAction === 'honeycomb-back' )
         {
             e.stopPropagation();
-            honeycombBack();
+            honeycombBack(this._menuContext || manager);
             return;
         }
 
         if( configuredAction === 'honeycomb-close' )
         {
             e.stopPropagation();
-            honeycombClose();
+            honeycombClose(this._menuContext || manager);
             return;
         }
 
@@ -1812,8 +1846,9 @@ class HoneycombMenu extends LitElement
 
         if( e.detail.autoclose )
         {
-            manager.stack = [];
-            manager.currentConfig = null;
+            const context = this._menuContext || manager;
+            context.stack = [];
+            context.currentConfig = null;
             this.close(item);
             return;
         }
@@ -2165,8 +2200,9 @@ class HoneycombMenu extends LitElement
             if( this.closing )
                 return;
 
-            manager.stack = [];
-            manager.currentConfig = null;
+            const context = this._menuContext || manager;
+            context.stack = [];
+            context.currentConfig = null;
             this.close();
         }, timeout);
     }
@@ -2400,7 +2436,7 @@ class HoneycombMenu extends LitElement
         if( this.config.center_button === false )
             return null;
 
-        const nestedDefaultCenter = manager.stack.length > 0 && this.config.nested_center_back
+        const nestedDefaultCenter = (this._menuContext || manager).stack.length > 0 && this.config.nested_center_back
             ? {
                 entity: this.config.entity,
                 active: false,
