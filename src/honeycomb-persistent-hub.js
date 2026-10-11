@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import "./honeycomb-menu-item.js";
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
@@ -26,12 +27,6 @@ class HoneycombPersistentHub extends LitElement
         this._selectedItem = null;
         this._nestedView = null;
         this._size = 82;
-        this._pressTimer = null;
-        this._pressConsumed = false;
-        this._activePointerId = null;
-        this._activePressMeta = null;
-        this._beeFlapping = false;
-        this._beeFlapTimer = null;
     }
 
     static get styles()
@@ -40,8 +35,8 @@ class HoneycombPersistentHub extends LitElement
             :host {
                 display: block;
                 position: relative;
-                width: var(--tile-size, var(--honeycomb-hub-size, 82px));
-                height: calc(var(--tile-size, var(--honeycomb-hub-size, 82px)) * 1.1547);
+                width: var(--honeycomb-hub-size, 82px);
+                height: calc(var(--honeycomb-hub-size, 82px) * 1.1547);
                 overflow: visible;
                 pointer-events: none;
             }
@@ -53,120 +48,20 @@ class HoneycombPersistentHub extends LitElement
                 pointer-events: none;
             }
 
-            .tile {
+            honeycomb-menu-item {
                 position: absolute;
                 left: 50%;
                 top: 50%;
-                width: var(--honeycomb-hub-size, 82px);
-                height: calc(var(--honeycomb-hub-size, 82px) * 1.1547);
+                box-sizing: border-box;
+                width: var(--tile-size, 70px);
+                padding: var(--tile-spacing, 2px);
+                pointer-events: all;
                 transform: translate(-50%, -50%) translate(var(--x, 0px), var(--y, 0px));
-                pointer-events: none;
-                transition: transform 160ms ease, opacity 120ms ease;
+                z-index: 1;
             }
 
-            .hex-shell,
-            .hex-face {
-                position: absolute;
-                left: var(--tile-spacing, 0px);
-                right: var(--tile-spacing, 0px);
-                top: 50%;
-                aspect-ratio: 1 / 1.1476;
-                transform: translateY(-50%);
-                clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-            }
-
-            .hex-shell {
-                background: var(--tile-border, rgba(20, 24, 28, 0.96));
-                pointer-events: none;
-            }
-
-            .hex-face {
-                left: calc(var(--tile-spacing, 0px) + 1px);
-                right: calc(var(--tile-spacing, 0px) + 1px);
-                background: var(--tile-background, rgba(52,66,78,0.94));
-                background-image: var(--tile-background-image, none);
-                background-position: center;
-                background-repeat: no-repeat;
-                background-size: var(--tile-background-size, 56% auto);
-                color: var(--tile-foreground, #f6f7f9);
-                display: grid;
-                place-items: center;
-                overflow: hidden;
-                pointer-events: auto;
-                touch-action: none;
-                user-select: none;
-                -webkit-user-select: none;
-                cursor: pointer;
-            }
-
-            .content {
-                width: 82%;
-                height: 76%;
-                display: grid;
-                grid-template-rows: 48% 28% 24%;
-                justify-items: center;
-                align-items: center;
-                text-align: center;
-                pointer-events: none;
-                line-height: 1.05;
-            }
-
-            .content.no-label {
-                grid-template-rows: 58% 42%;
-            }
-
-            ha-icon {
-                width: 24px;
-                height: 24px;
-                color: inherit;
-            }
-
-            .name {
-                font-size: 10px;
-                font-weight: 650;
-                max-width: 100%;
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-            }
-
-            .label {
-                font-size: 8px;
-                opacity: 0.84;
-                max-width: 100%;
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-            }
-
-            .bee {
-                width: 38%;
-                height: 38%;
-                overflow: visible;
-            }
-
-            .bee .wing-left,
-            .bee .wing-right {
-                transform-box: fill-box;
-                transform-origin: center;
-            }
-
-            .bee.flap .wing-left {
-                animation: wing-left 130ms ease-in-out 0s 3 alternate;
-            }
-
-            .bee.flap .wing-right {
-                animation: wing-right 130ms ease-in-out 0s 3 alternate;
-            }
-
-            @keyframes wing-left {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(-24deg); }
-            }
-
-            @keyframes wing-right {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(24deg); }
+            honeycomb-menu-item.center-item {
+                z-index: 2;
             }
         `;
     }
@@ -947,301 +842,93 @@ class HoneycombPersistentHub extends LitElement
         this.requestUpdate();
     }
 
-    _styleValue(config, group, key, fallback = null)
+    _handleClassicItemAction(e, meta)
     {
-        const list = config && config.styles && Array.isArray(config.styles[group])
-            ? config.styles[group]
-            : [];
-
-        for( const entry of list )
-        {
-            if( entry && Object.prototype.hasOwnProperty.call(entry, key) )
-                return entry[key];
-        }
-
-        return fallback;
-    }
-
-    _toggleEntity(entityId)
-    {
-        if( ! this.hass || ! entityId )
+        if( ! e || ! e.detail )
             return;
 
-        const domain = String(entityId).split('.')[0];
-
-        if( ! domain )
-            return;
-
-        this.hass.callService(domain, 'toggle', {}, { entity_id: entityId });
-    }
-
-    _runConfiguredAction(action, entityId)
-    {
-        if( ! action || ! this.hass )
-            return;
-
-        const type = action.action || action;
-
-        if( type === 'none' )
-            return;
-
-        if( type === 'toggle' )
-        {
-            this._toggleEntity(entityId);
-            return;
-        }
-
-        if( type === 'more-info' )
-        {
-            this.dispatchEvent(new CustomEvent('hass-more-info', {
-                bubbles: true,
-                composed: true,
-                detail: { entityId }
-            }));
-            return;
-        }
-
-        if( type === 'perform-action' || type === 'call-service' )
-        {
-            const serviceRef = action.perform_action || action.service;
-
-            if( ! serviceRef || ! String(serviceRef).includes('.') )
-                return;
-
-            const [domain, service] = String(serviceRef).split('.', 2);
-            const target = action.target || (entityId ? { entity_id: entityId } : undefined);
-            const data = action.data || action.service_data || {};
-
-            this.hass.callService(domain, service, data, target);
-        }
-    }
-
-    _flapBee()
-    {
-        this._beeFlapping = false;
-        this.requestUpdate();
-
-        requestAnimationFrame(() => {
-            this._beeFlapping = true;
-            this.requestUpdate();
-
-            if( this._beeFlapTimer )
-                clearTimeout(this._beeFlapTimer);
-
-            this._beeFlapTimer = setTimeout(() => {
-                this._beeFlapping = false;
-                this._beeFlapTimer = null;
-                this.requestUpdate();
-            }, 430);
-        });
-    }
-
-    _pressStart(meta, pointerId)
-    {
-        this._pressConsumed = false;
-        this._activePointerId = pointerId;
-        this._activePressMeta = meta;
-
-        if( this._pressTimer )
-            clearTimeout(this._pressTimer);
-
-        this._pressTimer = setTimeout(() => {
-            this._pressTimer = null;
-
-            if( this._activePointerId !== pointerId )
-                return;
-
-            this._pressConsumed = true;
-            this._activateTile(meta, 'hold');
-        }, 500);
-    }
-
-    _pressEnd(pointerId)
-    {
-        if( this._activePointerId !== pointerId )
-            return;
-
-        const meta = this._activePressMeta;
-
-        if( this._pressTimer )
-        {
-            clearTimeout(this._pressTimer);
-            this._pressTimer = null;
-        }
-
-        this._activePointerId = null;
-        this._activePressMeta = null;
-
-        if( this._pressConsumed )
-        {
-            this._pressConsumed = false;
-            return;
-        }
-
-        if( meta )
-            this._activateTile(meta, 'tap');
-    }
-
-    _pressCancel(pointerId = null)
-    {
-        if( pointerId !== null && this._activePointerId !== pointerId )
-            return;
-
-        if( this._pressTimer )
-        {
-            clearTimeout(this._pressTimer);
-            this._pressTimer = null;
-        }
-
-        this._activePointerId = null;
-        this._activePressMeta = null;
-        this._pressConsumed = false;
-    }
-
-    _activateTile(meta, actionType)
-    {
-        if( meta.role === 'logo' )
-        {
-            if( actionType === 'tap' )
-                this._flapBee();
-            return;
-        }
+        const actionType = e.detail.action || 'tap';
 
         if( meta.role === 'root' )
         {
             if( actionType === 'hold' )
+            {
+                e.preventDefault();
+                e.stopPropagation();
                 this._openItem(meta.item, meta.slot);
-            else
-                this._toggleEntity(meta.item.entity);
+            }
 
+            // Tap is executed by button-card itself (toggle).
             return;
         }
 
         if( meta.role === 'center' )
         {
             if( actionType === 'tap' )
+            {
+                e.preventDefault();
+                e.stopPropagation();
                 this._back();
+            }
             return;
         }
+
+        if( meta.role === 'logo' )
+            return;
 
         const control = meta.control;
 
-        if( ! control )
+        if( ! control || ! control._hubAction )
             return;
 
-        if( control._hubAction )
+        e.preventDefault();
+        e.stopPropagation();
+
+        if( control._hubAction === 'palette' && actionType === 'tap' )
         {
-            if( control._hubAction === 'palette' && actionType === 'tap' )
-            {
-                this._nestedView = 'palette';
-                this.requestUpdate();
-                return;
-            }
-
-            if( control._hubAction === 'join' && actionType === 'tap' )
-            {
-                this._nestedView = 'join';
-                this.requestUpdate();
-                return;
-            }
-
-            if( control._hubAction === 'radio' && actionType === 'tap' )
-            {
-                this._nestedView = 'radio';
-                this.requestUpdate();
-                return;
-            }
-
-            this._handlePreset(meta.item, control, actionType);
+            this._nestedView = 'palette';
+            this.requestUpdate();
             return;
         }
 
-        const action = actionType === 'hold'
-            ? control.hold_action
-            : control.tap_action;
+        if( control._hubAction === 'join' && actionType === 'tap' )
+        {
+            this._nestedView = 'join';
+            this.requestUpdate();
+            return;
+        }
 
-        this._runConfiguredAction(action, control.entity || meta.item.entity);
+        if( control._hubAction === 'radio' && actionType === 'tap' )
+        {
+            this._nestedView = 'radio';
+            this.requestUpdate();
+            return;
+        }
+
+        this._handlePreset(meta.item, control, actionType);
     }
 
-    _beeSvg()
+    _renderTile(config, offset, meta, tileSize = this._size, tileSpacing = 2)
     {
-        return html`
-            <svg class="bee ${this._beeFlapping ? 'flap' : ''}" viewBox="0 0 80 72" aria-hidden="true">
-                <path class="wing-left"
-                      d="M35 27 C24 10,8 13,10 29 C11 40,24 42,36 34 Z"
-                      fill="#fff8d8" stroke="#17191c" stroke-width="3.2"></path>
-                <path class="wing-right"
-                      d="M45 27 C56 10,72 13,70 29 C69 40,56 42,44 34 Z"
-                      fill="#fff8d8" stroke="#17191c" stroke-width="3.2"></path>
-                <ellipse cx="40" cy="39" rx="18" ry="23"
-                         fill="#ffc400" stroke="#17191c" stroke-width="3.4"></ellipse>
-                <path d="M24 32 C30 35,50 35,56 32"
-                      fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
-                <path d="M23 43 C31 47,49 47,57 43"
-                      fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
-                <circle cx="40" cy="20" r="12"
-                        fill="#ffc400" stroke="#17191c" stroke-width="3.4"></circle>
-                <circle cx="36" cy="18" r="1.9" fill="#17191c"></circle>
-                <circle cx="44" cy="18" r="1.9" fill="#17191c"></circle>
-                <path d="M35 23 Q40 27 45 23"
-                      fill="none" stroke="#17191c" stroke-width="2.4" stroke-linecap="round"></path>
-            </svg>
-        `;
-    }
+        const itemConfig = merge({}, config, {
+            _inline_hub: true
+        });
 
-    _renderTile(config, offset, meta, tileSize = this._size, tileSpacing = 0)
-    {
-        const background = this._styleValue(config, 'card', 'background', 'rgba(52,66,78,0.94)');
-        const border = this._styleValue(config, 'card', 'border', '2px solid rgba(20,24,28,0.96)');
-        const bgImage = this._styleValue(config, 'card', 'background-image', 'none');
-        const bgSize = this._styleValue(config, 'card', 'background-size', '56% auto');
-        const iconColor = this._styleValue(config, 'icon', 'color', '#f6f7f9');
-        const nameColor = this._styleValue(config, 'name', 'color', iconColor);
-        const labelColor = this._styleValue(config, 'label', 'color', nameColor);
-        const foreground = iconColor || '#f6f7f9';
-        const isBee = config.icon === 'honeycomb:bee';
-        const showIcon = config.show_icon !== false && Boolean(config.icon);
-        const showName = config.show_name !== false && Boolean(config.name);
-        const showLabel = config.show_label === true && Boolean(config.label);
-        const borderColor = String(border).match(/(?:#[0-9a-fA-F]{3,8}|rgba?\([^\)]+\))/);
-        const style = [
-            `--x:${offset[0]}px`,
-            `--y:${offset[1]}px`,
-            `--tile-size:${Number(tileSize) || this._size}px`,
-            `--tile-spacing:${Math.max(0, Number(tileSpacing) || 0)}px`,
-            `--tile-background:${background}`,
-            `--tile-border:${borderColor ? borderColor[0] : 'rgba(20,24,28,0.96)'}`,
-            `--tile-background-image:${bgImage}`,
-            `--tile-background-size:${bgSize}`,
-            `--tile-foreground:${foreground}`
-        ].join(';');
+        const classes = meta.role === 'center' ? 'center-item' : '';
 
         return html`
-            <div class="tile" style=${style}>
-                <div class="hex-shell"></div>
-                <div class="hex-face"
-                     @pointerdown=${e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
-                        this._pressStart(meta, e.pointerId);
-                     }}
-                     @pointerup=${e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        this._pressEnd(e.pointerId);
-                     }}
-                     @pointercancel=${e => this._pressCancel(e.pointerId)}
-                     @contextmenu=${e => e.preventDefault()}>
-                    <div class="content ${showLabel ? '' : 'no-label'}">
-                        ${isBee
-                            ? this._beeSvg()
-                            : (showIcon ? html`<ha-icon .icon=${config.icon} style="color:${iconColor}"></ha-icon>` : html`<span></span>`)}
-                        ${showName ? html`<div class="name" style="color:${nameColor}">${config.name}</div>` : html`<span></span>`}
-                        ${showLabel ? html`<div class="label" style="color:${labelColor}">${config.label}</div>` : ''}
-                    </div>
-                </div>
-            </div>
+            <honeycomb-menu-item
+                class=${classes}
+                style="
+                    --x:${offset[0]}px;
+                    --y:${offset[1]}px;
+                    --tile-size:${Number(tileSize) || this._size}px;
+                    --tile-spacing:${Math.max(0, Number(tileSpacing) || 0)}px;
+                "
+                .hass=${this.hass}
+                .config=${itemConfig}
+                @action=${e => this._handleClassicItemAction(e, meta)}>
+            </honeycomb-menu-item>
         `;
     }
 
@@ -1256,7 +943,9 @@ class HoneycombPersistentHub extends LitElement
             return this._renderTile(
                 this._rootItemConfig(item),
                 this._offsetForSlot(slot),
-                { role: 'root', item, slot }
+                { role: 'root', item, slot },
+                this._size,
+                2
             );
         });
 
@@ -1265,7 +954,9 @@ class HoneycombPersistentHub extends LitElement
             tiles.push(this._renderTile(
                 this._logoConfig(),
                 this._innerOffset(0),
-                { role: 'logo' }
+                { role: 'logo' },
+                this._size,
+                2
             ));
         }
 
