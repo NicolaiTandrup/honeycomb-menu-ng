@@ -215,6 +215,24 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.0 — Inline Hub architecture
+
+v1.2.0 replaces the persistent Hub's global overlay model with a fully inline component architecture.
+
+- each `custom:honeycomb-persistent-hub` now renders entirely inside its own Lovelace/picture-elements DOM element
+- multiple room Hubs can coexist on the same floorplan without sharing a global Hub overlay
+- editing/moving a picture-element moves the whole Hub because all Hub tiles are local children of that element
+- short tap on a root Hub tile toggles the entity
+- long press opens the next level locally around the exact tile that was held
+- the held tile stays on the same pixels and becomes the local center of its detail controls
+- tapping that promoted center returns to the Hub
+- light detail controls remain inline, including brightness preset, smart Color/White palette and standard color/Kelvin preset
+- Sonos/media detail controls remain inline, including volume, play/pause, Join, Radio and Browse
+- Color/White, Join and Radio expansion use the local outer ring instead of creating a global popup
+- slot `0` remains the Hub center and the automatic 2–7 tile layouts remain unchanged
+
+The existing normal Honeycomb popup/menu engine is unchanged. The new inline architecture applies specifically to `custom:honeycomb-persistent-hub`.
+
 ## v1.1.5 — Hub anchoring and edit stability
 
 v1.1.5 fixes Hub positioning during nested navigation and Lovelace editing:

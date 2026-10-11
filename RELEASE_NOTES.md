@@ -1,19 +1,29 @@
-## Honeycomb Menu NG v1.1.5 – Hub Anchoring & Edit Stability
+## Honeycomb Menu NG v1.2.0 – Inline Hub Architecture
 
-This pre-release focuses on the new persistent Hub navigation and floorplan editing experience.
+This pre-release changes the persistent Hub from a global overlay into a true inline Lovelace component.
 
-### Fixed
-- Long-pressing a Hub launcher now opens the next Honeycomb level around the exact tile that was held.
-- The promoted launcher becomes both the visual and physical center of the child menu.
-- Back navigation restores the previous Hub anchor position.
-- Persistent Hub overlays now follow their picture-elements anchor while it moves in Lovelace edit mode.
-- Stale Hub overlays are closed when the persistent Hub element is disconnected or remounted.
+### Why this changes
+The overlay-based Hub could only behave reliably as one global menu. That model does not scale to one Hub per room on a floorplan and caused edit-mode positioning problems.
 
-### Hub interaction
-- Short tap toggles the launcher entity.
-- Long press opens the detailed Honeycomb control level.
-- Hub tiles remain state-aware before opening detailed controls.
-- Slot `0` remains the physical Hub center.
+### New inline Hub
+- Every Hub is rendered inside its own picture-elements/Lovelace element.
+- Multiple Hubs can coexist independently on one dashboard.
+- Moving a Hub in edit mode moves its entire cluster with it.
+- No persistent Hub uses the global Honeycomb overlay manager anymore.
 
-### Release automation
-This release also adds repository-driven GitHub release automation. Future version bumps can create a tag and GitHub Release automatically from `release.json` and `RELEASE_NOTES.md`.
+### Navigation
+- Short tap on a root tile toggles its entity.
+- Long press opens detail controls around the exact tile that was held.
+- The held tile remains on the same pixels and becomes the local center.
+- Tap the promoted center to return to the Hub.
+- Nested Color/White, Sonos Join and Radio rings also stay local to that Hub.
+
+### Controls retained
+- Automatic light capability detection.
+- Brightness helper/fallback behavior.
+- Kelvin/HS standard preset behavior.
+- Color and White Ambiance palettes.
+- Sonos play/pause, volume, Join, Radio and Browse.
+- Hub state-aware root tiles and center slot 0 layouts.
+
+The normal Honeycomb popup system remains available and unchanged outside `custom:honeycomb-persistent-hub`.

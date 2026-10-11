@@ -1,810 +1,74 @@
-import HoneycombPersistentControl from "./honeycomb-persistent-control.js";
+import { LitElement, html, css } from 'lit';
+import "./honeycomb-menu-item.js";
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 
-class HoneycombPersistentHub extends HoneycombPersistentControl
+class HoneycombPersistentHub extends LitElement
 {
     static get is()
     {
         return 'honeycomb-persistent-hub';
     }
 
+    static get properties()
+    {
+        return {
+            hass: { type: Object },
+            config: { type: Object }
+        };
+    }
+
     constructor()
     {
         super();
-        this._hubMenu = null;
-        this._hubOpenScheduled = false;
-        this._anchorWatchRaf = null;
-        this._lastAnchorX = null;
-        this._lastAnchorY = null;
+        this.config = {};
+        this._view = 'hub';
+        this._selectedItem = null;
+        this._nestedView = null;
+        this._size = 82;
     }
 
-    firstUpdated()
+    static get styles()
     {
-        this._scheduleHubOpen();
-    }
-
-    updated()
-    {
-        this._scheduleHubOpen();
-    }
-
-    disconnectedCallback()
-    {
-        if( this._anchorWatchRaf )
-        {
-            cancelAnimationFrame(this._anchorWatchRaf);
-            this._anchorWatchRaf = null;
-        }
-
-        if( this._hubMenu && this._hubMenu.isConnected )
-            this._hubMenu.close();
-
-        super.disconnectedCallback();
-        this._hubOpenScheduled = false;
-        this._hubMenu = null;
-        this._lastAnchorX = null;
-        this._lastAnchorY = null;
-    }
-
-    _watchAnchor()
-    {
-        if( this._anchorWatchRaf )
-            cancelAnimationFrame(this._anchorWatchRaf);
-
-        const tick = () => {
-            this._anchorWatchRaf = null;
-
-            if( ! this.isConnected || ! this._hubMenu )
-                return;
-
-            const rect = this.getBoundingClientRect();
-
-            if( rect.width > 0 && rect.height > 0 )
-            {
-                const x = rect.left + (rect.width / 2);
-                const y = rect.top + (rect.height / 2);
-
-                if(
-                    this._lastAnchorX === null ||
-                    this._lastAnchorY === null ||
-                    Math.abs(x - this._lastAnchorX) > 0.5 ||
-                    Math.abs(y - this._lastAnchorY) > 0.5
-                )
-                {
-                    this._lastAnchorX = x;
-                    this._lastAnchorY = y;
-
-                    if( typeof this._hubMenu.reanchor === 'function' )
-                        this._hubMenu.reanchor(x, y);
-                }
+        return css`
+            :host {
+                display: block;
+                position: relative;
+                width: var(--honeycomb-hub-size, 82px);
+                height: calc(var(--honeycomb-hub-size, 82px) * 1.1547);
+                overflow: visible;
+                pointer-events: none;
             }
 
-            this._anchorWatchRaf = requestAnimationFrame(tick);
-        };
-
-        this._anchorWatchRaf = requestAnimationFrame(tick);
-    }
-
-    _scheduleHubOpen()
-    {
-        if(
-            this._hubOpenScheduled ||
-            this._hubMenu ||
-            ! this.isConnected ||
-            ! this.config ||
-            ! this.hass
-        ) return;
-
-        this._hubOpenScheduled = true;
-
-        requestAnimationFrame(() => {
-            this._hubOpenScheduled = false;
-
-            if( ! this.isConnected || this._hubMenu )
-                return;
-
-            const opened = super._openMenu();
-
-            if( opened )
-            {
-                this._hubMenu = opened;
-                this._lastAnchorX = null;
-                this._lastAnchorY = null;
-                this._watchAnchor();
-
-                opened.addEventListener('closed', () => {
-                    if( this._anchorWatchRaf )
-                    {
-                        cancelAnimationFrame(this._anchorWatchRaf);
-                        this._anchorWatchRaf = null;
-                    }
-
-                    this._hubMenu = null;
-                    this._lastAnchorX = null;
-                    this._lastAnchorY = null;
-
-                    if( this.isConnected && this.config && this.config.auto_open !== false )
-                        setTimeout(() => this._scheduleHubOpen(), 0);
-                }, { once: true });
-            }
-        });
-    }
-
-    _hubSlots(count, showLogo)
-    {
-        const noLogoLayouts = {
-            1: [0],
-            2: [2, 3],
-            3: [2, 3, 0],
-            4: [1, 2, 0, 3],
-            5: [1, 2, 0, 3, 4],
-            6: [1, 2, 3, 4, 5, 6],
-            7: [0, 1, 2, 3, 4, 5, 6]
-        };
-
-        const logoLayouts = {
-            1: [2],
-            2: [2, 3],
-            3: [2, 4, 6],
-            4: [2, 3, 1, 4],
-            5: [1, 2, 3, 4, 5],
-            6: [1, 2, 3, 4, 5, 6]
-        };
-
-        const safeCount = Math.max(1, Math.min(7, count));
-
-        if( showLogo && safeCount <= 6 )
-            return logoLayouts[safeCount] || [];
-
-        return noLogoLayouts[safeCount] || [];
-    }
-
-    _shouldShowLogo()
-    {
-        const logo = this.config ? this.config.logo : 'auto';
-        const count = this.config && Array.isArray(this.config.items)
-            ? this.config.items.filter(Boolean).length
-            : 0;
-
-        // Seven real items always consume center slot 0 + ring slots 1-6.
-        if( count >= 7 )
-            return false;
-
-        if( logo === false || logo === 'hide' || logo === 'hidden' )
-            return false;
-
-        if( logo === true || logo === 'show' || logo === 'visible' )
-            return count >= 1;
-
-        // Auto branding is useful when the center would otherwise be empty.
-        return count >= 2 && count <= 6;
-    }
-
-    _persistentMenuConfig()
-    {
-        const menu = super._persistentMenuConfig();
-
-        if( ! menu )
-            return menu;
-
-        menu.idle_timeout = 0;
-
-        const showLogo = this._shouldShowLogo();
-
-        if( showLogo )
-        {
-            menu.persistent_center = merge(
-                {},
-                menu.persistent_center || {},
-                {
-                    icon: 'honeycomb:bee',
-                    interactive: true,
-                    tap_action: { action: 'honeycomb-bee-flap' },
-                    show_brightness: 'never',
-                    mode: 'hub'
-                }
-            );
-            menu.center_button = null;
-        }
-        else
-        {
-            menu.persistent_center = null;
-
-            if( this._hubCenterButton )
-            {
-                menu.center_button = merge({}, this._hubCenterButton);
-                delete menu.center_button.slot;
-                delete menu.center_button.slot_mode;
-            }
-            else
-            {
-                menu.center_button = false;
-            }
-        }
-
-        return menu;
-    }
-
-    _lightMenu(item)
-    {
-        return {
-            entity: item.entity,
-            presets: merge({}, item.presets || {}),
-            nested_expand: true,
-            promote_to_center: true,
-            promoted_center: {
-                entity: item.entity,
-                icon: item.icon || 'mdi:lightbulb',
-                mode: 'persistent',
-                show_brightness: 'when_on'
-            },
-            empty_slots: 'hidden',
-            idle_timeout: 8000,
-            buttons: [
-                {
-                    slot: 1,
-                    slot_mode: 'hard',
-                    icon: 'mdi:brightness-7',
-                    name: '100%',
-                    show_name: true,
-                    autoclose: false,
-                    tap_action: {
-                        action: 'perform-action',
-                        perform_action: 'light.turn_on',
-                        data: { brightness_pct: 100 }
-                    }
-                },
-                {
-                    slot: 2,
-                    slot_mode: 'hard',
-                    control: 'preset-brightness'
-                },
-                {
-                    slot: 3,
-                    slot_mode: 'hard',
-                    control: 'light-palette'
-                },
-                {
-                    slot: 4,
-                    slot_mode: 'hard',
-                    control: 'preset-standard'
-                },
-                {
-                    slot: 5,
-                    slot_mode: 'hard',
-                    icon: 'mdi:minus',
-                    name: '5%',
-                    show_name: true,
-                    autoclose: false,
-                    tap_action: {
-                        action: 'perform-action',
-                        perform_action: 'light.turn_on',
-                        data: { brightness_step_pct: -5 }
-                    }
-                },
-                {
-                    slot: 6,
-                    slot_mode: 'hard',
-                    icon: 'mdi:plus',
-                    name: '5%',
-                    show_name: true,
-                    autoclose: false,
-                    tap_action: {
-                        action: 'perform-action',
-                        perform_action: 'light.turn_on',
-                        data: { brightness_step_pct: 5 }
-                    }
-                }
-            ]
-        };
-    }
-
-    _actionForScript(script, fallbackService)
-    {
-        if( script )
-        {
-            return {
-                action: 'perform-action',
-                perform_action: script
-            };
-        }
-
-        return {
-            action: 'perform-action',
-            perform_action: fallbackService
-        };
-    }
-
-    _sonosJoinMenu(item)
-    {
-        const members = Array.isArray(item.members) ? item.members : [];
-
-        if( members.length === 0 || ! item.toggle_member_script )
-            return null;
-
-        return {
-            entity: item.entity,
-            nested_expand: true,
-            inherit_inner: true,
-            empty_slots: 'hidden',
-            idle_timeout: 0,
-            buttons: members.slice(0, 12).map((member, index) => ({
-                slot: index + 7,
-                slot_mode: 'hard',
-                entity: member.entity,
-                icon: member.icon || (member.entity && member.entity.includes('tv') ? 'mdi:television-speaker' : 'mdi:speaker'),
-                name: member.name || '',
-                show_name: true,
-                autoclose: false,
-                styles: {
-                    card: [
-                        {
-                            background: `[[[
-                                const members = states['${item.entity}']?.attributes?.group_members || [];
-                                return members.includes('${member.entity}')
-                                    ? 'rgba(45, 105, 116, 0.96)'
-                                    : 'rgba(52, 66, 78, 0.92)';
-                            ]]]`
-                        },
-                        { border: '1px solid rgba(75, 180, 200, 0.20)' }
-                    ],
-                    icon: [
-                        { width: '18px' },
-                        { 'align-self': 'end' }
-                    ],
-                    name: [
-                        { 'align-self': 'start' },
-                        { 'font-size': '9px' },
-                        { 'font-weight': '700' }
-                    ]
-                },
-                tap_action: {
-                    action: 'perform-action',
-                    perform_action: item.toggle_member_script,
-                    data: {
-                        member: member.entity
-                    }
-                }
-            }))
-        };
-    }
-
-    _sonosRadioMenu(item)
-    {
-        const favorites = item.favorites_sensor || 'sensor.sonos_favorites';
-        const cache = item.favorites_cache_sensor || 'sensor.sonos_favorites_cache';
-
-        return {
-            entity: item.entity,
-            nested_expand: true,
-            inherit_inner: true,
-            empty_slots: 'hidden',
-            idle_timeout: 0,
-            buttons: Array.from({ length: 12 }, (_, index) => ({
-                slot: index + 7,
-                slot_mode: 'hard',
-                entity: favorites,
-                show: `[[[
-                    const items = states['${favorites}']?.attributes?.items || {};
-                    return Object.keys(items).length > ${index};
-                ]]]`,
-                icon: 'mdi:radio',
-                show_icon: `[[[
-                    const base = states['${favorites}']?.attributes?.items || {};
-                    const id = Object.keys(base)[${index}];
-                    const cached = states['${cache}']?.attributes?.items || [];
-                    const match = cached.find(x => x?.media_content_id === id);
-                    return !Boolean(match?.thumbnail);
-                ]]]`,
-                show_name: `[[[
-                    const base = states['${favorites}']?.attributes?.items || {};
-                    const id = Object.keys(base)[${index}];
-                    const cached = states['${cache}']?.attributes?.items || [];
-                    const match = cached.find(x => x?.media_content_id === id);
-                    return !Boolean(match?.thumbnail);
-                ]]]`,
-                name: `[[[
-                    const items = states['${favorites}']?.attributes?.items || {};
-                    return Object.values(items)[${index}] || '';
-                ]]]`,
-                autoclose: true,
-                styles: {
-                    card: [
-                        { background: 'rgba(52, 66, 78, 0.92)' },
-                        {
-                            'background-image': `[[[
-                                const base = states['${favorites}']?.attributes?.items || {};
-                                const id = Object.keys(base)[${index}];
-                                const cached = states['${cache}']?.attributes?.items || [];
-                                const match = cached.find(x => x?.media_content_id === id);
-                                const thumb = match?.thumbnail || '';
-                                return thumb ? 'url("' + thumb + '")' : 'none';
-                            ]]]`
-                        },
-                        { 'background-position': 'center' },
-                        { 'background-repeat': 'no-repeat' },
-                        { 'background-size': '56% auto' },
-                        { border: '1px solid rgba(75, 180, 200, 0.22)' }
-                    ],
-                    icon: [
-                        { width: '17px' },
-                        { 'align-self': 'end' }
-                    ],
-                    name: [
-                        { 'align-self': 'start' },
-                        { 'font-size': '9px' },
-                        { 'font-weight': '600' },
-                        { 'white-space': 'nowrap' },
-                        { overflow: 'hidden' },
-                        { 'text-overflow': 'ellipsis' }
-                    ]
-                },
-                tap_action: {
-                    action: 'perform-action',
-                    perform_action: 'media_player.play_media',
-                    data: {
-                        media_content_id: `[[[
-                            const items = states['${favorites}']?.attributes?.items || {};
-                            return Object.keys(items)[${index}] || '';
-                        ]]]`,
-                        media_content_type: 'favorite_item_id'
-                    }
-                }
-            }))
-        };
-    }
-
-    _mediaMenu(item)
-    {
-        const joinMenu = this._sonosJoinMenu(item);
-        const radioMenu = this._sonosRadioMenu(item);
-
-        const playPauseIcon = `[[[
-            return entity?.state === 'playing' ? 'mdi:pause' : 'mdi:play';
-        ]]]`;
-
-        const playPauseName = `[[[
-            return entity?.state === 'playing' ? 'Pause' : 'Play';
-        ]]]`;
-
-        const playPauseLabel = `[[[
-            const channel = entity?.attributes?.media_channel;
-            const title = entity?.attributes?.media_title;
-            if( channel && title ) return channel + ' · ' + title;
-            return title || channel || '';
-        ]]]`;
-
-        const joinedLabel = `[[[
-            const members = states['${item.entity}']?.attributes?.group_members || [];
-            const joined = members.filter(x => x !== '${item.entity}');
-            return joined.length ? joined.length + ' joined' : 'Solo';
-        ]]]`;
-
-        return {
-            entity: item.entity,
-            nested_expand: true,
-            promote_to_center: true,
-            promoted_center: {
-                entity: item.entity,
-                icon: item.icon || 'mdi:speaker',
-                mode: 'persistent',
-                show_brightness: 'never',
-                colors: {
-                    center: '#20262d',
-                    inner_border: '#4fb3d8',
-                    outer_border: '#34383d'
-                }
-            },
-            empty_slots: 'hidden',
-            idle_timeout: 8000,
-            buttons: [
-                {
-                    slot: 1,
-                    slot_mode: 'hard',
-                    icon: 'mdi:volume-minus',
-                    name: 'Vol',
-                    show_name: true,
-                    autoclose: false,
-                    tap_action: this._actionForScript(
-                        item.group_volume_down_script,
-                        'media_player.volume_down'
-                    )
-                },
-                {
-                    slot: 2,
-                    slot_mode: 'hard',
-                    icon: playPauseIcon,
-                    name: playPauseName,
-                    label: playPauseLabel,
-                    show_name: true,
-                    show_label: true,
-                    autoclose: false,
-                    tap_action: {
-                        action: 'perform-action',
-                        perform_action: 'media_player.media_play_pause'
-                    }
-                },
-                {
-                    slot: 3,
-                    slot_mode: 'hard',
-                    icon: 'mdi:speaker-multiple',
-                    name: 'Join',
-                    label: joinedLabel,
-                    show_name: true,
-                    show_label: true,
-                    autoclose: false,
-                    styles: {
-                        card: [
-                            { background: 'rgba(126, 54, 96, 0.82)' }
-                        ]
-                    },
-                    tap_action: joinMenu
-                        ? {
-                            action: 'fire-dom-event',
-                            honeycomb_menu: joinMenu
-                        }
-                        : { action: 'more-info' }
-                },
-                {
-                    slot: 4,
-                    slot_mode: 'hard',
-                    icon: 'mdi:volume-plus',
-                    name: 'Vol',
-                    show_name: true,
-                    autoclose: false,
-                    tap_action: this._actionForScript(
-                        item.group_volume_up_script,
-                        'media_player.volume_up'
-                    )
-                },
-                {
-                    slot: 5,
-                    slot_mode: 'hard',
-                    icon: 'mdi:star',
-                    name: 'Radio',
-                    show_name: true,
-                    autoclose: false,
-                    styles: {
-                        card: [
-                            { background: 'rgba(108, 62, 78, 0.82)' }
-                        ]
-                    },
-                    tap_action: {
-                        action: 'fire-dom-event',
-                        honeycomb_menu: radioMenu
-                    }
-                },
-                {
-                    slot: 6,
-                    slot_mode: 'hard',
-                    icon: 'mdi:folder-music',
-                    name: 'Browse',
-                    show_name: true,
-                    autoclose: true,
-                    tap_action: { action: 'more-info' }
-                }
-            ]
-        };
-    }
-
-    _itemIcon(item)
-    {
-        if( item.icon === false )
-            return null;
-
-        if( item.icon === undefined || item.icon === null || item.icon === '' || item.icon === 'bee' )
-            return 'honeycomb:bee';
-
-        return item.icon;
-    }
-
-    _itemLabel(item)
-    {
-        if( item.type === 'light' )
-        {
-            return `[[[
-                if( ! entity ) return '—';
-                if( entity.state !== 'on' ) return 'Off';
-                const b = entity.attributes ? entity.attributes.brightness : null;
-                if( b === null || b === undefined ) return 'On';
-                return Math.round((Number(b) / 255) * 100) + '%';
-            ]]]`;
-        }
-
-        if( item.type === 'media' )
-        {
-            return `[[[
-                if( ! entity ) return '—';
-                const a = entity.attributes || {};
-                return a.media_title || a.source || entity.state || '—';
-            ]]]`;
-        }
-
-        return null;
-    }
-
-    _itemCardBackground(item)
-    {
-        if( item.type === 'light' )
-        {
-            return `[[[
-                if( ! entity || entity.state !== 'on' )
-                    return 'rgba(52, 66, 78, 0.92)';
-
-                const a = entity.attributes || {};
-                const rgb = a.rgb_color;
-
-                if( Array.isArray(rgb) && rgb.length >= 3 )
-                    return 'rgb(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ')';
-
-                const kelvin = Number(a.color_temp_kelvin);
-                if( Number.isFinite(kelvin) && kelvin > 0 )
-                {
-                    let temp = Math.max(1000, Math.min(40000, kelvin)) / 100;
-                    let r, g, b;
-
-                    if( temp <= 66 )
-                    {
-                        r = 255;
-                        g = 99.4708025861 * Math.log(temp) - 161.1195681661;
-                        b = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
-                    }
-                    else
-                    {
-                        r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
-                        g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
-                        b = 255;
-                    }
-
-                    const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
-                    return 'rgb(' + clamp(r) + ', ' + clamp(g) + ', ' + clamp(b) + ')';
-                }
-
-                return 'rgba(65, 145, 160, 0.96)';
-            ]]]`;
-        }
-
-        if( item.type === 'media' )
-        {
-            return `[[[
-                if( ! entity )
-                    return 'rgba(52, 66, 78, 0.92)';
-
-                if( entity.state === 'playing' )
-                    return 'rgba(45, 105, 116, 0.96)';
-
-                if( entity.state === 'paused' )
-                    return 'rgba(62, 75, 88, 0.96)';
-
-                return 'rgba(52, 66, 78, 0.92)';
-            ]]]`;
-        }
-
-        return 'rgba(52, 66, 78, 0.92)';
-    }
-
-    _itemForeground(item)
-    {
-        if( item.type !== 'light' )
-            return '#f6f7f9';
-
-        return `[[[
-            if( ! entity || entity.state !== 'on' )
-                return '#f6f7f9';
-
-            const a = entity.attributes || {};
-            let rgb = Array.isArray(a.rgb_color) && a.rgb_color.length >= 3
-                ? a.rgb_color.slice(0, 3).map(Number)
-                : null;
-
-            if( ! rgb )
-            {
-                const kelvin = Number(a.color_temp_kelvin);
-
-                if( Number.isFinite(kelvin) && kelvin > 0 )
-                {
-                    let temp = Math.max(1000, Math.min(40000, kelvin)) / 100;
-                    let r, g, b;
-
-                    if( temp <= 66 )
-                    {
-                        r = 255;
-                        g = 99.4708025861 * Math.log(temp) - 161.1195681661;
-                        b = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
-                    }
-                    else
-                    {
-                        r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
-                        g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
-                        b = 255;
-                    }
-
-                    const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
-                    rgb = [clamp(r), clamp(g), clamp(b)];
-                }
+            .stage {
+                position: absolute;
+                inset: 0;
+                overflow: visible;
+                pointer-events: none;
             }
 
-            if( ! rgb )
-                return '#f6f7f9';
-
-            const luminance = (0.299 * rgb[0]) + (0.587 * rgb[1]) + (0.114 * rgb[2]);
-            return luminance > 165 ? '#17212b' : '#f6f7f9';
-        ]]]`;
-    }
-
-    _launcherButton(item, index, slot)
-    {
-        const icon = this._itemIcon(item);
-        let submenu = item.menu ? merge({}, item.menu) : null;
-
-        if( ! submenu )
-        {
-            if( item.type === 'light' )
-                submenu = this._lightMenu(item);
-            else if( item.type === 'media' )
-                submenu = this._mediaMenu(item);
-        }
-
-        const button = {
-            slot: item.slot !== undefined ? item.slot : (slot !== undefined ? slot : (index + 1)),
-            slot_mode: 'hard',
-            entity: item.entity,
-            icon,
-            name: item.name || '',
-            show_name: true,
-            show_label: true,
-            label: this._itemLabel(item),
-            autoclose: false,
-            styles: {
-                card: [
-                    { background: this._itemCardBackground(item) },
-                    { border: '1px solid rgba(75, 180, 200, 0.22)' }
-                ],
-                grid: [
-                    { 'grid-template-areas': '"i" "n" "l"' },
-                    { 'grid-template-columns': '1fr' },
-                    { 'grid-template-rows': '46% 28% 26%' },
-                    { height: '100%' }
-                ],
-                icon: [
-                    { width: '24px' },
-                    { color: this._itemForeground(item) }
-                ],
-                name: [
-                    { 'font-size': '10px' },
-                    { 'font-weight': '650' },
-                    { color: this._itemForeground(item) }
-                ],
-                label: [
-                    { 'font-size': '8px' },
-                    { color: this._itemForeground(item) }
-                ]
+            .tile {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: var(--honeycomb-hub-size, 82px);
+                height: calc(var(--honeycomb-hub-size, 82px) * 1.1547);
+                transform: translate(-50%, -50%) translate(var(--x, 0px), var(--y, 0px));
+                pointer-events: auto;
+                transition:
+                    transform 160ms ease,
+                    opacity 120ms ease;
+                will-change: transform;
             }
-        };
 
-        if( icon === null )
-            button.show_icon = false;
-
-        if( submenu )
-        {
-            button.tap_action = {
-                action: 'toggle'
-            };
-
-            button.hold_action = {
-                action: 'fire-dom-event',
-                honeycomb_menu: submenu
-            };
-        }
-        else
-        {
-            button.tap_action = { action: 'toggle' };
-            button.hold_action = { action: 'more-info' };
-        }
-
-        return button;
+            honeycomb-menu-item {
+                display: block;
+                width: 100%;
+                height: 100%;
+                --honeycomb-menu-item-shell-background: transparent;
+            }
+        `;
     }
 
     setConfig(config)
@@ -815,55 +79,931 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         const next = merge({}, config);
 
         _defaults(next, {
-            mode: 'hub',
             size: 82,
-            icon: 'honeycomb:bee',
-            name: 'Honeycomb',
-            items: [],
-            auto_open: true,
             logo: 'auto',
-            tap_action: { action: 'honeycomb-bee-flap' },
-            show_brightness: 'never',
-            colors: {
-                center: '#f2b705',
-                inner_border: '#17191c',
-                outer_border: '#34383d',
-                unavailable: '#20262d'
+            items: []
+        });
+
+        this.config = next;
+        this._size = Number(next.size) || 82;
+        this.style.setProperty('--honeycomb-hub-size', `${this._size}px`);
+
+        // Editing/reconfiguring the picture element should always return this
+        // local component to its Hub view. No global overlay survives.
+        this._view = 'hub';
+        this._selectedItem = null;
+        this._nestedView = null;
+        this.requestUpdate();
+    }
+
+    getCardSize()
+    {
+        return 1;
+    }
+
+    _items()
+    {
+        return Array.isArray(this.config.items)
+            ? this.config.items.filter(Boolean).slice(0, 7)
+            : [];
+    }
+
+    _shouldShowLogo()
+    {
+        const count = this._items().length;
+        const logo = this.config.logo;
+
+        if( count >= 7 )
+            return false;
+
+        if( logo === false || logo === 'hide' || logo === 'hidden' )
+            return false;
+
+        if( logo === true || logo === 'show' || logo === 'visible' )
+            return count >= 1;
+
+        return count >= 2 && count <= 6;
+    }
+
+    _hubSlots(count, showLogo)
+    {
+        const noLogo = {
+            1: [0],
+            2: [2, 3],
+            3: [2, 3, 0],
+            4: [1, 2, 0, 3],
+            5: [1, 2, 0, 3, 4],
+            6: [1, 2, 3, 4, 5, 6],
+            7: [0, 1, 2, 3, 4, 5, 6]
+        };
+
+        const withLogo = {
+            1: [2],
+            2: [2, 3],
+            3: [2, 4, 6],
+            4: [2, 3, 1, 4],
+            5: [1, 2, 3, 4, 5],
+            6: [1, 2, 3, 4, 5, 6]
+        };
+
+        const safe = Math.max(1, Math.min(7, count));
+
+        if( showLogo && safe <= 6 )
+            return withLogo[safe] || [];
+
+        return noLogo[safe] || [];
+    }
+
+    _innerOffset(slot)
+    {
+        const w = this._size;
+        const h = this._size * 1.1547;
+
+        const offsets = {
+            0: [0, 0],
+            1: [-0.75 * w, 0],
+            2: [-0.375 * w, -0.75 * h],
+            3: [0.375 * w, -0.75 * h],
+            4: [0.75 * w, 0],
+            5: [0.375 * w, 0.75 * h],
+            6: [-0.375 * w, 0.75 * h]
+        };
+
+        return offsets[Number(slot)] || [0, 0];
+    }
+
+    _outerOffset(slot)
+    {
+        const inner = [1,2,3,4,5,6].map(s => this._innerOffset(s));
+        const add = (a,b) => [a[0] + b[0], a[1] + b[1]];
+        const scale = (a,n) => [a[0] * n, a[1] * n];
+
+        const ring = [
+            scale(inner[0], 2),
+            add(inner[0], inner[1]),
+            scale(inner[1], 2),
+            add(inner[1], inner[2]),
+            scale(inner[2], 2),
+            add(inner[2], inner[3]),
+            scale(inner[3], 2),
+            add(inner[3], inner[4]),
+            scale(inner[4], 2),
+            add(inner[4], inner[5]),
+            scale(inner[5], 2),
+            add(inner[5], inner[0])
+        ];
+
+        return ring[Math.max(0, Math.min(11, Number(slot) - 7))] || [0,0];
+    }
+
+    _offsetForSlot(slot)
+    {
+        const n = Number(slot);
+        return n >= 7 ? this._outerOffset(n) : this._innerOffset(n);
+    }
+
+    _capabilities(entityId)
+    {
+        const state = this.hass && entityId ? this.hass.states[entityId] : null;
+        const attrs = state && state.attributes ? state.attributes : {};
+        const modes = Array.isArray(attrs.supported_color_modes)
+            ? attrs.supported_color_modes
+            : [];
+
+        const colorModes = ['xy', 'hs', 'rgb', 'rgbw', 'rgbww'];
+
+        return {
+            color: modes.some(mode => colorModes.includes(mode)),
+            colorTemp: modes.includes('color_temp'),
+            minKelvin: Number(attrs.min_color_temp_kelvin) || 2200,
+            maxKelvin: Number(attrs.max_color_temp_kelvin) || 6500
+        };
+    }
+
+    _kelvinToRgb(kelvin)
+    {
+        let temp = Math.max(1000, Math.min(40000, Number(kelvin) || 2700)) / 100;
+        let r, g, b;
+
+        if( temp <= 66 )
+        {
+            r = 255;
+            g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+            b = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+        }
+        else
+        {
+            r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+            g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+            b = 255;
+        }
+
+        const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+        return [clamp(r), clamp(g), clamp(b)];
+    }
+
+    _contrast(rgb)
+    {
+        if( ! Array.isArray(rgb) || rgb.length < 3 )
+            return '#f6f7f9';
+
+        const luminance = (0.299 * Number(rgb[0])) +
+            (0.587 * Number(rgb[1])) +
+            (0.114 * Number(rgb[2]));
+
+        return luminance > 165 ? '#17212b' : '#f6f7f9';
+    }
+
+    _lightVisual(entityId)
+    {
+        const state = this.hass && entityId ? this.hass.states[entityId] : null;
+
+        if( ! state || state.state !== 'on' )
+        {
+            return {
+                background: 'rgba(52, 66, 78, 0.94)',
+                foreground: '#f6f7f9',
+                label: state ? 'Off' : '—'
+            };
+        }
+
+        const attrs = state.attributes || {};
+        let rgb = Array.isArray(attrs.rgb_color) ? attrs.rgb_color.slice(0,3) : null;
+
+        if( ! rgb && Number(attrs.color_temp_kelvin) > 0 )
+            rgb = this._kelvinToRgb(Number(attrs.color_temp_kelvin));
+
+        if( ! rgb )
+            rgb = [65,145,160];
+
+        const brightness = attrs.brightness === null || attrs.brightness === undefined
+            ? 'On'
+            : `${Math.round((Number(attrs.brightness) / 255) * 100)}%`;
+
+        return {
+            background: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
+            foreground: this._contrast(rgb),
+            label: brightness
+        };
+    }
+
+    _mediaVisual(entityId)
+    {
+        const state = this.hass && entityId ? this.hass.states[entityId] : null;
+        const attrs = state && state.attributes ? state.attributes : {};
+
+        return {
+            background: state && state.state === 'playing'
+                ? 'rgba(45, 105, 116, 0.96)'
+                : 'rgba(52, 66, 78, 0.94)',
+            foreground: '#f6f7f9',
+            label: attrs.media_title || attrs.source || (state ? state.state : '—')
+        };
+    }
+
+    _rootItemConfig(item)
+    {
+        const type = item.type || 'entity';
+        const visual = type === 'light'
+            ? this._lightVisual(item.entity)
+            : type === 'media'
+                ? this._mediaVisual(item.entity)
+                : {
+                    background: 'rgba(52, 66, 78, 0.94)',
+                    foreground: '#f6f7f9',
+                    label: ''
+                };
+
+        let icon = item.icon;
+        if( icon === undefined || icon === null || icon === '' )
+            icon = 'honeycomb:bee';
+
+        return {
+            entity: item.entity,
+            icon,
+            name: item.name || '',
+            label: visual.label,
+            show_name: true,
+            show_label: true,
+            autoclose: false,
+            tap_action: { action: 'toggle' },
+            hold_action: { action: 'none' },
+            styles: {
+                card: [
+                    { background: visual.background },
+                    { border: '1px solid rgba(75,180,200,0.22)' }
+                ],
+                grid: [
+                    { 'grid-template-areas': '"i" "n" "l"' },
+                    { 'grid-template-columns': '1fr' },
+                    { 'grid-template-rows': '46% 28% 26%' },
+                    { height: '100%' }
+                ],
+                icon: [
+                    { width: '24px' },
+                    { color: visual.foreground }
+                ],
+                name: [
+                    { 'font-size': '10px' },
+                    { 'font-weight': '650' },
+                    { color: visual.foreground }
+                ],
+                label: [
+                    { 'font-size': '8px' },
+                    { color: visual.foreground }
+                ]
+            }
+        };
+    }
+
+    _logoConfig()
+    {
+        return {
+            icon: 'honeycomb:bee',
+            show_name: false,
+            show_label: false,
+            autoclose: false,
+            tap_action: { action: 'none' },
+            hold_action: { action: 'none' },
+            styles: {
+                card: [
+                    { background: '#f2b705' },
+                    { border: '2px solid #17191c' }
+                ]
+            }
+        };
+    }
+
+    _centerItemConfig(item)
+    {
+        const config = this._rootItemConfig(item);
+        config.tap_action = { action: 'none' };
+        config.hold_action = { action: 'none' };
+        return config;
+    }
+
+    _helperValue(entityId, fallback)
+    {
+        const state = this.hass && entityId ? this.hass.states[entityId] : null;
+        const value = state ? Number(state.state) : NaN;
+        return Number.isFinite(value) ? value : fallback;
+    }
+
+    _lightControlButtons(item)
+    {
+        const presets = item.presets || {};
+        const brightnessHelper = presets.brightness && presets.brightness.entity;
+        const kelvinHelper = presets.kelvin && presets.kelvin.entity;
+        const hueHelper = presets.color && presets.color.hue_entity;
+        const saturationHelper = presets.color && presets.color.saturation_entity;
+        const capabilities = this._capabilities(item.entity);
+
+        const brightnessPreset = Math.round(this._helperValue(brightnessHelper, 60));
+        const kelvinPreset = Math.round(this._helperValue(kelvinHelper, 2700));
+        const huePreset = Math.round(this._helperValue(hueHelper, 0));
+        const satPreset = Math.round(this._helperValue(saturationHelper, 0));
+
+        const state = this.hass && item.entity ? this.hass.states[item.entity] : null;
+        const attrs = state && state.attributes ? state.attributes : {};
+        const nowBrightness = attrs.brightness === null || attrs.brightness === undefined
+            ? 'Now —'
+            : `Now ${Math.round((Number(attrs.brightness) / 255) * 100)}%`;
+        const nowKelvin = Number(attrs.color_temp_kelvin) > 0
+            ? `Now ${Math.round(Number(attrs.color_temp_kelvin))}K`
+            : 'Now —';
+        const nowHs = Array.isArray(attrs.hs_color)
+            ? `Now ${Math.round(Number(attrs.hs_color[0]))}° · ${Math.round(Number(attrs.hs_color[1]))}%`
+            : 'Now —';
+
+        let standardName = `${kelvinPreset}K`;
+        let standardLabel = nowKelvin;
+        let standardIcon = 'mdi:temperature-kelvin';
+        let standardMode = 'kelvin';
+
+        if( capabilities.color && hueHelper && saturationHelper )
+        {
+            standardName = `${huePreset}° · ${satPreset}%`;
+            standardLabel = nowHs;
+            standardIcon = 'mdi:palette';
+            standardMode = 'color';
+        }
+
+        const common = (slot, icon, name, label = '') => ({
+            slot,
+            entity: item.entity,
+            icon,
+            name,
+            label,
+            show_name: true,
+            show_label: Boolean(label),
+            autoclose: false,
+            styles: {
+                card: [
+                    { background: 'rgba(52, 66, 78, 0.94)' },
+                    { border: '1px solid rgba(255,255,255,0.10)' }
+                ],
+                grid: [
+                    { 'grid-template-areas': label ? '"i" "n" "l"' : '"i" "n"' },
+                    { 'grid-template-rows': label ? '43% 29% 28%' : '58% 42%' },
+                    { height: '100%' }
+                ],
+                icon: [{ width: '22px' }, { color: '#f6f7f9' }],
+                name: [{ 'font-size': '10px' }, { color: '#f6f7f9' }],
+                label: [{ 'font-size': '8px' }, { color: 'rgba(246,247,249,0.82)' }]
             }
         });
 
-        const items = (next.items || []).filter(Boolean).slice(0, 7);
-        const showLogo = this._shouldShowLogo.call({ config: next });
-        const slots = this._hubSlots(items.length, showLogo);
+        return [
+            merge(common(1, 'mdi:brightness-7', '100%'), {
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'light.turn_on',
+                    target: { entity_id: item.entity },
+                    data: { brightness_pct: 100 }
+                },
+                hold_action: { action: 'none' }
+            }),
+            merge(common(2, 'mdi:brightness-percent', `${brightnessPreset}%`, nowBrightness), {
+                tap_action: { action: 'none' },
+                hold_action: { action: 'none' },
+                _hubAction: 'preset-brightness'
+            }),
+            merge(common(3, capabilities.color ? 'mdi:palette' : 'mdi:temperature-kelvin', capabilities.color ? 'Color' : 'White'), {
+                tap_action: { action: 'none' },
+                hold_action: { action: 'none' },
+                _hubAction: 'palette'
+            }),
+            merge(common(4, standardIcon, standardName, standardLabel), {
+                tap_action: { action: 'none' },
+                hold_action: { action: 'none' },
+                _hubAction: 'preset-standard',
+                _standardMode: standardMode
+            }),
+            merge(common(5, 'mdi:minus', '5%'), {
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'light.turn_on',
+                    target: { entity_id: item.entity },
+                    data: { brightness_step_pct: -5 }
+                },
+                hold_action: { action: 'none' }
+            }),
+            merge(common(6, 'mdi:plus', '5%'), {
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'light.turn_on',
+                    target: { entity_id: item.entity },
+                    data: { brightness_step_pct: 5 }
+                },
+                hold_action: { action: 'none' }
+            })
+        ];
+    }
 
-        const resolved = items.map((item, index) => {
-            const targetSlot = item.slot !== undefined ? Number(item.slot) : slots[index];
+    _mediaControlButtons(item)
+    {
+        const state = this.hass && item.entity ? this.hass.states[item.entity] : null;
+        const attrs = state && state.attributes ? state.attributes : {};
+        const playing = state && state.state === 'playing';
+        const title = attrs.media_title || attrs.media_channel || '';
+        const members = Array.isArray(attrs.group_members) ? attrs.group_members : [item.entity];
+        const joined = members.filter(x => x !== item.entity).length;
+
+        const serviceAction = (service, data = {}) => ({
+            action: 'perform-action',
+            perform_action: service,
+            target: service.startsWith('media_player.') ? { entity_id: item.entity } : undefined,
+            data
+        });
+
+        const base = (slot, icon, name, label = '') => ({
+            slot,
+            entity: item.entity,
+            icon,
+            name,
+            label,
+            show_name: true,
+            show_label: Boolean(label),
+            autoclose: false,
+            tap_action: { action: 'none' },
+            hold_action: { action: 'none' },
+            styles: {
+                card: [
+                    { background: 'rgba(52,66,78,0.94)' },
+                    { border: '1px solid rgba(75,180,200,0.20)' }
+                ],
+                icon: [{ width: '20px' }, { color: '#f6f7f9' }],
+                name: [{ 'font-size': '10px' }, { color: '#f6f7f9' }],
+                label: [{ 'font-size': '8px' }, { color: 'rgba(246,247,249,0.82)' }]
+            }
+        });
+
+        const volumeDown = item.group_volume_down_script
+            ? serviceAction(item.group_volume_down_script)
+            : serviceAction('media_player.volume_down');
+
+        const volumeUp = item.group_volume_up_script
+            ? serviceAction(item.group_volume_up_script)
+            : serviceAction('media_player.volume_up');
+
+        return [
+            merge(base(1, 'mdi:volume-minus', 'Vol'), { tap_action: volumeDown }),
+            merge(base(2, playing ? 'mdi:pause' : 'mdi:play', playing ? 'Pause' : 'Play', title), {
+                tap_action: serviceAction('media_player.media_play_pause')
+            }),
+            merge(base(3, 'mdi:speaker-multiple', 'Join', joined ? `${joined} joined` : 'Solo'), {
+                _hubAction: 'join',
+                styles: {
+                    card: [
+                        { background: 'rgba(126,54,96,0.82)' },
+                        { border: '1px solid rgba(255,255,255,0.10)' }
+                    ]
+                }
+            }),
+            merge(base(4, 'mdi:volume-plus', 'Vol'), { tap_action: volumeUp }),
+            merge(base(5, 'mdi:star', 'Radio'), {
+                _hubAction: 'radio',
+                styles: {
+                    card: [
+                        { background: 'rgba(108,62,78,0.82)' },
+                        { border: '1px solid rgba(255,255,255,0.10)' }
+                    ]
+                }
+            }),
+            merge(base(6, 'mdi:folder-music', 'Browse'), {
+                tap_action: { action: 'more-info' }
+            })
+        ];
+    }
+
+    _paletteButtons(item)
+    {
+        const capabilities = this._capabilities(item.entity);
+
+        if( capabilities.color )
+        {
+            const hues = [0,25,50,80,115,150,180,205,230,265,300,335];
+
+            return hues.map((hue,index) => ({
+                slot: index + 7,
+                entity: item.entity,
+                show_icon: false,
+                show_name: false,
+                autoclose: false,
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'light.turn_on',
+                    target: { entity_id: item.entity },
+                    data: { hs_color: [hue,85] }
+                },
+                styles: {
+                    card: [
+                        { background: `hsl(${hue}, 85%, 55%)` },
+                        { border: '1px solid rgba(255,255,255,0.20)' }
+                    ]
+                }
+            }));
+        }
+
+        const min = capabilities.minKelvin;
+        const max = capabilities.maxKelvin;
+        const values = Array.from({length:12}, (_,i) =>
+            Math.round(min + ((max - min) * (i / 11)))
+        );
+
+        return values.map((kelvin,index) => {
+            const rgb = this._kelvinToRgb(kelvin);
+            const foreground = this._contrast(rgb);
+
             return {
-                item,
-                index,
-                slot: Number.isInteger(targetSlot) ? targetSlot : slots[index]
+                slot: index + 7,
+                entity: item.entity,
+                icon: 'mdi:circle',
+                name: `${kelvin}K`,
+                show_name: true,
+                autoclose: false,
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'light.turn_on',
+                    target: { entity_id: item.entity },
+                    data: { color_temp_kelvin: kelvin }
+                },
+                styles: {
+                    card: [
+                        { background: `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` },
+                        { border: '1px solid rgba(35,45,55,0.28)' }
+                    ],
+                    icon: [{ width: '12px' }, { color: foreground }],
+                    name: [{ 'font-size': '8px' }, { color: foreground }]
+                }
             };
         });
+    }
 
-        const centerEntry = ! showLogo
-            ? resolved.find(entry => entry.slot === 0)
-            : null;
+    _joinButtons(item)
+    {
+        if( ! item.toggle_member_script || ! Array.isArray(item.members) )
+            return [];
 
-        this._hubCenterButton = centerEntry
-            ? this._launcherButton(centerEntry.item, centerEntry.index, 0)
-            : null;
+        const leaderState = this.hass && item.entity ? this.hass.states[item.entity] : null;
+        const activeMembers = leaderState && Array.isArray(leaderState.attributes.group_members)
+            ? leaderState.attributes.group_members
+            : [item.entity];
 
-        const ringButtons = resolved
-            .filter(entry => entry.slot !== 0)
-            .map(entry => this._launcherButton(entry.item, entry.index, entry.slot));
+        return item.members.slice(0,12).map((member,index) => ({
+            slot: index + 7,
+            entity: member.entity,
+            icon: member.icon || (member.entity && member.entity.includes('tv') ? 'mdi:television-speaker' : 'mdi:speaker'),
+            name: member.name || '',
+            show_name: true,
+            autoclose: false,
+            tap_action: {
+                action: 'perform-action',
+                perform_action: item.toggle_member_script,
+                data: { member: member.entity }
+            },
+            styles: {
+                card: [
+                    { background: activeMembers.includes(member.entity) ? 'rgba(45,105,116,0.96)' : 'rgba(52,66,78,0.94)' },
+                    { border: '1px solid rgba(75,180,200,0.20)' }
+                ],
+                icon: [{ width: '18px' }, { color: '#f6f7f9' }],
+                name: [{ 'font-size': '9px' }, { color: '#f6f7f9' }]
+            }
+        }));
+    }
 
-        next.menu = merge({}, next.menu || {}, {
-            empty_slots: 'hidden',
-            idle_timeout: 0,
-            buttons: ringButtons
+    _radioButtons(item)
+    {
+        const favoritesEntity = item.favorites_sensor || 'sensor.sonos_favorites';
+        const cacheEntity = item.favorites_cache_sensor || 'sensor.sonos_favorites_cache';
+        const favoritesState = this.hass && this.hass.states[favoritesEntity];
+        const cacheState = this.hass && this.hass.states[cacheEntity];
+        const items = favoritesState && favoritesState.attributes
+            ? favoritesState.attributes.items || {}
+            : {};
+        const cache = cacheState && cacheState.attributes && Array.isArray(cacheState.attributes.items)
+            ? cacheState.attributes.items
+            : [];
+
+        return Object.entries(items).slice(0,12).map(([contentId,title],index) => {
+            const cached = cache.find(x => x && x.media_content_id === contentId);
+            const thumbnail = cached && cached.thumbnail;
+
+            return {
+                slot: index + 7,
+                entity: item.entity,
+                icon: thumbnail ? undefined : 'mdi:radio',
+                show_icon: !thumbnail,
+                name: thumbnail ? '' : title,
+                show_name: !thumbnail,
+                autoclose: false,
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'media_player.play_media',
+                    target: { entity_id: item.entity },
+                    data: {
+                        media_content_id: contentId,
+                        media_content_type: 'favorite_item_id'
+                    }
+                },
+                styles: {
+                    card: [
+                        { background: 'rgba(52,66,78,0.94)' },
+                        { 'background-image': thumbnail ? `url("${thumbnail}")` : 'none' },
+                        { 'background-position': 'center' },
+                        { 'background-repeat': 'no-repeat' },
+                        { 'background-size': '56% auto' },
+                        { border: '1px solid rgba(75,180,200,0.22)' }
+                    ],
+                    icon: [{ width: '17px' }, { color: '#f6f7f9' }],
+                    name: [{ 'font-size': '9px' }, { color: '#f6f7f9' }]
+                }
+            };
+        });
+    }
+
+    _setNumber(entityId, value)
+    {
+        if( ! this.hass || ! entityId || ! Number.isFinite(Number(value)) )
+            return;
+
+        this.hass.callService('number', 'set_value', {
+            value: Number(value)
+        }, {
+            entity_id: entityId
+        });
+    }
+
+    _handlePreset(item, control, actionType)
+    {
+        if( ! this.hass )
+            return;
+
+        const presets = item.presets || {};
+        const light = this.hass.states[item.entity];
+
+        if( ! light )
+            return;
+
+        if( control._hubAction === 'preset-brightness' )
+        {
+            const helper = presets.brightness && presets.brightness.entity;
+
+            if( actionType === 'hold' )
+            {
+                if( helper && light.attributes.brightness !== null && light.attributes.brightness !== undefined )
+                    this._setNumber(helper, Math.round((Number(light.attributes.brightness) / 255) * 100));
+            }
+            else
+            {
+                const value = this._helperValue(helper, 60);
+                this.hass.callService('light', 'turn_on', {
+                    brightness_pct: Math.max(0, Math.min(100, value))
+                }, {
+                    entity_id: item.entity
+                });
+            }
+
+            return;
+        }
+
+        if( control._hubAction === 'preset-standard' )
+        {
+            const color = presets.color || {};
+            const kelvin = presets.kelvin || {};
+            const hueEntity = color.hue_entity;
+            const satEntity = color.saturation_entity;
+            const kelvinEntity = kelvin.entity;
+            const capabilities = this._capabilities(item.entity);
+            const useColor = capabilities.color && hueEntity && satEntity;
+
+            if( actionType === 'hold' )
+            {
+                if( useColor && Array.isArray(light.attributes.hs_color) )
+                {
+                    this._setNumber(hueEntity, Math.round(Number(light.attributes.hs_color[0])));
+                    this._setNumber(satEntity, Math.round(Number(light.attributes.hs_color[1])));
+                }
+                else if( kelvinEntity && Number(light.attributes.color_temp_kelvin) > 0 )
+                {
+                    this._setNumber(kelvinEntity, Math.round(Number(light.attributes.color_temp_kelvin)));
+                }
+            }
+            else if( useColor )
+            {
+                this.hass.callService('light', 'turn_on', {
+                    hs_color: [
+                        this._helperValue(hueEntity, 0),
+                        this._helperValue(satEntity, 0)
+                    ]
+                }, {
+                    entity_id: item.entity
+                });
+            }
+            else
+            {
+                this.hass.callService('light', 'turn_on', {
+                    color_temp_kelvin: Math.round(this._helperValue(kelvinEntity, 2700))
+                }, {
+                    entity_id: item.entity
+                });
+            }
+        }
+    }
+
+    _openItem(item, originSlot)
+    {
+        this._selectedItem = item;
+        this._selectedOriginSlot = originSlot;
+        this._view = 'detail';
+        this._nestedView = null;
+        this.requestUpdate();
+    }
+
+    _back()
+    {
+        if( this._nestedView )
+        {
+            this._nestedView = null;
+            this.requestUpdate();
+            return;
+        }
+
+        this._view = 'hub';
+        this._selectedItem = null;
+        this._selectedOriginSlot = null;
+        this.requestUpdate();
+    }
+
+    _handleTileAction(e, meta)
+    {
+        if( ! e || ! e.detail )
+            return;
+
+        const actionType = e.detail.action || 'tap';
+
+        if( meta.role === 'root' )
+        {
+            if( actionType === 'hold' )
+            {
+                e.stopPropagation();
+                e.preventDefault();
+                this._openItem(meta.item, meta.slot);
+            }
+            return;
+        }
+
+        if( meta.role === 'center' )
+        {
+            if( actionType === 'tap' )
+            {
+                e.stopPropagation();
+                e.preventDefault();
+                this._back();
+            }
+            return;
+        }
+
+        if( meta.control && meta.control._hubAction )
+        {
+            e.stopPropagation();
+
+            if( meta.control._hubAction === 'palette' && actionType === 'tap' )
+            {
+                this._nestedView = 'palette';
+                this.requestUpdate();
+                return;
+            }
+
+            if( meta.control._hubAction === 'join' && actionType === 'tap' )
+            {
+                this._nestedView = 'join';
+                this.requestUpdate();
+                return;
+            }
+
+            if( meta.control._hubAction === 'radio' && actionType === 'tap' )
+            {
+                this._nestedView = 'radio';
+                this.requestUpdate();
+                return;
+            }
+
+            this._handlePreset(meta.item, meta.control, actionType);
+        }
+    }
+
+    _renderTile(config, offset, meta)
+    {
+        const style = `--x:${offset[0]}px;--y:${offset[1]}px;`;
+
+        return html`
+            <div class="tile" style=${style}
+                @action=${e => this._handleTileAction(e, meta)}>
+                <honeycomb-menu-item
+                    .hass=${this.hass}
+                    .config=${config}
+                    .size=${this._size}>
+                </honeycomb-menu-item>
+            </div>
+        `;
+    }
+
+    _renderHub()
+    {
+        const items = this._items();
+        const showLogo = this._shouldShowLogo();
+        const autoSlots = this._hubSlots(items.length, showLogo);
+
+        const tiles = items.map((item,index) => {
+            const slot = item.slot !== undefined ? Number(item.slot) : autoSlots[index];
+            return this._renderTile(
+                this._rootItemConfig(item),
+                this._offsetForSlot(slot),
+                { role: 'root', item, slot }
+            );
         });
 
-        super.setConfig(next);
+        if( showLogo )
+        {
+            tiles.push(this._renderTile(
+                this._logoConfig(),
+                this._innerOffset(0),
+                { role: 'logo' }
+            ));
+        }
+
+        return tiles;
+    }
+
+    _detailButtons(item)
+    {
+        if( item.type === 'media' )
+            return this._mediaControlButtons(item);
+
+        return this._lightControlButtons(item);
+    }
+
+    _renderDetail()
+    {
+        const item = this._selectedItem;
+
+        if( ! item )
+            return this._renderHub();
+
+        const origin = this._offsetForSlot(this._selectedOriginSlot || 0);
+        const tiles = [];
+
+        tiles.push(this._renderTile(
+            this._centerItemConfig(item),
+            origin,
+            { role: 'center', item }
+        ));
+
+        const controls = this._detailButtons(item);
+
+        controls.forEach(control => {
+            const relative = this._innerOffset(control.slot);
+            const offset = [origin[0] + relative[0], origin[1] + relative[1]];
+
+            tiles.push(this._renderTile(
+                control,
+                offset,
+                { role: 'control', item, control }
+            ));
+        });
+
+        let outer = [];
+
+        if( this._nestedView === 'palette' )
+            outer = this._paletteButtons(item);
+        else if( this._nestedView === 'join' )
+            outer = this._joinButtons(item);
+        else if( this._nestedView === 'radio' )
+            outer = this._radioButtons(item);
+
+        outer.forEach(control => {
+            const relative = this._outerOffset(control.slot);
+            const offset = [origin[0] + relative[0], origin[1] + relative[1]];
+
+            tiles.push(this._renderTile(
+                control,
+                offset,
+                { role: 'outer', item, control }
+            ));
+        });
+
+        return tiles;
+    }
+
+    render()
+    {
+        return html`
+            <div class="stage">
+                ${this._view === 'hub' ? this._renderHub() : this._renderDetail()}
+            </div>
+        `;
     }
 }
 
@@ -877,7 +1017,7 @@ if( ! window.customCards.some(card => card.type === HoneycombPersistentHub.is) )
     window.customCards.push({
         type: HoneycombPersistentHub.is,
         name: 'Honeycomb Persistent Hub',
-        description: 'Direct persistent Honeycomb hub launcher for lights, media and future control types.'
+        description: 'Inline persistent Honeycomb hub for room/device navigation.'
     });
 }
 
