@@ -215,6 +215,19 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.7 — Classic renderer anchor wrapper
+
+v1.2.7 fixes the placement error that remained after switching inline Hub cells to the classic `honeycomb-menu-item` renderer.
+
+The renderer itself was now correct, but it was being transformed directly as if its host had a fixed height. The classic item calculates its height from internal padding, so percentage-based Y translation produced the collapsed/slanted placement visible in v1.2.6.
+
+- every inline Hub cell now sits inside a fixed-size local anchor wrapper
+- the wrapper has the exact expected Honeycomb width and 114.76% height
+- center positioning is applied to the wrapper, not to the auto-height menu-item host
+- `honeycomb-menu-item` renders at `left: 0; top: 0` inside that wrapper
+- detail cells still reuse the exact classic item renderer and classic spacing
+- multiple inline Hubs remain independent and no global overlay is reintroduced
+
 ## v1.2.6 — Reuse the classic Honeycomb item renderer
 
 v1.2.6 stops approximating the established Honeycomb cell appearance in the inline Hub.
