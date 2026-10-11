@@ -67,7 +67,11 @@ class HoneycombPersistentHub extends LitElement
             .hex-shell,
             .hex-face {
                 position: absolute;
-                inset: 0;
+                left: var(--tile-spacing, 0px);
+                right: var(--tile-spacing, 0px);
+                top: 50%;
+                aspect-ratio: 1 / 1.1476;
+                transform: translateY(-50%);
                 clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
             }
 
@@ -77,8 +81,8 @@ class HoneycombPersistentHub extends LitElement
             }
 
             .hex-face {
-                transform: scale(0.965);
-                transform-origin: center;
+                left: calc(var(--tile-spacing, 0px) + 1px);
+                right: calc(var(--tile-spacing, 0px) + 1px);
                 background: var(--tile-background, rgba(52,66,78,0.94));
                 background-image: var(--tile-background-image, none);
                 background-position: center;
@@ -1185,7 +1189,7 @@ class HoneycombPersistentHub extends LitElement
         `;
     }
 
-    _renderTile(config, offset, meta, tileSize = this._size)
+    _renderTile(config, offset, meta, tileSize = this._size, tileSpacing = 0)
     {
         const background = this._styleValue(config, 'card', 'background', 'rgba(52,66,78,0.94)');
         const border = this._styleValue(config, 'card', 'border', '2px solid rgba(20,24,28,0.96)');
@@ -1204,6 +1208,7 @@ class HoneycombPersistentHub extends LitElement
             `--x:${offset[0]}px`,
             `--y:${offset[1]}px`,
             `--tile-size:${Number(tileSize) || this._size}px`,
+            `--tile-spacing:${Math.max(0, Number(tileSpacing) || 0)}px`,
             `--tile-background:${background}`,
             `--tile-border:${borderColor ? borderColor[0] : 'rgba(20,24,28,0.96)'}`,
             `--tile-background-image:${bgImage}`,
@@ -1293,7 +1298,8 @@ class HoneycombPersistentHub extends LitElement
             this._centerItemConfig(item),
             origin,
             { role: 'center', item },
-            detailSize
+            detailSize,
+            2
         ));
 
         const controls = this._detailButtons(item);
@@ -1306,7 +1312,8 @@ class HoneycombPersistentHub extends LitElement
                 control,
                 offset,
                 { role: 'control', item, control },
-                detailSize
+                detailSize,
+                2
             ));
         });
 
@@ -1327,7 +1334,8 @@ class HoneycombPersistentHub extends LitElement
                 control,
                 offset,
                 { role: 'outer', item, control },
-                detailSize
+                detailSize,
+                2
             ));
         });
 
