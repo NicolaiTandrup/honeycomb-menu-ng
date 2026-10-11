@@ -54,3 +54,7 @@ GitHub Actions now runs these tests before compiling the release bundle.
 The test suite also enforces architecture boundaries: domain modules are not allowed to call renderer/navigation APIs such as `reanchor()`, `replaceConfig()`, or mutate the active menu context. This prevents future feature work from quietly reintroducing the cross-module coupling that v1.4 removes.
 
 See `ARCHITECTURE.md` for the module contract and extension rules.
+
+### Packaging and CI
+
+The v1.4 build pipeline runs the modular-core contract tests before webpack packaging so releases cannot be created from a bundle that violates the core navigation/module boundaries.
