@@ -25,6 +25,7 @@ Honeycomb Menu NG is a **Home Assistant dashboard module**, not a standalone car
 - Stable nested expansion with automatic layout envelopes
 - Visible-viewport-aware menu positioning near screen edges
 - Persistent center controls for floorplans and compact dashboards (v1.0)
+- Persistent Hub launcher for room/device navigation (v1.1)
 - Existing template and XY-pad support
 - Legacy `position` support
 
@@ -120,7 +121,8 @@ Honeycomb Menu NG has two physical button rings:
 
 - **Slots 1–6**: inner ring
 - **Slots 7–18**: outer ring
-- **Center button**: separate from slot numbering
+- **Center button**: separate from slot numbering for normal Honeycomb menus
+- **Hub center**: addressed as **slot 0** in `custom:honeycomb-persistent-hub`
 
 Approximate slot layout:
 
@@ -134,6 +136,73 @@ Approximate slot layout:
                 17   16   15
 ```
 
+## Persistent Hub
+
+`custom:honeycomb-persistent-hub` is a persistent room/device launcher intended for floorplans and compact dashboards.
+
+Hub interaction is deliberately two-level:
+
+- **short tap on a launcher tile**: toggle the entity
+- **long press on a launcher tile**: open that item's detailed Honeycomb control menu
+- **slot 0**: physical Hub center
+- **slots 1–6**: Hub inner ring
+
+The Hub can show an automatic Honeycomb bee logo in slot 0. Set:
+
+```yaml
+logo: false
+```
+
+to let a real Hub item use the center position.
+
+Example:
+
+```yaml
+type: custom:honeycomb-persistent-hub
+name: Sommerhus
+size: 82
+logo: auto
+
+items:
+  - type: light
+    entity: light.ia_kokken_kokken
+    name: Køkken
+
+  - type: light
+    entity: light.hue_kontor
+    name: Kontor
+
+  - type: media
+    entity: media_player.drivhus_drivhus
+    name: Sonos
+```
+
+Hub launcher tiles are state-aware before opening their detailed controls. Light tiles show brightness and live light color/temperature; media tiles show current source/title/state.
+
+### Hub automatic slot layouts
+
+Without logo:
+
+| Items | Slots |
+|---:|---|
+| 2 | `2,3` |
+| 3 | `2,3,0` |
+| 4 | `1,2,0,3` |
+| 5 | `1,2,0,3,4` |
+| 6 | `1,2,3,4,5,6` |
+| 7 | `0,1,2,3,4,5,6` |
+
+With logo in slot 0:
+
+| Items | Slots |
+|---:|---|
+| 2 | `2,3` |
+| 3 | `2,4,6` |
+| 4 | `2,3,1,4` |
+| 5 | `1,2,3,4,5` |
+| 6 | `1,2,3,4,5,6` |
+| 7 | logo hidden; `0–6` used by items |
+
 ### Automatic ring selection
 
 Without hard-slot overrides, the active ring layout is selected from the number of resolved buttons:
@@ -145,6 +214,18 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 | 13–18 | Inner + outer ring |
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
+
+## v1.1.4 — Hub tap/hold navigation
+
+v1.1.4 changes Hub launcher interaction to remove accidental navigation and make room control faster:
+
+- short tap on a Hub launcher now toggles the launcher entity
+- long press opens the launcher item's detailed Honeycomb menu
+- light launchers therefore behave like normal wall controls on tap and only open advanced light controls on hold
+- media launchers use the same pattern: tap toggles the media entity; hold opens Sonos/media controls
+- README now includes the Persistent Hub interaction model, slot 0 semantics, automatic layouts, state-aware launcher behavior and a Hub example
+
+This build is intended to be published as a pre-release while the Hub UX is being validated.
 
 ## v1.1.3 — Hub state and center slot
 
