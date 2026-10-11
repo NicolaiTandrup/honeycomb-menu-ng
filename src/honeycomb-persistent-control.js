@@ -627,6 +627,14 @@ class HoneycombPersistentControl extends LitElement
         this._holdTriggered = false;
     }
 
+    _openHoneycombMenu(menu)
+    {
+        if( typeof window.honeycomb_menu !== 'function' )
+            return null;
+
+        return window.honeycomb_menu(menu);
+    }
+
     _openMenu()
     {
         const menu = this._persistentMenuConfig();
@@ -650,7 +658,7 @@ class HoneycombPersistentControl extends LitElement
         menu.anchor_x = rect.left + (rect.width / 2);
         menu.anchor_y = rect.top + (rect.height / 2);
 
-        const openedMenu = window.honeycomb_menu(menu);
+        const openedMenu = this._openHoneycombMenu(menu);
 
         if( openedMenu )
         {
@@ -710,7 +718,13 @@ class HoneycombPersistentControl extends LitElement
 
         if( actionName === 'honeycomb-back' )
         {
-            if( typeof window.honeycomb_menu_back === 'function' )
+            const root = this.getRootNode ? this.getRootNode() : null;
+            const host = root && root.host ? root.host : null;
+            const context = host && host._menuContext ? host._menuContext : null;
+
+            if( context && typeof window.honeycomb_menu_context_back === 'function' )
+                window.honeycomb_menu_context_back(context);
+            else if( typeof window.honeycomb_menu_back === 'function' )
                 window.honeycomb_menu_back();
             return;
         }
