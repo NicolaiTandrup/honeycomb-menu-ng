@@ -1,14 +1,16 @@
-## Honeycomb Menu NG v1.2.5 – Classic Cell Spacing
+## Honeycomb Menu NG v1.2.6 – Classic Item Renderer
 
-This pre-release corrects the remaining visual difference between the inline detail menu and the classic Honeycomb menu.
+This pre-release removes the separate native hex renderer used by the inline Hub and reuses the exact established Honeycomb item renderer.
 
-### Root cause
-The classic menu calculates a cell pitch from `size / 3.586`, but the actual visible hex is smaller because each `honeycomb-menu-item` has 2px padding. The inline implementation used the full pitch as the visible hex size, which made cells look too large and crowded even though their centers were positioned correctly.
+### Why
+v1.2.2–v1.2.5 tried to duplicate the classic hex geometry with separate inline CSS. The result still did not match the existing menu reliably.
 
-### Fixed
-- Keeps the classic cell pitch.
-- Applies the equivalent 2px visual spacing to inline detail cells.
-- Uses the classic 114.76% hex aspect ratio.
-- Applies the same rule to center, inner ring and outer ring detail cells.
+### Changed
+- Hub root and detail cells now use `honeycomb-menu-item` directly.
+- Shape, spacing, icon/name/label placement and button-card styling are therefore shared with the classic Honeycomb menu.
+- Inline Hub cells remain local to each Hub; no global overlay is reintroduced.
+- Tap remains a normal toggle.
+- Hold opens the local detail level.
+- Local nested controls remain supported.
 
-The root Hub layout and multi-Hub inline architecture are unchanged.
+This is the first v1.2 build where the Hub and classic menu intentionally share the same visual cell renderer rather than two implementations.
