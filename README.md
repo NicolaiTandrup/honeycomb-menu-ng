@@ -215,6 +215,19 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.2 — Native inline Hub tiles
+
+v1.2.2 removes the inline Hub's dependency on wrapped `custom:button-card` tiles.
+
+- inline Hub hexagons are now rendered natively by the Hub component
+- the hex shape, border, background, icon, name and secondary state are local DOM/CSS
+- eliminates the collapsed-line rendering seen in v1.2.1
+- root tile short tap toggles directly through Home Assistant
+- root tile long press is handled directly by the Hub and opens local detail controls
+- detail controls execute Home Assistant service actions directly
+- the embedded bee remains available and keeps its wing-flap animation
+- normal non-Hub Honeycomb menus continue using `honeycomb-menu-item` / button-card exactly as before
+
 ## v1.2.1 — Inline geometry and interaction fix
 
 v1.2.1 fixes the first inline Hub prototype:

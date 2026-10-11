@@ -1,13 +1,13 @@
-## Honeycomb Menu NG v1.2.1 – Inline Geometry & Interaction Fix
+## Honeycomb Menu NG v1.2.2 – Native Inline Hub Tiles
 
-This pre-release fixes the first v1.2 inline Hub prototype.
+This pre-release replaces the broken wrapped-card rendering in the inline Hub with native local hex tiles.
 
 ### Fixed
-- Hub hexagons now use the same coordinate geometry as the proven popup Honeycomb engine.
-- Inner-ring spacing no longer overlaps.
-- Outer-ring coordinates are aligned to the same geometry.
-- Wrapped cards inside an inline Hub no longer use global/fixed positioning.
-- Short tap runs the normal entity toggle.
-- Long press opens the selected tile's local detailed control view.
+- Removes the collapsed vertical-line rendering introduced in v1.2.1.
+- Hub hexagons are rendered directly as local CSS-clipped tiles.
+- Multiple Hub instances remain fully independent.
+- Short tap toggles the root entity directly.
+- Long press opens the selected tile's local detailed controls.
+- Detail service actions run directly through Home Assistant.
 
-The inline per-room architecture introduced in v1.2.0 remains unchanged.
+The normal Honeycomb popup/menu engine is unchanged.
