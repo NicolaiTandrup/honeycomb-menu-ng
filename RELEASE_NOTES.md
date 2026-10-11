@@ -1,14 +1,15 @@
-## Honeycomb Menu NG v1.2.3 – Inline Hitbox & Hex Shape Fix
+## Honeycomb Menu NG v1.2.4 – Classic Inline Detail Geometry
 
-This pre-release fixes the strange behavior visible in v1.2.2.
+This pre-release corrects the scale and spacing of inline Hub detail controls.
 
-### Root cause
-Adjacent inline Hub tiles still had rectangular pointer hitboxes even though they were visually clipped into hexagons. The transparent corners of one tile could therefore intercept a click or hold intended for a neighboring tile.
+### What was wrong
+The inline Hub was using the persistent launcher size (for example 82px) as the size of every detailed control cell. The original Honeycomb menu does not work that way: its cell size is calculated from the overall menu size.
 
 ### Fixed
-- Hit-testing is now limited to the visible clipped hex face.
-- Long press uses pointer capture so the pressed tile remains the interaction owner.
-- Adjacent tiles no longer trigger the wrong entity.
-- Hex borders are rendered by scaling the inner face inside the outer shell for a more consistent Honeycomb shape.
+- Root Hub tiles keep their configured persistent size.
+- Detail controls use the original Honeycomb formula: `menu_size / 3.586`.
+- Default `menu_size: 250` gives ~69.7px cells, matching the established seven-cell Honeycomb appearance.
+- The selected Hub tile remains at exactly the same center coordinate while the detail ring opens around it.
+- Nested outer-ring controls use the same classic detail size.
 
-The inline multi-Hub architecture remains unchanged.
+Multiple inline Hubs remain independent and no global overlay is used.
