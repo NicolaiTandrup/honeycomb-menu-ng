@@ -1,4 +1,6 @@
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 
 const navigation = require('../src/core/navigation-context.js');
 const layout = require('../src/core/layout.js');
@@ -248,6 +250,66 @@ function testModuleMenusAreDeclarative()
     );
 }
 
+function collectJsFiles(root)
+{
+    const result = [];
+
+    for( const entry of fs.readdirSync(root, { withFileTypes: true }) )
+    {
+        const full = path.join(root, entry.name);
+
+        if( entry.isDirectory() )
+            result.push(...collectJsFiles(full));
+        else if( entry.isFile() && entry.name.endsWith('.js') )
+            result.push(full);
+    }
+
+    return result;
+}
+
+function testArchitectureBoundaries()
+{
+    const moduleRoot = path.resolve(__dirname, '../src/modules');
+    const forbiddenModuleTokens = [
+        'reanchor(',
+        'replaceConfig(',
+        'moduleAnchor',
+        'currentConfig'
+    ];
+
+    for( const file of collectJsFiles(moduleRoot) )
+    {
+        const source = fs.readFileSync(file, 'utf8');
+
+        for( const token of forbiddenModuleTokens )
+        {
+            assert.strictEqual(
+                source.includes(token),
+                false,
+                `Domain module ${path.relative(moduleRoot, file)} must not use core navigation token ${token}`
+            );
+        }
+    }
+
+    const hubSource = fs.readFileSync(
+        path.resolve(__dirname, '../src/honeycomb-persistent-hub.js'),
+        'utf8'
+    );
+
+    assert.strictEqual(hubSource.includes('_lightMenu('), false);
+    assert.strictEqual(hubSource.includes('_mediaMenu('), false);
+    assert.strictEqual(hubSource.includes('_sonosRadioMenu('), false);
+    assert.strictEqual(hubSource.includes('_sonosJoinMenu('), false);
+
+    const rendererSource = fs.readFileSync(
+        path.resolve(__dirname, '../src/honeycomb-menu.js'),
+        'utf8'
+    );
+
+    assert.strictEqual(rendererSource.includes('_handleMediaVolumeAction('), false);
+    assert.strictEqual(rendererSource.includes('_handlePresetAction('), false);
+}
+
 function run()
 {
     testNavigationAnchorLock();
@@ -257,6 +319,7 @@ function run()
     testBuiltInModuleResolution();
     testPersistentPresentations();
     testModuleMenusAreDeclarative();
+    testArchitectureBoundaries();
 
     console.log('Honeycomb NG core tests: OK');
 }

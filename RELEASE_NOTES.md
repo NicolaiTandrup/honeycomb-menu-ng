@@ -51,4 +51,6 @@ A new core test suite verifies:
 
 GitHub Actions now runs these tests before compiling the release bundle.
 
+The test suite also enforces architecture boundaries: domain modules are not allowed to call renderer/navigation APIs such as `reanchor()`, `replaceConfig()`, or mutate the active menu context. This prevents future feature work from quietly reintroducing the cross-module coupling that v1.4 removes.
+
 See `ARCHITECTURE.md` for the module contract and extension rules.
