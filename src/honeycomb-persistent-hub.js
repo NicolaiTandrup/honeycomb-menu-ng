@@ -68,35 +68,54 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         });
     }
 
-    _balancedSlots(count)
+    _hubSlots(count, showLogo)
     {
-        const layouts = {
+        const noLogoLayouts = {
+            1: [0],
+            2: [2, 3],
+            3: [2, 3, 0],
+            4: [1, 2, 0, 3],
+            5: [1, 2, 0, 3, 4],
+            6: [1, 2, 3, 4, 5, 6],
+            7: [0, 1, 2, 3, 4, 5, 6]
+        };
+
+        const logoLayouts = {
             1: [2],
-            2: [1, 4],
+            2: [2, 3],
             3: [2, 4, 6],
-            4: [1, 2, 4, 5],
+            4: [2, 3, 1, 4],
             5: [1, 2, 3, 4, 5],
             6: [1, 2, 3, 4, 5, 6]
         };
 
-        return layouts[Math.max(1, Math.min(6, count))] || layouts[6];
+        const safeCount = Math.max(1, Math.min(7, count));
+
+        if( showLogo && safeCount <= 6 )
+            return logoLayouts[safeCount] || [];
+
+        return noLogoLayouts[safeCount] || [];
     }
 
     _shouldShowLogo()
     {
         const logo = this.config ? this.config.logo : 'auto';
+        const count = this.config && Array.isArray(this.config.items)
+            ? this.config.items.filter(Boolean).length
+            : 0;
+
+        // Seven real items always consume center slot 0 + ring slots 1-6.
+        if( count >= 7 )
+            return false;
 
         if( logo === false || logo === 'hide' || logo === 'hidden' )
             return false;
 
         if( logo === true || logo === 'show' || logo === 'visible' )
-            return true;
+            return count >= 1;
 
-        const count = this.config && Array.isArray(this.config.items)
-            ? this.config.items.filter(Boolean).length
-            : 0;
-
-        return count >= 2;
+        // Auto branding is useful when the center would otherwise be empty.
+        return count >= 2 && count <= 6;
     }
 
     _persistentMenuConfig()
@@ -108,7 +127,9 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
         menu.idle_timeout = 0;
 
-        if( this._shouldShowLogo() )
+        const showLogo = this._shouldShowLogo();
+
+        if( showLogo )
         {
             menu.persistent_center = merge(
                 {},
@@ -126,7 +147,17 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         else
         {
             menu.persistent_center = null;
-            menu.center_button = false;
+
+            if( this._hubCenterButton )
+            {
+                menu.center_button = merge({}, this._hubCenterButton);
+                delete menu.center_button.slot;
+                delete menu.center_button.slot_mode;
+            }
+            else
+            {
+                menu.center_button = false;
+            }
         }
 
         return menu;
@@ -530,6 +561,115 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         return null;
     }
 
+    _itemCardBackground(item)
+    {
+        if( item.type === 'light' )
+        {
+            return `[[[
+                if( ! entity || entity.state !== 'on' )
+                    return 'rgba(52, 66, 78, 0.92)';
+
+                const a = entity.attributes || {};
+                const rgb = a.rgb_color;
+
+                if( Array.isArray(rgb) && rgb.length >= 3 )
+                    return 'rgb(' + rgb[0] + ', ' + rgb[1] + ', ' + rgb[2] + ')';
+
+                const kelvin = Number(a.color_temp_kelvin);
+                if( Number.isFinite(kelvin) && kelvin > 0 )
+                {
+                    let temp = Math.max(1000, Math.min(40000, kelvin)) / 100;
+                    let r, g, b;
+
+                    if( temp <= 66 )
+                    {
+                        r = 255;
+                        g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+                        b = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+                    }
+                    else
+                    {
+                        r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+                        g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+                        b = 255;
+                    }
+
+                    const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+                    return 'rgb(' + clamp(r) + ', ' + clamp(g) + ', ' + clamp(b) + ')';
+                }
+
+                return 'rgba(65, 145, 160, 0.96)';
+            ]]]`;
+        }
+
+        if( item.type === 'media' )
+        {
+            return `[[[
+                if( ! entity )
+                    return 'rgba(52, 66, 78, 0.92)';
+
+                if( entity.state === 'playing' )
+                    return 'rgba(45, 105, 116, 0.96)';
+
+                if( entity.state === 'paused' )
+                    return 'rgba(62, 75, 88, 0.96)';
+
+                return 'rgba(52, 66, 78, 0.92)';
+            ]]]`;
+        }
+
+        return 'rgba(52, 66, 78, 0.92)';
+    }
+
+    _itemForeground(item)
+    {
+        if( item.type !== 'light' )
+            return '#f6f7f9';
+
+        return `[[[
+            if( ! entity || entity.state !== 'on' )
+                return '#f6f7f9';
+
+            const a = entity.attributes || {};
+            let rgb = Array.isArray(a.rgb_color) && a.rgb_color.length >= 3
+                ? a.rgb_color.slice(0, 3).map(Number)
+                : null;
+
+            if( ! rgb )
+            {
+                const kelvin = Number(a.color_temp_kelvin);
+
+                if( Number.isFinite(kelvin) && kelvin > 0 )
+                {
+                    let temp = Math.max(1000, Math.min(40000, kelvin)) / 100;
+                    let r, g, b;
+
+                    if( temp <= 66 )
+                    {
+                        r = 255;
+                        g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+                        b = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+                    }
+                    else
+                    {
+                        r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+                        g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+                        b = 255;
+                    }
+
+                    const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+                    rgb = [clamp(r), clamp(g), clamp(b)];
+                }
+            }
+
+            if( ! rgb )
+                return '#f6f7f9';
+
+            const luminance = (0.299 * rgb[0]) + (0.587 * rgb[1]) + (0.114 * rgb[2]);
+            return luminance > 165 ? '#17212b' : '#f6f7f9';
+        ]]]`;
+    }
+
     _launcherButton(item, index, slot)
     {
         const icon = this._itemIcon(item);
@@ -544,7 +684,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         }
 
         const button = {
-            slot: item.slot || slot || (index + 1),
+            slot: item.slot !== undefined ? item.slot : (slot !== undefined ? slot : (index + 1)),
             slot_mode: 'hard',
             entity: item.entity,
             icon,
@@ -554,6 +694,10 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             label: this._itemLabel(item),
             autoclose: false,
             styles: {
+                card: [
+                    { background: this._itemCardBackground(item) },
+                    { border: '1px solid rgba(75, 180, 200, 0.22)' }
+                ],
                 grid: [
                     { 'grid-template-areas': '"i" "n" "l"' },
                     { 'grid-template-columns': '1fr' },
@@ -562,16 +706,16 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                 ],
                 icon: [
                     { width: '24px' },
-                    { color: '#f6f7f9' }
+                    { color: this._itemForeground(item) }
                 ],
                 name: [
                     { 'font-size': '10px' },
                     { 'font-weight': '650' },
-                    { color: '#f6f7f9' }
+                    { color: this._itemForeground(item) }
                 ],
                 label: [
                     { 'font-size': '8px' },
-                    { color: 'rgba(246,247,249,0.78)' }
+                    { color: this._itemForeground(item) }
                 ]
             }
         };
@@ -619,15 +763,35 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             }
         });
 
-        const items = (next.items || []).filter(Boolean).slice(0, 6);
-        const slots = this._balancedSlots(items.length);
+        const items = (next.items || []).filter(Boolean).slice(0, 7);
+        const showLogo = this._shouldShowLogo.call({ config: next });
+        const slots = this._hubSlots(items.length, showLogo);
+
+        const resolved = items.map((item, index) => {
+            const targetSlot = item.slot !== undefined ? Number(item.slot) : slots[index];
+            return {
+                item,
+                index,
+                slot: Number.isInteger(targetSlot) ? targetSlot : slots[index]
+            };
+        });
+
+        const centerEntry = ! showLogo
+            ? resolved.find(entry => entry.slot === 0)
+            : null;
+
+        this._hubCenterButton = centerEntry
+            ? this._launcherButton(centerEntry.item, centerEntry.index, 0)
+            : null;
+
+        const ringButtons = resolved
+            .filter(entry => entry.slot !== 0)
+            .map(entry => this._launcherButton(entry.item, entry.index, entry.slot));
 
         next.menu = merge({}, next.menu || {}, {
             empty_slots: 'hidden',
             idle_timeout: 0,
-            buttons: items.map((item, index) =>
-                this._launcherButton(item, index, slots[index])
-            )
+            buttons: ringButtons
         });
 
         super.setConfig(next);
