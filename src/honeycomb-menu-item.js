@@ -360,9 +360,13 @@ class HoneycombMenuItem extends LitElement
 
             config.styles.card.push({
                 height: '100%',
-                position: 'fixed',
+                position: config._inline_hub ? 'absolute' : 'fixed',
+                inset: config._inline_hub ? '0' : undefined,
+                width: config._inline_hub ? '100%' : undefined,
                 padding: '0'
             });
+
+            delete config._inline_hub;
 
             if( config.icon === 'honeycomb:bee' )
             {
