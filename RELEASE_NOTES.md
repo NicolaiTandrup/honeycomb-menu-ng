@@ -1,15 +1,14 @@
-## Honeycomb Menu NG v1.2.4 – Classic Inline Detail Geometry
+## Honeycomb Menu NG v1.2.5 – Classic Cell Spacing
 
-This pre-release corrects the scale and spacing of inline Hub detail controls.
+This pre-release corrects the remaining visual difference between the inline detail menu and the classic Honeycomb menu.
 
-### What was wrong
-The inline Hub was using the persistent launcher size (for example 82px) as the size of every detailed control cell. The original Honeycomb menu does not work that way: its cell size is calculated from the overall menu size.
+### Root cause
+The classic menu calculates a cell pitch from `size / 3.586`, but the actual visible hex is smaller because each `honeycomb-menu-item` has 2px padding. The inline implementation used the full pitch as the visible hex size, which made cells look too large and crowded even though their centers were positioned correctly.
 
 ### Fixed
-- Root Hub tiles keep their configured persistent size.
-- Detail controls use the original Honeycomb formula: `menu_size / 3.586`.
-- Default `menu_size: 250` gives ~69.7px cells, matching the established seven-cell Honeycomb appearance.
-- The selected Hub tile remains at exactly the same center coordinate while the detail ring opens around it.
-- Nested outer-ring controls use the same classic detail size.
+- Keeps the classic cell pitch.
+- Applies the equivalent 2px visual spacing to inline detail cells.
+- Uses the classic 114.76% hex aspect ratio.
+- Applies the same rule to center, inner ring and outer ring detail cells.
 
-Multiple inline Hubs remain independent and no global overlay is used.
+The root Hub layout and multi-Hub inline architecture are unchanged.
