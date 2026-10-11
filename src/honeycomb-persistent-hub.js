@@ -15,6 +15,9 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         super();
         this._hubMenu = null;
         this._hubOpenScheduled = false;
+        this._anchorWatchRaf = null;
+        this._lastAnchorX = null;
+        this._lastAnchorY = null;
     }
 
     firstUpdated()
@@ -29,9 +32,59 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
     disconnectedCallback()
     {
+        if( this._anchorWatchRaf )
+        {
+            cancelAnimationFrame(this._anchorWatchRaf);
+            this._anchorWatchRaf = null;
+        }
+
+        if( this._hubMenu && this._hubMenu.isConnected )
+            this._hubMenu.close();
+
         super.disconnectedCallback();
         this._hubOpenScheduled = false;
         this._hubMenu = null;
+        this._lastAnchorX = null;
+        this._lastAnchorY = null;
+    }
+
+    _watchAnchor()
+    {
+        if( this._anchorWatchRaf )
+            cancelAnimationFrame(this._anchorWatchRaf);
+
+        const tick = () => {
+            this._anchorWatchRaf = null;
+
+            if( ! this.isConnected || ! this._hubMenu )
+                return;
+
+            const rect = this.getBoundingClientRect();
+
+            if( rect.width > 0 && rect.height > 0 )
+            {
+                const x = rect.left + (rect.width / 2);
+                const y = rect.top + (rect.height / 2);
+
+                if(
+                    this._lastAnchorX === null ||
+                    this._lastAnchorY === null ||
+                    Math.abs(x - this._lastAnchorX) > 0.5 ||
+                    Math.abs(y - this._lastAnchorY) > 0.5
+                )
+                {
+                    this._lastAnchorX = x;
+                    this._lastAnchorY = y;
+
+                    if( typeof this._hubMenu.reanchor === 'function' )
+                        this._hubMenu.reanchor(x, y);
+                }
+            }
+
+            this._anchorWatchRaf = requestAnimationFrame(tick);
+        };
+
+        this._anchorWatchRaf = requestAnimationFrame(tick);
     }
 
     _scheduleHubOpen()
@@ -57,9 +110,20 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             if( opened )
             {
                 this._hubMenu = opened;
+                this._lastAnchorX = null;
+                this._lastAnchorY = null;
+                this._watchAnchor();
 
                 opened.addEventListener('closed', () => {
+                    if( this._anchorWatchRaf )
+                    {
+                        cancelAnimationFrame(this._anchorWatchRaf);
+                        this._anchorWatchRaf = null;
+                    }
+
                     this._hubMenu = null;
+                    this._lastAnchorX = null;
+                    this._lastAnchorY = null;
 
                     if( this.isConnected && this.config && this.config.auto_open !== false )
                         setTimeout(() => this._scheduleHubOpen(), 0);
