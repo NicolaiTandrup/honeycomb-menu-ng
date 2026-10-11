@@ -215,6 +215,19 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.5 — Match classic Honeycomb cell spacing
+
+v1.2.5 fixes the remaining visual mismatch between inline Hub detail controls and the established Honeycomb menu.
+
+The classic renderer uses the calculated item size as the **cell pitch**, but each visible hex is smaller because the menu item has `2px` host padding. v1.2.4 matched the pitch but still drew each visible inline hex at the full pitch, making the new layout look oversized, crowded and vertically strange.
+
+- detail cell pitch remains `menu_size / 3.586`
+- visible inline detail hexes now apply the same effective 2px spacing as classic `honeycomb-menu-item`
+- hex height is derived from the classic 114.76% aspect ratio
+- center and all six inner-ring cells use the same spacing
+- outer-ring palette/Join/Radio cells use the same spacing
+- root Hub tiles are unchanged
+
 ## v1.2.4 — Classic Honeycomb sizing for inline details
 
 v1.2.4 aligns inline Hub detail controls with the established Honeycomb renderer instead of treating the persistent Hub's `size` as the detailed menu cell size.
