@@ -1,16 +1,13 @@
-## Honeycomb Menu NG v1.2.6 – Classic Item Renderer
+## Honeycomb Menu NG v1.2.7 – Classic Renderer Anchor Fix
 
-This pre-release removes the separate native hex renderer used by the inline Hub and reuses the exact established Honeycomb item renderer.
+This pre-release fixes the remaining placement problem after v1.2.6.
 
-### Why
-v1.2.2–v1.2.5 tried to duplicate the classic hex geometry with separate inline CSS. The result still did not match the existing menu reliably.
+### Root cause
+The classic `honeycomb-menu-item` was reused, but the inline Hub applied center translation directly to that auto-height custom element. Its visible height is generated internally from the Honeycomb ratio, so the host was not a reliable box for percentage-based Y translation.
 
-### Changed
-- Hub root and detail cells now use `honeycomb-menu-item` directly.
-- Shape, spacing, icon/name/label placement and button-card styling are therefore shared with the classic Honeycomb menu.
-- Inline Hub cells remain local to each Hub; no global overlay is reintroduced.
-- Tap remains a normal toggle.
-- Hold opens the local detail level.
-- Local nested controls remain supported.
-
-This is the first v1.2 build where the Hub and classic menu intentionally share the same visual cell renderer rather than two implementations.
+### Fixed
+- Each inline cell is now positioned through a fixed-size local anchor wrapper.
+- The wrapper uses the classic Honeycomb width and 114.76% height.
+- The classic menu-item renderer is placed at the wrapper origin with no center transform of its own.
+- Root, detail and outer-ring cells all use the same anchor model.
+- Multi-Hub inline behavior remains intact.
