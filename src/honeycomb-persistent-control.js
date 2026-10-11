@@ -629,6 +629,13 @@ class HoneycombPersistentControl extends LitElement
 
     _openHoneycombMenu(menu)
     {
+        const root = this.getRootNode ? this.getRootNode() : null;
+        const host = root && root.host ? root.host : null;
+        const context = host && host._menuContext ? host._menuContext : null;
+
+        if( context && typeof window.honeycomb_menu_in_context === 'function' )
+            return window.honeycomb_menu_in_context(context, menu);
+
         if( typeof window.honeycomb_menu !== 'function' )
             return null;
 

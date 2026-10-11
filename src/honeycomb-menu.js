@@ -1154,7 +1154,8 @@ class HoneycombMenu extends LitElement
             honeycomb-persistent-control.center-item {
                 z-index: 2;
             }
-            honeycomb-persistent-control.center-item {
+            honeycomb-persistent-control.center-item,
+            honeycomb-persistent-control.ring-item {
                 position: absolute;
                 width: var(--item-size);
                 pointer-events: all;
@@ -1171,12 +1172,16 @@ class HoneycombMenu extends LitElement
             honeycomb-menu-item.center-item.center-auto-style.drag-hover {
                 filter: brightness(calc(var(--honeycomb-center-brightness, 1.25) * 1.18));
             }
-            honeycomb-menu-item, xy-pad {
+            honeycomb-menu-item,
+            honeycomb-persistent-control.ring-item,
+            xy-pad {
                 animation-duration: 0.5s;
                 animation-fill-mode: both;
                 animation-name: zoomIn;
             }
-            :host([closing]) honeycomb-menu-item, :host([closing]) xy-pad {
+            :host([closing]) honeycomb-menu-item,
+            :host([closing]) honeycomb-persistent-control.ring-item,
+            :host([closing]) xy-pad {
                 animation-name: zoomOut;
             }
             :host([closing]) honeycomb-menu-item[selected] {
@@ -1250,6 +1255,27 @@ class HoneycombMenu extends LitElement
 
                     if( ! pos )
                         return '';
+
+                    if( v && v._persistent_launcher === true )
+                    {
+                        const persistentConfig = this._computeItemConfig(v);
+
+                        return html`
+                            <honeycomb-persistent-control
+                                class="ring-item"
+                                data-honeycomb-slot="${i}"
+                                style="
+                                    animation-delay: ${this._computeButtonAnimateDelay(i)};
+                                    left: calc(var(--item-size) * ${pos.x});
+                                    top: calc(var(--item-size) * ${pos.y});
+                                    --honeycomb-persistent-size: var(--item-size);
+                                "
+                                .hass=${this.hass}
+                                .config=${persistentConfig}
+                                .size=${this.sizes.item}>
+                            </honeycomb-persistent-control>
+                        `;
+                    }
 
                     return html`
                         <honeycomb-menu-item
@@ -2309,6 +2335,7 @@ class HoneycombMenu extends LitElement
                 'inherit_inner',
                 'promote_to_center',
                 'promoted_center',
+                '_persistent_launcher',
                 'anchor_x',
                 'anchor_y',
                 'slot',
