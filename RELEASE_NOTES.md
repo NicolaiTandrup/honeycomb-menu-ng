@@ -1,19 +1,23 @@
-## Honeycomb Menu NG v1.2.10 – Classic Dormant Light Launchers
+## Honeycomb Menu NG v1.2.11 – Persistent Border & Instant Hub Return
 
-This pre-release completes the visual handoff between the persistent Hub and the classic Honeycomb light control.
+This pre-release fixes the two remaining differences observed after v1.2.10.
 
-### What was still wrong in v1.2.9
-v1.2.9 restored the classic Honeycomb menu engine and fixed the global single-Hub limitation, but light launchers in the Hub ring were still rendered as `honeycomb-menu-item` button-cards. That made a dormant light such as Kontor look different from the established classic persistent light control.
+### Persistent light border parity
+Hub light launchers now preserve the same default gray outer border as a standalone `honeycomb-persistent-control` when the light is on.
 
-### Fixed
-- Hub light launchers now render with the real `honeycomb-persistent-control` component.
-- A dormant/on light therefore uses the exact classic double-border hexagon, state color, icon placement and brightness label.
-- Light launchers no longer show the Hub-specific name + label layout.
-- Short tap still toggles the light.
-- Long press opens the light's classic Honeycomb detail menu.
-- The detail menu opens inside the originating Hub's local menu context, so multiple Hubs remain independent.
-- The selected light becomes the classic persistent center while menu 2 is open.
-- Non-light Hub launchers keep their existing renderer for now.
+The root cause was that embedded persistent controls receive configuration directly through Lit, while standalone controls normally receive the defaults through `setConfig()`. With no explicit `outer_border`, an embedded on-state control therefore allowed the outer polygon to follow the live light color, making the border disappear.
 
-### Architecture
-There is no new visual approximation in this release. The dormant light tile and the promoted menu-2 center both use the same `honeycomb-persistent-control` implementation already used by the classic standalone control.
+- missing `outer_border` now defaults to `#34383d`
+- explicit `outer_border: auto` still follows the live light color
+- off-state behavior is unchanged
+
+### Instant persistent Hub return
+The persistent Hub base is now explicitly non-animated.
+
+- Hub root tiles appear immediately when the dashboard loads
+- returning from menu 2 restores the complete Hub base immediately
+- no staggered/floating population of root tiles
+- classic Honeycomb menu/detail levels retain their normal animation
+- nested menus are unaffected
+
+The new `animate: false` path is used by the persistent Hub root only; normal Honeycomb menus default to `animate: true`.

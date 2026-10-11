@@ -214,6 +214,12 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
         menu.idle_timeout = 0;
 
+        // The persistent Hub is the stable dashboard base, not a popup level.
+        // It should be present immediately on first render and when returning
+        // from a detail level. Detail/nested Honeycomb menus keep normal classic
+        // animation because they do not inherit this flag.
+        menu.animate = false;
+
         const showLogo = this._shouldShowLogo();
 
         if( showLogo )

@@ -1188,6 +1188,12 @@ class HoneycombMenu extends LitElement
                 animation-duration: 0.75s;
                 animation-name: bounceOut;
             }
+            :host([no-animation]) honeycomb-menu-item,
+            :host([no-animation]) honeycomb-persistent-control.ring-item,
+            :host([no-animation]) xy-pad {
+                animation: none !important;
+                animation-delay: 0ms !important;
+            }
             xy-pad {
                 width: var(--container-width);
                 height: var(--container-height);
@@ -1312,6 +1318,7 @@ class HoneycombMenu extends LitElement
             spacing: 2,
             animation_speed: 80,
             animation_mode: 'paired',
+            animate: true,
             drag_select: true,
             drag_deadzone: 12,
             hover_highlight: true,
@@ -1326,6 +1333,7 @@ class HoneycombMenu extends LitElement
             persistent_center: null
         });
         this.config = config;
+        this.toggleAttribute('no-animation', this.config.animate === false);
 
         // Resolve the buttons first because the active ring(s) determine size.
         this._assignButtons();
@@ -2317,6 +2325,7 @@ class HoneycombMenu extends LitElement
                 'spacing',
                 'animation_speed',
                 'animation_mode',
+                'animate',
                 'drag_select',
                 'drag_deadzone',
                 'hover_highlight',
