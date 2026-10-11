@@ -919,9 +919,7 @@ class HoneycombPersistentHub extends LitElement
 
     _renderTile(config, offset, meta, tileSize = this._size, tileSpacing = 2)
     {
-        const itemConfig = merge({}, config, {
-            _inline_hub: true
-        });
+        const itemConfig = merge({}, config);
 
         const classes = meta.role === 'center' ? 'tile-anchor center-item' : 'tile-anchor';
 
