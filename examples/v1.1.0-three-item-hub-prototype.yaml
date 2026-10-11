@@ -1,15 +1,14 @@
 type: custom:honeycomb-persistent-hub
 name: Sommerhus
-icon: ""
 size: 82
+logo: auto
 
 style:
   left: 50%
   top: 50%
 
 items:
-  - slot: 1
-    type: light
+  - type: light
     entity: light.ia_kokken_kokken
     name: Køkken
     icon: mdi:data-matrix
@@ -19,8 +18,7 @@ items:
       kelvin:
         entity: number.ia_kokken_20_1_kokken_terassedor_kokken_spot_standard_kelvin
 
-  - slot: 2
-    type: light
+  - type: light
     entity: light.hue_kontor
     name: Kontor
     icon: mdi:lightbulb
@@ -33,8 +31,24 @@ items:
         hue_entity: number.ia_stue_20_2_kokken_kokkeno_stue_standard_hue
         saturation_entity: number.ia_stue_20_2_kokken_kokkeno_stue_standard_saturation
 
-  - slot: 3
-    type: media
+  - type: media
     entity: media_player.drivhus_drivhus
     name: Sonos
     icon: mdi:speaker
+    group_volume_down_script: script.sonos_drivhus_group_volume_down
+    group_volume_up_script: script.sonos_drivhus_group_volume_up
+    toggle_member_script: script.sonos_drivhus_toggle_member
+    favorites_sensor: sensor.sonos_favorites
+    favorites_cache_sensor: sensor.sonos_favorites_cache
+    members:
+      - entity: media_player.tv_stue
+        name: TV Stue
+        icon: mdi:television-speaker
+      - entity: media_player.privat_bad
+        name: Privat Bad
+      - entity: media_player.bathroom
+        name: Bad
+      - entity: media_player.kontor
+        name: Kontor
+      - entity: media_player.kokken
+        name: Køkken
