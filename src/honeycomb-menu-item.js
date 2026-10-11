@@ -134,6 +134,47 @@ class HoneycombMenuItem extends LitElement
             #item > * {
                 height: 100%;
             }
+
+            .bee-overlay {
+                position: absolute;
+                z-index: 4;
+                top: 15%;
+                left: 50%;
+                width: 34%;
+                height: 34%;
+                transform: translateX(-50%);
+                pointer-events: none;
+            }
+
+            .bee-overlay svg {
+                width: 100%;
+                height: 100%;
+                overflow: visible;
+            }
+
+            .bee-overlay .bee-wing-left,
+            .bee-overlay .bee-wing-right {
+                transform-box: fill-box;
+                transform-origin: center;
+            }
+
+            .bee-overlay.flap .bee-wing-left {
+                animation: honeycomb-item-wing-left 130ms ease-in-out 0s 3 alternate;
+            }
+
+            .bee-overlay.flap .bee-wing-right {
+                animation: honeycomb-item-wing-right 130ms ease-in-out 0s 3 alternate;
+            }
+
+            @keyframes honeycomb-item-wing-left {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(-24deg); }
+            }
+
+            @keyframes honeycomb-item-wing-right {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(24deg); }
+            }
             :host([disabled]) #item {
                 background: var(--honeycomb-menu-disabled, #9a9a9a6e);
             }
@@ -142,14 +183,59 @@ class HoneycombMenuItem extends LitElement
 
     render()
     {
+        const bee = this.config && this.config.icon === 'honeycomb:bee';
+
         return html`
             <div class="honeycomb">
                 <div class="honey">
                     <div class="comb">
                         <div id="item"></div>
+                        ${bee ? html`
+                            <div class="bee-overlay ${this._beeFlapping ? 'flap' : ''}">
+                                <svg viewBox="0 0 80 72" aria-hidden="true">
+                                    <path class="bee-wing-left"
+                                          d="M35 27 C24 10,8 13,10 29 C11 40,24 42,36 34 Z"
+                                          fill="#fff8d8" stroke="#17191c" stroke-width="3.2"></path>
+                                    <path class="bee-wing-right"
+                                          d="M45 27 C56 10,72 13,70 29 C69 40,56 42,44 34 Z"
+                                          fill="#fff8d8" stroke="#17191c" stroke-width="3.2"></path>
+                                    <ellipse cx="40" cy="39" rx="18" ry="23"
+                                             fill="#ffc400" stroke="#17191c" stroke-width="3.4"></ellipse>
+                                    <path d="M24 32 C30 35,50 35,56 32"
+                                          fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
+                                    <path d="M23 43 C31 47,49 47,57 43"
+                                          fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
+                                    <circle cx="40" cy="20" r="12"
+                                            fill="#ffc400" stroke="#17191c" stroke-width="3.4"></circle>
+                                    <circle cx="36" cy="18" r="1.9" fill="#17191c"></circle>
+                                    <circle cx="44" cy="18" r="1.9" fill="#17191c"></circle>
+                                    <path d="M35 23 Q40 27 45 23"
+                                          fill="none" stroke="#17191c" stroke-width="2.4" stroke-linecap="round"></path>
+                                </svg>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>`;
+    }
+
+    _flapBee()
+    {
+        if( ! this.config || this.config.icon !== 'honeycomb:bee' )
+            return;
+
+        this._beeFlapping = false;
+        this.requestUpdate();
+
+        requestAnimationFrame(() => {
+            this._beeFlapping = true;
+            this.requestUpdate();
+
+            setTimeout(() => {
+                this._beeFlapping = false;
+                this.requestUpdate();
+            }, 430);
+        });
     }
 
     _computeIsActive()
@@ -277,6 +363,12 @@ class HoneycombMenuItem extends LitElement
                 position: 'fixed',
                 padding: '0'
             });
+
+            if( config.icon === 'honeycomb:bee' )
+            {
+                config.show_icon = false;
+                delete config.icon;
+            }
         }
 
         return merge({}, {
@@ -306,6 +398,7 @@ class HoneycombMenuItem extends LitElement
         card.hass = this.hass;
 
         card.addEventListener('action', e => {
+            this._flapBee();
             e.detail.item = this;
             e.detail.autoclose = this.config.autoclose;
             e.detail.audio = this.config.audio;
