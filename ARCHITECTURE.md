@@ -27,17 +27,28 @@ Only the navigation core may create, change or clear a module anchor.
 - render declarative configs
 - dispatch interactions to core
 - never contain Sonos/Hue business logic
+- resolve visual presentation through module adapters instead of domain-specific branches
 
 ### Modules
-- describe launchers, actions, state and nested menus
+- describe launchers, actions, state, presentation and nested menus
 - may request slots/ring expansion
 - may not call reanchor, replaceConfig or mutate navigation context
+- may register domain actions through the core action registry
+- may expose a persistent presentation adapter for live state rendering
 
 Current modules:
 - `generic`
 - `light` (Home Assistant light domain; Hue works through this module)
+  - `controls.js`: palettes and presets
+  - `actions.js`: light-specific custom actions
+  - `presentation.js`: live light color/brightness presentation
 - `media` (generic media player)
-- `sonos` (Sonos-oriented grouping/favorites behavior)
+  - `actions.js`: group-aware media volume
+  - `presentation.js`: playing/volume presentation
+- `sonos`
+  - `grouping.js`: Join/group UI
+  - `favorites.js`: Radio/favorites UI
+  - `index.js`: Sonos module composition
 
 ## Module contract
 
