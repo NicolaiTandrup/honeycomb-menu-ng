@@ -215,6 +215,16 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.3 — Inline hitbox and hex-shape fix
+
+v1.2.3 fixes the odd tile selection and visual mismatch seen in the native inline Hub:
+
+- pointer hit-testing now happens on the clipped hex face, not the tile's full rectangular bounding box
+- transparent corners can no longer steal taps/holds from adjacent hexagons
+- pointer capture keeps a long press bound to the tile that was actually pressed
+- the visible inner face now scales inside the outer hex shell, producing a more even border and a shape closer to the original Honeycomb renderer
+- no changes to the multi-Hub inline architecture
+
 ## v1.2.2 — Native inline Hub tiles
 
 v1.2.2 removes the inline Hub's dependency on wrapped `custom:button-card` tiles.

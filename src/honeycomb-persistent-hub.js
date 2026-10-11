@@ -28,6 +28,8 @@ class HoneycombPersistentHub extends LitElement
         this._size = 82;
         this._pressTimer = null;
         this._pressConsumed = false;
+        this._activePointerId = null;
+        this._activePressMeta = null;
         this._beeFlapping = false;
         this._beeFlapTimer = null;
     }
@@ -58,10 +60,7 @@ class HoneycombPersistentHub extends LitElement
                 width: var(--honeycomb-hub-size, 82px);
                 height: calc(var(--honeycomb-hub-size, 82px) * 1.1547);
                 transform: translate(-50%, -50%) translate(var(--x, 0px), var(--y, 0px));
-                pointer-events: auto;
-                touch-action: none;
-                user-select: none;
-                -webkit-user-select: none;
+                pointer-events: none;
                 transition: transform 160ms ease, opacity 120ms ease;
             }
 
@@ -74,10 +73,12 @@ class HoneycombPersistentHub extends LitElement
 
             .hex-shell {
                 background: var(--tile-border, rgba(20, 24, 28, 0.96));
+                pointer-events: none;
             }
 
             .hex-face {
-                inset: 2px;
+                transform: scale(0.945);
+                transform-origin: center;
                 background: var(--tile-background, rgba(52,66,78,0.94));
                 background-image: var(--tile-background-image, none);
                 background-position: center;
@@ -87,6 +88,11 @@ class HoneycombPersistentHub extends LitElement
                 display: grid;
                 place-items: center;
                 overflow: hidden;
+                pointer-events: auto;
+                touch-action: none;
+                user-select: none;
+                -webkit-user-select: none;
+                cursor: pointer;
             }
 
             .content {
@@ -1021,27 +1027,41 @@ class HoneycombPersistentHub extends LitElement
         });
     }
 
-    _pressStart(meta)
+    _pressStart(meta, pointerId)
     {
         this._pressConsumed = false;
+        this._activePointerId = pointerId;
+        this._activePressMeta = meta;
 
         if( this._pressTimer )
             clearTimeout(this._pressTimer);
 
         this._pressTimer = setTimeout(() => {
             this._pressTimer = null;
+
+            if( this._activePointerId !== pointerId )
+                return;
+
             this._pressConsumed = true;
             this._activateTile(meta, 'hold');
         }, 500);
     }
 
-    _pressEnd(meta)
+    _pressEnd(pointerId)
     {
+        if( this._activePointerId !== pointerId )
+            return;
+
+        const meta = this._activePressMeta;
+
         if( this._pressTimer )
         {
             clearTimeout(this._pressTimer);
             this._pressTimer = null;
         }
+
+        this._activePointerId = null;
+        this._activePressMeta = null;
 
         if( this._pressConsumed )
         {
@@ -1049,17 +1069,23 @@ class HoneycombPersistentHub extends LitElement
             return;
         }
 
-        this._activateTile(meta, 'tap');
+        if( meta )
+            this._activateTile(meta, 'tap');
     }
 
-    _pressCancel()
+    _pressCancel(pointerId = null)
     {
+        if( pointerId !== null && this._activePointerId !== pointerId )
+            return;
+
         if( this._pressTimer )
         {
             clearTimeout(this._pressTimer);
             this._pressTimer = null;
         }
 
+        this._activePointerId = null;
+        this._activePressMeta = null;
         this._pressConsumed = false;
     }
 
@@ -1180,14 +1206,22 @@ class HoneycombPersistentHub extends LitElement
         ].join(';');
 
         return html`
-            <div class="tile"
-                 style=${style}
-                 @pointerdown=${e => { e.preventDefault(); this._pressStart(meta); }}
-                 @pointerup=${e => { e.preventDefault(); this._pressEnd(meta); }}
-                 @pointercancel=${() => this._pressCancel()}
-                 @pointerleave=${() => this._pressCancel()}>
+            <div class="tile" style=${style}>
                 <div class="hex-shell"></div>
-                <div class="hex-face">
+                <div class="hex-face"
+                     @pointerdown=${e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+                        this._pressStart(meta, e.pointerId);
+                     }}
+                     @pointerup=${e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this._pressEnd(e.pointerId);
+                     }}
+                     @pointercancel=${e => this._pressCancel(e.pointerId)}
+                     @contextmenu=${e => e.preventDefault()}>
                     <div class="content ${showLabel ? '' : 'no-label'}">
                         ${isBee
                             ? this._beeSvg()
