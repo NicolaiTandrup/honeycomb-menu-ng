@@ -215,6 +215,19 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.1.5 — Hub anchoring and edit stability
+
+v1.1.5 fixes Hub positioning during nested navigation and Lovelace editing:
+
+- long-pressing a Hub launcher now re-anchors the next control level on the exact launcher tile that was held
+- the promoted launcher therefore becomes both the visual and physical center of the next Honeycomb level
+- back navigation restores the previous Hub anchor
+- persistent Hub overlays track movement of their picture-elements anchor while the dashboard editor moves or remounts the tile
+- stale Hub overlays are closed when the persistent Hub element disconnects
+- short tap still toggles the entity; long press still opens the detailed control level
+
+This build also introduces automated GitHub release creation from repository release metadata.
+
 ## v1.1.4 — Hub tap/hold navigation
 
 v1.1.4 changes Hub launcher interaction to remove accidental navigation and make room control faster:

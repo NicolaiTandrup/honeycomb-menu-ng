@@ -785,6 +785,19 @@ window.honeycomb_menu = (config) => {
 
         manager.currentConfig = merge({}, honeycombConfig);
         manager.honeycomb.replaceConfig(honeycombConfig);
+
+        if(
+            Number.isFinite(Number(honeycombConfig.anchor_x)) &&
+            Number.isFinite(Number(honeycombConfig.anchor_y)) &&
+            typeof manager.honeycomb.reanchor === 'function'
+        )
+        {
+            manager.honeycomb.reanchor(
+                Number(honeycombConfig.anchor_x),
+                Number(honeycombConfig.anchor_y)
+            );
+        }
+
         return manager.honeycomb;
     }
 
@@ -800,7 +813,27 @@ document.addEventListener('pointercancel', manager.handlePointerUp, true);
 document.body.addEventListener("ll-custom", e => {
     if(e.detail.honeycomb_menu)
     {
-        window.honeycomb_menu( e.detail.honeycomb_menu );
+        const nestedConfig = merge({}, e.detail.honeycomb_menu);
+
+        if( nestedConfig.promote_to_center === true )
+        {
+            const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+            const sourceItem = path.find(node =>
+                node &&
+                node.tagName &&
+                node.tagName.toLowerCase() === 'honeycomb-menu-item'
+            );
+
+            if( sourceItem && typeof sourceItem.getBoundingClientRect === 'function' )
+            {
+                const rect = sourceItem.getBoundingClientRect();
+
+                nestedConfig.anchor_x = rect.left + (rect.width / 2);
+                nestedConfig.anchor_y = rect.top + (rect.height / 2);
+            }
+        }
+
+        window.honeycomb_menu( nestedConfig );
     }
 });
 
@@ -850,6 +883,19 @@ function honeycombBack()
     {
         manager.currentConfig = merge({}, previous.config);
         manager.honeycomb.replaceConfig(previous.config);
+
+        if(
+            Number.isFinite(Number(previous.config && previous.config.anchor_x)) &&
+            Number.isFinite(Number(previous.config && previous.config.anchor_y)) &&
+            typeof manager.honeycomb.reanchor === 'function'
+        )
+        {
+            manager.honeycomb.reanchor(
+                Number(previous.config.anchor_x),
+                Number(previous.config.anchor_y)
+            );
+        }
+
         return true;
     }
 
@@ -1592,6 +1638,29 @@ class HoneycombMenu extends LitElement
         }
 
         this.buttons = assigned;
+    }
+
+    reanchor(_x, _y)
+    {
+        const x = Number(_x);
+        const y = Number(_y);
+
+        if( ! Number.isFinite(x) || ! Number.isFinite(y) )
+            return;
+
+        if( this.config )
+        {
+            this.config.anchor_x = x;
+            this.config.anchor_y = y;
+        }
+
+        if( manager.honeycomb === this && manager.currentConfig )
+        {
+            manager.currentConfig.anchor_x = x;
+            manager.currentConfig.anchor_y = y;
+        }
+
+        this._setPosition(x, y);
     }
 
     _setPosition( _x, _y )
