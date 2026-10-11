@@ -32,6 +32,8 @@ class HoneycombPersistentControl extends LitElement
         this._pointerId = null;
         this._pointerStartX = 0;
         this._pointerStartY = 0;
+        this._beeFlapping = false;
+        this._beeFlapTimer = null;
     }
 
     static get styles()
@@ -100,10 +102,45 @@ class HoneycombPersistentControl extends LitElement
             }
 
             .bee-icon {
-                width: 38%;
-                height: 38%;
+                width: 48%;
+                height: 48%;
                 display: block;
-                color: inherit;
+                overflow: visible;
+            }
+
+            .bee-wing-left,
+            .bee-wing-right {
+                transform-box: fill-box;
+                transform-origin: center;
+            }
+
+            .bee-icon.flap .bee-wing-left {
+                animation: honeycomb-wing-left 130ms ease-in-out 0s 3 alternate;
+            }
+
+            .bee-icon.flap .bee-wing-right {
+                animation: honeycomb-wing-right 130ms ease-in-out 0s 3 alternate;
+            }
+
+            .bee-icon.flap .bee-body {
+                animation: honeycomb-bee-bounce 390ms ease-in-out;
+                transform-box: fill-box;
+                transform-origin: center;
+            }
+
+            @keyframes honeycomb-wing-left {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(-24deg) translate(-1px, -1px); }
+            }
+
+            @keyframes honeycomb-wing-right {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(24deg) translate(1px, -1px); }
+            }
+
+            @keyframes honeycomb-bee-bounce {
+                0%, 100% { transform: translateY(0) scale(1); }
+                50% { transform: translateY(-2px) scale(1.05); }
             }
 
             ha-icon {
@@ -205,6 +242,12 @@ class HoneycombPersistentControl extends LitElement
     {
         super.disconnectedCallback();
         this._clearHoldTimer();
+
+        if( this._beeFlapTimer )
+        {
+            clearTimeout(this._beeFlapTimer);
+            this._beeFlapTimer = null;
+        }
     }
 
     getCardSize()
@@ -619,6 +662,28 @@ class HoneycombPersistentControl extends LitElement
 
             openedMenu.addEventListener('closed', restore, { once: true });
         }
+
+        return openedMenu || null;
+    }
+
+    _flapBee()
+    {
+        this._beeFlapping = false;
+        this.requestUpdate();
+
+        requestAnimationFrame(() => {
+            this._beeFlapping = true;
+            this.requestUpdate();
+
+            if( this._beeFlapTimer )
+                clearTimeout(this._beeFlapTimer);
+
+            this._beeFlapTimer = setTimeout(() => {
+                this._beeFlapping = false;
+                this._beeFlapTimer = null;
+                this.requestUpdate();
+            }, 430);
+        });
     }
 
     _executeAction(action)
@@ -634,6 +699,12 @@ class HoneycombPersistentControl extends LitElement
         if( actionName === 'honeycomb-open-menu' )
         {
             this._openMenu();
+            return;
+        }
+
+        if( actionName === 'honeycomb-bee-flap' )
+        {
+            this._flapBee();
             return;
         }
 
@@ -757,18 +828,38 @@ class HoneycombPersistentControl extends LitElement
                 </svg>
 
                 <div class="content ${secondary ? 'has-secondary' : ''}">
-                    ${this.config.icon === '' ? html`
-                        <svg class="bee-icon" viewBox="0 0 64 64" aria-hidden="true">
-                            <g fill="currentColor">
-                                <ellipse cx="32" cy="35" rx="12" ry="15"></ellipse>
-                                <ellipse cx="18" cy="28" rx="10" ry="7" transform="rotate(-28 18 28)"></ellipse>
-                                <ellipse cx="46" cy="28" rx="10" ry="7" transform="rotate(28 46 28)"></ellipse>
-                                <rect x="22" y="30" width="20" height="4" rx="2" fill="#20262d"></rect>
-                                <rect x="22" y="38" width="20" height="4" rx="2" fill="#20262d"></rect>
-                                <circle cx="28" cy="20" r="3"></circle>
-                                <circle cx="36" cy="20" r="3"></circle>
-                                <path d="M27 17 C23 10,19 9,16 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
-                                <path d="M37 17 C41 10,45 9,48 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    ${(this.config.icon === '' || this.config.icon === 'honeycomb:bee') ? html`
+                        <svg class="bee-icon ${this._beeFlapping ? 'flap' : ''}" viewBox="0 0 80 72" aria-hidden="true">
+                            <g class="bee-body">
+                                <path class="bee-wing-left"
+                                      d="M35 27 C24 10,8 13,10 29 C11 40,24 42,36 34 Z"
+                                      fill="#fff8d8" stroke="#17191c" stroke-width="3.2" stroke-linejoin="round"></path>
+                                <path class="bee-wing-right"
+                                      d="M45 27 C56 10,72 13,70 29 C69 40,56 42,44 34 Z"
+                                      fill="#fff8d8" stroke="#17191c" stroke-width="3.2" stroke-linejoin="round"></path>
+
+                                <path d="M31 18 C27 10,21 8,17 10"
+                                      fill="none" stroke="#17191c" stroke-width="3" stroke-linecap="round"></path>
+                                <path d="M49 18 C53 10,59 8,63 10"
+                                      fill="none" stroke="#17191c" stroke-width="3" stroke-linecap="round"></path>
+
+                                <ellipse cx="40" cy="39" rx="18" ry="23"
+                                         fill="#ffc400" stroke="#17191c" stroke-width="3.4"></ellipse>
+                                <path d="M24 32 C30 35,50 35,56 32"
+                                      fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
+                                <path d="M23 43 C31 47,49 47,57 43"
+                                      fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
+                                <path d="M27 54 C34 57,46 57,53 54"
+                                      fill="none" stroke="#17191c" stroke-width="4" stroke-linecap="round"></path>
+
+                                <circle cx="40" cy="20" r="12"
+                                        fill="#ffc400" stroke="#17191c" stroke-width="3.4"></circle>
+                                <circle cx="36" cy="18" r="1.9" fill="#17191c"></circle>
+                                <circle cx="44" cy="18" r="1.9" fill="#17191c"></circle>
+                                <path d="M35 23 Q40 27 45 23"
+                                      fill="none" stroke="#17191c" stroke-width="2.4" stroke-linecap="round"></path>
+                                <path d="M40 62 L35 69 L45 66 Z"
+                                      fill="#17191c" stroke="#17191c" stroke-width="1"></path>
                             </g>
                         </svg>
                     ` : html`<ha-icon .icon=${this.config.icon}></ha-icon>`}
