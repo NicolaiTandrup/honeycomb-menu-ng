@@ -350,9 +350,13 @@ class HoneycombPersistentControl extends LitElement
             inner: configured.inner_border && configured.inner_border !== 'auto'
                 ? configured.inner_border
                 : automaticInner,
-            outer: configured.outer_border && configured.outer_border !== 'auto'
-                ? configured.outer_border
-                : automaticOuter
+            // Embedded persistent controls can receive their config directly as
+            // a Lit property instead of through setConfig(). Preserve the same
+            // default outer border as a standalone persistent control. Explicit
+            // "auto" still means follow the live center color.
+            outer: configured.outer_border === 'auto'
+                ? automaticOuter
+                : (configured.outer_border || '#34383d')
         };
     }
 
