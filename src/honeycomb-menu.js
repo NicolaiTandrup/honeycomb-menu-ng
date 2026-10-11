@@ -2193,11 +2193,29 @@ class HoneycombMenu extends LitElement
             const homeAssistant = document.querySelector('home-assistant');
             const latestHass = homeAssistant ? homeAssistant.hass : null;
 
-            if( latestHass && latestHass !== this.hass )
+            if( ! latestHass )
+                return;
+
+            // Home Assistant does not guarantee a brand-new hass object for
+            // every state change. Relying only on object identity means live
+            // button-card templates can freeze while a Honeycomb menu is open
+            // (for example Sonos volume percentage after volume_up/down).
+            //
+            // Always push the current hass object directly into rendered menu
+            // children. honeycomb-menu-item forwards it to the wrapped
+            // custom:button-card, forcing its JS templates to re-evaluate.
+            this.hass = latestHass;
+
+            if( this.shadowRoot )
             {
-                this.hass = latestHass;
-                this.requestUpdate();
+                this.shadowRoot
+                    .querySelectorAll('honeycomb-menu-item, honeycomb-persistent-control, xy-pad')
+                    .forEach(item => {
+                        item.hass = latestHass;
+                    });
             }
+
+            this.requestUpdate();
         }, 200);
     }
 
