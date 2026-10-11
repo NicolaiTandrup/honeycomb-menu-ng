@@ -177,7 +177,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                 if( entity.state !== 'on' ) return 'Off';
                 const b = entity.attributes ? entity.attributes.brightness : null;
                 if( b === null || b === undefined ) return 'On';
-                return \`${Math.round((Number(b) / 255) * 100)}%\`;
+                return \`\${Math.round((Number(b) / 255) * 100)}%\`;
             ]]]`;
         }
 
