@@ -48,20 +48,29 @@ class HoneycombPersistentHub extends LitElement
                 pointer-events: none;
             }
 
-            honeycomb-menu-item {
+            .tile-anchor {
                 position: absolute;
                 left: 50%;
                 top: 50%;
-                box-sizing: border-box;
                 width: var(--tile-size, 70px);
-                padding: var(--tile-spacing, 2px);
-                pointer-events: all;
+                height: calc(var(--tile-size, 70px) * 1.1476);
                 transform: translate(-50%, -50%) translate(var(--x, 0px), var(--y, 0px));
+                pointer-events: none;
                 z-index: 1;
             }
 
-            honeycomb-menu-item.center-item {
+            .tile-anchor.center-item {
                 z-index: 2;
+            }
+
+            .tile-anchor honeycomb-menu-item {
+                position: absolute;
+                left: 0;
+                top: 0;
+                box-sizing: border-box;
+                width: 100%;
+                padding: var(--tile-spacing, 2px);
+                pointer-events: all;
             }
         `;
     }
@@ -914,21 +923,23 @@ class HoneycombPersistentHub extends LitElement
             _inline_hub: true
         });
 
-        const classes = meta.role === 'center' ? 'center-item' : '';
+        const classes = meta.role === 'center' ? 'tile-anchor center-item' : 'tile-anchor';
 
         return html`
-            <honeycomb-menu-item
+            <div
                 class=${classes}
                 style="
                     --x:${offset[0]}px;
                     --y:${offset[1]}px;
                     --tile-size:${Number(tileSize) || this._size}px;
                     --tile-spacing:${Math.max(0, Number(tileSpacing) || 0)}px;
-                "
-                .hass=${this.hass}
-                .config=${itemConfig}
-                @action=${e => this._handleClassicItemAction(e, meta)}>
-            </honeycomb-menu-item>
+                ">
+                <honeycomb-menu-item
+                    .hass=${this.hass}
+                    .config=${itemConfig}
+                    @action=${e => this._handleClassicItemAction(e, meta)}>
+                </honeycomb-menu-item>
+            </div>
         `;
     }
 
