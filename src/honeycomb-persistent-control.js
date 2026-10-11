@@ -3,6 +3,7 @@ import { fireEvent, provideHass } from "./helpers.js";
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
+const { moduleRegistry } = require('./modules/index.js');
 
 class HoneycombPersistentControl extends LitElement
 {
@@ -172,12 +173,6 @@ class HoneycombPersistentControl extends LitElement
         const oldHass = this._hass;
         this._hass = obj;
 
-        const color = this._currentLightColor();
-        const state = this._entityState();
-
-        if( state && state.state === 'on' && color )
-            this._lastKnownColor = color;
-
         this.requestUpdate('hass', oldHass);
     }
 
@@ -243,12 +238,6 @@ class HoneycombPersistentControl extends LitElement
 
         provideHass(this);
 
-        const color = this._currentLightColor();
-        const state = this._entityState();
-
-        if( state && state.state === 'on' && color )
-            this._lastKnownColor = color;
-
         this.requestUpdate();
     }
 
@@ -277,122 +266,53 @@ class HoneycombPersistentControl extends LitElement
         return this.hass.states[this.config.entity] || null;
     }
 
-    _kelvinToRgb(kelvin)
+    _resolvePresentation()
     {
-        let temp = Math.max(1000, Math.min(40000, Number(kelvin) || 2700)) / 100;
-        let red;
-        let green;
-        let blue;
-
-        if( temp <= 66 )
-        {
-            red = 255;
-            green = 99.4708025861 * Math.log(temp) - 161.1195681661;
-            blue = temp <= 19
-                ? 0
-                : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
-        }
-        else
-        {
-            red = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
-            green = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
-            blue = 255;
-        }
-
-        const clamp = value => Math.max(0, Math.min(255, Math.round(value)));
-        return `rgb(${clamp(red)}, ${clamp(green)}, ${clamp(blue)})`;
-    }
-
-    _currentLightColor()
-    {
-        const state = this._entityState();
-
-        if( ! state || ! state.attributes )
-            return null;
-
-        const attrs = state.attributes;
-
-        if( Array.isArray(attrs.rgb_color) && attrs.rgb_color.length >= 3 )
-            return `rgb(${attrs.rgb_color[0]}, ${attrs.rgb_color[1]}, ${attrs.rgb_color[2]})`;
-
-        if( attrs.color_temp_kelvin )
-            return this._kelvinToRgb(attrs.color_temp_kelvin);
-
-        return null;
-    }
-
-    _resolveColors()
-    {
-        const state = this._entityState();
         const configured = (this.config && this.config.colors) || {};
-        const off = (this.config && this.config.off) || {};
 
         if( this.config && this.config.mode === 'hub' )
         {
             return {
-                center: configured.center || '#20262d',
-                inner: configured.inner_border || '#f2b705',
-                outer: configured.outer_border || '#34383d'
+                colors: {
+                    center: configured.center || '#20262d',
+                    inner: configured.inner_border || '#f2b705',
+                    outer: configured.outer_border || '#34383d'
+                },
+                secondary: null
             };
         }
 
-        if( ! state || ['unavailable', 'unknown'].includes(state.state) )
+        const module = moduleRegistry.resolvePresentation(
+            this.config ? this.config.mode : null
+        );
+
+        if( module && module.presentation && typeof module.presentation.resolve === 'function' )
         {
-            const unavailable = configured.unavailable || '#555b63';
-            return {
+            const runtime = {
+                lastKnownColor: this._lastKnownColor
+            };
+
+            const presentation = module.presentation.resolve({
+                config: this.config || {},
+                state: this._entityState(),
+                runtime
+            });
+
+            this._lastKnownColor = runtime.lastKnownColor || this._lastKnownColor;
+
+            if( presentation && presentation.colors )
+                return presentation;
+        }
+
+        const unavailable = configured.unavailable || '#555b63';
+
+        return {
+            colors: {
                 center: unavailable,
                 inner: unavailable,
                 outer: unavailable
-            };
-        }
-
-        if( this.config && this.config.mode === 'media' )
-        {
-            const active = this.config.active_color ||
-                configured.active ||
-                '#00bcd4';
-            const playing = state.state === 'playing';
-            const idleCenter = off.center_color || '#202224';
-            const automaticCenter = playing ? active : idleCenter;
-
-            return {
-                center: configured.center && configured.center !== 'auto'
-                    ? configured.center
-                    : automaticCenter,
-                inner: configured.inner_border && configured.inner_border !== 'auto'
-                    ? configured.inner_border
-                    : active,
-                outer: configured.outer_border === 'auto'
-                    ? automaticCenter
-                    : (configured.outer_border || '#34383d')
-            };
-        }
-
-        const on = state.state === 'on';
-        const actual = this._currentLightColor();
-
-        if( on && actual )
-            this._lastKnownColor = actual;
-
-        const preview = this._lastKnownColor || off.preview_color || '#4f7fae';
-        const automaticCenter = on ? (actual || '#f3eadb') : (off.center_color || '#202224');
-        const automaticInner = on ? (actual || automaticCenter) : preview;
-        const automaticOuter = automaticCenter;
-
-        return {
-            center: configured.center && configured.center !== 'auto'
-                ? configured.center
-                : automaticCenter,
-            inner: configured.inner_border && configured.inner_border !== 'auto'
-                ? configured.inner_border
-                : automaticInner,
-            // Embedded persistent controls can receive their config directly as
-            // a Lit property instead of through setConfig(). Preserve the same
-            // default outer border as a standalone persistent control. Explicit
-            // "auto" still means follow the live center color.
-            outer: configured.outer_border === 'auto'
-                ? automaticOuter
-                : (configured.outer_border || '#34383d')
+            },
+            secondary: null
         };
     }
 
@@ -445,68 +365,6 @@ class HoneycombPersistentControl extends LitElement
             (0.0722 * linear[2]);
 
         return luminance > 0.42 ? '#17212b' : '#f6f7f9';
-    }
-
-    _brightnessLabel()
-    {
-        if( ! this.config )
-            return null;
-
-        const mode = this.config.show_brightness || 'when_on';
-
-        if( mode === 'never' )
-            return null;
-
-        const state = this._entityState();
-
-        if( ! state || ! state.attributes )
-            return null;
-
-        if( mode === 'when_on' && state.state !== 'on' )
-            return null;
-
-        const brightness = Number(state.attributes.brightness);
-
-        if( ! Number.isFinite(brightness) )
-            return null;
-
-        const percentage = Math.max(0, Math.min(100, Math.round((brightness / 255) * 100)));
-        return `${percentage}%`;
-    }
-
-    _volumeLabel()
-    {
-        if( ! this.config )
-            return null;
-
-        const mode = this.config.show_volume || 'when_playing';
-
-        if( mode === 'never' )
-            return null;
-
-        const state = this._entityState();
-
-        if( ! state || ! state.attributes )
-            return null;
-
-        if( mode === 'when_playing' && state.state !== 'playing' )
-            return null;
-
-        const volume = Number(state.attributes.volume_level);
-
-        if( ! Number.isFinite(volume) )
-            return null;
-
-        const percentage = Math.max(0, Math.min(100, Math.round(volume * 100)));
-        return `${percentage}%`;
-    }
-
-    _secondaryLabel()
-    {
-        if( this.config && this.config.mode === 'media' )
-            return this._volumeLabel();
-
-        return this._brightnessLabel();
     }
 
     _persistentMenuConfig()
@@ -869,7 +727,8 @@ class HoneycombPersistentControl extends LitElement
         if( ! this.config )
             return html``;
 
-        const colors = this._resolveColors();
+        const presentation = this._resolvePresentation();
+        const colors = presentation.colors;
         const border = (this.config && this.config.border) || {};
         const outerWidth = Math.max(0, Number(border.outer_width !== undefined ? border.outer_width : 3));
         const innerWidth = Math.max(0, Number(border.inner_width !== undefined ? border.inner_width : 3));
@@ -884,7 +743,7 @@ class HoneycombPersistentControl extends LitElement
             innerScale - ((innerWidth * 2) / this.size)
         );
         const foreground = this._foregroundForBackground(colors.center);
-        const secondary = this._secondaryLabel();
+        const secondary = presentation.secondary;
 
         return html`
             <div

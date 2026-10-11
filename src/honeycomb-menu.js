@@ -16,6 +16,15 @@ const isEmpty = require('lodash/isEmpty');
 const isString = require('lodash/isString');
 const _defaults = require('lodash/defaults');
 
+const navigationCore = require('./core/navigation-context.js');
+const layoutCore = require('./core/layout.js');
+const { applyEntityInheritance } = require('./core/entity-inheritance.js');
+const { customActionRegistry } = require('./core/action-registry.js');
+const { applyPresetControls } = require('./modules/light/controls.js');
+
+// Register built-in domain modules and their custom actions.
+require('./modules/index.js');
+
 const manager = new function() {
     this.honeycomb = null;
     this.stack = [];
@@ -47,629 +56,6 @@ const manager = new function() {
     }.bind(this);
 };
 
-function applyEntityToAction(action, entity)
-{
-    if( ! action || typeof action !== 'object' || ! entity )
-        return;
-
-    const actionName = action.action;
-
-    if( actionName === 'perform-action' )
-    {
-        // Any explicit target wins, including area/device based targets.
-        if( ! action.target )
-            action.target = { entity_id: entity };
-    }
-    else if( actionName === 'call-service' )
-    {
-        if( ! action.target )
-        {
-            if( ! action.service_data )
-                action.service_data = {};
-
-            if( action.service_data.entity_id === undefined )
-                action.service_data.entity_id = entity;
-        }
-    }
-
-    if( action.honeycomb_menu )
-        applyEntityInheritance(action.honeycomb_menu, entity);
-}
-
-function applyEntityInheritance(config, inheritedEntity)
-{
-    if( ! config || typeof config !== 'object' )
-        return config;
-
-    const localEntity =
-        config.entity ||
-        config.entity_id ||
-        inheritedEntity ||
-        null;
-
-    if( localEntity && ! config.entity )
-        config.entity = localEntity;
-
-    if( config.center_button && typeof config.center_button === 'object' )
-    {
-        const centerEntity = config.center_button.entity || localEntity;
-
-        if( centerEntity && ! config.center_button.entity )
-            config.center_button.entity = centerEntity;
-
-        ['tap_action', 'hold_action', 'double_tap_action', 'press_action'].forEach(key => {
-            applyEntityToAction(config.center_button[key], centerEntity);
-        });
-    }
-
-    if( config.persistent_center && typeof config.persistent_center === 'object' )
-        applyEntityInheritance(config.persistent_center, localEntity);
-
-    const visitButton = button => {
-        if( ! button || typeof button !== 'object' )
-            return;
-
-        const buttonEntity =
-            button.entity ||
-            button.entity_id ||
-            localEntity;
-
-        if( buttonEntity && ! button.entity )
-            button.entity = buttonEntity;
-
-        ['tap_action', 'hold_action', 'double_tap_action', 'press_action'].forEach(key => {
-            applyEntityToAction(button[key], buttonEntity);
-        });
-    };
-
-    if( Array.isArray(config.buttons) )
-    {
-        config.buttons.forEach(entry => {
-            if( Array.isArray(entry) )
-                entry.forEach(visitButton);
-            else
-                visitButton(entry);
-        });
-    }
-
-    return config;
-}
-
-function presetTemplateNumber(entityId, suffix = '')
-{
-    return `[[[
-        const state = states['${entityId}'];
-        const value = state ? Number(state.state) : NaN;
-        return Number.isFinite(value) ? \`\${Math.round(value)}${suffix}\` : '—';
-    ]]]`;
-}
-
-function presetCurrentBrightnessTemplate()
-{
-    return `[[[
-        const raw = entity && entity.attributes ? entity.attributes.brightness : null;
-        const value = raw === null || raw === undefined ? NaN : Number(raw);
-        return Number.isFinite(value)
-            ? \`Now \${Math.max(0, Math.min(100, Math.round((value / 255) * 100)))}%\`
-            : 'Now —';
-    ]]]`;
-}
-
-function presetCurrentKelvinTemplate()
-{
-    return `[[[
-        const raw = entity && entity.attributes ? entity.attributes.color_temp_kelvin : null;
-        const value = raw === null || raw === undefined ? NaN : Number(raw);
-        return Number.isFinite(value) && value > 0
-            ? \`Now \${Math.round(value)}K\`
-            : 'Now —';
-    ]]]`;
-}
-
-function presetHsTemplate(hueEntity, saturationEntity, current = false)
-{
-    if( current )
-    {
-        return `[[[
-            const hs = entity && entity.attributes ? entity.attributes.hs_color : null;
-            if( ! Array.isArray(hs) || hs.length < 2 )
-                return 'Now —';
-            return \`Now \${Math.round(Number(hs[0]))}° · \${Math.round(Number(hs[1]))}%\`;
-        ]]]`;
-    }
-
-    return `[[[
-        const hueState = states['${hueEntity}'];
-        const satState = states['${saturationEntity}'];
-        const hue = hueState ? Number(hueState.state) : NaN;
-        const sat = satState ? Number(satState.state) : NaN;
-        return Number.isFinite(hue) && Number.isFinite(sat)
-            ? \`\${Math.round(hue)}° · \${Math.round(sat)}%\`
-            : '—';
-    ]]]`;
-}
-
-function presetControlStyles()
-{
-    return {
-        grid: [
-            { 'grid-template-areas': '"i" "n" "l"' },
-            { 'grid-template-columns': '1fr' },
-            { 'grid-template-rows': '43% 29% 28%' },
-            { height: '100%' },
-            { 'align-items': 'center' }
-        ],
-        icon: [
-            { width: '22px' },
-            { 'align-self': 'end' },
-            { color: '#f6f7f9' }
-        ],
-        name: [
-            { 'font-size': '11px' },
-            { 'font-weight': '650' },
-            { 'line-height': '1' },
-            { 'align-self': 'center' },
-            { color: '#f6f7f9' },
-            { 'white-space': 'nowrap' },
-            { overflow: 'hidden' },
-            { 'text-overflow': 'ellipsis' }
-        ],
-        label: [
-            { 'font-size': '8px' },
-            { 'line-height': '1' },
-            { 'align-self': 'start' },
-            { 'padding-top': '1px' },
-            { color: 'rgba(246,247,249,0.82)' },
-            { 'white-space': 'nowrap' },
-            { overflow: 'hidden' },
-            { 'text-overflow': 'ellipsis' }
-        ]
-    };
-}
-
-function currentHass()
-{
-    const root = document.querySelector('home-assistant');
-    return root ? root.hass : null;
-}
-
-function lightCapabilities(entityId)
-{
-    const liveHass = currentHass();
-    const state = liveHass && entityId ? liveHass.states[entityId] : null;
-    const attrs = state && state.attributes ? state.attributes : {};
-    const modes = Array.isArray(attrs.supported_color_modes)
-        ? attrs.supported_color_modes
-        : [];
-
-    const colorModes = ['xy', 'hs', 'rgb', 'rgbw', 'rgbww'];
-    const colorCapable = modes.some(mode => colorModes.includes(mode));
-    const temperatureCapable = modes.includes('color_temp');
-
-    return {
-        modes,
-        colorCapable,
-        temperatureCapable,
-        minKelvin: Number(attrs.min_color_temp_kelvin) || 2200,
-        maxKelvin: Number(attrs.max_color_temp_kelvin) || 6500
-    };
-}
-
-function kelvinToCssRgb(kelvin)
-{
-    let temp = Math.max(1000, Math.min(40000, Number(kelvin) || 2700)) / 100;
-    let red;
-    let green;
-    let blue;
-
-    if( temp <= 66 )
-    {
-        red = 255;
-        green = 99.4708025861 * Math.log(temp) - 161.1195681661;
-        blue = temp <= 19
-            ? 0
-            : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
-    }
-    else
-    {
-        red = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
-        green = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
-        blue = 255;
-    }
-
-    const clampChannel = value => Math.max(0, Math.min(255, Math.round(value)));
-    return `rgb(${clampChannel(red)}, ${clampChannel(green)}, ${clampChannel(blue)})`;
-}
-
-function buildColorPaletteButtons()
-{
-    const hues = [0, 25, 50, 80, 115, 150, 180, 205, 230, 265, 300, 335];
-
-    return hues.map((hue, index) => ({
-        slot: index + 7,
-        slot_mode: 'hard',
-        show_icon: false,
-        show_name: false,
-        autoclose: false,
-        styles: {
-            card: [
-                { background: `hsl(${hue}, 85%, 55%)` },
-                { border: '1px solid rgba(255,255,255,0.20)' }
-            ]
-        },
-        tap_action: {
-            action: 'perform-action',
-            perform_action: 'light.turn_on',
-            data: {
-                hs_color: [hue, 85]
-            }
-        }
-    }));
-}
-
-function buildWhitePaletteButtons(capabilities)
-{
-    let minKelvin = Math.max(1000, Number(capabilities.minKelvin) || 2200);
-    let maxKelvin = Math.max(minKelvin, Number(capabilities.maxKelvin) || 6500);
-
-    if( maxKelvin === minKelvin )
-        maxKelvin = minKelvin + 1;
-
-    const count = 12;
-    const values = [];
-
-    for( let index = 0; index < count; index++ )
-    {
-        const ratio = index / (count - 1);
-        values.push(Math.round(minKelvin + ((maxKelvin - minKelvin) * ratio)));
-    }
-
-    return values.map((kelvin, index) => ({
-        slot: index + 7,
-        slot_mode: 'hard',
-        icon: 'mdi:circle',
-        name: `${kelvin}K`,
-        show_name: true,
-        autoclose: false,
-        styles: {
-            card: [
-                { background: kelvinToCssRgb(kelvin) },
-                { color: '#17212b' },
-                { border: '1px solid rgba(35,45,55,0.28)' }
-            ],
-            icon: [
-                { width: '12px' },
-                { color: '#17212b' }
-            ],
-            name: [
-                { 'font-size': '8px' },
-                { color: '#17212b' },
-                { 'font-weight': '650' }
-            ]
-        },
-        tap_action: {
-            action: 'perform-action',
-            perform_action: 'light.turn_on',
-            data: {
-                color_temp_kelvin: kelvin
-            }
-        }
-    }));
-}
-
-function expandLightPaletteControl(button, inheritedEntity)
-{
-    const lightEntity = button.entity || inheritedEntity;
-    const capabilities = lightCapabilities(lightEntity);
-
-    if( capabilities.colorCapable )
-    {
-        _defaults(button, {
-            entity: lightEntity,
-            icon: 'mdi:palette',
-            name: 'Color',
-            show_name: true,
-            autoclose: false,
-            tap_action: {
-                action: 'fire-dom-event',
-                honeycomb_menu: {
-                    nested_expand: true,
-                    inherit_inner: true,
-                    empty_slots: 'hidden',
-                    idle_timeout: 8000,
-                    buttons: buildColorPaletteButtons()
-                }
-            }
-        });
-        return;
-    }
-
-    if( capabilities.temperatureCapable )
-    {
-        _defaults(button, {
-            entity: lightEntity,
-            icon: 'mdi:temperature-kelvin',
-            name: 'White',
-            show_name: true,
-            autoclose: false,
-            tap_action: {
-                action: 'fire-dom-event',
-                honeycomb_menu: {
-                    nested_expand: true,
-                    inherit_inner: true,
-                    empty_slots: 'hidden',
-                    idle_timeout: 8000,
-                    buttons: buildWhitePaletteButtons(capabilities)
-                }
-            }
-        });
-        return;
-    }
-
-    _defaults(button, {
-        entity: lightEntity,
-        icon: 'mdi:lightbulb-outline',
-        name: 'Light',
-        show_name: true,
-        autoclose: false,
-        tap_action: { action: 'none' }
-    });
-}
-
-function expandPresetStandardControl(button, presets, inheritedEntity)
-{
-    const lightEntity = button.entity || inheritedEntity;
-    const capabilities = lightCapabilities(lightEntity);
-    const colorPreset = presets && presets.color;
-    const kelvinPreset = presets && presets.kelvin;
-
-    const hasColorHelpers =
-        !!(colorPreset && colorPreset.hue_entity && colorPreset.saturation_entity);
-    const hasKelvinHelper = !!(kelvinPreset && kelvinPreset.entity);
-
-    if( capabilities.colorCapable && hasColorHelpers )
-    {
-        button.control = 'preset-color';
-        expandPresetControl(button, presets, lightEntity);
-        return;
-    }
-
-    if( capabilities.temperatureCapable && hasKelvinHelper )
-    {
-        button.control = 'preset-kelvin';
-        expandPresetControl(button, presets, lightEntity);
-        return;
-    }
-
-    // No helper configured: use a safe warm-white fallback.
-    const fallbackKelvin =
-        Number((kelvinPreset && kelvinPreset.default) || 2700);
-
-    _defaults(button, {
-        entity: lightEntity,
-        icon: 'mdi:temperature-kelvin',
-        show_name: true,
-        show_label: true,
-        autoclose: false,
-        name: `${Math.round(fallbackKelvin)}K`,
-        label: presetCurrentKelvinTemplate(),
-        styles: presetControlStyles(),
-        tap_action: {
-            action: 'perform-action',
-            perform_action: 'light.turn_on',
-            data: {
-                color_temp_kelvin: Math.round(fallbackKelvin)
-            }
-        },
-        hold_action: { action: 'none' }
-    });
-}
-
-function expandPresetControl(button, presets, inheritedEntity)
-{
-    if( ! button || typeof button !== 'object' || ! button.control )
-        return;
-
-    const control = button.control;
-    const lightEntity = button.entity || inheritedEntity;
-
-    if( control === 'light-palette' )
-    {
-        expandLightPaletteControl(button, lightEntity);
-        return;
-    }
-
-    if( control === 'preset-standard' )
-    {
-        expandPresetStandardControl(button, presets, lightEntity);
-        return;
-    }
-
-    if( control === 'preset-brightness' )
-    {
-        const preset = presets && presets.brightness;
-        const helper = preset && preset.entity;
-
-        if( ! helper )
-        {
-            const fallback = Number((preset && preset.default) || 60);
-
-            _defaults(button, {
-                entity: lightEntity,
-                icon: 'mdi:brightness-percent',
-                show_name: true,
-                show_label: true,
-                autoclose: false,
-                name: `${Math.round(fallback)}%`,
-                label: presetCurrentBrightnessTemplate(),
-                styles: presetControlStyles(),
-                tap_action: {
-                    action: 'perform-action',
-                    perform_action: 'light.turn_on',
-                    data: {
-                        brightness_pct: Math.max(0, Math.min(100, fallback))
-                    }
-                },
-                hold_action: { action: 'none' }
-            });
-            return;
-        }
-
-        _defaults(button, {
-            entity: lightEntity,
-            icon: 'mdi:brightness-percent',
-            show_name: true,
-            show_label: true,
-            autoclose: false,
-            name: presetTemplateNumber(helper, '%'),
-            label: presetCurrentBrightnessTemplate(),
-            styles: presetControlStyles(),
-            tap_action: {
-                action: 'honeycomb-preset-apply',
-                preset_type: 'brightness',
-                helper_entity: helper
-            },
-            hold_action: {
-                action: 'honeycomb-preset-store',
-                preset_type: 'brightness',
-                helper_entity: helper
-            }
-        });
-        return;
-    }
-
-    if( control === 'preset-kelvin' )
-    {
-        const preset = presets && presets.kelvin;
-        const helper = preset && preset.entity;
-
-        if( ! helper )
-        {
-            const fallback = Number((preset && preset.default) || 2700);
-
-            _defaults(button, {
-                entity: lightEntity,
-                icon: 'mdi:temperature-kelvin',
-                show_name: true,
-                show_label: true,
-                autoclose: false,
-                name: `${Math.round(fallback)}K`,
-                label: presetCurrentKelvinTemplate(),
-                styles: presetControlStyles(),
-                tap_action: {
-                    action: 'perform-action',
-                    perform_action: 'light.turn_on',
-                    data: {
-                        color_temp_kelvin: Math.round(fallback)
-                    }
-                },
-                hold_action: { action: 'none' }
-            });
-            return;
-        }
-
-        _defaults(button, {
-            entity: lightEntity,
-            icon: 'mdi:temperature-kelvin',
-            show_name: true,
-            show_label: true,
-            autoclose: false,
-            name: presetTemplateNumber(helper, 'K'),
-            label: presetCurrentKelvinTemplate(),
-            styles: presetControlStyles(),
-            tap_action: {
-                action: 'honeycomb-preset-apply',
-                preset_type: 'kelvin',
-                helper_entity: helper
-            },
-            hold_action: {
-                action: 'honeycomb-preset-store',
-                preset_type: 'kelvin',
-                helper_entity: helper
-            }
-        });
-        return;
-    }
-
-    if( control === 'preset-color' )
-    {
-        const preset = presets && presets.color;
-        const hueEntity = preset && preset.hue_entity;
-        const saturationEntity = preset && preset.saturation_entity;
-
-        if( ! hueEntity || ! saturationEntity )
-            return;
-
-        _defaults(button, {
-            entity: lightEntity,
-            icon: 'mdi:palette',
-            show_name: true,
-            show_label: true,
-            autoclose: false,
-            name: presetHsTemplate(hueEntity, saturationEntity, false),
-            label: presetHsTemplate(hueEntity, saturationEntity, true),
-            styles: presetControlStyles(),
-            tap_action: {
-                action: 'honeycomb-preset-apply',
-                preset_type: 'color',
-                hue_entity: hueEntity,
-                saturation_entity: saturationEntity
-            },
-            hold_action: {
-                action: 'honeycomb-preset-store',
-                preset_type: 'color',
-                hue_entity: hueEntity,
-                saturation_entity: saturationEntity
-            }
-        });
-    }
-}
-
-function applyPresetControls(config, inheritedPresets, inheritedEntity)
-{
-    if( ! config || typeof config !== 'object' )
-        return config;
-
-    const localEntity = config.entity || inheritedEntity || null;
-    const localPresets = merge({}, inheritedPresets || {}, config.presets || {});
-
-    if( Object.keys(localPresets).length > 0 )
-        config.presets = localPresets;
-
-    const visitButton = button => {
-        if( ! button || typeof button !== 'object' )
-            return;
-
-        const buttonEntity = button.entity || localEntity;
-        expandPresetControl(button, localPresets, buttonEntity);
-
-        ['tap_action', 'hold_action', 'double_tap_action', 'press_action'].forEach(key => {
-            const action = button[key];
-            const nested = action && action.honeycomb_menu;
-
-            if( nested )
-            {
-                if( ! nested.entity && buttonEntity )
-                    nested.entity = buttonEntity;
-
-                applyPresetControls(nested, localPresets, buttonEntity);
-            }
-        });
-    };
-
-    if( Array.isArray(config.buttons) )
-    {
-        config.buttons.forEach(entry => {
-            if( Array.isArray(entry) )
-                entry.forEach(visitButton);
-            else
-                visitButton(entry);
-        });
-    }
-
-    return config;
-}
-
 function openHoneycombMenu(context, config)
 {
     var honeycombConfig = traverseConfigs( config );
@@ -688,32 +74,10 @@ function openHoneycombMenu(context, config)
     if( nested && honeycombConfig.nested_expand === true )
     {
         const current = context.currentConfig || {};
-        const fromPersistentHubBase =
-            context.local === true &&
-            current._persistent_hub_root === true;
 
-        const incomingAnchorX = Number(honeycombConfig.anchor_x);
-        const incomingAnchorY = Number(honeycombConfig.anchor_y);
-        const hasIncomingAnchor =
-            Number.isFinite(incomingAnchorX) &&
-            Number.isFinite(incomingAnchorY);
-
-        if( fromPersistentHubBase && hasIncomingAnchor )
-        {
-            // This is the one allowed center move: from the dashboard/base Hub
-            // to the selected module (light, media, etc.).
-            context.moduleAnchor = {
-                x: incomingAnchorX,
-                y: incomingAnchorY
-            };
-        }
-        else if( context.local === true && context.moduleAnchor )
-        {
-            // Once inside a module, every deeper submenu stays on the same
-            // physical center regardless of which ring button was pressed.
-            honeycombConfig.anchor_x = context.moduleAnchor.x;
-            honeycombConfig.anchor_y = context.moduleAnchor.y;
-        }
+        // Core owns the only legal anchor transition:
+        // Hub base -> selected module. Every deeper level reuses that anchor.
+        navigationCore.enterNested(context, current, honeycombConfig);
 
         context.stack.push({
             __honeycomb_stack_entry: true,
@@ -834,13 +198,8 @@ function openHoneycombMenu(context, config)
 
 window.honeycomb_menu = (config) => openHoneycombMenu(manager, config);
 
-window.honeycomb_menu_create_context = () => ({
-    honeycomb: null,
-    stack: [],
-    currentConfig: null,
-    local: true,
-    moduleAnchor: null
-});
+window.honeycomb_menu_create_context = () =>
+    navigationCore.createMenuContext({ local: true });
 
 window.honeycomb_menu_in_context = (context, config) => {
     if( ! context || typeof context !== 'object' )
@@ -869,7 +228,7 @@ document.body.addEventListener("ll-custom", e => {
             : manager;
 
         const mayMovePersistentCenter =
-            !(context.local === true && context.moduleAnchor);
+            navigationCore.canEstablishAnchor(context);
 
         if( nestedConfig.promote_to_center === true && mayMovePersistentCenter )
         {
@@ -938,20 +297,7 @@ function honeycombBack(context = manager)
 
     if( previous && previous.__honeycomb_stack_entry && previous.inPlace && context.honeycomb )
     {
-        const returningToHubBase =
-            context.local === true &&
-            previous.config &&
-            previous.config._persistent_hub_root === true;
-
-        if( returningToHubBase )
-        {
-            context.moduleAnchor = null;
-        }
-        else if( context.local === true && context.moduleAnchor )
-        {
-            previous.config.anchor_x = context.moduleAnchor.x;
-            previous.config.anchor_y = context.moduleAnchor.y;
-        }
+        navigationCore.prepareBack(context, previous.config);
 
         context.currentConfig = merge({}, previous.config);
         context.honeycomb.replaceConfig(previous.config);
@@ -983,9 +329,7 @@ function honeycombClose(context = manager)
 {
     context.stack = [];
     context.currentConfig = null;
-
-    if( context.local === true )
-        context.moduleAnchor = null;
+    navigationCore.resetNavigation(context);
 
     if( context.honeycomb )
         context.honeycomb.close();
@@ -1604,47 +948,14 @@ class HoneycombMenu extends LitElement
         });
 
         const totalCount = resolved.length;
+        this._rings = layoutCore.resolveRings(
+            totalCount,
+            hard.map(entry => entry.target)
+        );
 
-        // Base ring selection is determined by the number of buttons.
-        let innerActive = totalCount <= 6;
-        let outerActive = totalCount >= 7 && totalCount <= 12;
-
-        if( totalCount >= 13 )
-        {
-            innerActive = true;
-            outerActive = true;
-        }
-
-        if( totalCount === 0 )
-        {
-            innerActive = true;
-            outerActive = false;
-        }
-
-        // Hard/legacy physical positions can force one or both rings active.
-        hard.forEach(entry => {
-            if( entry.target < 6 )
-                innerActive = true;
-            else
-                outerActive = true;
-        });
-
-        this._rings = {
-            inner: innerActive,
-            outer: outerActive
-        };
-
-        const innerPool = [0, 1, 2, 3, 4, 5];
-        const outerPool = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-
-        let activePool;
-
-        if( innerActive && outerActive )
-            activePool = [...innerPool, ...outerPool];
-        else if( outerActive )
-            activePool = outerPool;
-        else
-            activePool = innerPool;
+        const innerActive = this._rings.inner;
+        const outerActive = this._rings.outer;
+        const activePool = layoutCore.activeSlotPool(this._rings);
 
         // Hard slots are absolute. Never move them.
         hard.forEach(entry => {
@@ -1870,9 +1181,7 @@ class HoneycombMenu extends LitElement
         const context = this._menuContext || manager;
         context.stack = [];
         context.currentConfig = null;
-
-        if( context.local === true )
-            context.moduleAnchor = null;
+        navigationCore.resetNavigation(context);
 
         this.close();
     }
@@ -1931,31 +1240,17 @@ class HoneycombMenu extends LitElement
             return;
         }
 
-        if( configuredAction === 'honeycomb-media-volume' )
+        if( configuredAction && customActionRegistry.has(configuredAction) )
         {
             e.stopPropagation();
 
-            this._handleMediaVolumeAction(
+            customActionRegistry.handle(configuredAction, {
+                hass: this.hass,
                 actionConfig,
-                item.config ? item.config.entity : null
-            );
-
-            this._resetIdleTimeout();
-            return;
-        }
-
-        if(
-            configuredAction === 'honeycomb-preset-apply' ||
-            configuredAction === 'honeycomb-preset-store'
-        )
-        {
-            e.stopPropagation();
-
-            this._handlePresetAction(
-                configuredAction === 'honeycomb-preset-store' ? 'store' : 'apply',
-                actionConfig,
-                item.config ? item.config.entity : null
-            );
+                entity: item.config ? item.config.entity : null,
+                itemConfig: item.config || null,
+                menuConfig: this.config || null
+            });
 
             this._resetIdleTimeout();
             return;
@@ -1973,177 +1268,6 @@ class HoneycombMenu extends LitElement
         }
 
         this._resetIdleTimeout();
-    }
-
-    _handleMediaVolumeAction(actionConfig, fallbackEntity)
-    {
-        if( ! this.hass || ! actionConfig )
-            return;
-
-        const entityId = actionConfig.entity || fallbackEntity || (this.config && this.config.entity);
-
-        if( ! entityId )
-            return;
-
-        const state = this.hass.states[entityId];
-        const rawMembers = state && state.attributes && Array.isArray(state.attributes.group_members)
-            ? state.attributes.group_members.filter(Boolean)
-            : [];
-
-        const targets = rawMembers.length
-            ? Array.from(new Set(rawMembers))
-            : [entityId];
-
-        if( ! targets.includes(entityId) )
-            targets.unshift(entityId);
-
-        const direction = String(actionConfig.direction || '').toLowerCase();
-        const service = direction === 'down'
-            ? 'volume_down'
-            : 'volume_up';
-
-        this.hass.callService(
-            'media_player',
-            service,
-            {},
-            { entity_id: targets }
-        );
-    }
-
-    _setNumberHelper(entityId, value)
-    {
-        if( ! this.hass || ! entityId || ! Number.isFinite(Number(value)) )
-            return;
-
-        this.hass.callService(
-            'number',
-            'set_value',
-            { value: Number(value) },
-            { entity_id: entityId }
-        );
-    }
-
-    _handlePresetAction(mode, actionConfig, lightEntity)
-    {
-        if( ! this.hass || ! actionConfig || ! lightEntity )
-            return;
-
-        const light = this.hass.states[lightEntity];
-
-        if( ! light )
-            return;
-
-        const type = actionConfig.preset_type;
-
-        if( type === 'brightness' )
-        {
-            const helper = actionConfig.helper_entity;
-            const helperState = helper ? this.hass.states[helper] : null;
-
-            if( mode === 'apply' )
-            {
-                const value = helperState ? Number(helperState.state) : NaN;
-
-                if( Number.isFinite(value) )
-                {
-                    this.hass.callService(
-                        'light',
-                        'turn_on',
-                        { brightness_pct: Math.max(0, Math.min(100, value)) },
-                        { entity_id: lightEntity }
-                    );
-                }
-            }
-            else
-            {
-                const brightness = Number(light.attributes && light.attributes.brightness);
-
-                if( Number.isFinite(brightness) )
-                {
-                    this._setNumberHelper(
-                        helper,
-                        Math.max(0, Math.min(100, Math.round((brightness / 255) * 100)))
-                    );
-                }
-            }
-
-            return;
-        }
-
-        if( type === 'kelvin' )
-        {
-            const helper = actionConfig.helper_entity;
-            const helperState = helper ? this.hass.states[helper] : null;
-
-            if( mode === 'apply' )
-            {
-                const value = helperState ? Number(helperState.state) : NaN;
-
-                if( Number.isFinite(value) )
-                {
-                    this.hass.callService(
-                        'light',
-                        'turn_on',
-                        { color_temp_kelvin: Math.round(value) },
-                        { entity_id: lightEntity }
-                    );
-                }
-            }
-            else
-            {
-                const kelvin = Number(light.attributes && light.attributes.color_temp_kelvin);
-
-                if( Number.isFinite(kelvin) )
-                    this._setNumberHelper(helper, Math.round(kelvin));
-            }
-
-            return;
-        }
-
-        if( type === 'color' )
-        {
-            const hueEntity = actionConfig.hue_entity;
-            const saturationEntity = actionConfig.saturation_entity;
-
-            if( mode === 'apply' )
-            {
-                const hueState = hueEntity ? this.hass.states[hueEntity] : null;
-                const satState = saturationEntity ? this.hass.states[saturationEntity] : null;
-                const hue = hueState ? Number(hueState.state) : NaN;
-                const saturation = satState ? Number(satState.state) : NaN;
-
-                if( Number.isFinite(hue) && Number.isFinite(saturation) )
-                {
-                    this.hass.callService(
-                        'light',
-                        'turn_on',
-                        {
-                            hs_color: [
-                                Math.max(0, Math.min(360, hue)),
-                                Math.max(0, Math.min(100, saturation))
-                            ]
-                        },
-                        { entity_id: lightEntity }
-                    );
-                }
-            }
-            else
-            {
-                const hs = light.attributes && light.attributes.hs_color;
-
-                if( Array.isArray(hs) && hs.length >= 2 )
-                {
-                    this._setNumberHelper(
-                        hueEntity,
-                        Math.max(0, Math.min(360, Number(hs[0])))
-                    );
-                    this._setNumberHelper(
-                        saturationEntity,
-                        Math.max(0, Math.min(100, Number(hs[1])))
-                    );
-                }
-            }
-        }
     }
 
     _setDragHoverSlot(slot)
@@ -2753,18 +1877,7 @@ class HoneycombMenu extends LitElement
 
     _computeCenterPosition()
     {
-        if( this._hasOuterRing() )
-        {
-            return {
-                x: 2,
-                y: 1.73
-            };
-        }
-
-        return {
-            x: 1,
-            y: 0.865
-        };
+        return layoutCore.centerPosition(this._hasOuterRing());
     }
 
     _hasInnerRing()
@@ -2782,59 +1895,10 @@ class HoneycombMenu extends LitElement
 
     _computeButtonPosition( slot )
     {
-        const innerRing = [
-            { x: 0,   y: 0.865 }, // 1 - left
-            { x: 0.5, y: 0 },     // 2 - upper left
-            { x: 1.5, y: 0 },     // 3 - upper right
-            { x: 2,   y: 0.865 }, // 4 - right
-            { x: 1.5, y: 1.725 }, // 5 - lower right
-            { x: 0.5, y: 1.725 }  // 6 - lower left
-        ];
-
-        const outerRing = [
-            { x: -1,   y: 0.865 }, // 7  - left
-            { x: -0.5, y: 0 },     // 8  - upper-left outer
-            { x: 0,    y: -0.865 },// 9  - upper-left top
-            { x: 1,    y: -0.865 },// 10 - top-left
-            { x: 2,    y: -0.865 },// 11 - top-right
-            { x: 2.5,  y: 0 },     // 12 - upper-right outer
-            { x: 3,    y: 0.865 }, // 13 - right
-            { x: 2.5,  y: 1.725 }, // 14 - lower-right outer
-            { x: 2,    y: 2.59 },  // 15 - lower-right bottom
-            { x: 1,    y: 2.59 },  // 16 - bottom-right
-            { x: 0,    y: 2.59 },  // 17 - bottom-left
-            { x: -0.5, y: 1.725 }  // 18 - lower-left outer
-        ];
-
-        let position;
-
-        if( slot < 6 )
-        {
-            if( ! this._hasInnerRing() )
-                return null;
-
-            position = innerRing[slot];
-        }
-        else
-        {
-            if( ! this._hasOuterRing() )
-                return null;
-
-            position = outerRing[slot - 6];
-        }
-
-        if( ! position )
-            return null;
-
-        if( this._hasOuterRing() )
-        {
-            return {
-                x: position.x + 1,
-                y: position.y + 0.865
-            };
-        }
-
-        return position;
+        return layoutCore.buttonPosition(slot, {
+            inner: this._hasInnerRing(),
+            outer: this._hasOuterRing()
+        });
     }
 
     _computeButtonAnimateStep( slot )

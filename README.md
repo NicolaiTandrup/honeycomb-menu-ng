@@ -26,6 +26,8 @@ Honeycomb Menu NG is a **Home Assistant dashboard module**, not a standalone car
 - Visible-viewport-aware menu positioning near screen edges
 - Persistent center controls for floorplans and compact dashboards (v1.0)
 - Persistent Hub launcher for room/device navigation (v1.1)
+- Modular core with isolated light/media/Sonos modules (v1.4)
+- Locked module center across nested/expanded layouts (v1.4)
 - Existing template and XY-pad support
 - Legacy `position` support
 
@@ -140,12 +142,16 @@ Approximate slot layout:
 
 `custom:honeycomb-persistent-hub` is a persistent room/device launcher intended for floorplans and compact dashboards.
 
-Hub interaction is deliberately two-level:
+Hub interaction uses a base/module navigation model:
 
-- **short tap on a launcher tile**: toggle the entity
-- **long press on a launcher tile**: open that item's detailed Honeycomb control menu
-- **slot 0**: physical Hub center
-- **slots 1–6**: Hub inner ring
+- **short tap on a launcher tile**: execute the launcher's primary action
+- **long press on a launcher tile**: enter that item's module
+- **slot 0**: physical module center
+- **slots 1–6**: inner ring
+- **slots 7–18**: optional outer expansion ring
+- selecting a **base** tile may establish a new physical center
+- after entering a module, that center is locked until navigation returns to the base
+- submodules may replace buttons or expand from 7 total cubes to larger ring layouts without moving slot 0
 
 The Hub can show an automatic Honeycomb bee logo in slot 0. Set:
 
@@ -173,11 +179,22 @@ items:
     name: Kontor
 
   - type: media
-    entity: media_player.drivhus_drivhus
+    entity: media_player.living_room
     name: Sonos
+    active_color: "#00bcd4"
 ```
 
-Hub launcher tiles are state-aware before opening their detailed controls. Light tiles show brightness and live light color/temperature; media tiles show current source/title/state.
+Hub launcher tiles are state-aware before opening their detailed controls. Light tiles show brightness and live light color/temperature. Media/Sonos tiles use a configurable active ring, fill the center while playing, and show live volume while playing.
+
+For backwards compatibility, `type: media` uses the Sonos-oriented module. To opt into the smaller generic media module explicitly:
+
+```yaml
+- type: media
+  module: media
+  entity: media_player.living_room
+```
+
+The internal module contract and extension rules are documented in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ### Hub automatic slot layouts
 

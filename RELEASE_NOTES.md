@@ -1,25 +1,56 @@
-## Honeycomb Menu NG v1.3.2 – Lock Module Center
+## Honeycomb Menu NG v1.4.0 – Modular Core
 
-This pre-release fixes center movement across persistent Hub modules and restores native Sonos nested actions.
+v1.4.0 is an internal architecture release focused on making Honeycomb NG safer and easier to extend without cross-feature regressions.
 
-### Center/anchor rule
-Persistent Hub navigation now follows one explicit rule:
+### Core navigation invariant
 
-1. **Base Hub → selected module:** the center is allowed to move to the physical position of the selected base tile.
-2. **Inside that module:** the center is locked.
-3. **Any deeper level** (Color, palettes, Radio, Join, etc.) expands around the same locked center.
-4. **Back to the Hub base:** the lock is cleared, so selecting another base tile can establish a new center.
+The persistent Hub now has an explicit navigation contract:
 
-This behavior is shared by light and media modules rather than implemented as a Sonos-specific workaround.
+- A base cube may establish a new physical module center.
+- Once inside a module, the center is locked to slot 0.
+- A module/submodule may expand from the classic 7-cube layout to larger ring layouts without moving the center.
+- Deeper levels can change buttons and ring population, but cannot re-anchor the module.
+- Returning to the Hub base clears the lock so another base cube can establish a new center.
 
-### Sonos nested menu repair
-v1.3.1 used `action: none` for native Radio/Join navigation. Some wrapped button-card paths suppress that action, so the nested menu could fail to open.
+### Modular monolith
 
-- Radio and Join now use the explicit internal action `honeycomb-open-nested`.
-- The nested menu opens directly in the owning local Hub context.
-- No global Honeycomb overlay/shade is created.
-- The selected Sonos center remains fixed when entering Radio/Join.
-- `nested_expand` continues to reuse the existing Honeycomb instance.
+Domain behavior is split from core/rendering:
 
-### Internal context
-Local persistent-Hub contexts now track a `moduleAnchor`. It is created only when leaving the Hub base and is cleared only when returning to the base or closing the context.
+- `src/core/` owns navigation, anchor state, layout geometry, entity inheritance, module lookup and custom-action dispatch.
+- `src/modules/light/` owns light menus, palettes, presets and preset actions.
+- `src/modules/media/` owns generic media behavior and group-aware volume actions.
+- `src/modules/sonos/` owns Sonos menu/group/favorites behavior.
+- `src/modules/generic/` is the fallback module.
+
+The persistent Hub no longer contains light/Sonos menu builders. It resolves an item through the module registry and renders the returned declarative config.
+
+### Renderer isolation
+
+`honeycomb-menu.js` no longer implements Sonos group volume or light preset business logic. Custom domain actions are dispatched through the action registry.
+
+Light palette/preset expansion and entity inheritance have also moved out of the renderer.
+
+### Backwards compatibility
+
+Existing Hub YAML remains supported:
+- `type: light` resolves to the light module.
+- Existing `type: media` keeps Sonos-oriented behavior.
+- Generic media can explicitly use `module: media`.
+
+No dashboard rewrite is required for the current light/Sonos configuration.
+
+### Regression protection
+
+A new core test suite verifies:
+- base -> module may establish the anchor,
+- module -> nested cannot move the anchor,
+- back to base clears the anchor lock,
+- global/non-Hub menus are unaffected,
+- 7-cube and expanded layouts keep deterministic geometry,
+- module resolution and explicit module overrides work.
+
+GitHub Actions now runs these tests before compiling the release bundle.
+
+The test suite also enforces architecture boundaries: domain modules are not allowed to call renderer/navigation APIs such as `reanchor()`, `replaceConfig()`, or mutate the active menu context. This prevents future feature work from quietly reintroducing the cross-module coupling that v1.4 removes.
+
+See `ARCHITECTURE.md` for the module contract and extension rules.
