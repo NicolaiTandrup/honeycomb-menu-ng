@@ -146,6 +146,23 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.1.0 — Honeycomb Hub prototype
+
+v1.1.0 introduces a new persistent Hub launcher:
+
+- new `custom:honeycomb-persistent-hub`
+- a blank hub icon (`icon: ""`) renders the built-in Honeycomb bee
+- the hub opens up to six launcher cubes around the persistent center
+- launcher types currently supported in the prototype: `light` and `media`
+- light launchers automatically open the existing auto-light controls from v1.0.14
+- media launchers open a compact Sonos/media control menu with play/pause, volume down/up and info
+- selected launcher cubes can be promoted into the persistent center while their controls open around them
+- tapping the promoted center returns to the Hub
+- Hub launcher cubes can show live state summaries such as light brightness/off state and current media title/source
+- future launcher types are reserved for climate, vehicle, cover and scenes
+
+A blank icon only means "use the Honeycomb bee" on persistent controls. `show_icon: false` still means render no icon.
+
 ## v1.0.14 — Auto light controls
 
 v1.0.14 makes the light-specific Honeycomb controls capability-aware and usable with or without Shelly/HA preset helpers:

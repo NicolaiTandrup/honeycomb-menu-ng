@@ -1,0 +1,40 @@
+type: custom:honeycomb-persistent-hub
+name: Sommerhus
+icon: ""
+size: 82
+
+style:
+  left: 50%
+  top: 50%
+
+items:
+  - slot: 1
+    type: light
+    entity: light.ia_kokken_kokken
+    name: Køkken
+    icon: mdi:data-matrix
+    presets:
+      brightness:
+        entity: number.ia_kokken_20_1_kokken_terassedor_kokken_spot_normal_brightness
+      kelvin:
+        entity: number.ia_kokken_20_1_kokken_terassedor_kokken_spot_standard_kelvin
+
+  - slot: 2
+    type: light
+    entity: light.hue_kontor
+    name: Kontor
+    icon: mdi:lightbulb
+    presets:
+      brightness:
+        entity: number.ia_stue_20_2_kokken_kokkeno_stue_normal_brightness
+      kelvin:
+        entity: number.ia_stue_20_2_kokken_kokkeno_stue_standard_kelvin
+      color:
+        hue_entity: number.ia_stue_20_2_kokken_kokkeno_stue_standard_hue
+        saturation_entity: number.ia_stue_20_2_kokken_kokkeno_stue_standard_saturation
+
+  - slot: 3
+    type: media
+    entity: media_player.drivhus_drivhus
+    name: Sonos
+    icon: mdi:speaker

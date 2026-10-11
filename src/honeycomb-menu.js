@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import "./honeycomb-menu-item.js";
 import "./honeycomb-persistent-control.js";
+import "./honeycomb-persistent-hub.js";
 import "./xy-pad.js";
 import { objectEvalTemplate, getTemplateOrValue, stringToBool, fireEvent, lovelace_view, provideHass, honeycomb_menu_templates } from "./helpers.js";
 
@@ -754,15 +755,30 @@ window.honeycomb_menu = (config) => {
             if( honeycombConfig.button_defaults === undefined && current.button_defaults !== undefined )
                 honeycombConfig.button_defaults = merge({}, current.button_defaults);
 
-            honeycombConfig.persistent_center = merge(
-                {},
-                current.persistent_center,
-                {
-                    interactive: true,
-                    icon: 'mdi:arrow-left',
-                    tap_action: { action: 'honeycomb-back' }
-                }
-            );
+            if( honeycombConfig.promote_to_center === true && honeycombConfig.promoted_center )
+            {
+                honeycombConfig.persistent_center = merge(
+                    {},
+                    honeycombConfig.promoted_center,
+                    {
+                        interactive: true,
+                        tap_action: { action: 'honeycomb-back' },
+                        size: current.persistent_center.size || honeycombConfig.promoted_center.size
+                    }
+                );
+            }
+            else
+            {
+                honeycombConfig.persistent_center = merge(
+                    {},
+                    current.persistent_center,
+                    {
+                        interactive: true,
+                        icon: 'mdi:arrow-left',
+                        tap_action: { action: 'honeycomb-back' }
+                    }
+                );
+            }
 
             honeycombConfig.center_button = null;
         }
@@ -2186,6 +2202,8 @@ class HoneycombMenu extends LitElement
                 'presets',
                 'control',
                 'inherit_inner',
+                'promote_to_center',
+                'promoted_center',
                 'anchor_x',
                 'anchor_y',
                 'slot',
