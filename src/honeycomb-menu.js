@@ -1855,6 +1855,23 @@ class HoneycombMenu extends LitElement
             return;
         }
 
+        if( configuredAction === 'honeycomb-media-volume' )
+        {
+            e.stopPropagation();
+
+            const actionConfig = item.config && item.config[actionKey]
+                ? item.config[actionKey]
+                : null;
+
+            this._handleMediaVolumeAction(
+                actionConfig,
+                item.config ? item.config.entity : null
+            );
+
+            this._resetIdleTimeout();
+            return;
+        }
+
         if(
             configuredAction === 'honeycomb-preset-apply' ||
             configuredAction === 'honeycomb-preset-store'
@@ -1888,6 +1905,41 @@ class HoneycombMenu extends LitElement
         }
 
         this._resetIdleTimeout();
+    }
+
+    _handleMediaVolumeAction(actionConfig, fallbackEntity)
+    {
+        if( ! this.hass || ! actionConfig )
+            return;
+
+        const entityId = actionConfig.entity || fallbackEntity || (this.config && this.config.entity);
+
+        if( ! entityId )
+            return;
+
+        const state = this.hass.states[entityId];
+        const rawMembers = state && state.attributes && Array.isArray(state.attributes.group_members)
+            ? state.attributes.group_members.filter(Boolean)
+            : [];
+
+        const targets = rawMembers.length
+            ? Array.from(new Set(rawMembers))
+            : [entityId];
+
+        if( ! targets.includes(entityId) )
+            targets.unshift(entityId);
+
+        const direction = String(actionConfig.direction || '').toLowerCase();
+        const service = direction === 'down'
+            ? 'volume_down'
+            : 'volume_up';
+
+        this.hass.callService(
+            'media_player',
+            service,
+            {},
+            { entity_id: targets }
+        );
     }
 
     _setNumberHelper(entityId, value)

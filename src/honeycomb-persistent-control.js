@@ -203,6 +203,8 @@ class HoneycombPersistentControl extends LitElement
             tap_action: { action: 'toggle' },
             center_button: {},
             show_brightness: 'when_on',
+            show_volume: 'when_playing',
+            active_color: '#00bcd4',
             match_anchor_size: true,
             hold_time: 500,
             colors: {
@@ -223,6 +225,18 @@ class HoneycombPersistentControl extends LitElement
 
         if( ! next.entity && next.mode !== 'hub' )
             throw new Error('Honeycomb Persistent Control requires an entity.');
+
+        // Media controls behave like the persistent light control: the component
+        // owns its live state rendering instead of delegating volume/state to a
+        // button-card template.
+        if( next.mode === 'media' && config.tap_action === undefined )
+        {
+            next.tap_action = {
+                action: 'perform-action',
+                perform_action: 'media_player.media_play_pause',
+                target: { entity_id: next.entity }
+            };
+        }
 
         this.config = next;
         this.size = Number(next.size) || 72;
@@ -332,6 +346,28 @@ class HoneycombPersistentControl extends LitElement
             };
         }
 
+        if( this.config && this.config.mode === 'media' )
+        {
+            const active = this.config.active_color ||
+                configured.active ||
+                '#00bcd4';
+            const playing = state.state === 'playing';
+            const idleCenter = off.center_color || '#202224';
+            const automaticCenter = playing ? active : idleCenter;
+
+            return {
+                center: configured.center && configured.center !== 'auto'
+                    ? configured.center
+                    : automaticCenter,
+                inner: configured.inner_border && configured.inner_border !== 'auto'
+                    ? configured.inner_border
+                    : active,
+                outer: configured.outer_border === 'auto'
+                    ? automaticCenter
+                    : (configured.outer_border || '#34383d')
+            };
+        }
+
         const on = state.state === 'on';
         const actual = this._currentLightColor();
 
@@ -436,6 +472,41 @@ class HoneycombPersistentControl extends LitElement
 
         const percentage = Math.max(0, Math.min(100, Math.round((brightness / 255) * 100)));
         return `${percentage}%`;
+    }
+
+    _volumeLabel()
+    {
+        if( ! this.config )
+            return null;
+
+        const mode = this.config.show_volume || 'when_playing';
+
+        if( mode === 'never' )
+            return null;
+
+        const state = this._entityState();
+
+        if( ! state || ! state.attributes )
+            return null;
+
+        if( mode === 'when_playing' && state.state !== 'playing' )
+            return null;
+
+        const volume = Number(state.attributes.volume_level);
+
+        if( ! Number.isFinite(volume) )
+            return null;
+
+        const percentage = Math.max(0, Math.min(100, Math.round(volume * 100)));
+        return `${percentage}%`;
+    }
+
+    _secondaryLabel()
+    {
+        if( this.config && this.config.mode === 'media' )
+            return this._volumeLabel();
+
+        return this._brightnessLabel();
     }
 
     _persistentMenuConfig()
@@ -813,7 +884,7 @@ class HoneycombPersistentControl extends LitElement
             innerScale - ((innerWidth * 2) / this.size)
         );
         const foreground = this._foregroundForBackground(colors.center);
-        const secondary = this._brightnessLabel();
+        const secondary = this._secondaryLabel();
 
         return html`
             <div

@@ -473,6 +473,9 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                 tap_action: {
                     action: 'perform-action',
                     perform_action: 'media_player.play_media',
+                    target: {
+                        entity_id: item.entity
+                    },
                     data: {
                         media_content_id: `[[[
                             const items = states['${favorites}']?.attributes?.items || {};
@@ -518,11 +521,13 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             promoted_center: {
                 entity: item.entity,
                 icon: item.icon || 'mdi:speaker',
-                mode: 'persistent',
+                mode: 'media',
                 show_brightness: 'never',
+                show_volume: 'when_playing',
+                active_color: item.active_color || item.color || '#00bcd4',
                 colors: {
-                    center: '#20262d',
-                    inner_border: '#4fb3d8',
+                    center: 'auto',
+                    inner_border: 'auto',
                     outer_border: '#34383d'
                 }
             },
@@ -536,10 +541,17 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     name: 'Vol',
                     show_name: true,
                     autoclose: false,
-                    tap_action: this._actionForScript(
-                        item.group_volume_down_script,
-                        'media_player.volume_down'
-                    )
+                    entity: item.entity,
+                    tap_action: item.group_volume_down_script
+                        ? this._actionForScript(
+                            item.group_volume_down_script,
+                            'media_player.volume_down'
+                        )
+                        : {
+                            action: 'honeycomb-media-volume',
+                            direction: 'down',
+                            entity: item.entity
+                        }
                 },
                 {
                     slot: 2,
@@ -550,14 +562,19 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     show_name: true,
                     show_label: true,
                     autoclose: false,
+                    entity: item.entity,
                     tap_action: {
                         action: 'perform-action',
-                        perform_action: 'media_player.media_play_pause'
+                        perform_action: 'media_player.media_play_pause',
+                        target: {
+                            entity_id: item.entity
+                        }
                     }
                 },
                 {
                     slot: 3,
                     slot_mode: 'hard',
+                    entity: item.entity,
                     icon: 'mdi:speaker-multiple',
                     name: 'Join',
                     label: joinedLabel,
@@ -583,14 +600,22 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     name: 'Vol',
                     show_name: true,
                     autoclose: false,
-                    tap_action: this._actionForScript(
-                        item.group_volume_up_script,
-                        'media_player.volume_up'
-                    )
+                    entity: item.entity,
+                    tap_action: item.group_volume_up_script
+                        ? this._actionForScript(
+                            item.group_volume_up_script,
+                            'media_player.volume_up'
+                        )
+                        : {
+                            action: 'honeycomb-media-volume',
+                            direction: 'up',
+                            entity: item.entity
+                        }
                 },
                 {
                     slot: 5,
                     slot_mode: 'hard',
+                    entity: item.entity,
                     icon: 'mdi:star',
                     name: 'Radio',
                     show_name: true,
@@ -608,10 +633,11 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                 {
                     slot: 6,
                     slot_mode: 'hard',
+                    entity: item.entity,
                     icon: 'mdi:folder-music',
                     name: 'Browse',
                     show_name: true,
-                    autoclose: true,
+                    autoclose: false,
                     tap_action: { action: 'more-info' }
                 }
             ]
@@ -789,6 +815,42 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         );
     }
 
+    _persistentMediaLauncher(item, index, slot, submenu)
+    {
+        const requestedIcon = this._itemIcon(item);
+        const icon = requestedIcon && requestedIcon !== 'honeycomb:bee'
+            ? requestedIcon
+            : 'mdi:speaker';
+
+        return merge(
+            {},
+            {
+                _persistent_launcher: true,
+                slot: item.slot !== undefined ? item.slot : (slot !== undefined ? slot : (index + 1)),
+                slot_mode: 'hard',
+                entity: item.entity,
+                icon,
+                mode: 'media',
+                interactive: true,
+                show_brightness: 'never',
+                show_volume: 'when_playing',
+                active_color: item.active_color || item.color || '#00bcd4',
+                colors: {
+                    center: 'auto',
+                    inner_border: 'auto',
+                    outer_border: '#34383d'
+                },
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'media_player.media_play_pause',
+                    target: { entity_id: item.entity }
+                },
+                menu: submenu
+            },
+            item.persistent || {}
+        );
+    }
+
     _launcherButton(item, index, slot)
     {
         const icon = this._itemIcon(item);
@@ -804,6 +866,9 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
         if( item.type === 'light' )
             return this._persistentLightLauncher(item, index, slot, submenu);
+
+        if( item.type === 'media' )
+            return this._persistentMediaLauncher(item, index, slot, submenu);
 
         const button = {
             slot: item.slot !== undefined ? item.slot : (slot !== undefined ? slot : (index + 1)),
