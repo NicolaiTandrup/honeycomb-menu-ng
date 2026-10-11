@@ -99,6 +99,13 @@ class HoneycombPersistentControl extends LitElement
                 color: var(--honeycomb-persistent-foreground, #f6f7f9);
             }
 
+            .bee-icon {
+                width: 38%;
+                height: 38%;
+                display: block;
+                color: inherit;
+            }
+
             ha-icon {
                 width: 34%;
                 height: 34%;
@@ -177,7 +184,7 @@ class HoneycombPersistentControl extends LitElement
             }
         });
 
-        if( ! next.entity )
+        if( ! next.entity && next.mode !== 'hub' )
             throw new Error('Honeycomb Persistent Control requires an entity.');
 
         this.config = next;
@@ -262,6 +269,15 @@ class HoneycombPersistentControl extends LitElement
         const state = this._entityState();
         const configured = (this.config && this.config.colors) || {};
         const off = (this.config && this.config.off) || {};
+
+        if( this.config && this.config.mode === 'hub' )
+        {
+            return {
+                center: configured.center || '#20262d',
+                inner: configured.inner_border || '#f2b705',
+                outer: configured.outer_border || '#34383d'
+            };
+        }
 
         if( ! state || ['unavailable', 'unknown'].includes(state.state) )
         {
@@ -615,6 +631,12 @@ class HoneycombPersistentControl extends LitElement
         if( actionName === 'none' )
             return;
 
+        if( actionName === 'honeycomb-open-menu' )
+        {
+            this._openMenu();
+            return;
+        }
+
         if( actionName === 'honeycomb-back' )
         {
             if( typeof window.honeycomb_menu_back === 'function' )
@@ -735,7 +757,21 @@ class HoneycombPersistentControl extends LitElement
                 </svg>
 
                 <div class="content ${secondary ? 'has-secondary' : ''}">
-                    <ha-icon .icon=${this.config.icon}></ha-icon>
+                    ${this.config.icon === '' ? html`
+                        <svg class="bee-icon" viewBox="0 0 64 64" aria-hidden="true">
+                            <g fill="currentColor">
+                                <ellipse cx="32" cy="35" rx="12" ry="15"></ellipse>
+                                <ellipse cx="18" cy="28" rx="10" ry="7" transform="rotate(-28 18 28)"></ellipse>
+                                <ellipse cx="46" cy="28" rx="10" ry="7" transform="rotate(28 46 28)"></ellipse>
+                                <rect x="22" y="30" width="20" height="4" rx="2" fill="#20262d"></rect>
+                                <rect x="22" y="38" width="20" height="4" rx="2" fill="#20262d"></rect>
+                                <circle cx="28" cy="20" r="3"></circle>
+                                <circle cx="36" cy="20" r="3"></circle>
+                                <path d="M27 17 C23 10,19 9,16 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                                <path d="M37 17 C41 10,45 9,48 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                            </g>
+                        </svg>
+                    ` : html`<ha-icon .icon=${this.config.icon}></ha-icon>`}
                     ${secondary ? html`<div class="secondary">${secondary}</div>` : ''}
                 </div>
 
