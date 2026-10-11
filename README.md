@@ -146,6 +146,14 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.1.1 — Hub launcher label fix
+
+v1.1.1 fixes the initial Hub configuration error where the light launcher status template was evaluated too early and raised `b is not defined`.
+
+- light launcher brightness labels are now emitted as literal button-card templates
+- Hub cards can render and open normally
+- no YAML changes are required from v1.1.0
+
 ## v1.1.0 — Honeycomb Hub prototype
 
 v1.1.0 introduces a new persistent Hub launcher:
