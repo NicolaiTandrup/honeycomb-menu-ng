@@ -215,6 +215,18 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.4 — Classic Honeycomb sizing for inline details
+
+v1.2.4 aligns inline Hub detail controls with the established Honeycomb renderer instead of treating the persistent Hub's `size` as the detailed menu cell size.
+
+- root Hub launchers continue using the configured persistent `size` (for example 82px)
+- detailed light/Sonos controls now use classic Honeycomb sizing: `menu_size / 3.586`
+- default `menu_size: 250` therefore produces ~69.7px control cells, matching the existing Honeycomb menus
+- the selected launcher keeps the exact same physical center point when the detail ring opens
+- inner and outer detail positions are calculated from the detailed cell size
+- adds optional `menu_size` for users who want the inline detail menu larger or smaller
+- native inline architecture and multiple simultaneous room Hubs are retained
+
 ## v1.2.3 — Inline hitbox and hex-shape fix
 
 v1.2.3 fixes the odd tile selection and visual mismatch seen in the native inline Hub:
