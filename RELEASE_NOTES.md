@@ -1,13 +1,14 @@
-## Honeycomb Menu NG v1.2.7 – Classic Renderer Anchor Fix
+## Honeycomb Menu NG v1.2.8 – Exact Classic Card Rendering
 
-This pre-release fixes the remaining placement problem after v1.2.6.
+This pre-release fixes why v1.2.6 and v1.2.7 still did not visually match the classic Honeycomb.
 
 ### Root cause
-The classic `honeycomb-menu-item` was reused, but the inline Hub applied center translation directly to that auto-height custom element. Its visible height is generated internally from the Honeycomb ratio, so the host was not a reliable box for percentage-based Y translation.
+The Hub reused `honeycomb-menu-item`, but still changed the wrapped `custom:button-card` from the classic `position: fixed` layout to an inline `position: relative` layout. The transformed Honeycomb parent is what makes the classic fixed card size and clip correctly.
 
 ### Fixed
-- Each inline cell is now positioned through a fixed-size local anchor wrapper.
-- The wrapper uses the classic Honeycomb width and 114.76% height.
-- The classic menu-item renderer is placed at the wrapper origin with no center transform of its own.
-- Root, detail and outer-ring cells all use the same anchor model.
-- Multi-Hub inline behavior remains intact.
+- Removes the Hub-only button-card positioning special case.
+- Hub cells now use the exact same wrapped-card layout as classic Honeycomb items.
+- Keeps the v1.2.7 local anchor wrapper only for positioning the whole classic cell.
+- Multiple inline Hubs remain independent; no global popup overlay is restored.
+
+This release intentionally stops approximating any part of the classic cell renderer.
