@@ -213,6 +213,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             return menu;
 
         menu.idle_timeout = 0;
+        menu._persistent_hub_root = true;
 
         // The persistent Hub is the stable dashboard base, not a popup level.
         // It should be present immediately on first render and when returning
@@ -588,7 +589,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     },
                     tap_action: joinMenu
                         ? {
-                            action: 'none',
+                            action: 'honeycomb-open-nested',
                             honeycomb_nested_menu: joinMenu
                         }
                         : { action: 'more-info' }
@@ -626,7 +627,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                         ]
                     },
                     tap_action: {
-                        action: 'none',
+                        action: 'honeycomb-open-nested',
                         honeycomb_nested_menu: radioMenu
                     }
                 },

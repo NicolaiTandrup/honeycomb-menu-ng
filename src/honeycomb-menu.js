@@ -688,6 +688,32 @@ function openHoneycombMenu(context, config)
     if( nested && honeycombConfig.nested_expand === true )
     {
         const current = context.currentConfig || {};
+        const fromPersistentHubBase =
+            context.local === true &&
+            current._persistent_hub_root === true;
+
+        const incomingAnchorX = Number(honeycombConfig.anchor_x);
+        const incomingAnchorY = Number(honeycombConfig.anchor_y);
+        const hasIncomingAnchor =
+            Number.isFinite(incomingAnchorX) &&
+            Number.isFinite(incomingAnchorY);
+
+        if( fromPersistentHubBase && hasIncomingAnchor )
+        {
+            // This is the one allowed center move: from the dashboard/base Hub
+            // to the selected module (light, media, etc.).
+            context.moduleAnchor = {
+                x: incomingAnchorX,
+                y: incomingAnchorY
+            };
+        }
+        else if( context.local === true && context.moduleAnchor )
+        {
+            // Once inside a module, every deeper submenu stays on the same
+            // physical center regardless of which ring button was pressed.
+            honeycombConfig.anchor_x = context.moduleAnchor.x;
+            honeycombConfig.anchor_y = context.moduleAnchor.y;
+        }
 
         context.stack.push({
             __honeycomb_stack_entry: true,
@@ -812,7 +838,8 @@ window.honeycomb_menu_create_context = () => ({
     honeycomb: null,
     stack: [],
     currentConfig: null,
-    local: true
+    local: true,
+    moduleAnchor: null
 });
 
 window.honeycomb_menu_in_context = (context, config) => {
@@ -841,7 +868,10 @@ document.body.addEventListener("ll-custom", e => {
             ? sourceMenu._menuContext
             : manager;
 
-        if( nestedConfig.promote_to_center === true )
+        const mayMovePersistentCenter =
+            !(context.local === true && context.moduleAnchor);
+
+        if( nestedConfig.promote_to_center === true && mayMovePersistentCenter )
         {
             const sourceItem = path.find(node =>
                 node &&
@@ -908,6 +938,21 @@ function honeycombBack(context = manager)
 
     if( previous && previous.__honeycomb_stack_entry && previous.inPlace && context.honeycomb )
     {
+        const returningToHubBase =
+            context.local === true &&
+            previous.config &&
+            previous.config._persistent_hub_root === true;
+
+        if( returningToHubBase )
+        {
+            context.moduleAnchor = null;
+        }
+        else if( context.local === true && context.moduleAnchor )
+        {
+            previous.config.anchor_x = context.moduleAnchor.x;
+            previous.config.anchor_y = context.moduleAnchor.y;
+        }
+
         context.currentConfig = merge({}, previous.config);
         context.honeycomb.replaceConfig(previous.config);
 
@@ -938,6 +983,9 @@ function honeycombClose(context = manager)
 {
     context.stack = [];
     context.currentConfig = null;
+
+    if( context.local === true )
+        context.moduleAnchor = null;
 
     if( context.honeycomb )
         context.honeycomb.close();
@@ -1822,6 +1870,10 @@ class HoneycombMenu extends LitElement
         const context = this._menuContext || manager;
         context.stack = [];
         context.currentConfig = null;
+
+        if( context.local === true )
+            context.moduleAnchor = null;
+
         this.close();
     }
 
@@ -1848,7 +1900,11 @@ class HoneycombMenu extends LitElement
         // this Honeycomb. Using button-card fire-dom-event can lose the local
         // persistent-Hub context at a shadow-DOM boundary and accidentally
         // open a second global Honeycomb (with shade) on top of the Hub.
-        if( actionConfig && actionConfig.honeycomb_nested_menu )
+        if(
+            configuredAction === 'honeycomb-open-nested' &&
+            actionConfig &&
+            actionConfig.honeycomb_nested_menu
+        )
         {
             e.stopPropagation();
 
