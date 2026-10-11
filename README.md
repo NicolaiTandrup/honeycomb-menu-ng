@@ -215,6 +215,17 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.1 — Inline geometry and interaction fix
+
+v1.2.1 fixes the first inline Hub prototype:
+
+- inline Hub coordinates now use exactly the same proven hex geometry as the normal Honeycomb engine
+- inner-ring spacing is corrected so adjacent hexagons touch cleanly instead of overlapping
+- outer-ring geometry is aligned to the same coordinate model
+- inline wrapped button-cards no longer use `position: fixed`; they fill their own local Hub tile
+- short tap remains a normal Home Assistant toggle
+- long press is intercepted by the inline Hub and opens the selected item's local detail level
+
 ## v1.2.0 — Inline Hub architecture
 
 v1.2.0 replaces the persistent Hub's global overlay model with a fully inline component architecture.
