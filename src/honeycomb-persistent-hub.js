@@ -588,8 +588,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     },
                     tap_action: joinMenu
                         ? {
-                            action: 'fire-dom-event',
-                            honeycomb_menu: joinMenu
+                            action: 'none',
+                            honeycomb_nested_menu: joinMenu
                         }
                         : { action: 'more-info' }
                 },
@@ -626,8 +626,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                         ]
                     },
                     tap_action: {
-                        action: 'fire-dom-event',
-                        honeycomb_menu: radioMenu
+                        action: 'none',
+                        honeycomb_nested_menu: radioMenu
                     }
                 },
                 {

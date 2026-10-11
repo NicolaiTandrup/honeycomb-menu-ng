@@ -1837,9 +1837,29 @@ class HoneycombMenu extends LitElement
             : actionType === 'double_tap'
                 ? 'double_tap_action'
                 : 'tap_action';
-        const configuredAction = item.config && item.config[actionKey]
-            ? item.config[actionKey].action
+        const actionConfig = item.config && item.config[actionKey]
+            ? item.config[actionKey]
             : null;
+        const configuredAction = actionConfig
+            ? actionConfig.action
+            : null;
+
+        // Native nested actions must stay inside the menu context that owns
+        // this Honeycomb. Using button-card fire-dom-event can lose the local
+        // persistent-Hub context at a shadow-DOM boundary and accidentally
+        // open a second global Honeycomb (with shade) on top of the Hub.
+        if( actionConfig && actionConfig.honeycomb_nested_menu )
+        {
+            e.stopPropagation();
+
+            openHoneycombMenu(
+                this._menuContext || manager,
+                merge({}, actionConfig.honeycomb_nested_menu)
+            );
+
+            this._resetIdleTimeout();
+            return;
+        }
 
         if( configuredAction === 'honeycomb-back' )
         {
@@ -1859,10 +1879,6 @@ class HoneycombMenu extends LitElement
         {
             e.stopPropagation();
 
-            const actionConfig = item.config && item.config[actionKey]
-                ? item.config[actionKey]
-                : null;
-
             this._handleMediaVolumeAction(
                 actionConfig,
                 item.config ? item.config.entity : null
@@ -1878,10 +1894,6 @@ class HoneycombMenu extends LitElement
         )
         {
             e.stopPropagation();
-
-            const actionConfig = item.config && item.config[actionKey]
-                ? item.config[actionKey]
-                : null;
 
             this._handlePresetAction(
                 configuredAction === 'honeycomb-preset-store' ? 'store' : 'apply',
