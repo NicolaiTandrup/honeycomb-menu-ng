@@ -726,13 +726,18 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         if( submenu )
         {
             button.tap_action = {
+                action: 'toggle'
+            };
+
+            button.hold_action = {
                 action: 'fire-dom-event',
                 honeycomb_menu: submenu
             };
         }
         else
         {
-            button.tap_action = { action: 'more-info' };
+            button.tap_action = { action: 'toggle' };
+            button.hold_action = { action: 'more-info' };
         }
 
         return button;
