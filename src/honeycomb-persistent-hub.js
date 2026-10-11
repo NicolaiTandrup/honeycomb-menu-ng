@@ -40,8 +40,8 @@ class HoneycombPersistentHub extends LitElement
             :host {
                 display: block;
                 position: relative;
-                width: var(--honeycomb-hub-size, 82px);
-                height: calc(var(--honeycomb-hub-size, 82px) * 1.1547);
+                width: var(--tile-size, var(--honeycomb-hub-size, 82px));
+                height: calc(var(--tile-size, var(--honeycomb-hub-size, 82px)) * 1.1547);
                 overflow: visible;
                 pointer-events: none;
             }
@@ -77,7 +77,7 @@ class HoneycombPersistentHub extends LitElement
             }
 
             .hex-face {
-                transform: scale(0.945);
+                transform: scale(0.965);
                 transform-origin: center;
                 background: var(--tile-background, rgba(52,66,78,0.94));
                 background-image: var(--tile-background-image, none);
@@ -96,8 +96,8 @@ class HoneycombPersistentHub extends LitElement
             }
 
             .content {
-                width: 78%;
-                height: 72%;
+                width: 82%;
+                height: 76%;
                 display: grid;
                 grid-template-rows: 48% 28% 24%;
                 justify-items: center;
@@ -176,12 +176,15 @@ class HoneycombPersistentHub extends LitElement
 
         _defaults(next, {
             size: 82,
+            menu_size: 250,
             logo: 'auto',
             items: []
         });
 
         this.config = next;
         this._size = Number(next.size) || 82;
+        this._menuSize = Number(next.menu_size || (next.menu && next.menu.size)) || 250;
+        this._detailItemSize = this._menuSize / 3.586;
         this.style.setProperty('--honeycomb-hub-size', `${this._size}px`);
 
         // Editing/reconfiguring the picture element should always return this
@@ -250,9 +253,9 @@ class HoneycombPersistentHub extends LitElement
         return noLogo[safe] || [];
     }
 
-    _innerOffset(slot)
+    _innerOffset(slot, tileSize = this._size)
     {
-        const w = this._size;
+        const w = Number(tileSize) || this._size;
 
         // These are the exact relative positions used by the proven popup
         // Honeycomb geometry. Keeping both renderers on the same coordinate
@@ -270,9 +273,9 @@ class HoneycombPersistentHub extends LitElement
         return offsets[Number(slot)] || [0, 0];
     }
 
-    _outerOffset(slot)
+    _outerOffset(slot, tileSize = this._size)
     {
-        const w = this._size;
+        const w = Number(tileSize) || this._size;
         const offsets = {
             7:  [-2.0 * w, 0],
             8:  [-1.5 * w, -0.865 * w],
@@ -291,10 +294,12 @@ class HoneycombPersistentHub extends LitElement
         return offsets[Number(slot)] || [0, 0];
     }
 
-    _offsetForSlot(slot)
+    _offsetForSlot(slot, tileSize = this._size)
     {
         const n = Number(slot);
-        return n >= 7 ? this._outerOffset(n) : this._innerOffset(n);
+        return n >= 7
+            ? this._outerOffset(n, tileSize)
+            : this._innerOffset(n, tileSize);
     }
 
     _capabilities(entityId)
@@ -1180,7 +1185,7 @@ class HoneycombPersistentHub extends LitElement
         `;
     }
 
-    _renderTile(config, offset, meta)
+    _renderTile(config, offset, meta, tileSize = this._size)
     {
         const background = this._styleValue(config, 'card', 'background', 'rgba(52,66,78,0.94)');
         const border = this._styleValue(config, 'card', 'border', '2px solid rgba(20,24,28,0.96)');
@@ -1198,6 +1203,7 @@ class HoneycombPersistentHub extends LitElement
         const style = [
             `--x:${offset[0]}px`,
             `--y:${offset[1]}px`,
+            `--tile-size:${Number(tileSize) || this._size}px`,
             `--tile-background:${background}`,
             `--tile-border:${borderColor ? borderColor[0] : 'rgba(20,24,28,0.96)'}`,
             `--tile-background-image:${bgImage}`,
@@ -1276,25 +1282,31 @@ class HoneycombPersistentHub extends LitElement
         if( ! item )
             return this._renderHub();
 
-        const origin = this._offsetForSlot(this._selectedOriginSlot || 0);
+        // Keep the selected Hub tile's physical center, but render the
+        // detailed 7-cell control using the exact classic Honeycomb item size:
+        // menu_size / 3.586. With the default 250px menu this is ~69.7px.
+        const origin = this._offsetForSlot(this._selectedOriginSlot || 0, this._size);
+        const detailSize = this._detailItemSize || (250 / 3.586);
         const tiles = [];
 
         tiles.push(this._renderTile(
             this._centerItemConfig(item),
             origin,
-            { role: 'center', item }
+            { role: 'center', item },
+            detailSize
         ));
 
         const controls = this._detailButtons(item);
 
         controls.forEach(control => {
-            const relative = this._innerOffset(control.slot);
+            const relative = this._innerOffset(control.slot, detailSize);
             const offset = [origin[0] + relative[0], origin[1] + relative[1]];
 
             tiles.push(this._renderTile(
                 control,
                 offset,
-                { role: 'control', item, control }
+                { role: 'control', item, control },
+                detailSize
             ));
         });
 
@@ -1308,13 +1320,14 @@ class HoneycombPersistentHub extends LitElement
             outer = this._radioButtons(item);
 
         outer.forEach(control => {
-            const relative = this._outerOffset(control.slot);
+            const relative = this._outerOffset(control.slot, detailSize);
             const offset = [origin[0] + relative[0], origin[1] + relative[1]];
 
             tiles.push(this._renderTile(
                 control,
                 offset,
-                { role: 'outer', item, control }
+                { role: 'outer', item, control },
+                detailSize
             ));
         });
 
