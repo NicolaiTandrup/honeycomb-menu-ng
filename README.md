@@ -215,6 +215,18 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.8 — Exact classic button-card rendering
+
+v1.2.8 fixes the reason v1.2.6 and v1.2.7 still looked identical and wrong.
+
+Although those releases reused `honeycomb-menu-item`, they still changed the internal wrapped `custom:button-card` from the classic `position: fixed` behavior to a special inline `position: relative` mode. The Honeycomb item relies on its transformed parent to establish the containing block for that fixed card. Changing it to relative altered the geometry and produced the thin/slanted cells seen in the Hub.
+
+- removes the `_inline_hub` rendering special case entirely
+- Hub cells now pass the same configuration into `honeycomb-menu-item` as the classic menu
+- wrapped button-card returns to the exact classic `height: 100%; position: fixed; padding: 0` behavior
+- fixed positioning remains locally contained by the transformed Honeycomb item, so this does not reintroduce the global menu overlay
+- fixed-size local anchor wrappers from v1.2.7 are retained only for placement of the complete classic cell
+
 ## v1.2.7 — Classic renderer anchor wrapper
 
 v1.2.7 fixes the placement error that remained after switching inline Hub cells to the classic `honeycomb-menu-item` renderer.
