@@ -215,6 +215,18 @@ Without hard-slot overrides, the active ring layout is selected from the number 
 
 A hard slot can force its physical ring to be active even when the button count would normally select another layout.
 
+## v1.2.6 — Reuse the classic Honeycomb item renderer
+
+v1.2.6 stops approximating the established Honeycomb cell appearance in the inline Hub.
+
+- inline Hub root and detail cells now render through the existing `honeycomb-menu-item` component
+- shape, 114.76% hex geometry, spacing, button-card icon/name/label placement and card styling therefore come from the same renderer as the classic menu
+- inline cells remain local DOM children of each Hub, so multiple Hubs can still coexist without a global overlay
+- root short tap continues to use button-card's normal toggle action
+- root long press is intercepted from the same button-card action event and opens the local detail level
+- custom Hub actions such as preset brightness, Color/White palette, Join and Radio are still handled locally
+- the previous native CSS hex renderer is no longer used for Hub cells
+
 ## v1.2.5 — Match classic Honeycomb cell spacing
 
 v1.2.5 fixes the remaining visual mismatch between inline Hub detail controls and the established Honeycomb menu.
