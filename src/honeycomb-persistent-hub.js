@@ -157,16 +157,18 @@ class HoneycombPersistentHub extends LitElement
     _innerOffset(slot)
     {
         const w = this._size;
-        const h = this._size * 1.1547;
 
+        // These are the exact relative positions used by the proven popup
+        // Honeycomb geometry. Keeping both renderers on the same coordinate
+        // model prevents the inline Hub hexagons from overlapping.
         const offsets = {
             0: [0, 0],
-            1: [-0.75 * w, 0],
-            2: [-0.375 * w, -0.75 * h],
-            3: [0.375 * w, -0.75 * h],
-            4: [0.75 * w, 0],
-            5: [0.375 * w, 0.75 * h],
-            6: [-0.375 * w, 0.75 * h]
+            1: [-1.0 * w, 0],
+            2: [-0.5 * w, -0.865 * w],
+            3: [0.5 * w, -0.865 * w],
+            4: [1.0 * w, 0],
+            5: [0.5 * w, 0.86 * w],
+            6: [-0.5 * w, 0.86 * w]
         };
 
         return offsets[Number(slot)] || [0, 0];
@@ -174,26 +176,23 @@ class HoneycombPersistentHub extends LitElement
 
     _outerOffset(slot)
     {
-        const inner = [1,2,3,4,5,6].map(s => this._innerOffset(s));
-        const add = (a,b) => [a[0] + b[0], a[1] + b[1]];
-        const scale = (a,n) => [a[0] * n, a[1] * n];
+        const w = this._size;
+        const offsets = {
+            7:  [-2.0 * w, 0],
+            8:  [-1.5 * w, -0.865 * w],
+            9:  [-1.0 * w, -1.73 * w],
+            10: [0.0 * w, -1.73 * w],
+            11: [1.0 * w, -1.73 * w],
+            12: [1.5 * w, -0.865 * w],
+            13: [2.0 * w, 0],
+            14: [1.5 * w, 0.86 * w],
+            15: [1.0 * w, 1.725 * w],
+            16: [0.0 * w, 1.725 * w],
+            17: [-1.0 * w, 1.725 * w],
+            18: [-1.5 * w, 0.86 * w]
+        };
 
-        const ring = [
-            scale(inner[0], 2),
-            add(inner[0], inner[1]),
-            scale(inner[1], 2),
-            add(inner[1], inner[2]),
-            scale(inner[2], 2),
-            add(inner[2], inner[3]),
-            scale(inner[3], 2),
-            add(inner[3], inner[4]),
-            scale(inner[4], 2),
-            add(inner[4], inner[5]),
-            scale(inner[5], 2),
-            add(inner[5], inner[0])
-        ];
-
-        return ring[Math.max(0, Math.min(11, Number(slot) - 7))] || [0,0];
+        return offsets[Number(slot)] || [0, 0];
     }
 
     _offsetForSlot(slot)
@@ -319,6 +318,7 @@ class HoneycombPersistentHub extends LitElement
             icon = 'honeycomb:bee';
 
         return {
+            _inline_hub: true,
             entity: item.entity,
             icon,
             name: item.name || '',
@@ -359,6 +359,7 @@ class HoneycombPersistentHub extends LitElement
     _logoConfig()
     {
         return {
+            _inline_hub: true,
             icon: 'honeycomb:bee',
             show_name: false,
             show_label: false,
@@ -429,6 +430,7 @@ class HoneycombPersistentHub extends LitElement
         }
 
         const common = (slot, icon, name, label = '') => ({
+            _inline_hub: true,
             slot,
             entity: item.entity,
             icon,
@@ -517,6 +519,7 @@ class HoneycombPersistentHub extends LitElement
         });
 
         const base = (slot, icon, name, label = '') => ({
+            _inline_hub: true,
             slot,
             entity: item.entity,
             icon,
@@ -616,6 +619,7 @@ class HoneycombPersistentHub extends LitElement
             const foreground = this._contrast(rgb);
 
             return {
+                _inline_hub: true,
                 slot: index + 7,
                 entity: item.entity,
                 icon: 'mdi:circle',
@@ -651,6 +655,7 @@ class HoneycombPersistentHub extends LitElement
             : [item.entity];
 
         return item.members.slice(0,12).map((member,index) => ({
+            _inline_hub: true,
             slot: index + 7,
             entity: member.entity,
             icon: member.icon || (member.entity && member.entity.includes('tv') ? 'mdi:television-speaker' : 'mdi:speaker'),
@@ -691,6 +696,7 @@ class HoneycombPersistentHub extends LitElement
             const thumbnail = cached && cached.thumbnail;
 
             return {
+                _inline_hub: true,
                 slot: index + 7,
                 entity: item.entity,
                 icon: thumbnail ? undefined : 'mdi:radio',
@@ -850,7 +856,11 @@ class HoneycombPersistentHub extends LitElement
                 e.stopPropagation();
                 e.preventDefault();
                 this._openItem(meta.item, meta.slot);
+                return;
             }
+
+            // Tap is intentionally left to the wrapped button-card so its
+            // normal Home Assistant toggle action still runs.
             return;
         }
 
