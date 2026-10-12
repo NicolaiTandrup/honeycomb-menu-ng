@@ -399,7 +399,11 @@ class HoneycombPersistentControl extends LitElement
                 if( ! button || typeof button !== 'object' )
                     continue;
 
-                const nested = button.tap_action && button.tap_action.honeycomb_menu;
+                const action = button.tap_action;
+                const nested = action && (
+                    action.honeycomb_nested_menu ||
+                    action.honeycomb_menu
+                );
 
                 if( nested && nested.nested_expand === true )
                 {
