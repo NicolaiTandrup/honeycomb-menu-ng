@@ -65,6 +65,24 @@ function testGlobalNavigationDoesNotLock()
     assert.strictEqual(navigation.canEstablishAnchor(context), true);
 }
 
+function testPersistentHexGeometry()
+{
+    assert.strictEqual(
+        layout.persistentHexPoints('inset'),
+        '50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675'
+    );
+
+    assert.strictEqual(
+        layout.persistentHexPoints('cell'),
+        '50,0 100,28.8675 100,86.6025 50,115.47 0,86.6025 0,28.8675'
+    );
+
+    assert.strictEqual(
+        layout.persistentHexPoints('anything-else'),
+        layout.persistentHexPoints('inset')
+    );
+}
+
 function testLayoutGrowthKeepsCenterDefinition()
 {
     assert.deepStrictEqual(layout.centerPosition(false), { x: 1, y: 0.865 });
@@ -314,6 +332,7 @@ function run()
 {
     testNavigationAnchorLock();
     testGlobalNavigationDoesNotLock();
+    testPersistentHexGeometry();
     testLayoutGrowthKeepsCenterDefinition();
     testModuleRegistry();
     testBuiltInModuleResolution();
