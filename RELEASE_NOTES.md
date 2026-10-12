@@ -1,31 +1,24 @@
-## Honeycomb Menu NG v1.4.5 – Persistent Hub Lifecycle
+## Honeycomb Menu NG v1.4.6 – Native Sonos Slot 0
 
-This pre-release fixes three persistent-Hub lifecycle/base issues observed in Lovelace.
+This pre-release fixes the remaining no-logo three-item Hub issue where a Sonos item assigned to physical center slot 0 still rendered/behaved like a generic center button.
 
-### 1. No transient bee when a module returns/closes
-The underlying `honeycomb-persistent-hub` element is only a bootstrap anchor while the real base Honeycomb is auto-open.
+### Root cause
+The Hub decided whether slot 0 was a native persistent control by inspecting the generated launcher's private `_persistent_launcher` flag. Ring rendering already knew how to use that flag, but slot 0 has a separate center path and could still fall back to the classic `center_button` route.
 
-- The bootstrap element now stays hidden for auto-open Hubs.
-- Local module idle timeout returns in-place to the Hub base instead of closing and reopening the entire Honeycomb.
-- This removes the short default-bee flash between a detail module and the persistent base.
+### Fixed
+- Sonos now explicitly declares `launcherKind: persistent` as part of its module contract.
+- A new core `hub-launcher` helper converts a resolved module launcher into a deterministic center descriptor.
+- Slot 0 renderer selection now uses the module contract, not an incidental/private launcher flag.
+- A Sonos center keeps:
+  - `mode: media`
+  - its real media entity
+  - active color / live media presentation
+  - native hold-to-open submenu
+  - normal media tap action
+- Generic center items still use the classic `center_button` path.
 
-### 2. Native module support in physical slot 0
-A no-logo base can place a real item in center slot 0.
-
-Previously a native persistent launcher placed there was converted to a generic `center_button`, which broke Sonos native visuals and hold-to-open behavior.
-
-- Native Light/Media/Sonos launchers now remain `honeycomb-persistent-control` when assigned to slot 0.
-- Sonos center therefore keeps its media active color/volume presentation and native interaction.
-- Generic/non-persistent center buttons keep the existing classic path.
-
-### 3. Stable Lovelace edit-mode lifecycle
-Lovelace edit/preview can disconnect and recreate cards before CSS close animations finish.
-
-- Local Hub contexts now have a synchronous dispose path.
-- A disconnected Hub immediately removes its menu overlay, timers and global pointer listeners.
-- Scheduled auto-open RAF work is cancelled on disconnect.
-- Reconnected Hub instances schedule one clean base render.
-- Old preview/card instances can no longer leave ghost/duplicate base cubes after exiting edit mode.
+### Regression test
+The test suite now builds the actual `type: media` / `media_player.sommerhus` Sonos launcher in slot 0 and verifies that it normalizes to a native persistent media center with its submenu intact.
 
 ### Scope
-Light Color/White navigation from v1.4.2 and Sonos favorite/control behavior from v1.4.3/v1.4.4 are left unchanged.
+The v1.4.5 bee/edit lifecycle fixes and the locked Light behavior are unchanged.

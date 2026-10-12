@@ -226,6 +226,7 @@ module.exports = {
     id: 'sonos',
     aliases: ['media-sonos'],
     priority: 400,
+    launcherKind: 'persistent',
 
     // Backwards compatible: existing type: media continues to mean the
     // Sonos-oriented module unless the user explicitly selects module: media.
