@@ -1,13 +1,66 @@
-## Honeycomb Menu NG v1.4.9 – Bee Asset Repair
+## Honeycomb Menu NG v1.5.0 – Stable Modular Release
 
-v1.4.8 introduced the shared Cute Flying Bee branding correctly in code, but the PNG binary committed to GitHub was corrupted during the binary/base64 upload step.
+v1.5.0 is the first stable release of the modular persistent-Hub architecture developed through the v1.4 pre-releases.
 
-### Fixed
-- Replaced the canonical bee asset with the verified 256×256 approved Cute Flying Bee Mascot PNG.
-- Replaced `honeycomb-menu-ng-icon.png` and `honeycomb-menu-ng-logo.png` with the exact same verified bytes.
-- Build-time embedding continues to generate the Home Assistant data URI from that canonical asset.
+### Documentation rebuilt
 
-### Regression protection
-The test suite now verifies the exact SHA-256 hash and 256×256 dimensions of the approved PNG, in addition to checking that the canonical asset, icon, logo and embedded bundle data are identical.
+The README is now human-first and describes the current product instead of acting as a chronological release log.
 
-No UI logic, Light, Sonos, navigation, anchor or layout behavior changes in this release.
+New dedicated documentation:
+- `docs/LIGHT_MODULE.md`
+- `docs/SONOS_MODULE.md`
+- `docs/AI_SETUP.md`
+- `docs/CLASSIC_MENU.md`
+
+New copy-ready examples:
+- `examples/persistent-hub.yaml`
+- `examples/light-presets.yaml`
+- `examples/sonos-favorites-cache.yaml`
+- `examples/sonos-toggle-member.yaml`
+
+### AI setup contract
+
+A deterministic AI-oriented setup specification now helps ChatGPT/Codex-style assistants:
+- ask for real entity IDs
+- choose the correct module
+- avoid inventing optional helpers/scripts
+- configure Light presets correctly
+- enable/document Sonos favorites and optional artwork cache
+- add Join grouping only when requested
+- validate locked-center navigation
+
+### Light preset helpers
+
+Preset storage now supports both:
+- `number.*` entities, including device-owned values such as Shelly numbers
+- Home Assistant `input_number.*` helpers
+
+This lets physical wall controls and Honeycomb share the same normal brightness/Kelvin/color values.
+
+### Sonos documentation
+
+Sonos setup now clearly separates:
+- native group-aware volume (no scripts required)
+- official `sensor.sonos_favorites` names/IDs
+- optional thumbnail/artwork cache
+- optional Join toggle script
+
+The artwork cache remains a Home Assistant trigger-based template sensor by design. It refreshes independently of dashboard/browser sessions and avoids each frontend polling Sonos.
+
+### Project identity
+
+Honeycomb Menu NG is now described as a project that **originated as a fork** of Sian Croser's GPLv3 `honeycomb-menu`. The repository still retains portions of the original implementation and attribution, while NG is documented as its own substantially expanded project rather than merely an "enhanced fork".
+
+### Stable v1.4 foundation included
+
+- modular core
+- isolated Light/Media/Sonos modules
+- persistent Hub lifecycle fixes
+- locked slot-0 module center
+- native Sonos in physical slot 0
+- live Light/media presentation
+- unavailable-state labels
+- shared bee branding
+- automated architecture/regression tests
+
+This is a normal stable release, not a pre-release.

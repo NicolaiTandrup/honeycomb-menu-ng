@@ -9,6 +9,7 @@ const layout = require('../src/core/layout.js');
 const { ModuleRegistry } = require('../src/core/module-registry.js');
 const { moduleRegistry } = require('../src/modules/index.js');
 const { applyPresetControls } = require('../src/modules/light/controls.js');
+const { handlePreset } = require('../src/modules/light/actions.js');
 const { toCenterDescriptor } = require('../src/core/hub-launcher.js');
 
 function testNavigationAnchorLock()
@@ -365,6 +366,49 @@ function testLightNestedMenusStayInOwningContext()
     );
 }
 
+function testLightPresetHelperDomains()
+{
+    const calls = [];
+    const hass = {
+        states: {
+            'light.test': {
+                state: 'on',
+                attributes: { brightness: 128 }
+            },
+            'number.shelly_brightness': { state: '60', attributes: {} },
+            'input_number.ha_brightness': { state: '65', attributes: {} }
+        },
+        callService(domain, service, data, target)
+        {
+            calls.push({ domain, service, data, target });
+        }
+    };
+
+    handlePreset('store', {
+        hass,
+        entity: 'light.test',
+        actionConfig: {
+            preset_type: 'brightness',
+            helper_entity: 'number.shelly_brightness'
+        }
+    });
+
+    handlePreset('store', {
+        hass,
+        entity: 'light.test',
+        actionConfig: {
+            preset_type: 'brightness',
+            helper_entity: 'input_number.ha_brightness'
+        }
+    });
+
+    assert.strictEqual(calls.length, 2);
+    assert.strictEqual(calls[0].domain, 'number');
+    assert.strictEqual(calls[0].service, 'set_value');
+    assert.strictEqual(calls[1].domain, 'input_number');
+    assert.strictEqual(calls[1].service, 'set_value');
+}
+
 function testSonosSlotZeroUsesPersistentContract()
 {
     const sonos = moduleRegistry.resolve({
@@ -614,6 +658,7 @@ function run()
     testBuiltInModuleResolution();
     testPersistentPresentations();
     testLightNestedMenusStayInOwningContext();
+    testLightPresetHelperDomains();
     testSonosSlotZeroUsesPersistentContract();
     testModuleMenusAreDeclarative();
     testSharedBeeBranding();

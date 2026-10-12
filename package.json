@@ -1,8 +1,8 @@
 {
   "name": "honeycomb-menu-ng",
   "private": true,
-  "version": "1.4.9",
-  "description": "Enhanced Honeycomb popup menu for Home Assistant with flexible layouts, shared styling and improved interaction.",
+  "version": "1.5.0",
+  "description": "Modular Honeycomb controls for Home Assistant with persistent hubs, Light, Sonos and media modules.",
   "scripts": {
     "build": "webpack",
     "watch": "webpack --watch --mode=development",
@@ -16,7 +16,7 @@
     "type": "git",
     "url": "github.com:NicolaiTandrup/honeycomb-menu-ng"
   },
-  "author": "Sian Croser",
+  "author": "Nicolai Tandrup",
   "license": "GPLv3",
   "devDependencies": {
     "webpack": "^4.42.0",
@@ -26,5 +26,8 @@
     "lodash": "^4.17.19",
     "lit": "^2.1.2",
     "lit-element": "^2.2.1"
-  }
+  },
+  "contributors": [
+    "Sian Croser (original honeycomb-menu author)"
+  ]
 }

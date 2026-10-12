@@ -3,91 +3,309 @@
        width="220"
        alt="Honeycomb Menu NG">
 </p>
+
 # Honeycomb Menu NG for Home Assistant
 
-Enhanced fork of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu) with flexible 18-slot layouts, an optional center button, shared styling, nested menus, and soft/hard slot positioning.
+Honeycomb Menu NG is a modular Home Assistant dashboard interaction system built around compact hexagonal controls. It is designed especially for floorplans, wall tablets and dashboards where a single visible control should open richer Light, Sonos or media controls without taking permanent screen space.
 
-Honeycomb Menu NG is a **Home Assistant dashboard module**, not a standalone card. It can be attached to Lovelace cards through `fire-dom-event` and opens a floating menu made from hexagonal buttons.
+The project **originated as a fork** of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu) by Sian Croser. Honeycomb Menu NG still contains portions of that GPLv3 codebase and keeps full attribution, but NG has evolved into a substantially larger modular implementation with persistent Hubs, native Light/Media/Sonos modules, locked-center navigation, state-aware controls and automated regression tests.
 
-> Current NG features are focused on flexible layouts, styling and menu interaction while keeping backwards compatibility with existing Honeycomb Menu YAML where possible.
+## What Honeycomb Menu NG gives you
 
-## Highlights
-
-- Up to **18 ring buttons** plus an optional center button
-- **6-slot inner ring** and **12-slot outer ring**
-- Automatic ring selection based on button count
-- Soft and hard slot positioning
-- Automatic center button using the Honeycomb entity
-- Configurable center-button contrast with `center_brightness`
-- Global `button_defaults` styling
-- `empty_slots: visible|hidden`
-- Nested Honeycomb menus
-- Stable nested expansion with automatic layout envelopes
-- Visible-viewport-aware menu positioning near screen edges
-- Persistent center controls for floorplans and compact dashboards (v1.0)
-- Persistent Hub launcher for room/device navigation (v1.1)
-- Modular core with isolated light/media/Sonos modules (v1.4)
-- Locked module center across nested/expanded layouts (v1.4)
-- Existing template and XY-pad support
-- Legacy `position` support
+- persistent Honeycomb Hubs for floorplans and compact dashboards
+- short-tap primary actions and long-press detailed controls
+- Light controls with brightness, smart Color/White palettes and reusable presets
+- Sonos controls with play/pause, group-aware volume, Join, Radio favorites and Browse
+- generic media controls for non-Sonos players
+- fixed physical module center: nested menus may expand from 7 to 19 cubes without moving slot 0
+- state-aware launcher colors, brightness/volume labels and explicit `Unavailable` status
+- 6-slot inner ring + 12-slot outer ring
+- soft/hard slot placement and classic popup compatibility
+- nested menus, templates and XY Pad
+- modular core with isolated domain modules and regression tests
+- one shared Honeycomb bee brand across Home Assistant and GitHub
 
 ## Requirements
 
-Honeycomb Menu NG is designed to use [custom:button-card](https://github.com/custom-cards/button-card) for its menu buttons.
+- current Home Assistant
+- [custom:button-card](https://github.com/custom-cards/button-card)
+- Honeycomb Menu NG installed as a Lovelace JavaScript module
+- the Home Assistant entities you want to control
 
-Install `button-card` before using Honeycomb Menu NG.
+For Sonos features, use Home Assistant's official Sonos integration.
 
 ## Installation
 
-### HACS — recommended
+### HACS
 
-1. Open **HACS** in Home Assistant.
+1. Open HACS.
 2. Open **Custom repositories**.
 3. Add:
 
-   ```text
-   https://github.com/NicolaiTandrup/honeycomb-menu-ng
-   ```
+~~~text
+https://github.com/NicolaiTandrup/honeycomb-menu-ng
+~~~
 
-4. Select **Dashboard** as the repository type.
+4. Select **Dashboard**.
 5. Install **Honeycomb Menu NG**.
-6. Reload the browser after installation or update.
+6. Reload the browser after installation/update.
 
-The resource should normally be:
+The resource is normally:
 
-```text
+~~~text
 /hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js
-```
+~~~
 
-with resource type:
+with resource type **JavaScript module**.
 
-```text
-JavaScript module
-```
+### Manual
 
-### Manual installation
+Place `honeycomb-menu-ng.js` below `/config/www/` and add it as a Lovelace module:
 
-Download `honeycomb-menu-ng.js` from the latest release and place it somewhere below `/config/www/`.
-
-For example:
-
-```text
-/config/www/honeycomb-menu-ng/honeycomb-menu-ng.js
-```
-
-Then add the Lovelace resource:
-
-```yaml
+~~~yaml
 resources:
   - url: /local/honeycomb-menu-ng/honeycomb-menu-ng.js
     type: module
-```
+~~~
 
-## Quick start
+## Recommended start: Persistent Hub
 
-Honeycomb Menu NG is opened using `fire-dom-event`.
+~~~yaml
+type: custom:honeycomb-persistent-hub
+name: Living room
+size: 82
+logo: auto
 
-```yaml
+items:
+  - type: light
+    entity: light.living_room
+    name: Living room
+    icon: mdi:lightbulb
+
+  - type: sonos
+    entity: media_player.living_room
+    name: Sonos
+    icon: mdi:speaker
+    active_color: "#00bcd4"
+~~~
+
+### Interaction model
+
+On the Hub base:
+
+- **short tap Light** → toggle the light
+- **short tap Sonos** → play/pause
+- **long press** → enter that item's detailed module
+- selecting a base cube may establish a new physical center
+- after entering a module, the physical center is locked to **slot 0**
+- nested menus may add an outer ring, but slot 0 does not move
+- Back returns through the local module path to the base
+- multiple Hubs can coexist independently
+
+When `logo: auto` is enabled, the Honeycomb bee occupies slot 0 when the automatic layout has a free center. Set `logo: false` to allow a real Hub item to occupy slot 0.
+
+## Built-in modules
+
+| New configuration | Module | Main behavior |
+|---|---|---|
+| `type: light` | Light | toggle + brightness + palette + presets |
+| `type: sonos` | Sonos | play/pause + group volume + Join + Radio + Browse |
+| `type: media` + `module: media` | Generic media | play/pause + volume + more-info |
+| `type: media` without `module` | Sonos compatibility | retained for older NG configs |
+
+For **new configurations**, prefer explicit `type: sonos` for Sonos players. Legacy `type: media` continues to resolve to the Sonos-oriented module.
+
+## Light module
+
+Minimal:
+
+~~~yaml
+- type: light
+  entity: light.living_room
+  name: Living room
+~~~
+
+The detailed Light menu contains:
+
+| Slot | Function |
+|---:|---|
+| 1 | 100% brightness |
+| 2 | normal brightness preset |
+| 3 | smart Color/White palette |
+| 4 | standard color/Kelvin preset |
+| 5 | -5% brightness |
+| 6 | +5% brightness |
+
+The palette is capability-aware:
+- RGB/HS/XY lights receive a 12-color outer ring.
+- color-temperature-only lights receive a 12-step warm-to-cool white outer ring.
+- palette expansion does **not** move the physical module center.
+
+### Optional Light preset values
+
+Preset values can live in writable numeric Home Assistant entities:
+
+~~~yaml
+- type: light
+  entity: light.living_room
+  name: Living room
+  presets:
+    brightness:
+      entity: number.wall_switch_normal_brightness
+    kelvin:
+      entity: number.wall_switch_standard_kelvin
+    color:
+      hue_entity: number.wall_switch_standard_hue
+      saturation_entity: number.wall_switch_standard_saturation
+~~~
+
+Supported writable helper domains in v1.5:
+- `number.*` — including device-owned values such as writable numbers exposed by a Shelly relay/script
+- `input_number.*` — Home Assistant helpers
+
+The values therefore do **not** have to live inside Honeycomb. A physical wall switch/Shelly and Honeycomb can share the same normal brightness, Kelvin and color values.
+
+Helper-backed presets:
+- **tap** → apply stored value
+- **hold** → store the light's current value
+
+Without helpers NG uses apply-only defaults:
+- brightness: **60%**
+- standard white: **2700 K**
+
+Full Light documentation: [docs/LIGHT_MODULE.md](docs/LIGHT_MODULE.md)
+
+## Sonos module
+
+Minimal:
+
+~~~yaml
+- type: sonos
+  entity: media_player.living_room
+  name: Sonos
+  icon: mdi:speaker
+  active_color: "#00bcd4"
+~~~
+
+The detailed Sonos menu contains:
+
+| Slot | Function |
+|---:|---|
+| 1 | group-aware volume down |
+| 2 | play/pause |
+| 3 | Join |
+| 4 | group-aware volume up |
+| 5 | Radio favorites |
+| 6 | Browse / more-info |
+
+### Volume
+
+No scripts are required for normal group volume. NG reads `group_members`:
+- solo → selected player
+- grouped → current group members
+
+Legacy `group_volume_down_script` / `group_volume_up_script` overrides remain supported but normally should not be used in new configs.
+
+### Radio favorites
+
+The official Sonos integration provides `sensor.sonos_favorites` with favorite names and IDs. That entity is disabled by default in Home Assistant, so enable it on the Sonos integration before using Radio.
+
+Basic Radio works with that sensor alone. If no artwork cache exists, NG shows radio icon + station name.
+
+For logos/artwork add the optional **Sonos Favorites Cache**:
+- [Sonos documentation](docs/SONOS_MODULE.md#optional-favorites-artwork-cache)
+- [ready-to-copy cache YAML](examples/sonos-favorites-cache.yaml)
+
+### Join
+
+Join is optional and requires candidate members plus a toggle script:
+
+~~~yaml
+- type: sonos
+  entity: media_player.living_room
+  toggle_member_script: script.sonos_living_room_toggle_member
+
+  members:
+    - entity: media_player.kitchen
+      name: Kitchen
+    - entity: media_player.bathroom
+      name: Bathroom
+~~~
+
+Ready-to-copy script: [examples/sonos-toggle-member.yaml](examples/sonos-toggle-member.yaml)
+
+Full Sonos documentation: [docs/SONOS_MODULE.md](docs/SONOS_MODULE.md)
+
+## Generic media
+
+~~~yaml
+- type: media
+  module: media
+  entity: media_player.office
+  name: Office
+~~~
+
+Generic media gives play/pause, volume down/up and more-info without Sonos-specific Join/Radio behavior.
+
+## Unavailable entities
+
+If a Light or Media/Sonos entity disappears, for example because a remote Home Assistant connection or device is down, the native cube:
+- becomes unavailable gray
+- keeps its icon
+- displays **Unavailable**
+- automatically returns to live presentation when the entity comes back
+
+## Hub slots
+
+### Base without logo
+
+| Items | Slots |
+|---:|---|
+| 1 | `0` |
+| 2 | `2,3` |
+| 3 | `2,3,0` |
+| 4 | `1,2,0,3` |
+| 5 | `1,2,0,3,4` |
+| 6 | `1,2,3,4,5,6` |
+| 7 | `0,1,2,3,4,5,6` |
+
+### Base with logo
+
+| Items | Slots |
+|---:|---|
+| 1 | `2` |
+| 2 | `2,3` |
+| 3 | `2,4,6` |
+| 4 | `2,3,1,4` |
+| 5 | `1,2,3,4,5` |
+| 6 | `1,2,3,4,5,6` |
+| 7 | logo hidden; real items use `0–6` |
+
+Detailed modules use:
+- slot `0`: physical center
+- slots `1–6`: inner ring
+- slots `7–18`: outer ring
+
+## AI-assisted setup
+
+For ChatGPT, Codex or another AI system building a configuration for someone who does not know Honeycomb syntax, use:
+
+**[docs/AI_SETUP.md](docs/AI_SETUP.md)**
+
+It is written as a deterministic implementation brief and defines:
+- what to ask the user for
+- which module type to choose
+- canonical YAML shapes
+- Light helper rules
+- Sonos favorites/cache/grouping requirements
+- defaults that must not be invented
+- validation steps
+
+## Classic popup menus
+
+The original popup-style Honeycomb remains supported for existing and advanced dashboards using `fire-dom-event`.
+
+~~~yaml
 type: button
 entity: light.kitchen
 name: Kitchen
@@ -98,1084 +316,61 @@ hold_action:
     buttons:
       - icon: mdi:lightbulb-on-outline
         tap_action:
-          action: call-service
-          service: light.turn_on
-          service_data:
-            entity_id: light.kitchen
+          action: perform-action
+          perform_action: light.turn_on
 
       - icon: mdi:lightbulb-off-outline
         tap_action:
-          action: call-service
-          service: light.turn_off
-          service_data:
-            entity_id: light.kitchen
-
-      - icon: mdi:information-outline
-        tap_action:
-          action: more-info
-```
-
-The same pattern can be used from `picture-elements`, `custom:button-card`, Mushroom cards, or other Lovelace cards that support `fire-dom-event` actions.
-
-## Layout model
-
-Honeycomb Menu NG has two physical button rings:
-
-- **Slots 1–6**: inner ring
-- **Slots 7–18**: outer ring
-- **Center button**: separate from slot numbering for normal Honeycomb menus
-- **Hub center**: addressed as **slot 0** in `custom:honeycomb-persistent-hub`
-
-Approximate slot layout:
-
-```text
-                 9    10    11
-             8      2    3      12
-
-          7      1   CENTER  4      13
-
-            18      6    5      14
-                17   16   15
-```
-
-## Persistent Hub
-
-`custom:honeycomb-persistent-hub` is a persistent room/device launcher intended for floorplans and compact dashboards.
-
-Hub interaction uses a base/module navigation model:
-
-- **short tap on a launcher tile**: execute the launcher's primary action
-- **long press on a launcher tile**: enter that item's module
-- **slot 0**: physical module center
-- **slots 1–6**: inner ring
-- **slots 7–18**: optional outer expansion ring
-- selecting a **base** tile may establish a new physical center
-- after entering a module, that center is locked until navigation returns to the base
-- submodules may replace buttons or expand from 7 total cubes to larger ring layouts without moving slot 0
-
-The Hub can show an automatic Honeycomb bee logo in slot 0. Set:
-
-```yaml
-logo: false
-```
-
-to let a real Hub item use the center position.
-
-Example:
-
-```yaml
-type: custom:honeycomb-persistent-hub
-name: Sommerhus
-size: 82
-logo: auto
-
-items:
-  - type: light
-    entity: light.ia_kokken_kokken
-    name: Køkken
-
-  - type: light
-    entity: light.hue_kontor
-    name: Kontor
-
-  - type: media
-    entity: media_player.living_room
-    name: Sonos
-    active_color: "#00bcd4"
-```
-
-Hub launcher tiles are state-aware before opening their detailed controls. Light tiles show brightness and live light color/temperature. Media/Sonos tiles use a configurable active ring, fill the center while playing, and show live volume while playing.
-
-For backwards compatibility, `type: media` uses the Sonos-oriented module. To opt into the smaller generic media module explicitly:
-
-```yaml
-- type: media
-  module: media
-  entity: media_player.living_room
-```
-
-The internal module contract and extension rules are documented in [ARCHITECTURE.md](ARCHITECTURE.md).
-
-### Hub automatic slot layouts
-
-Without logo:
-
-| Items | Slots |
-|---:|---|
-| 2 | `2,3` |
-| 3 | `2,3,0` |
-| 4 | `1,2,0,3` |
-| 5 | `1,2,0,3,4` |
-| 6 | `1,2,3,4,5,6` |
-| 7 | `0,1,2,3,4,5,6` |
-
-With logo in slot 0:
-
-| Items | Slots |
-|---:|---|
-| 2 | `2,3` |
-| 3 | `2,4,6` |
-| 4 | `2,3,1,4` |
-| 5 | `1,2,3,4,5` |
-| 6 | `1,2,3,4,5,6` |
-| 7 | logo hidden; `0–6` used by items |
-
-### Automatic ring selection
-
-Without hard-slot overrides, the active ring layout is selected from the number of resolved buttons:
-
-| Buttons | Active layout |
-|---:|---|
-| 1–6 | Inner ring |
-| 7–12 | Outer ring |
-| 13–18 | Inner + outer ring |
-
-A hard slot can force its physical ring to be active even when the button count would normally select another layout.
-
-## v1.2.8 — Exact classic button-card rendering
-
-v1.2.8 fixes the reason v1.2.6 and v1.2.7 still looked identical and wrong.
-
-Although those releases reused `honeycomb-menu-item`, they still changed the internal wrapped `custom:button-card` from the classic `position: fixed` behavior to a special inline `position: relative` mode. The Honeycomb item relies on its transformed parent to establish the containing block for that fixed card. Changing it to relative altered the geometry and produced the thin/slanted cells seen in the Hub.
-
-- removes the `_inline_hub` rendering special case entirely
-- Hub cells now pass the same configuration into `honeycomb-menu-item` as the classic menu
-- wrapped button-card returns to the exact classic `height: 100%; position: fixed; padding: 0` behavior
-- fixed positioning remains locally contained by the transformed Honeycomb item, so this does not reintroduce the global menu overlay
-- fixed-size local anchor wrappers from v1.2.7 are retained only for placement of the complete classic cell
-
-## v1.2.7 — Classic renderer anchor wrapper
-
-v1.2.7 fixes the placement error that remained after switching inline Hub cells to the classic `honeycomb-menu-item` renderer.
-
-The renderer itself was now correct, but it was being transformed directly as if its host had a fixed height. The classic item calculates its height from internal padding, so percentage-based Y translation produced the collapsed/slanted placement visible in v1.2.6.
-
-- every inline Hub cell now sits inside a fixed-size local anchor wrapper
-- the wrapper has the exact expected Honeycomb width and 114.76% height
-- center positioning is applied to the wrapper, not to the auto-height menu-item host
-- `honeycomb-menu-item` renders at `left: 0; top: 0` inside that wrapper
-- detail cells still reuse the exact classic item renderer and classic spacing
-- multiple inline Hubs remain independent and no global overlay is reintroduced
-
-## v1.2.6 — Reuse the classic Honeycomb item renderer
-
-v1.2.6 stops approximating the established Honeycomb cell appearance in the inline Hub.
-
-- inline Hub root and detail cells now render through the existing `honeycomb-menu-item` component
-- shape, 114.76% hex geometry, spacing, button-card icon/name/label placement and card styling therefore come from the same renderer as the classic menu
-- inline cells remain local DOM children of each Hub, so multiple Hubs can still coexist without a global overlay
-- root short tap continues to use button-card's normal toggle action
-- root long press is intercepted from the same button-card action event and opens the local detail level
-- custom Hub actions such as preset brightness, Color/White palette, Join and Radio are still handled locally
-- the previous native CSS hex renderer is no longer used for Hub cells
-
-## v1.2.5 — Match classic Honeycomb cell spacing
-
-v1.2.5 fixes the remaining visual mismatch between inline Hub detail controls and the established Honeycomb menu.
-
-The classic renderer uses the calculated item size as the **cell pitch**, but each visible hex is smaller because the menu item has `2px` host padding. v1.2.4 matched the pitch but still drew each visible inline hex at the full pitch, making the new layout look oversized, crowded and vertically strange.
-
-- detail cell pitch remains `menu_size / 3.586`
-- visible inline detail hexes now apply the same effective 2px spacing as classic `honeycomb-menu-item`
-- hex height is derived from the classic 114.76% aspect ratio
-- center and all six inner-ring cells use the same spacing
-- outer-ring palette/Join/Radio cells use the same spacing
-- root Hub tiles are unchanged
-
-## v1.2.4 — Classic Honeycomb sizing for inline details
-
-v1.2.4 aligns inline Hub detail controls with the established Honeycomb renderer instead of treating the persistent Hub's `size` as the detailed menu cell size.
-
-- root Hub launchers continue using the configured persistent `size` (for example 82px)
-- detailed light/Sonos controls now use classic Honeycomb sizing: `menu_size / 3.586`
-- default `menu_size: 250` therefore produces ~69.7px control cells, matching the existing Honeycomb menus
-- the selected launcher keeps the exact same physical center point when the detail ring opens
-- inner and outer detail positions are calculated from the detailed cell size
-- adds optional `menu_size` for users who want the inline detail menu larger or smaller
-- native inline architecture and multiple simultaneous room Hubs are retained
-
-## v1.2.3 — Inline hitbox and hex-shape fix
-
-v1.2.3 fixes the odd tile selection and visual mismatch seen in the native inline Hub:
-
-- pointer hit-testing now happens on the clipped hex face, not the tile's full rectangular bounding box
-- transparent corners can no longer steal taps/holds from adjacent hexagons
-- pointer capture keeps a long press bound to the tile that was actually pressed
-- the visible inner face now scales inside the outer hex shell, producing a more even border and a shape closer to the original Honeycomb renderer
-- no changes to the multi-Hub inline architecture
-
-## v1.2.2 — Native inline Hub tiles
-
-v1.2.2 removes the inline Hub's dependency on wrapped `custom:button-card` tiles.
-
-- inline Hub hexagons are now rendered natively by the Hub component
-- the hex shape, border, background, icon, name and secondary state are local DOM/CSS
-- eliminates the collapsed-line rendering seen in v1.2.1
-- root tile short tap toggles directly through Home Assistant
-- root tile long press is handled directly by the Hub and opens local detail controls
-- detail controls execute Home Assistant service actions directly
-- the embedded bee remains available and keeps its wing-flap animation
-- normal non-Hub Honeycomb menus continue using `honeycomb-menu-item` / button-card exactly as before
-
-## v1.2.1 — Inline geometry and interaction fix
-
-v1.2.1 fixes the first inline Hub prototype:
-
-- inline Hub coordinates now use exactly the same proven hex geometry as the normal Honeycomb engine
-- inner-ring spacing is corrected so adjacent hexagons touch cleanly instead of overlapping
-- outer-ring geometry is aligned to the same coordinate model
-- inline wrapped button-cards no longer use `position: fixed`; they fill their own local Hub tile
-- short tap remains a normal Home Assistant toggle
-- long press is intercepted by the inline Hub and opens the selected item's local detail level
-
-## v1.2.0 — Inline Hub architecture
-
-v1.2.0 replaces the persistent Hub's global overlay model with a fully inline component architecture.
-
-- each `custom:honeycomb-persistent-hub` now renders entirely inside its own Lovelace/picture-elements DOM element
-- multiple room Hubs can coexist on the same floorplan without sharing a global Hub overlay
-- editing/moving a picture-element moves the whole Hub because all Hub tiles are local children of that element
-- short tap on a root Hub tile toggles the entity
-- long press opens the next level locally around the exact tile that was held
-- the held tile stays on the same pixels and becomes the local center of its detail controls
-- tapping that promoted center returns to the Hub
-- light detail controls remain inline, including brightness preset, smart Color/White palette and standard color/Kelvin preset
-- Sonos/media detail controls remain inline, including volume, play/pause, Join, Radio and Browse
-- Color/White, Join and Radio expansion use the local outer ring instead of creating a global popup
-- slot `0` remains the Hub center and the automatic 2–7 tile layouts remain unchanged
-
-The existing normal Honeycomb popup/menu engine is unchanged. The new inline architecture applies specifically to `custom:honeycomb-persistent-hub`.
-
-## v1.1.5 — Hub anchoring and edit stability
-
-v1.1.5 fixes Hub positioning during nested navigation and Lovelace editing:
-
-- long-pressing a Hub launcher now re-anchors the next control level on the exact launcher tile that was held
-- the promoted launcher therefore becomes both the visual and physical center of the next Honeycomb level
-- back navigation restores the previous Hub anchor
-- persistent Hub overlays track movement of their picture-elements anchor while the dashboard editor moves or remounts the tile
-- stale Hub overlays are closed when the persistent Hub element disconnects
-- short tap still toggles the entity; long press still opens the detailed control level
-
-This build also introduces automated GitHub release creation from repository release metadata.
-
-## v1.1.4 — Hub tap/hold navigation
-
-v1.1.4 changes Hub launcher interaction to remove accidental navigation and make room control faster:
-
-- short tap on a Hub launcher now toggles the launcher entity
-- long press opens the launcher item's detailed Honeycomb menu
-- light launchers therefore behave like normal wall controls on tap and only open advanced light controls on hold
-- media launchers use the same pattern: tap toggles the media entity; hold opens Sonos/media controls
-- README now includes the Persistent Hub interaction model, slot 0 semantics, automatic layouts, state-aware launcher behavior and a Hub example
-
-This build is intended to be published as a pre-release while the Hub UX is being validated.
-
-## v1.1.3 — Hub state and center slot
-
-v1.1.3 makes Hub launchers state-aware and introduces center slot `0` for Hub layouts.
-
-- Hub light tiles now reflect the live light state before opening:
-  - off = neutral dark tile
-  - on + RGB = current RGB color
-  - on + color temperature = current warm/cool white color
-  - brightness remains visible as the secondary value
-- media tiles use a distinct active color while playing and continue to show the current media title/source/state
-- Hub slot `0` means the physical center position
-- explicit `slot: 0` is supported for Hub items
-- when the logo is disabled, auto-layout may place a real Hub item in slot 0
-- seven Hub items always use slots `0–6` and suppress the logo
-
-Automatic Hub layouts:
-
-Without logo:
-- 2 items: `2,3`
-- 3 items: `2,3,0`
-- 4 items: `1,2,0,3`
-- 5 items: `1,2,0,3,4`
-- 6 items: `1,2,3,4,5,6`
-- 7 items: `0,1,2,3,4,5,6`
-
-With logo in slot 0:
-- 2 items: `2,3`
-- 3 items: `2,4,6`
-- 4 items: `2,3,1,4`
-- 5 items: `1,2,3,4,5`
-- 6 items: `1,2,3,4,5,6`
-- 7 items: logo is suppressed and the no-logo 7-item layout is used
-
-## v1.1.2 — Direct Hub and branded bee
-
-v1.1.2 removes the extra Hub click and turns the bee into branding rather than a navigation gate:
-
-- Hub launcher rings open automatically as soon as the card is rendered
-- two to six Hub items use balanced inner-ring positions around the center
-- the bee logo is shown automatically in the center when two or more Hub items are present
-- set `logo: false` to remove the automatic center logo
-- a Hub item without an icon now uses the built-in Honeycomb bee; set `icon: false` to render no icon
-- the bee uses the shared Honeycomb NG profile mascot artwork, with the same PNG branding in Home Assistant and GitHub
-- tapping a bee triggers a short wing-flap animation without adding a navigation step
-- media launchers now use the established Sonos layout: volume down, play/pause, Join, volume up, Radio and Browse
-- optional Sonos group-volume scripts, Join members and favorites/cache sensors can be configured per media launcher
-
-The master bee artwork is stored as `assets/honeycomb-bee.png`. Those same pixels are embedded in the JavaScript bundle at build time, so Home Assistant does not depend on GitHub or internet access to render the bee.
-
-## v1.1.1 — Hub launcher label fix
-
-v1.1.1 fixes the initial Hub configuration error where the light launcher status template was evaluated too early and raised `b is not defined`.
-
-- light launcher brightness labels are now emitted as literal button-card templates
-- Hub cards can render and open normally
-- no YAML changes are required from v1.1.0
-
-## v1.1.0 — Honeycomb Hub prototype
-
-v1.1.0 introduces a new persistent Hub launcher:
-
-- new `custom:honeycomb-persistent-hub`
-- a blank hub icon (`icon: ""`) renders the built-in Honeycomb bee
-- the hub opens up to six launcher cubes around the persistent center
-- launcher types currently supported in the prototype: `light` and `media`
-- light launchers automatically open the existing auto-light controls from v1.0.14
-- media launchers open a compact Sonos/media control menu with play/pause, volume down/up and info
-- selected launcher cubes can be promoted into the persistent center while their controls open around them
-- tapping the promoted center returns to the Hub
-- Hub launcher cubes can show live state summaries such as light brightness/off state and current media title/source
-- future launcher types are reserved for climate, vehicle, cover and scenes
-
-A blank icon only means "use the Honeycomb bee" on persistent controls. `show_icon: false` still means render no icon.
-
-## v1.0.14 — Auto light controls
-
-v1.0.14 makes the light-specific Honeycomb controls capability-aware and usable with or without Shelly/HA preset helpers:
-
-- `control: light-palette` reads the light's `supported_color_modes`
-  - color-capable lights (for example `xy`, `hs`, `rgb`) automatically open a 12-color outer ring
-  - color-temperature-only lights automatically open a 12-step warm-to-cool white outer ring using the light's own min/max Kelvin attributes
-- `control: preset-standard` automatically chooses the correct standard control
-  - color-capable light + Hue/Saturation helpers: stored HS color
-  - color-temperature light + Kelvin helper: stored Kelvin
-  - no helper configured: warm-white fallback at 2700K
-- `control: preset-brightness` now works without a helper and falls back to 60%
-- `control: preset-kelvin` works without a helper and falls back to 2700K
-- helper-backed controls retain tap-to-apply and hold-to-store behavior
-- fallback controls are apply-only
-- null Home Assistant brightness/Kelvin attributes no longer display as misleading `Now 0%` / `Now 0K`
-
-This allows the same compact YAML to be reused for White Ambiance and full-color lights.
-
-## v1.0.13 — Preset text layout fix
-
-v1.0.13 fixes the visual layout of generated preset controls:
-
-- preset buttons now use a dedicated three-row grid for icon, stored preset value and current light value
-- stored values such as `60%` and `2700K` are centered inside the hexagon instead of being pushed toward or below the edge
-- current values such as `Now 43%` and `Now 3200K` use a smaller secondary line underneath
-- the fix applies to brightness, Kelvin and HS color preset controls without changing ordinary Honeycomb buttons
-
-## v1.0.12 — Preset template runtime fix
-
-v1.0.12 fixes a runtime regression in the new preset controls:
-
-- button-card JavaScript templates used for preset labels are now emitted as literal templates instead of being evaluated while Honeycomb is opening
-- this fixes the long-press failure where a persistent control with `presets:` could not open its base menu
-- stored brightness/Kelvin values and current light values can now be rendered dynamically after the menu opens
-- no configuration changes are required from v1.0.11
-
-## v1.0.11 — Preset controls
-
-v1.0.11 adds native preset controls for persistent light menus:
-
-- `control: preset-brightness` reads a configured Home Assistant `number` entity, displays the stored preset and the light's current brightness, applies the stored value on tap, and stores the current brightness back to the helper on hold
-- `control: preset-kelvin` provides the same tap/apply and hold/store workflow for color temperature
-- `control: preset-color` stores and applies Hue/Saturation using two number entities
-- preset controls inherit the root light entity introduced in v1.0.10, so the light entity still only needs to be declared once
-- helper targets remain explicit under a root `presets:` block
-- normal Honeycomb buttons and existing YAML are unchanged
-
-Example:
-
-```yaml
-type: custom:honeycomb-persistent-control
-entity: light.hue_kontor
-
-presets:
-  brightness:
-    entity: number.ia_stue_20_2_kokken_kokkeno_stue_normal_brightness
-  kelvin:
-    entity: number.ia_stue_20_2_kokken_kokkeno_stue_standard_kelvin
-
-menu:
-  buttons:
-    - slot: 2
-      control: preset-brightness
-    - slot: 4
-      control: preset-kelvin
-```
-
-A preset button shows the stored value as its primary text and the light's current value as secondary text. Tap applies the preset; hold stores the current light value back into the number entity.
-
-For RGB/HS capable lights, configure:
-
-```yaml
-presets:
-  color:
-    hue_entity: number.example_standard_hue
-    saturation_entity: number.example_standard_saturation
-```
-
-and use `control: preset-color`. Tap applies the stored HS color; hold stores the light's current `hs_color` into the two number helpers.
-
-## v1.0.10 — Entity inheritance
-
-v1.0.10 adds entity inheritance to reduce repeated entity IDs in Honeycomb YAML:
-
-- the top-level `entity` becomes the default entity for the menu tree
-- menu center, ring buttons and nested Honeycomb menus inherit it automatically
-- `perform-action` actions automatically receive `target.entity_id` when no target is explicitly supplied
-- legacy `call-service` actions automatically receive `service_data.entity_id` when no explicit target/entity is supplied
-- a button or nested menu can still override inheritance simply by setting its own `entity`
-- explicitly configured action targets always win
-- existing YAML remains backwards compatible
-
-This means a persistent light control can define `entity: light.hue_kontor` once at the root and omit the repeated entity and target blocks from its buttons and nested color palette.
-
-## v1.0.8 — Restore persistent button actions in fixed overlay mode
-
-v1.0.8 fixes a regression introduced by the fixed-overlay placement change:
-
-- anchored persistent menus remain fixed-position overlays, preserving the scroll/placement fix from v1.0.7
-- the overlay is now attached back inside the Lovelace view subtree instead of directly to `document.body`
-- wrapped Honeycomb button cards therefore retain their normal Home Assistant action/event context
-- tap actions, service calls and nested `fire-dom-event` actions work again while the menu remains fixed to the viewport
-- persistent source hiding/restoring and nested anchored expansion are unchanged
-
-## v1.0.7 — Fixed persistent overlay positioning
-
-v1.0.7 fixes the remaining placement jump visible when opening persistent controls near the bottom of a scrolled dashboard:
-
-- anchored persistent menus are now rendered as fixed viewport overlays instead of absolute children of the Lovelace view
-- opening a large reserved outer-ring envelope can therefore no longer increase the dashboard scrollable overflow and trigger browser scroll anchoring
-- anchored positioning now aligns the exact rendered center hexagon to the source control coordinate, instead of positioning from the menu container midpoint
-- the original persistent source cube is hidden while the overlay menu is open and restored when the menu closes, removing the temporary duplicate-center effect
-- nested in-place expansion continues to use the same fixed anchor
-
-## v1.0.6 — Border cleanup and theme-independent ring contrast
-
-v1.0.6 fixes two visual issues found during persistent-control testing:
-
-- the persistent center no longer creates a double dark outline; outer border, inner accent border and center fill are now three uniformly scaled copies of the same SVG hexagon
-- the outer border remains static dark gray while the inner border continues to follow the active/last-known light color
-- persistent ring labels and icons now use an explicit light foreground on the default dark-gray ring background, so they remain readable in both Home Assistant light and dark themes
-- center icon/brightness contrast still adapts automatically to the actual center fill color
-
-## v1.0.5 — Static outer border and stable outer-ring envelope
-
-v1.0.5 refines the persistent light visual and outer-ring expansion:
-
-- the persistent center outer border is now a static dark gray by default, so bright light colors remain visually separated from the dashboard/floorplan background
-- inner border still follows the active/last-known light color
-- center fill still follows the actual light color when on
-- persistent menus now explicitly reserve the full outer-ring layout envelope before the first ring opens when a reachable nested menu uses the outer physical ring
-- opening Color into slots 7–18 therefore does not recalculate the menu footprint and move the anchored center
-
-## v1.0.4 — Smart center contrast and outer color palette
-
-v1.0.4 improves light-focused persistent controls:
-
-- persistent center icons automatically switch between a light and dark foreground based on the current center color, keeping the icon readable across bright and dark RGB colors
-- persistent light centers can show live brightness as secondary text; the default remains `show_brightness: when_on`
-- nested menus can use `inherit_inner: true` to keep the existing six inner controls while adding a nested control surface in the physical outer ring
-- the Hue reference test now expands Color into a 12-color palette in slots 7–18 instead of replacing the inner ring with three text buttons
-- standard nested-menu behavior remains unchanged unless `inherit_inner` is enabled
-
-## v1.0.3 — Persistent nested stability and ring polish
-
-v1.0.3 focuses on the expanded persistent-control experience:
-
-- persistent rings now use a built-in neutral card background and centered icon/name layout when no more specific button styling is supplied
-- the actual rendered persistent-center width is reused when the first ring opens, preventing the center from growing in responsive layouts
-- nested `nested_expand` menus inherit anchored positioning, size, idle timeout and button defaults from the persistent parent
-- nested expansion therefore stays on the same floorplan/dashboard anchor instead of viewport-clamping and causing scroll-position jumps
-- nested menus retain the same persistent hex geometry in the center and use the center as a back control
-- standard non-persistent Honeycomb behavior is unchanged
-
-## v1.0.2 — Persistent gesture and geometry fix
-
-v1.0.2 fixes two regressions found while testing the new persistent control:
-
-- persistent center geometry now uses one shared SVG polygon for the center fill and both border strokes, eliminating the visible shape mismatch caused by scaling multiple hexagons
-- persistent tap/hold handling is now owned by the persistent control itself instead of the wrapped button-card, restoring reliable long-press opening
-- removes the temporary button-card interaction surface from the persistent center, preventing the rotated yellow/active Honeycomb flash on tap
-- single tap still executes the configured primary action; hold opens the anchored Honeycomb menu
-- expanded menus continue to render the same persistent center appearance in the middle
-
-## v1.0.1 — Anchored persistent controls
-
-v1.0.1 refines the persistent-control foundation introduced in v1.0.0:
-
-- persistent hexagons now use SVG geometry so all six sides and both borders remain homogeneous at every size
-- an opened persistent menu is anchored to the exact center of the persistent cube instead of being viewport-clamped away from it
-- the expanded menu renders the same persistent-center visual in its center, including live light color and border state
-- ring button size automatically matches the persistent anchor size by default (`match_anchor_size: true`)
-- standard non-persistent Honeycomb popups continue to use visible-viewport positioning
-
-This establishes the model needed for future persistent room clusters where lights, thermostats and media controls can each expand their own Honeycomb ring from their fixed floorplan position.
-
-## Entity inheritance
-
-From v1.0.10, the root Honeycomb `entity` is inherited throughout the menu tree.
-
-```yaml
-type: custom:honeycomb-persistent-control
-entity: light.hue_kontor
-
-menu:
-  buttons:
-    - slot: 1
-      icon: mdi:brightness-7
-      tap_action:
-        action: perform-action
-        perform_action: light.turn_on
-        data:
-          brightness_pct: 100
-```
-
-The button above automatically uses `light.hue_kontor` as both its entity and action target. Nested Honeycomb menus inherit the same entity unless they explicitly set another one.
-
-## Persistent center control (v1.0)
-
-v1.0 adds an opt-in persistent Honeycomb center that can stay visible on a dashboard or floorplan while the surrounding menu remains hidden until a hold gesture.
-
-The persistent control reuses the existing Honeycomb center geometry and the existing menu engine. Existing popup/menu configurations remain unchanged.
-
-Basic example:
-
-```yaml
-type: custom:honeycomb-persistent-control
-entity: light.hue_kontor
-icon: mdi:lightbulb
-size: 72
-
-tap_action:
-  action: toggle
-
-menu:
-  size: 225
-  empty_slots: hidden
-  buttons:
-    - slot: 1
-      slot_mode: hard
-      entity: light.hue_kontor
-      icon: mdi:brightness-7
-      tap_action:
-        action: perform-action
-        perform_action: light.turn_on
-        target:
-          entity_id: light.hue_kontor
-        data:
-          brightness_pct: 100
-```
-
-Initial v1.0 persistent behavior:
-
-- the center stays visible while idle
-- tap executes the configured primary action
-- hold opens the configured Honeycomb menu
-- closing the menu returns to the persistent center
-- Home Assistant state updates are passed live to the center card
-
-Dynamic light colors, double borders and brightness text build on this persistent-center foundation.
-
-## Layout envelope for nested expansion
-
-When a menu contains a reachable nested menu with `nested_expand: true`, Honeycomb Menu NG can reserve the geometry needed by that submenu before it is opened. This keeps the center and inner ring in the same position when an outer ring is expanded later.
-
-The default is:
-
-```yaml
-layout_envelope: auto
-```
-
-Modes:
-
-- `auto` — inspect reachable `nested_expand` menus and reserve outer-ring space when needed
-- `inner` — reserve only the current inner-ring footprint
-- `outer` — always reserve the full inner + outer footprint
-
-The envelope only affects geometry and positioning. It does not render empty outer-ring buttons.
-
-## Empty slots
-
-By default, unused positions in active rings remain visible:
-
-```yaml
-empty_slots: visible
-```
-
-To show only configured buttons:
-
-```yaml
-empty_slots: hidden
-```
-
-Only slots belonging to active rings are affected.
-
-## Center button
-
-The center button is enabled automatically unless explicitly disabled.
-
-By default it:
-
-- uses the Honeycomb menu `entity`
-- inherits `active`
-- uses `autoclose: true`
-- opens `more-info` when tapped
-
-### Override the center button
-
-```yaml
-honeycomb_menu:
-  entity: light.kitchen
-  center_button:
-    icon: mdi:lightbulb-group
-    tap_action:
-      action: toggle
-```
-
-### Disable the center button
-
-```yaml
-center_button: false
-```
-
-### Center brightness
-
-When the center button inherits its background from `button_defaults`, Honeycomb Menu NG makes it slightly lighter so the center is visually distinct.
-
-The default is:
-
-```yaml
-center_brightness: 15
-```
-
-This means a 15% lightness boost where the inherited background color can be parsed. If the color cannot be parsed, a brightness filter is used as fallback.
-
-Set it to `0` to disable the automatic contrast:
-
-```yaml
-center_brightness: 0
-```
-
-Or increase it:
-
-```yaml
-center_brightness: 25
-```
-
-If `center_button` defines its own background color, that explicit background wins and the automatic center adjustment is not applied.
-
-## Global button defaults
-
-Use `button_defaults` to apply common configuration to all ring buttons without repeating it on every button.
-
-```yaml
-honeycomb_menu:
-  entity: light.kitchen
-  button_defaults:
-    styles:
-      card:
-        - background: rgba(110, 110, 110, 0.65)
-        - border: 1px solid rgba(255, 255, 255, 0.12)
-  buttons:
-    - icon: mdi:lightbulb-on-outline
-      tap_action:
-        action: toggle
-
-    - icon: mdi:lightbulb-off-outline
-      tap_action:
-        action: call-service
-        service: light.turn_off
-        service_data:
-          entity_id: light.kitchen
-```
-
-A button can override any default locally:
-
-```yaml
-- icon: mdi:lightbulb-group
-  styles:
-    card:
-      - background: rgba(150, 150, 150, 0.70)
-```
-
-## Slot positioning
-
-### Automatic positioning
-
-If no `slot` or legacy `position` is supplied, buttons are assigned to the first free position in the active layout.
-
-```yaml
-buttons:
-  - icon: mdi:lightbulb
-  - icon: mdi:fan
-  - icon: mdi:door
-```
-
-### Soft slots — default
-
-`slot` is a **preference** by default.
-
-```yaml
-- slot: 9
-  icon: mdi:lightbulb
-```
-
-If the requested physical slot belongs to an active ring, the button stays there.
-
-If that ring is not active, the requested slot is mapped to the corresponding position in the active ring. If the preferred position is already occupied, Honeycomb Menu NG moves clockwise to the first free position.
-
-Examples:
-
-- 5 buttons + soft `slot: 7` → inner slot 1
-- 9 buttons + soft `slot: 9` → physical outer slot 9
-- 14 buttons + soft `slot: 9` → physical slot 9
-
-### Hard slots
-
-Use `slot_mode: hard` when the physical position must not move.
-
-```yaml
-- slot: 9
-  slot_mode: hard
-  icon: mdi:lightbulb
-```
-
-Hard slots:
-
-- always use the exact physical slot
-- can force inner and/or outer rings to become active
-- are never moved to resolve a conflict
-
-If two hard buttons request the same physical slot, the first one wins and a warning is written to the browser console.
-
-### Legacy `position`
-
-The original `position` option remains supported for backwards compatibility and behaves as an absolute physical/index position.
-
-```yaml
-- position: 0
-  icon: mdi:lightbulb
-```
-
-For new configurations, prefer `slot` and `slot_mode`.
-
-## Nested Honeycomb menus
-
-A Honeycomb button can open another Honeycomb menu by using `fire-dom-event` in its own action.
-
-```yaml
-buttons:
-  - icon: mdi:menu-right
-    tap_action:
-      action: fire-dom-event
-      honeycomb_menu:
-        entity: light.kitchen
-        buttons:
-          - icon: mdi:lightbulb-on-outline
-            tap_action:
-              action: call-service
-              service: light.turn_on
-              service_data:
-                entity_id: light.kitchen
-
-          - icon: mdi:lightbulb-off-outline
-            tap_action:
-              action: call-service
-              service: light.turn_off
-              service_data:
-                entity_id: light.kitchen
-```
-
-The currently open Honeycomb menu is closed when the nested menu opens.
-
-## Example: picture-elements
-
-```yaml
-type: picture-elements
-image:
-  media_content_id: media-source://image_upload/your-image-id
-  media_content_type: image/png
-
-elements:
-  - type: state-icon
-    entity: light.kitchen
-    style:
-      left: 20%
-      top: 20%
-    tap_action:
-      action: toggle
-    hold_action:
-      action: fire-dom-event
-      honeycomb_menu:
-        entity: light.kitchen
-        autoclose: true
-        active: true
-        empty_slots: hidden
-        center_brightness: 15
-
-        button_defaults:
-          styles:
-            card:
-              - background: rgba(170, 95, 95, 0.72)
-              - border: 1px solid rgba(255, 255, 255, 0.12)
-
-        center_button:
-          icon: mdi:lightbulb-group
-          tap_action:
-            action: more-info
-
-        buttons:
-          - icon: mdi:lightbulb-on-outline
-            tap_action:
-              action: call-service
-              service: light.turn_on
-              service_data:
-                entity_id: light.kitchen
-
-          - slot: 3
-            icon: mdi:lightbulb-off-outline
-            tap_action:
-              action: call-service
-              service: light.turn_off
-              service_data:
-                entity_id: light.kitchen
-
-          - icon: mdi:dots-horizontal
-            tap_action:
-              action: more-info
-```
-
-## Honeycomb menu options
-
-| Option | Values | Default | Description |
-|---|---|---|---|
-| `entity` | entity ID | `null` | Primary entity used by the menu and inherited by buttons |
-| `buttons` | list | `[]` | Ring button definitions |
-| `active` | boolean / template | `false` | Enables active styling based on entity state or template result |
-| `autoclose` | boolean | `true` | Default close behaviour after a button action |
-| `audio` | URL/path | `false` | Default audio played when a button is tapped |
-| `xy_pad` | object | `null` | Optional XY control pad |
-| `size` | integer | `225` | Overall Honeycomb size |
-| `spacing` | integer | `2` | Padding between Honeycomb items |
-| `variables` | object | `{}` | Variables available to Honeycomb templates |
-| `animation_speed` | integer (ms) | `100` | Delay increment between button animations |
-| `button_defaults` | object | `{}` | Shared configuration merged into ring buttons |
-| `empty_slots` | `visible` / `hidden` | `visible` | Controls empty positions in active rings |
-| `center_button` | object / `false` | `{}` | Center button override, or `false` to disable it |
-| `center_brightness` | number | `15` | Automatic center-background lightness boost in percent |
-
-## Button options
-
-Ring buttons use `custom:button-card` by default, so most button-card options can be passed through.
-
-| Option | Values | Default | Description |
-|---|---|---|---|
-| `type` | card type | `custom:button-card` | Underlying Lovelace card used inside the hex |
-| `entity` | entity ID | menu entity | Entity used by the button |
-| `icon` | icon | — | Icon shown by the button |
-| `show` | boolean / template | `true` | Whether the button is available |
-| `active` | boolean / template | menu `active` | Per-button active override |
-| `autoclose` | boolean | menu `autoclose` | Per-button autoclose override |
-| `audio` | URL/path | menu `audio` | Per-button audio override |
-| `slot` | `1–18` | — | Preferred or physical slot depending on slot mode |
-| `slot_mode` | `soft` / `hard` | `soft` | Soft preference or hard physical placement |
-| `position` | integer | — | Legacy absolute/index placement |
-| `tap_action` | action | — | Tap action |
-| `hold_action` | action | — | Hold action |
-| `double_tap_action` | action | — | Double-tap action |
-
-Additional options supported by the underlying card can also be supplied.
-
-## XY Pad
-
-The optional XY pad can execute services based on X and/or Y movement.
-
-Typical uses include:
-
-- light brightness
-- hue or color changes
-- blinds and covers
-- relative volume or other service values
-
-```yaml
-honeycomb_menu:
-  entity: light.kitchen
-  xy_pad:
-    repeat: 500
-    y:
-      invert: true
-      service: light.turn_on
-      data:
-        entity_id: entity
-        brightness_step_pct: 'HCJS: return variables.y_percentage / 10;'
-```
-
-### XY Pad options
-
-| Option | Values | Default | Description |
-|---|---|---|---|
-| `repeat` | integer (ms) / `false` | `false` | Repeat service calls while the pad remains active |
-| `on_release` | boolean | `false` | Only call the service when the pad is released |
-| `x` | object | `null` | X-axis configuration |
-| `y` | object | `null` | Y-axis configuration |
-
-### XY axis options
-
-| Option | Values | Default | Description |
-|---|---|---|---|
-| `invert` | boolean | `false` | Reverse positive and negative direction |
-| `service` | service | — | Service to call |
-| `data` / `service_data` | object | — | Service payload; supports Honeycomb templating |
-
-The XY pad exposes:
-
-```text
-variables.x
-variables.y
-variables.x_percentage
-variables.y_percentage
-```
-
-## Templating
-
-Honeycomb Menu keeps the original templating system.
-
-### HCJS
-
-```yaml
-active: 'HCJS: return entity.state === "on";'
-```
-
-### Triple-bracket JavaScript
-
-`custom:button-card` configuration can continue to use button-card JavaScript templates where supported:
-
-```yaml
-name: >
-  [[[
-    return entity.state;
-  ]]]
-```
-
-### Template literal syntax
-
-```yaml
-brightness_step_pct: '${variables.y_percentage}'
-```
-
-The literal word `entity` in Honeycomb service data is replaced with the Honeycomb menu entity.
-
-## Honeycomb templates and variables
-
-Existing Honeycomb templates remain supported and can inherit/override configuration through the original merge hierarchy.
-
-Example:
-
-```yaml
-light:
-  variables:
-    motion: null
-  buttons:
-    - icon: mdi:information-variant
-      tap_action:
-        action: more-info
-
-    - icon: mdi:motion-sensor
-      show: 'HCJS: return variables.motion;'
-      entity: 'HCJS: return variables.motion;'
-      active: true
-      tap_action:
-        action: toggle
-```
-
-Use it with:
-
-```yaml
-hold_action:
-  action: fire-dom-event
-  honeycomb_menu:
-    template: light
-    entity: light.kitchen
-    variables:
-      motion: automation.kitchen_motion
-```
-
-## Theme variables
-
-Honeycomb Menu NG retains the original theme variables:
-
-```css
---honeycomb-menu-icon-color: var(--paper-item-icon-color);
---honeycomb-menu-icon-active-color: var(--paper-item-icon-active-color);
---honeycomb-menu-background-color: var(--paper-card-background-color);
---honeycomb-menu-active-background-color: var(--paper-card-active-background-color, var(--paper-card-background-color));
---honeycomb-menu-disabled: #9a9a9a6e;
-```
-
-`button_defaults` is usually the easiest way to apply menu-specific styling directly from YAML.
+          action: perform-action
+          perform_action: light.turn_off
+~~~
+
+Full classic reference, including center buttons, soft/hard slots, nested menus, XY Pad and templates:
+
+**[docs/CLASSIC_MENU.md](docs/CLASSIC_MENU.md)**
+
+## Documentation map
+
+- [Light module](docs/LIGHT_MODULE.md)
+- [Sonos module](docs/SONOS_MODULE.md)
+- [AI setup specification](docs/AI_SETUP.md)
+- [Classic popup reference](docs/CLASSIC_MENU.md)
+- [Architecture / module contract](ARCHITECTURE.md)
+- [Persistent Hub example](examples/persistent-hub.yaml)
+- [Light presets example](examples/light-presets.yaml)
+- [Sonos favorites cache example](examples/sonos-favorites-cache.yaml)
+- [Sonos Join toggle script](examples/sonos-toggle-member.yaml)
+- [GitHub Releases](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases)
 
 ## Updating
 
-When updating through HACS:
+After HACS update:
+1. reload the dashboard/browser
+2. hard-refresh if old JavaScript is cached
+3. confirm the installed version
 
-1. Install the new Honeycomb Menu NG version.
-2. Reload the Home Assistant frontend.
-3. If the old JavaScript is still visible, perform a hard browser refresh / clear the frontend cache.
+## Development and architecture
 
-## Backwards compatibility
+Honeycomb Menu NG is a **modular monolith**:
+- core owns navigation, geometry and anchor state
+- renderers display declarative configs
+- domain modules own Light/Media/Sonos behavior
+- modules may expand rings but may not move the locked module center
 
-Honeycomb Menu NG aims to remain compatible with existing Honeycomb Menu configurations.
+Non-negotiable rule:
 
-Notable compatibility behaviour:
+> Only selecting a module from the persistent Hub base may establish a new module center. Once inside that module, slot 0 never moves until navigation returns to the base.
 
-- legacy `position` remains supported
-- original Honeycomb templates remain supported
-- XY pad behaviour remains available
-- normal button actions remain compatible
+See [ARCHITECTURE.md](ARCHITECTURE.md).
 
-New configurations should generally use `slot` instead of `position`.
+## Origins, credits and license
 
-## Roadmap
+Honeycomb Menu NG originated as a fork of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu), created by **Sian Croser**.
 
-Planned / experimental ideas include:
+The NG codebase has expanded substantially, but portions of the original implementation remain. The project therefore retains the original attribution and GPLv3 license rather than treating the original project as idea-only inspiration.
 
-- improved mouse-hover interaction
-- improved touch-drag interaction
-- additional nested-menu navigation options
-- more reusable menu presets and examples
+Current NG development/maintenance: **Nicolai Tandrup**.
 
-## Examples and original documentation
+License: **GPLv3**. See [LICENSE](LICENSE).
 
-The original project contains additional examples and background information:
-
-- [Original Honeycomb Menu](https://github.com/Sian-Lee-SA/honeycomb-menu)
-- [Honeycomb Module: Hex PopUp Menu For Home Assistant](https://smarthomescene.com/guides/honeycomb-module-hex-popup-menu-for-home-assistant/)
-- [button-card](https://github.com/custom-cards/button-card)
-
-Existing media from the original project:
-
-![Example of Honeycomb](examples/example-1.gif)
-![Example of XYPad](examples/example-xypad.gif)
-
-## Credits
-
-Honeycomb Menu NG is based on the original [Honeycomb Menu](https://github.com/Sian-Lee-SA/honeycomb-menu) project by Sian Lee / Sian-Lee-SA.
-
-The original project was designed around [button-card](https://github.com/custom-cards/button-card) by [@RomRider](https://github.com/RomRider).
-
-## Support the original author
-
-<a href="https://www.paypal.com/donate/?business=A82MM255CXF9L&no_recurring=0&item_name=Donating+will+help+justify+my+time+coding+and+doing+projects+that+also+benifits+others.+Any+amount+is+greatly+appreciated%21&currency_code=AUD"><img src="https://github.com/andreostrovsky/donate-with-paypal/raw/master/blue.svg" height="38"></a>
-
-[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/SianLee)
+Original author support link: [Buy Me A Coffee — Sian Lee](https://www.buymeacoffee.com/SianLee)
