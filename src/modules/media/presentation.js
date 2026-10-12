@@ -31,7 +31,7 @@ function resolve({ config, state })
                 inner: unavailable,
                 outer: unavailable
             },
-            secondary: null
+            secondary: 'Unavailable'
         };
     }
 

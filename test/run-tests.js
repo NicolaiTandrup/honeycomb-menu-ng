@@ -233,6 +233,35 @@ function testPersistentPresentations()
     assert.strictEqual(mediaIdle.secondary, null);
     assert.strictEqual(mediaIdle.colors.center, '#202224');
     assert.strictEqual(mediaIdle.colors.inner, '#ff9800');
+
+    const lightUnavailable = light.presentation.resolve({
+        config: {
+            colors: { unavailable: '#555b63' }
+        },
+        state: {
+            state: 'unavailable',
+            attributes: {}
+        },
+        runtime: { lastKnownColor: null }
+    });
+
+    assert.strictEqual(lightUnavailable.secondary, 'Unavailable');
+    assert.strictEqual(lightUnavailable.colors.center, '#555b63');
+    assert.strictEqual(lightUnavailable.colors.inner, '#555b63');
+
+    const mediaUnavailable = media.presentation.resolve({
+        config: {
+            colors: { unavailable: '#555b63' }
+        },
+        state: {
+            state: 'unavailable',
+            attributes: {}
+        }
+    });
+
+    assert.strictEqual(mediaUnavailable.secondary, 'Unavailable');
+    assert.strictEqual(mediaUnavailable.colors.center, '#555b63');
+    assert.strictEqual(mediaUnavailable.colors.inner, '#555b63');
 }
 
 function withFakeHomeAssistant(states, callback)
