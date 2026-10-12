@@ -5,6 +5,7 @@ const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
+const { unavailableLabel } = require('./core/entity-status.js');
 
 class HoneycombPersistentControl extends LitElement
 {
@@ -200,6 +201,8 @@ class HoneycombPersistentControl extends LitElement
             center_button: {},
             show_brightness: 'when_on',
             show_volume: 'when_playing',
+            show_unavailable: true,
+            unavailable_label: 'Unavailable',
             active_color: '#00bcd4',
             match_anchor_size: true,
             face_mode: 'inset',
@@ -285,6 +288,7 @@ class HoneycombPersistentControl extends LitElement
             };
         }
 
+        const state = this._entityState();
         const module = moduleRegistry.resolvePresentation(
             this.config ? this.config.mode : null
         );
@@ -297,14 +301,19 @@ class HoneycombPersistentControl extends LitElement
 
             const presentation = module.presentation.resolve({
                 config: this.config || {},
-                state: this._entityState(),
+                state,
                 runtime
             });
 
             this._lastKnownColor = runtime.lastKnownColor || this._lastKnownColor;
 
             if( presentation && presentation.colors )
-                return presentation;
+            {
+                return {
+                    ...presentation,
+                    secondary: unavailableLabel(state, this.config || {}) || presentation.secondary
+                };
+            }
         }
 
         const unavailable = configured.unavailable || '#555b63';
@@ -315,7 +324,7 @@ class HoneycombPersistentControl extends LitElement
                 inner: unavailable,
                 outer: unavailable
             },
-            secondary: null
+            secondary: unavailableLabel(state, this.config || {})
         };
     }
 

@@ -8,6 +8,7 @@ const { ModuleRegistry } = require('../src/core/module-registry.js');
 const { moduleRegistry } = require('../src/modules/index.js');
 const { applyPresetControls } = require('../src/modules/light/controls.js');
 const { toCenterDescriptor } = require('../src/core/hub-launcher.js');
+const { unavailableLabel } = require('../src/core/entity-status.js');
 
 function testNavigationAnchorLock()
 {
@@ -65,6 +66,23 @@ function testGlobalNavigationDoesNotLock()
 
     assert.strictEqual(context.moduleAnchor, null);
     assert.strictEqual(navigation.canEstablishAnchor(context), true);
+}
+
+function testUnavailableStatusLabel()
+{
+    assert.strictEqual(unavailableLabel({ state: 'unavailable' }, {}), 'Unavailable');
+    assert.strictEqual(unavailableLabel(null, {}), 'Unavailable');
+    assert.strictEqual(
+        unavailableLabel({ state: 'unavailable' }, { unavailable_label: 'Offline' }),
+        'Offline'
+    );
+    assert.strictEqual(
+        unavailableLabel({ state: 'unavailable' }, { show_unavailable: false }),
+        null
+    );
+    assert.strictEqual(unavailableLabel({ state: 'off' }, {}), null);
+    assert.strictEqual(unavailableLabel({ state: 'playing' }, {}), null);
+    assert.strictEqual(unavailableLabel({ state: 'unknown' }, {}), null);
 }
 
 function testPersistentHexGeometry()
@@ -535,6 +553,7 @@ function run()
 {
     testNavigationAnchorLock();
     testGlobalNavigationDoesNotLock();
+    testUnavailableStatusLabel();
     testPersistentHexGeometry();
     testLayoutGrowthKeepsCenterDefinition();
     testModuleRegistry();
