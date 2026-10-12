@@ -203,6 +203,7 @@ class HoneycombPersistentControl extends LitElement
             active_color: '#00bcd4',
             match_anchor_size: true,
             face_mode: 'inset',
+            restore_on_close: true,
             hold_time: 500,
             colors: {
                 center: 'auto',
@@ -610,11 +611,14 @@ class HoneycombPersistentControl extends LitElement
         {
             this.style.visibility = 'hidden';
 
-            const restore = () => {
-                this.style.visibility = '';
-            };
+            if( this.config.restore_on_close !== false )
+            {
+                const restore = () => {
+                    this.style.visibility = '';
+                };
 
-            openedMenu.addEventListener('closed', restore, { once: true });
+                openedMenu.addEventListener('closed', restore, { once: true });
+            }
         }
 
         return openedMenu || null;

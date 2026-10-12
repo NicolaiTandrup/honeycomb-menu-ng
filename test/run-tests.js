@@ -467,10 +467,22 @@ function testArchitectureBoundaries()
     assert.strictEqual(lightControlsSource.includes('fire-dom-event'), false);
     assert.ok(lightControlsSource.includes('honeycomb-open-nested'));
 
+    const persistentControlSource = fs.readFileSync(
+        path.resolve(__dirname, '../src/honeycomb-persistent-control.js'),
+        'utf8'
+    );
     const rendererSource = fs.readFileSync(
         path.resolve(__dirname, '../src/honeycomb-menu.js'),
         'utf8'
     );
+
+    // Persistent-Hub lifecycle contracts.
+    assert.ok(hubSource.includes('honeycomb_menu_context_dispose'));
+    assert.ok(hubSource.includes('center._persistent_launcher === true'));
+    assert.ok(hubSource.includes("next.restore_on_close = next.auto_open === false"));
+    assert.ok(persistentControlSource.includes('restore_on_close !== false'));
+    assert.ok(rendererSource.includes('window.honeycomb_menu_context_dispose'));
+    assert.ok(rendererSource.includes('while( context.stack.length > 0 )'));
 
     assert.strictEqual(rendererSource.includes('_handleMediaVolumeAction('), false);
     assert.strictEqual(rendererSource.includes('_handlePresetAction('), false);
