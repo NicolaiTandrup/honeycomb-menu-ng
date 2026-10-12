@@ -77,7 +77,7 @@ function resolve({ config, state, runtime })
                 inner: unavailable,
                 outer: unavailable
             },
-            secondary: null
+            secondary: 'Unavailable'
         };
     }
 
