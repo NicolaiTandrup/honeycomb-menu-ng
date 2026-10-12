@@ -1,12 +1,16 @@
 {
   "name": "honeycomb-menu-ng",
   "private": true,
-  "version": "1.4.7",
+  "version": "1.4.8",
   "description": "Enhanced Honeycomb popup menu for Home Assistant with flexible layouts, shared styling and improved interaction.",
   "scripts": {
     "build": "webpack",
     "watch": "webpack --watch --mode=development",
-    "test": "node test/run-tests.js"
+    "test": "node test/run-tests.js",
+    "prepare:brand": "node scripts/generate-bee-asset.js",
+    "pretest": "npm run prepare:brand",
+    "prebuild": "npm run prepare:brand",
+    "prewatch": "npm run prepare:brand"
   },
   "repository": {
     "type": "git",
