@@ -389,14 +389,21 @@ function testModuleMenusAreDeclarative()
             .buttons[0];
 
     assert.strictEqual(firstFavorite.show_icon, true);
+    assert.strictEqual(firstFavorite.show_name, true);
 
-    const favoriteDisplayRule =
+    const favoriteIconDisplayRule =
         firstFavorite.styles.icon.find(rule =>
             Object.prototype.hasOwnProperty.call(rule, 'display')
         );
+    const favoriteNameDisplayRule =
+        firstFavorite.styles.name.find(rule =>
+            Object.prototype.hasOwnProperty.call(rule, 'display')
+        );
 
-    assert.ok(favoriteDisplayRule);
-    assert.ok(String(favoriteDisplayRule.display).includes("match?.thumbnail"));
+    assert.ok(favoriteIconDisplayRule);
+    assert.ok(favoriteNameDisplayRule);
+    assert.ok(String(favoriteIconDisplayRule.display).includes("match?.thumbnail"));
+    assert.ok(String(favoriteNameDisplayRule.display).includes("match?.thumbnail"));
 }
 
 function collectJsFiles(root)

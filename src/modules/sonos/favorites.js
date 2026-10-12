@@ -19,13 +19,7 @@ function buildRadioMenu(item)
             ]]]`,
             icon: 'mdi:radio',
             show_icon: true,
-            show_name: `[[[
-                const base = states['${favorites}']?.attributes?.items || {};
-                const id = Object.keys(base)[${index}];
-                const cached = states['${cache}']?.attributes?.items || [];
-                const match = cached.find(x => x?.media_content_id === id);
-                return !Boolean(match?.thumbnail);
-            ]]]`,
+            show_name: true,
             name: `[[[
                 const items = states['${favorites}']?.attributes?.items || {};
                 return Object.values(items)[${index}] || '';
@@ -68,7 +62,16 @@ function buildRadioMenu(item)
                     { 'font-weight': '600' },
                     { 'white-space': 'nowrap' },
                     { overflow: 'hidden' },
-                    { 'text-overflow': 'ellipsis' }
+                    { 'text-overflow': 'ellipsis' },
+                    {
+                        display: `[[[
+                            const base = states['${favorites}']?.attributes?.items || {};
+                            const id = Object.keys(base)[${index}];
+                            const cached = states['${cache}']?.attributes?.items || [];
+                            const match = cached.find(x => x?.media_content_id === id);
+                            return match?.thumbnail ? 'none' : 'block';
+                        ]]]`
+                    }
                 ]
             },
             tap_action: {
