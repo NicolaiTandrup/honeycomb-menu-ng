@@ -7,6 +7,7 @@ const layout = require('../src/core/layout.js');
 const { ModuleRegistry } = require('../src/core/module-registry.js');
 const { moduleRegistry } = require('../src/modules/index.js');
 const { applyPresetControls } = require('../src/modules/light/controls.js');
+const { toCenterDescriptor } = require('../src/core/hub-launcher.js');
 
 function testNavigationAnchorLock()
 {
@@ -333,6 +334,46 @@ function testLightNestedMenusStayInOwningContext()
     );
 }
 
+function testSonosSlotZeroUsesPersistentContract()
+{
+    const sonos = moduleRegistry.resolve({
+        type: 'media',
+        entity: 'media_player.sommerhus'
+    });
+
+    const launcher = sonos.buildLauncher({
+        item: {
+            type: 'media',
+            entity: 'media_player.sommerhus',
+            icon: 'mdi:speaker',
+            active_color: '#00bcd4'
+        },
+        index: 2,
+        slot: 0,
+        submenu: sonos.buildMenu({
+            item: {
+                type: 'media',
+                entity: 'media_player.sommerhus',
+                icon: 'mdi:speaker',
+                active_color: '#00bcd4'
+            }
+        })
+    });
+
+    const center = toCenterDescriptor(sonos, launcher);
+
+    assert.strictEqual(sonos.launcherKind, 'persistent');
+    assert.strictEqual(center.kind, 'persistent');
+    assert.strictEqual(center.config.mode, 'media');
+    assert.strictEqual(center.config.entity, 'media_player.sommerhus');
+    assert.strictEqual(center.config.interactive, true);
+    assert.strictEqual(center.config.active_color, '#00bcd4');
+    assert.ok(center.config.menu);
+    assert.strictEqual(center.config.slot, undefined);
+    assert.strictEqual(center.config.slot_mode, undefined);
+    assert.strictEqual(center.config._persistent_launcher, undefined);
+}
+
 function testModuleMenusAreDeclarative()
 {
     const light = moduleRegistry.resolve({ type: 'light' });
@@ -478,7 +519,9 @@ function testArchitectureBoundaries()
 
     // Persistent-Hub lifecycle contracts.
     assert.ok(hubSource.includes('honeycomb_menu_context_dispose'));
-    assert.ok(hubSource.includes('center._persistent_launcher === true'));
+    assert.ok(hubSource.includes('toCenterDescriptor(centerEntry.module, centerEntry.launcher)'));
+    assert.ok(hubSource.includes("center.kind === 'persistent'"));
+    assert.strictEqual(hubSource.includes('center._persistent_launcher === true'), false);
     assert.ok(hubSource.includes("next.restore_on_close = next.auto_open === false"));
     assert.ok(persistentControlSource.includes('restore_on_close !== false'));
     assert.ok(rendererSource.includes('window.honeycomb_menu_context_dispose'));
@@ -498,6 +541,7 @@ function run()
     testBuiltInModuleResolution();
     testPersistentPresentations();
     testLightNestedMenusStayInOwningContext();
+    testSonosSlotZeroUsesPersistentContract();
     testModuleMenusAreDeclarative();
     testArchitectureBoundaries();
 

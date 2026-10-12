@@ -3,6 +3,7 @@ import HoneycombPersistentControl from "./honeycomb-persistent-control.js";
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
+const { toCenterDescriptor } = require('./core/hub-launcher.js');
 
 class HoneycombPersistentHub extends HoneycombPersistentControl
 {
@@ -22,6 +23,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         this._lastAnchorY = null;
         this._menuContext = null;
         this._hubBaseFaceMode = 'cell';
+        this._hubCenterDescriptor = null;
     }
 
     _ensureMenuContext()
@@ -93,6 +95,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         this._lastAnchorX = null;
         this._lastAnchorY = null;
         this._menuContext = null;
+        this._hubCenterDescriptor = null;
     }
 
     _watchAnchor()
@@ -266,27 +269,22 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         }
         else
         {
-            if( this._hubCenterButton )
-            {
-                const center = merge({}, this._hubCenterButton);
-                delete center.slot;
-                delete center.slot_mode;
+            const center = this._hubCenterDescriptor;
 
-                if( center._persistent_launcher === true )
+            if( center && center.config )
+            {
+                if( center.kind === 'persistent' )
                 {
-                    // A native Light/Media launcher in physical slot 0 must
-                    // remain a persistent control. Rendering it through
-                    // center_button converts it to a generic button-card and
-                    // loses native state visuals + hold-to-open behavior.
-                    delete center._persistent_launcher;
-                    center.interactive = true;
-                    menu.persistent_center = center;
+                    // Physical slot 0 uses the same native control contract as
+                    // the exact same module would use on the ring. Sonos/light
+                    // therefore keep native live state + hold-to-open behavior.
+                    menu.persistent_center = merge({}, center.config);
                     menu.center_button = null;
                 }
                 else
                 {
                     menu.persistent_center = null;
-                    menu.center_button = center;
+                    menu.center_button = merge({}, center.config);
                 }
             }
             else
@@ -299,9 +297,9 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         return menu;
     }
 
-    _launcherButton(item, index, slot)
+    _launcherButton(item, index, slot, resolvedModule = null)
     {
-        const module = moduleRegistry.resolve(item, this.hass);
+        const module = resolvedModule || moduleRegistry.resolve(item, this.hass);
 
         if( ! module )
             throw new Error(`No Honeycomb module could handle item type "${item && item.type}".`);
@@ -377,10 +375,16 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
         const resolved = items.map((item, index) => {
             const targetSlot = item.slot !== undefined ? Number(item.slot) : slots[index];
+            const slot = Number.isInteger(targetSlot) ? targetSlot : slots[index];
+            const module = moduleRegistry.resolve(item, this.hass);
+            const launcher = this._launcherButton(item, index, slot, module);
+
             return {
                 item,
                 index,
-                slot: Number.isInteger(targetSlot) ? targetSlot : slots[index]
+                slot,
+                module,
+                launcher
             };
         });
 
@@ -389,12 +393,15 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             : null;
 
         this._hubCenterButton = centerEntry
-            ? this._launcherButton(centerEntry.item, centerEntry.index, 0)
+            ? centerEntry.launcher
+            : null;
+        this._hubCenterDescriptor = centerEntry
+            ? toCenterDescriptor(centerEntry.module, centerEntry.launcher)
             : null;
 
         const ringButtons = resolved
             .filter(entry => entry.slot !== 0)
-            .map(entry => this._launcherButton(entry.item, entry.index, entry.slot));
+            .map(entry => entry.launcher);
 
         next.menu = merge({}, next.menu || {}, {
             empty_slots: 'hidden',
