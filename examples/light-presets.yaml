@@ -1,0 +1,24 @@
+# Light example with shared preset values.
+#
+# These numeric entities can be provided by another device/integration
+# (for example a Shelly exposing writable number.* values) or by Home
+# Assistant input_number helpers.
+
+type: custom:honeycomb-persistent-hub
+name: Living room
+size: 82
+logo: auto
+
+items:
+  - type: light
+    entity: light.living_room
+    name: Living room
+    icon: mdi:lightbulb
+    presets:
+      brightness:
+        entity: number.wall_switch_normal_brightness
+      kelvin:
+        entity: number.wall_switch_standard_kelvin
+      color:
+        hue_entity: number.wall_switch_standard_hue
+        saturation_entity: number.wall_switch_standard_saturation

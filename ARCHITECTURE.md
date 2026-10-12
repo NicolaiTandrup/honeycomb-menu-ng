@@ -1,4 +1,4 @@
-# Honeycomb Menu NG architecture (v1.4+)
+# Honeycomb Menu NG architecture (v1.5+)
 
 Honeycomb NG is a **modular monolith**. Domain modules describe capabilities and menus; the core owns geometry, navigation and rendering.
 
@@ -73,3 +73,16 @@ Existing Hub YAML remains valid. `type: light` resolves to the light module. Exi
 ## Adding a module
 
 Create the module under `src/modules/<name>/`, register it in `src/modules/index.js`, and add core-contract tests. New modules must not import the menu renderer or manipulate anchor/navigation state.
+
+
+## Documentation contract
+
+Public v1.5 documentation is split by responsibility:
+
+- `README.md` — human-first overview and quick start
+- `docs/AI_SETUP.md` — deterministic configuration contract for AI assistants
+- `docs/LIGHT_MODULE.md` — Light/preset/helper behavior
+- `docs/SONOS_MODULE.md` — Sonos favorites, artwork cache, grouping and volume
+- `docs/CLASSIC_MENU.md` — classic popup/XY-pad/template compatibility reference
+
+When changing a public module schema, update both the human module document and the AI setup contract in the same pull request.

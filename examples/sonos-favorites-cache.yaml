@@ -1,0 +1,62 @@
+# Sonos Favorites Cache for Honeycomb Menu NG
+#
+# sensor.sonos_favorites supplies favorite names + IDs.
+# This optional trigger-based template sensor enriches them with Browse Media
+# thumbnails so Honeycomb can render station logos.
+#
+# Replace every media_player.living_room with one real Sonos player.
+#
+# If configuration.yaml already has:
+#   template: !include templates.yaml
+# copy only the list item beginning with "- triggers:" into templates.yaml.
+
+template:
+  - triggers:
+      - trigger: event
+        event_type: sonos_favorites_refresh
+
+      # No from/to means attribute changes also trigger a refresh.
+      - trigger: state
+        entity_id: sensor.sonos_favorites
+
+      - trigger: time_pattern
+        minutes: "/15"
+
+    conditions:
+      - condition: template
+        value_template: >
+          {{ has_value('media_player.living_room')
+             and has_value('sensor.sonos_favorites') }}
+
+    actions:
+      - action: media_player.browse_media
+        target:
+          entity_id: media_player.living_room
+        data:
+          media_content_type: favorites_folder
+          media_content_id: object.item.audioItem.audioBroadcast
+        response_variable: sonos_radio_favorites
+
+    sensor:
+      - name: Sonos Favorites Cache
+        unique_id: sonos_favorites_cache
+        icon: mdi:radio
+
+        state: >
+          {% set response = sonos_radio_favorites.get('media_player.living_room', {}) %}
+          {{ response.get('children', []) | count }}
+
+        attributes:
+          items: >
+            {% set response = sonos_radio_favorites.get('media_player.living_room', {}) %}
+            {% set children = response.get('children', []) %}
+            {% set ns = namespace(items=[]) %}
+            {% for item in children[:12] %}
+              {% set ns.items = ns.items + [{
+                'title': item.title,
+                'media_content_id': item.media_content_id,
+                'media_content_type': item.media_content_type,
+                'thumbnail': item.thumbnail | default('', true)
+              }] %}
+            {% endfor %}
+            {{ ns.items }}

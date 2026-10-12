@@ -3,8 +3,13 @@ function setNumberHelper(hass, entityId, value)
     if( ! hass || ! entityId || ! Number.isFinite(Number(value)) )
         return;
 
+    const domain = String(entityId).split('.')[0];
+
+    if( domain !== 'number' && domain !== 'input_number' )
+        return;
+
     hass.callService(
-        'number',
+        domain,
         'set_value',
         { value: Number(value) },
         { entity_id: entityId }
