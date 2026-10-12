@@ -1,17 +1,21 @@
-## Honeycomb Menu NG v1.4.2 – Light Nested Context
+## Honeycomb Menu NG v1.4.3 – Sonos Visual Polish
 
-This pre-release fixes Light Color/White palette navigation inside a persistent Hub.
+This pre-release is isolated to the Sonos module and its regression tests.
 
-### Symptom
-Opening Color/White from a Light detail menu could leave the local Hub navigation path and open the palette through Home Assistant's global `fire-dom-event` route. In that path the click position could become the new popup anchor, making the palette appear centered on the Color/White button instead of the module's locked slot-0 center. A global shade could also appear.
+### Sonos control layout
+- All six Sonos inner-ring controls now use an explicit Sonos-owned grid instead of relying on generic persistent button defaults.
+- Volume, Radio and Browse use a consistent two-row icon/name layout.
+- Play/Pause and Join use a three-row icon/name/label layout.
+- Secondary media/group text is clipped/ellipsized inside the hex instead of pushing the icon/name out of alignment.
+- Existing colors and actions are unchanged.
 
-### Fixed
-- Light Color now uses the internal `honeycomb-open-nested` action.
-- Light White/color-temperature palette uses the same internal action.
-- Both use `honeycomb_nested_menu`, so the current Honeycomb instance and local Hub context are preserved.
-- The module anchor remains the base-selected Light cube for every deeper Light level.
-- No global Honeycomb/shade is created when opening a Light palette.
-- Persistent controls detect both native and legacy nested menus when reserving the outer layout envelope, so 7 -> 19 cube expansion does not move slot 0.
+### Radio favorites
+- The radio icon remains the fallback when a favorite has no cached artwork.
+- When cached favorite artwork/logo exists, the fallback radio icon is explicitly hidden through the button-card icon style.
+- The existing logo/background image remains untouched.
 
-### Tests
-The regression suite now creates deterministic RGB and color-temperature Light states and verifies that both palette controls use native local-context navigation with 12 outer-ring buttons.
+### Locked Light contract
+The regression suite now also asserts that the Light module contains no `fire-dom-event` navigation path and continues using `honeycomb-open-nested` for Color/White.
+
+### Scope
+No core navigation, anchor, layout or Light behavior is changed by this release.

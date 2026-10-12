@@ -19,6 +19,52 @@ function actionForScript(script, fallbackService, entity)
     };
 }
 
+function sonosButtonStyles(options = {})
+{
+    const withLabel = options.withLabel === true;
+    const styles = {
+        grid: [
+            { 'grid-template-areas': withLabel ? '"i" "n" "l"' : '"i" "n"' },
+            { 'grid-template-columns': '1fr' },
+            { 'grid-template-rows': withLabel ? '43% 29% 28%' : '58% 42%' },
+            { height: '100%' },
+            { 'align-items': 'center' }
+        ],
+        icon: [
+            { width: '18px' },
+            { 'align-self': 'end' }
+        ],
+        name: [
+            { 'align-self': 'start' },
+            { 'padding-top': '2px' },
+            { 'font-size': '10px' },
+            { 'line-height': '1' },
+            { 'font-weight': '650' },
+            { 'white-space': 'nowrap' },
+            { overflow: 'hidden' },
+            { 'text-overflow': 'ellipsis' }
+        ]
+    };
+
+    if( withLabel )
+    {
+        styles.label = [
+            { 'align-self': 'start' },
+            { 'font-size': '8px' },
+            { 'line-height': '1' },
+            { opacity: '0.82' },
+            { 'white-space': 'nowrap' },
+            { overflow: 'hidden' },
+            { 'text-overflow': 'ellipsis' }
+        ];
+    }
+
+    if( options.background )
+        styles.card = [{ background: options.background }];
+
+    return styles;
+}
+
 function buildMenu({ item })
 {
     const joinMenu = buildJoinMenu(item);
@@ -73,6 +119,7 @@ function buildMenu({ item })
                 name: 'Vol',
                 show_name: true,
                 autoclose: false,
+                styles: sonosButtonStyles(),
                 tap_action: item.group_volume_down_script
                     ? actionForScript(
                         item.group_volume_down_script,
@@ -95,6 +142,7 @@ function buildMenu({ item })
                 show_name: true,
                 show_label: true,
                 autoclose: false,
+                styles: sonosButtonStyles({ withLabel: true }),
                 tap_action: {
                     action: 'perform-action',
                     perform_action: 'media_player.media_play_pause',
@@ -111,11 +159,10 @@ function buildMenu({ item })
                 show_name: true,
                 show_label: true,
                 autoclose: false,
-                styles: {
-                    card: [
-                        { background: 'rgba(126, 54, 96, 0.82)' }
-                    ]
-                },
+                styles: sonosButtonStyles({
+                    withLabel: true,
+                    background: 'rgba(126, 54, 96, 0.82)'
+                }),
                 tap_action: joinMenu
                     ? {
                         action: 'honeycomb-open-nested',
@@ -131,6 +178,7 @@ function buildMenu({ item })
                 name: 'Vol',
                 show_name: true,
                 autoclose: false,
+                styles: sonosButtonStyles(),
                 tap_action: item.group_volume_up_script
                     ? actionForScript(
                         item.group_volume_up_script,
@@ -151,11 +199,9 @@ function buildMenu({ item })
                 name: 'Radio',
                 show_name: true,
                 autoclose: false,
-                styles: {
-                    card: [
-                        { background: 'rgba(108, 62, 78, 0.82)' }
-                    ]
-                },
+                styles: sonosButtonStyles({
+                    background: 'rgba(108, 62, 78, 0.82)'
+                }),
                 tap_action: {
                     action: 'honeycomb-open-nested',
                     honeycomb_nested_menu: radioMenu
@@ -169,6 +215,7 @@ function buildMenu({ item })
                 name: 'Browse',
                 show_name: true,
                 autoclose: false,
+                styles: sonosButtonStyles(),
                 tap_action: { action: 'more-info' }
             }
         ]
@@ -194,6 +241,7 @@ module.exports = {
     },
 
     buildMenu,
+    sonosButtonStyles,
 
     buildLauncher(context)
     {
