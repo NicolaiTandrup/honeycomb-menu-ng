@@ -1,6 +1,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { HONEYCOMB_BEE_PNG } = require('../src/brand/bee.generated.js');
 
 const navigation = require('../src/core/navigation-context.js');
@@ -502,6 +503,21 @@ function testSharedBeeBranding()
     const master = fs.readFileSync(path.join(assetRoot, 'honeycomb-bee.png'));
     const icon = fs.readFileSync(path.join(assetRoot, 'honeycomb-menu-ng-icon.png'));
     const logo = fs.readFileSync(path.join(assetRoot, 'honeycomb-menu-ng-logo.png'));
+
+    // Approved 256x256 Cute Flying Bee Mascot binary. Checking the exact
+    // content hash prevents another base64/binary upload corruption from
+    // passing simply because all three assets are broken in the same way.
+    const masterSha256 = crypto
+        .createHash('sha256')
+        .update(master)
+        .digest('hex');
+
+    assert.strictEqual(
+        masterSha256,
+        '2b40c8e1feeaecaab2cb9ba3e592815d3535cb783bbd6f1bdf0d43779234f15e'
+    );
+    assert.strictEqual(master.readUInt32BE(16), 256);
+    assert.strictEqual(master.readUInt32BE(20), 256);
 
     assert.strictEqual(Buffer.compare(master, icon), 0);
     assert.strictEqual(Buffer.compare(master, logo), 0);
