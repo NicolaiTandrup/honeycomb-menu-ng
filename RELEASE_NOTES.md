@@ -1,20 +1,13 @@
-## Honeycomb Menu NG v1.4.8 – Shared Bee Branding
+## Honeycomb Menu NG v1.4.9 – Bee Asset Repair
 
-This pre-release replaces the old hand-drawn embedded SVG bee with the approved **Cute Flying Bee Mascot** PNG.
+v1.4.8 introduced the shared Cute Flying Bee branding correctly in code, but the PNG binary committed to GitHub was corrupted during the binary/base64 upload step.
 
-### One bee everywhere
-The exact same optimized PNG bytes are now used for:
-- `assets/honeycomb-bee.png` — canonical branding asset
-- `assets/honeycomb-menu-ng-icon.png`
-- `assets/honeycomb-menu-ng-logo.png`
-- the bee rendered inside Home Assistant persistent Hub controls
-
-The Home Assistant copy is embedded as a data URI during the build, so the frontend remains fully self-contained and works without GitHub/internet access.
-
-### UI
-- `honeycomb:bee` and blank persistent-control icons render the new right-facing profile bee.
-- Tap feedback remains as a short whole-bee flight/bounce animation.
-- No menu, Light, Sonos, anchor or layout behavior is changed.
+### Fixed
+- Replaced the canonical bee asset with the verified 256×256 approved Cute Flying Bee Mascot PNG.
+- Replaced `honeycomb-menu-ng-icon.png` and `honeycomb-menu-ng-logo.png` with the exact same verified bytes.
+- Build-time embedding continues to generate the Home Assistant data URI from that canonical asset.
 
 ### Regression protection
-Tests verify that the three repository PNG assets are byte-for-byte identical and that the generated embedded data URI decodes to those exact same bytes.
+The test suite now verifies the exact SHA-256 hash and 256×256 dimensions of the approved PNG, in addition to checking that the canonical asset, icon, logo and embedded bundle data are identical.
+
+No UI logic, Light, Sonos, navigation, anchor or layout behavior changes in this release.
