@@ -335,10 +335,29 @@ function honeycombClose(context = manager)
         context.honeycomb.close();
 }
 
+function honeycombDispose(context = manager)
+{
+    const menu = context.honeycomb;
+
+    context.stack = [];
+    context.currentConfig = null;
+    context.honeycomb = null;
+    navigationCore.resetNavigation(context);
+
+    if( ! menu )
+        return;
+
+    if( typeof menu.dispose === 'function' )
+        menu.dispose();
+    else if( menu.isConnected )
+        menu.remove();
+}
+
 window.honeycomb_menu_back = () => honeycombBack(manager);
 window.honeycomb_menu_close = () => honeycombClose(manager);
 window.honeycomb_menu_context_back = context => honeycombBack(context || manager);
 window.honeycomb_menu_context_close = context => honeycombClose(context || manager);
+window.honeycomb_menu_context_dispose = context => honeycombDispose(context || manager);
 
 function traverseConfigs( _config, _buttons )
 {
@@ -816,6 +835,28 @@ class HoneycombMenu extends LitElement
     firstUpdated()
     {
         this._setCssVars();
+    }
+
+    dispose()
+    {
+        if( this._disposed )
+            return;
+
+        this._disposed = true;
+        this.closing = true;
+
+        this._clearIdleTimeout();
+        this._stopStateRefresh();
+
+        document.removeEventListener('pointermove', this._boundPointerMove, true);
+        document.removeEventListener('pointerup', this._boundPointerUp, true);
+        document.removeEventListener('pointercancel', this._boundPointerUp, true);
+
+        // Lifecycle teardown (for example Lovelace edit mode) must be
+        // synchronous. Waiting for CSS animationend leaves orphaned Hub
+        // overlays behind after the owning card has already been replaced.
+        if( this.isConnected )
+            this.remove();
     }
 
     close( _item = null )
@@ -1497,6 +1538,21 @@ class HoneycombMenu extends LitElement
                 return;
 
             const context = this._menuContext || manager;
+
+            if( context.local === true && context.stack.length > 0 )
+            {
+                // A persistent Hub never disappears on idle. Unwind nested
+                // levels in-place back to the base instead of closing the
+                // Honeycomb and briefly exposing the hidden bootstrap card.
+                while( context.stack.length > 0 )
+                {
+                    if( ! honeycombBack(context) )
+                        break;
+                }
+
+                return;
+            }
+
             context.stack = [];
             context.currentConfig = null;
             this.close();

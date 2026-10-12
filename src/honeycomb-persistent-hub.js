@@ -16,6 +16,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         super();
         this._hubMenu = null;
         this._hubOpenScheduled = false;
+        this._hubOpenRaf = null;
         this._anchorWatchRaf = null;
         this._lastAnchorX = null;
         this._lastAnchorY = null;
@@ -41,6 +42,19 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         return super._openHoneycombMenu(menu);
     }
 
+    connectedCallback()
+    {
+        super.connectedCallback();
+
+        // The host element is only a bootstrap/anchor when auto-open is
+        // enabled. Keep it hidden so reconnect/edit transitions cannot flash
+        // the default bee before the real persistent Hub is mounted.
+        if( this.config && this.config.auto_open !== false )
+            this.style.visibility = 'hidden';
+
+        this._scheduleHubOpen();
+    }
+
     firstUpdated()
     {
         this._scheduleHubOpen();
@@ -59,11 +73,19 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             this._anchorWatchRaf = null;
         }
 
-        if( this._hubMenu && this._hubMenu.isConnected )
-            this._hubMenu.close();
+        if( this._hubOpenRaf )
+        {
+            cancelAnimationFrame(this._hubOpenRaf);
+            this._hubOpenRaf = null;
+        }
 
-        if( this._menuContext && typeof window.honeycomb_menu_context_close === 'function' )
-            window.honeycomb_menu_context_close(this._menuContext);
+        // Lovelace edit mode can replace/preview cards faster than close
+        // animations complete. Dispose the local overlay synchronously so a
+        // removed Hub can never leave a ghost base on the dashboard.
+        if( this._menuContext && typeof window.honeycomb_menu_context_dispose === 'function' )
+            window.honeycomb_menu_context_dispose(this._menuContext);
+        else if( this._hubMenu && this._hubMenu.isConnected )
+            this._hubMenu.remove();
 
         super.disconnectedCallback();
         this._hubOpenScheduled = false;
@@ -124,7 +146,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
         this._hubOpenScheduled = true;
 
-        requestAnimationFrame(() => {
+        this._hubOpenRaf = requestAnimationFrame(() => {
+            this._hubOpenRaf = null;
             this._hubOpenScheduled = false;
 
             if( ! this.isConnected || this._hubMenu )
@@ -243,16 +266,32 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         }
         else
         {
-            menu.persistent_center = null;
-
             if( this._hubCenterButton )
             {
-                menu.center_button = merge({}, this._hubCenterButton);
-                delete menu.center_button.slot;
-                delete menu.center_button.slot_mode;
+                const center = merge({}, this._hubCenterButton);
+                delete center.slot;
+                delete center.slot_mode;
+
+                if( center._persistent_launcher === true )
+                {
+                    // A native Light/Media launcher in physical slot 0 must
+                    // remain a persistent control. Rendering it through
+                    // center_button converts it to a generic button-card and
+                    // loses native state visuals + hold-to-open behavior.
+                    delete center._persistent_launcher;
+                    center.interactive = true;
+                    menu.persistent_center = center;
+                    menu.center_button = null;
+                }
+                else
+                {
+                    menu.persistent_center = null;
+                    menu.center_button = center;
+                }
             }
             else
             {
+                menu.persistent_center = null;
                 menu.center_button = false;
             }
         }
@@ -325,6 +364,12 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         });
 
         this._hubBaseFaceMode = next.base_face_mode || 'cell';
+
+        // The underlying custom element is only an anchor/bootstrap while the
+        // persistent base is auto-open. Never let its default bee become a
+        // transitional frame between local menu states.
+        next.restore_on_close = next.auto_open === false;
+        this.style.visibility = next.auto_open === false ? '' : 'hidden';
 
         const items = (next.items || []).filter(Boolean).slice(0, 7);
         const showLogo = this._shouldShowLogo.call({ config: next });
