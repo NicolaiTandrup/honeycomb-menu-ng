@@ -1,60 +1,19 @@
-## Honeycomb Menu NG v1.4.0 – Modular Core
+## Honeycomb Menu NG v1.4.1 – Base Cube Geometry
 
-v1.4.0 is an internal architecture release focused on making Honeycomb NG safer and easier to extend without cross-feature regressions.
+This pre-release is deliberately limited to the persistent Hub base geometry.
 
-### Core navigation invariant
+### Fixed
+- Persistent Hub base cubes now use the full physical Honeycomb cell.
+- The apparent gap between the base center and slots 2/4/6 now matches the classic/detail Honeycomb spacing.
+- The actual center coordinates and ring navigation geometry are unchanged.
+- Light/Sonos detail menus keep their existing inset persistent-center face and are not resized by this fix.
 
-The persistent Hub now has an explicit navigation contract:
+### Architecture
+The persistent hex face geometry is defined in the generic layout core:
+- `inset` — existing persistent/detail center geometry.
+- `cell` — full-cell geometry used by the Hub base.
 
-- A base cube may establish a new physical module center.
-- Once inside a module, the center is locked to slot 0.
-- A module/submodule may expand from the classic 7-cube layout to larger ring layouts without moving the center.
-- Deeper levels can change buttons and ring population, but cannot re-anchor the module.
-- Returning to the Hub base clears the lock so another base cube can establish a new center.
+The Hub selects `cell` through `base_face_mode`; domain modules do not control base geometry.
 
-### Modular monolith
-
-Domain behavior is split from core/rendering:
-
-- `src/core/` owns navigation, anchor state, layout geometry, entity inheritance, module lookup and custom-action dispatch.
-- `src/modules/light/` owns light menus, palettes, presets and preset actions.
-- `src/modules/media/` owns generic media behavior and group-aware volume actions.
-- `src/modules/sonos/` owns Sonos menu/group/favorites behavior.
-- `src/modules/generic/` is the fallback module.
-
-The persistent Hub no longer contains light/Sonos menu builders. It resolves an item through the module registry and renders the returned declarative config.
-
-### Renderer isolation
-
-`honeycomb-menu.js` no longer implements Sonos group volume or light preset business logic. Custom domain actions are dispatched through the action registry.
-
-Light palette/preset expansion and entity inheritance have also moved out of the renderer.
-
-### Backwards compatibility
-
-Existing Hub YAML remains supported:
-- `type: light` resolves to the light module.
-- Existing `type: media` keeps Sonos-oriented behavior.
-- Generic media can explicitly use `module: media`.
-
-No dashboard rewrite is required for the current light/Sonos configuration.
-
-### Regression protection
-
-A new core test suite verifies:
-- base -> module may establish the anchor,
-- module -> nested cannot move the anchor,
-- back to base clears the anchor lock,
-- global/non-Hub menus are unaffected,
-- 7-cube and expanded layouts keep deterministic geometry,
-- module resolution and explicit module overrides work.
-
-GitHub Actions now runs these tests before compiling the release bundle.
-
-The test suite also enforces architecture boundaries: domain modules are not allowed to call renderer/navigation APIs such as `reanchor()`, `replaceConfig()`, or mutate the active menu context. This prevents future feature work from quietly reintroducing the cross-module coupling that v1.4 removes.
-
-See `ARCHITECTURE.md` for the module contract and extension rules.
-
-### Packaging and CI
-
-The v1.4 build pipeline runs the modular-core contract tests before webpack packaging so releases cannot be created from a bundle that violates the core navigation/module boundaries.
+### Tests
+The core regression suite now verifies both persistent hex geometries before the bundle is built.

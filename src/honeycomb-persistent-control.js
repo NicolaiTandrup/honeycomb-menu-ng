@@ -4,6 +4,7 @@ import { fireEvent, provideHass } from "./helpers.js";
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
+const layoutCore = require('./core/layout.js');
 
 class HoneycombPersistentControl extends LitElement
 {
@@ -201,6 +202,7 @@ class HoneycombPersistentControl extends LitElement
             show_volume: 'when_playing',
             active_color: '#00bcd4',
             match_anchor_size: true,
+            face_mode: 'inset',
             hold_time: 500,
             colors: {
                 center: 'auto',
@@ -744,6 +746,7 @@ class HoneycombPersistentControl extends LitElement
         );
         const foreground = this._foregroundForBackground(colors.center);
         const secondary = presentation.secondary;
+        const hexPoints = layoutCore.persistentHexPoints(this.config.face_mode);
 
         return html`
             <div
@@ -761,14 +764,14 @@ class HoneycombPersistentControl extends LitElement
                 >
                     <polygon
                         class="hex-polygon"
-                        points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
+                        points="${hexPoints}"
                         fill="${colors.outer}">
                     </polygon>
 
                     <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
                         <polygon
                             class="hex-polygon"
-                            points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
+                            points="${hexPoints}"
                             fill="${colors.inner}">
                         </polygon>
                     </g>
@@ -776,7 +779,7 @@ class HoneycombPersistentControl extends LitElement
                     <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
                         <polygon
                             class="hex-polygon"
-                            points="50,5 95.67,31.3675 95.67,84.1025 50,110.47 4.33,84.1025 4.33,31.3675"
+                            points="${hexPoints}"
                             fill="${colors.center}">
                         </polygon>
                     </g>

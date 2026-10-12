@@ -20,6 +20,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         this._lastAnchorX = null;
         this._lastAnchorY = null;
         this._menuContext = null;
+        this._hubBaseFaceMode = 'cell';
     }
 
     _ensureMenuContext()
@@ -234,7 +235,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     interactive: true,
                     tap_action: { action: 'honeycomb-bee-flap' },
                     show_brightness: 'never',
-                    mode: 'hub'
+                    mode: 'hub',
+                    face_mode: this.config.base_face_mode || 'cell'
                 }
             );
             menu.center_button = null;
@@ -279,13 +281,21 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         if( typeof module.buildLauncher !== 'function' )
             throw new Error(`Honeycomb module "${module.id}" does not provide buildLauncher().`);
 
-        return module.buildLauncher({
+        const launcher = module.buildLauncher({
             item,
             index,
             slot,
             submenu,
             hass: this.hass
         });
+
+        // Only the persistent Hub base uses the full physical hex cell.
+        // Detail/promoted centers keep the normal inset face, so this does not
+        // change the geometry that is already correct inside Light/Sonos menus.
+        if( launcher && launcher.face_mode === undefined )
+            launcher.face_mode = this._hubBaseFaceMode || 'cell';
+
+        return launcher;
     }
 
     setConfig(config)
@@ -303,6 +313,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             items: [],
             auto_open: true,
             logo: 'auto',
+            base_face_mode: 'cell',
             tap_action: { action: 'honeycomb-bee-flap' },
             show_brightness: 'never',
             colors: {
@@ -312,6 +323,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                 unavailable: '#20262d'
             }
         });
+
+        this._hubBaseFaceMode = next.base_face_mode || 'cell';
 
         const items = (next.items || []).filter(Boolean).slice(0, 7);
         const showLogo = this._shouldShowLogo.call({ config: next });
