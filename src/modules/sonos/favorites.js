@@ -18,13 +18,7 @@ function buildRadioMenu(item)
                 return Object.keys(items).length > ${index};
             ]]]`,
             icon: 'mdi:radio',
-            show_icon: `[[[
-                const base = states['${favorites}']?.attributes?.items || {};
-                const id = Object.keys(base)[${index}];
-                const cached = states['${cache}']?.attributes?.items || [];
-                const match = cached.find(x => x?.media_content_id === id);
-                return !Boolean(match?.thumbnail);
-            ]]]`,
+            show_icon: true,
             show_name: `[[[
                 const base = states['${favorites}']?.attributes?.items || {};
                 const id = Object.keys(base)[${index}];
@@ -57,7 +51,16 @@ function buildRadioMenu(item)
                 ],
                 icon: [
                     { width: '17px' },
-                    { 'align-self': 'end' }
+                    { 'align-self': 'end' },
+                    {
+                        display: `[[[
+                            const base = states['${favorites}']?.attributes?.items || {};
+                            const id = Object.keys(base)[${index}];
+                            const cached = states['${cache}']?.attributes?.items || [];
+                            const match = cached.find(x => x?.media_content_id === id);
+                            return match?.thumbnail ? 'none' : 'block';
+                        ]]]`
+                    }
                 ],
                 name: [
                     { 'align-self': 'start' },

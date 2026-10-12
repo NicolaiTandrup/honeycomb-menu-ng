@@ -366,6 +366,37 @@ function testModuleMenusAreDeclarative()
         sonosMenu.buttons[4].tap_action.honeycomb_nested_menu.buttons[0].slot,
         7
     );
+
+    // Sonos controls own their visual grid instead of inheriting the generic
+    // persistent defaults. Buttons with a secondary label get three rows.
+    assert.strictEqual(
+        sonosMenu.buttons[0].styles.grid[0]['grid-template-areas'],
+        '"i" "n"'
+    );
+    assert.strictEqual(
+        sonosMenu.buttons[1].styles.grid[0]['grid-template-areas'],
+        '"i" "n" "l"'
+    );
+    assert.strictEqual(
+        sonosMenu.buttons[2].styles.grid[0]['grid-template-areas'],
+        '"i" "n" "l"'
+    );
+
+    const firstFavorite =
+        sonosMenu.buttons[4]
+            .tap_action
+            .honeycomb_nested_menu
+            .buttons[0];
+
+    assert.strictEqual(firstFavorite.show_icon, true);
+
+    const favoriteDisplayRule =
+        firstFavorite.styles.icon.find(rule =>
+            Object.prototype.hasOwnProperty.call(rule, 'display')
+        );
+
+    assert.ok(favoriteDisplayRule);
+    assert.ok(String(favoriteDisplayRule.display).includes("match?.thumbnail"));
 }
 
 function collectJsFiles(root)
@@ -418,6 +449,16 @@ function testArchitectureBoundaries()
     assert.strictEqual(hubSource.includes('_mediaMenu('), false);
     assert.strictEqual(hubSource.includes('_sonosRadioMenu('), false);
     assert.strictEqual(hubSource.includes('_sonosJoinMenu('), false);
+
+    const lightControlsSource = fs.readFileSync(
+        path.resolve(__dirname, '../src/modules/light/controls.js'),
+        'utf8'
+    );
+
+    // v1.4.2 Light navigation is a locked contract: Color/White must never
+    // regress to the global fire-dom-event path.
+    assert.strictEqual(lightControlsSource.includes('fire-dom-event'), false);
+    assert.ok(lightControlsSource.includes('honeycomb-open-nested'));
 
     const rendererSource = fs.readFileSync(
         path.resolve(__dirname, '../src/honeycomb-menu.js'),
