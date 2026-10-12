@@ -1,19 +1,17 @@
-## Honeycomb Menu NG v1.4.1 – Base Cube Geometry
+## Honeycomb Menu NG v1.4.2 – Light Nested Context
 
-This pre-release is deliberately limited to the persistent Hub base geometry.
+This pre-release fixes Light Color/White palette navigation inside a persistent Hub.
+
+### Symptom
+Opening Color/White from a Light detail menu could leave the local Hub navigation path and open the palette through Home Assistant's global `fire-dom-event` route. In that path the click position could become the new popup anchor, making the palette appear centered on the Color/White button instead of the module's locked slot-0 center. A global shade could also appear.
 
 ### Fixed
-- Persistent Hub base cubes now use the full physical Honeycomb cell.
-- The apparent gap between the base center and slots 2/4/6 now matches the classic/detail Honeycomb spacing.
-- The actual center coordinates and ring navigation geometry are unchanged.
-- Light/Sonos detail menus keep their existing inset persistent-center face and are not resized by this fix.
-
-### Architecture
-The persistent hex face geometry is defined in the generic layout core:
-- `inset` — existing persistent/detail center geometry.
-- `cell` — full-cell geometry used by the Hub base.
-
-The Hub selects `cell` through `base_face_mode`; domain modules do not control base geometry.
+- Light Color now uses the internal `honeycomb-open-nested` action.
+- Light White/color-temperature palette uses the same internal action.
+- Both use `honeycomb_nested_menu`, so the current Honeycomb instance and local Hub context are preserved.
+- The module anchor remains the base-selected Light cube for every deeper Light level.
+- No global Honeycomb/shade is created when opening a Light palette.
+- Persistent controls detect both native and legacy nested menus when reserving the outer layout envelope, so 7 -> 19 cube expansion does not move slot 0.
 
 ### Tests
-The core regression suite now verifies both persistent hex geometries before the bundle is built.
+The regression suite now creates deterministic RGB and color-temperature Light states and verifies that both palette controls use native local-context navigation with 12 outer-ring buttons.

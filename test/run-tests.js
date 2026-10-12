@@ -6,6 +6,7 @@ const navigation = require('../src/core/navigation-context.js');
 const layout = require('../src/core/layout.js');
 const { ModuleRegistry } = require('../src/core/module-registry.js');
 const { moduleRegistry } = require('../src/modules/index.js');
+const { applyPresetControls } = require('../src/modules/light/controls.js');
 
 function testNavigationAnchorLock()
 {
@@ -233,6 +234,105 @@ function testPersistentPresentations()
     assert.strictEqual(mediaIdle.colors.inner, '#ff9800');
 }
 
+function withFakeHomeAssistant(states, callback)
+{
+    const previousDocument = global.document;
+
+    global.document = {
+        querySelector(selector)
+        {
+            if( selector === 'home-assistant' )
+                return { hass: { states } };
+
+            return null;
+        }
+    };
+
+    try
+    {
+        callback();
+    }
+    finally
+    {
+        if( previousDocument === undefined )
+            delete global.document;
+        else
+            global.document = previousDocument;
+    }
+}
+
+function testLightNestedMenusStayInOwningContext()
+{
+    withFakeHomeAssistant(
+        {
+            'light.color_test': {
+                state: 'on',
+                attributes: {
+                    supported_color_modes: ['hs'],
+                    brightness: 128
+                }
+            },
+            'light.white_test': {
+                state: 'on',
+                attributes: {
+                    supported_color_modes: ['color_temp'],
+                    min_color_temp_kelvin: 2200,
+                    max_color_temp_kelvin: 6500
+                }
+            }
+        },
+        () => {
+            const colorConfig = {
+                entity: 'light.color_test',
+                buttons: [
+                    {
+                        control: 'light-palette'
+                    }
+                ]
+            };
+
+            applyPresetControls(colorConfig, {}, colorConfig.entity);
+
+            const colorAction = colorConfig.buttons[0].tap_action;
+
+            assert.strictEqual(colorAction.action, 'honeycomb-open-nested');
+            assert.strictEqual(colorAction.honeycomb_menu, undefined);
+            assert.strictEqual(
+                colorAction.honeycomb_nested_menu.nested_expand,
+                true
+            );
+            assert.strictEqual(
+                colorAction.honeycomb_nested_menu.inherit_inner,
+                true
+            );
+            assert.strictEqual(
+                colorAction.honeycomb_nested_menu.buttons.length,
+                12
+            );
+
+            const whiteConfig = {
+                entity: 'light.white_test',
+                buttons: [
+                    {
+                        control: 'light-palette'
+                    }
+                ]
+            };
+
+            applyPresetControls(whiteConfig, {}, whiteConfig.entity);
+
+            const whiteAction = whiteConfig.buttons[0].tap_action;
+
+            assert.strictEqual(whiteAction.action, 'honeycomb-open-nested');
+            assert.strictEqual(whiteAction.honeycomb_menu, undefined);
+            assert.strictEqual(
+                whiteAction.honeycomb_nested_menu.buttons.length,
+                12
+            );
+        }
+    );
+}
+
 function testModuleMenusAreDeclarative()
 {
     const light = moduleRegistry.resolve({ type: 'light' });
@@ -337,6 +437,7 @@ function run()
     testModuleRegistry();
     testBuiltInModuleResolution();
     testPersistentPresentations();
+    testLightNestedMenusStayInOwningContext();
     testModuleMenusAreDeclarative();
     testArchitectureBoundaries();
 

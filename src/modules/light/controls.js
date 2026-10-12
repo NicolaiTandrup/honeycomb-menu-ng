@@ -232,8 +232,8 @@ function expandLightPaletteControl(button, inheritedEntity)
             show_name: true,
             autoclose: false,
             tap_action: {
-                action: 'fire-dom-event',
-                honeycomb_menu: {
+                action: 'honeycomb-open-nested',
+                honeycomb_nested_menu: {
                     nested_expand: true,
                     inherit_inner: true,
                     empty_slots: 'hidden',
@@ -254,8 +254,8 @@ function expandLightPaletteControl(button, inheritedEntity)
             show_name: true,
             autoclose: false,
             tap_action: {
-                action: 'fire-dom-event',
-                honeycomb_menu: {
+                action: 'honeycomb-open-nested',
+                honeycomb_nested_menu: {
                     nested_expand: true,
                     inherit_inner: true,
                     empty_slots: 'hidden',
