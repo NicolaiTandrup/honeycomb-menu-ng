@@ -5,6 +5,7 @@ const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
+const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
 
 class HoneycombPersistentControl extends LitElement
 {
@@ -104,47 +105,33 @@ class HoneycombPersistentControl extends LitElement
             }
 
             .bee-icon {
-                width: 48%;
-                height: 48%;
+                width: 58%;
+                height: 58%;
                 display: block;
+                object-fit: contain;
                 overflow: visible;
-            }
-
-            .bee-wing-left,
-            .bee-wing-right {
-                transform-box: fill-box;
                 transform-origin: center;
+                filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
             }
 
-            .bee-icon.flap .bee-wing-left {
-                animation: honeycomb-wing-left 130ms ease-in-out 0s 3 alternate;
+            .bee-icon.flap {
+                animation: honeycomb-bee-flight 430ms ease-in-out;
             }
 
-            .bee-icon.flap .bee-wing-right {
-                animation: honeycomb-wing-right 130ms ease-in-out 0s 3 alternate;
+            @keyframes honeycomb-bee-flight {
+                0%, 100% {
+                    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+                }
+                25% {
+                    transform: translate3d(1px, -2px, 0) rotate(-5deg) scale(1.04);
+                }
+                55% {
+                    transform: translate3d(-1px, -1px, 0) rotate(4deg) scale(1.06);
+                }
+                78% {
+                    transform: translate3d(1px, -2px, 0) rotate(-3deg) scale(1.03);
+                }
             }
-
-            .bee-icon.flap .bee-body {
-                animation: honeycomb-bee-bounce 390ms ease-in-out;
-                transform-box: fill-box;
-                transform-origin: center;
-            }
-
-            @keyframes honeycomb-wing-left {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(-24deg) translate(-1px, -1px); }
-            }
-
-            @keyframes honeycomb-wing-right {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(24deg) translate(1px, -1px); }
-            }
-
-            @keyframes honeycomb-bee-bounce {
-                0%, 100% { transform: translateY(0) scale(1); }
-                50% { transform: translateY(-2px) scale(1.05); }
-            }
-
             ha-icon {
                 width: 34%;
                 height: 34%;
@@ -795,39 +782,11 @@ class HoneycombPersistentControl extends LitElement
 
                 <div class="content ${secondary ? 'has-secondary' : ''}">
                     ${(this.config.icon === '' || this.config.icon === 'honeycomb:bee') ? html`
-                        <svg class="bee-icon ${this._beeFlapping ? 'flap' : ''}" viewBox="0 0 80 72" aria-hidden="true">
-                            <g class="bee-body">
-                                <path class="bee-wing-left"
-                                      d="M35 27 C24 10,8 13,10 29 C11 40,24 42,36 34 Z"
-                                      fill="#fff8d8" stroke="#17191c" stroke-width="3.2" stroke-linejoin="round"></path>
-                                <path class="bee-wing-right"
-                                      d="M45 27 C56 10,72 13,70 29 C69 40,56 42,44 34 Z"
-                                      fill="#fff8d8" stroke="#17191c" stroke-width="3.2" stroke-linejoin="round"></path>
-
-                                <path d="M31 18 C27 10,21 8,17 10"
-                                      fill="none" stroke="#17191c" stroke-width="3" stroke-linecap="round"></path>
-                                <path d="M49 18 C53 10,59 8,63 10"
-                                      fill="none" stroke="#17191c" stroke-width="3" stroke-linecap="round"></path>
-
-                                <ellipse cx="40" cy="39" rx="18" ry="23"
-                                         fill="#ffc400" stroke="#17191c" stroke-width="3.4"></ellipse>
-                                <path d="M24 32 C30 35,50 35,56 32"
-                                      fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
-                                <path d="M23 43 C31 47,49 47,57 43"
-                                      fill="none" stroke="#17191c" stroke-width="5" stroke-linecap="round"></path>
-                                <path d="M27 54 C34 57,46 57,53 54"
-                                      fill="none" stroke="#17191c" stroke-width="4" stroke-linecap="round"></path>
-
-                                <circle cx="40" cy="20" r="12"
-                                        fill="#ffc400" stroke="#17191c" stroke-width="3.4"></circle>
-                                <circle cx="36" cy="18" r="1.9" fill="#17191c"></circle>
-                                <circle cx="44" cy="18" r="1.9" fill="#17191c"></circle>
-                                <path d="M35 23 Q40 27 45 23"
-                                      fill="none" stroke="#17191c" stroke-width="2.4" stroke-linecap="round"></path>
-                                <path d="M40 62 L35 69 L45 66 Z"
-                                      fill="#17191c" stroke="#17191c" stroke-width="1"></path>
-                            </g>
-                        </svg>
+                        <img
+                            class="bee-icon ${this._beeFlapping ? 'flap' : ''}"
+                            .src=${HONEYCOMB_BEE_PNG}
+                            alt=""
+                            aria-hidden="true">
                     ` : html`<ha-icon .icon=${this.config.icon}></ha-icon>`}
                     ${secondary ? html`<div class="secondary">${secondary}</div>` : ''}
                 </div>

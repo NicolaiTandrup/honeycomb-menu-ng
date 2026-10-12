@@ -1,6 +1,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const { HONEYCOMB_BEE_PNG } = require('../src/brand/bee.generated.js');
 
 const navigation = require('../src/core/navigation-context.js');
 const layout = require('../src/core/layout.js');
@@ -493,6 +494,33 @@ function collectJsFiles(root)
     return result;
 }
 
+function testSharedBeeBranding()
+{
+    assert.ok(HONEYCOMB_BEE_PNG.startsWith('data:image/png;base64,'));
+
+    const assetRoot = path.resolve(__dirname, '../assets');
+    const master = fs.readFileSync(path.join(assetRoot, 'honeycomb-bee.png'));
+    const icon = fs.readFileSync(path.join(assetRoot, 'honeycomb-menu-ng-icon.png'));
+    const logo = fs.readFileSync(path.join(assetRoot, 'honeycomb-menu-ng-logo.png'));
+
+    assert.strictEqual(Buffer.compare(master, icon), 0);
+    assert.strictEqual(Buffer.compare(master, logo), 0);
+
+    const embedded = Buffer.from(
+        HONEYCOMB_BEE_PNG.substring('data:image/png;base64,'.length),
+        'base64'
+    );
+    assert.strictEqual(Buffer.compare(master, embedded), 0);
+
+    const persistentControlSource = fs.readFileSync(
+        path.resolve(__dirname, '../src/honeycomb-persistent-control.js'),
+        'utf8'
+    );
+
+    assert.ok(persistentControlSource.includes('HONEYCOMB_BEE_PNG'));
+    assert.strictEqual(persistentControlSource.includes('<svg class="bee-icon'), false);
+    assert.strictEqual(persistentControlSource.includes('bee-wing-left'), false);
+}
 function testArchitectureBoundaries()
 {
     const moduleRoot = path.resolve(__dirname, '../src/modules');
@@ -572,6 +600,7 @@ function run()
     testLightNestedMenusStayInOwningContext();
     testSonosSlotZeroUsesPersistentContract();
     testModuleMenusAreDeclarative();
+    testSharedBeeBranding();
     testArchitectureBoundaries();
 
     console.log('Honeycomb NG core tests: OK');

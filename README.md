@@ -413,12 +413,12 @@ v1.1.2 removes the extra Hub click and turns the bee into branding rather than a
 - the bee logo is shown automatically in the center when two or more Hub items are present
 - set `logo: false` to remove the automatic center logo
 - a Hub item without an icon now uses the built-in Honeycomb bee; set `icon: false` to render no icon
-- the bee has been redrawn as an embedded SVG with yellow/black body, white wings and a friendlier logo-style face
+- the bee uses the shared Honeycomb NG profile mascot artwork, with the same PNG branding in Home Assistant and GitHub
 - tapping a bee triggers a short wing-flap animation without adding a navigation step
 - media launchers now use the established Sonos layout: volume down, play/pause, Join, volume up, Radio and Browse
 - optional Sonos group-volume scripts, Join members and favorites/cache sensors can be configured per media launcher
 
-The bee remains embedded directly in the JavaScript bundle; no separate image asset is required.
+The master bee artwork is stored as `assets/honeycomb-bee.png`. Those same pixels are embedded in the JavaScript bundle at build time, so Home Assistant does not depend on GitHub or internet access to render the bee.
 
 ## v1.1.1 — Hub launcher label fix
 
