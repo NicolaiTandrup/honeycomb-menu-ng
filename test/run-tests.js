@@ -514,7 +514,7 @@ function testSharedBeeBranding()
 
     assert.strictEqual(
         masterSha256,
-        '2b40c8e1feeaecaab2cb9ba3e592815d3535cb783bbd6f1bdf0d43779234f15'
+        '2b40c8e1feeaecaab2cb9ba3e592815d3535cb783bbd6f1bdf0d43779234f15e'
     );
     assert.strictEqual(master.readUInt32BE(16), 256);
     assert.strictEqual(master.readUInt32BE(20), 256);
