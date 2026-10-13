@@ -1,8 +1,19 @@
 const { merge, persistentLauncher } = require('../shared.js');
 const presentation = require('./presentation.js');
 
-function buildMenu({ item })
+function buildMenu({ item, hass })
 {
+    const state =
+        hass &&
+        hass.states &&
+        item &&
+        item.entity
+            ? hass.states[item.entity]
+            : null;
+
+    if( presentation.isOnOffOnly(state) )
+        return null;
+
     return {
         entity: item.entity,
         presets: merge({}, item.presets || {}),

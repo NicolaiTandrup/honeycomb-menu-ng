@@ -179,12 +179,32 @@ Resolution order:
 2. temperature-capable light + Kelvin helper → stored Kelvin
 3. otherwise → fallback Kelvin, default 2700 K
 
+## On/off-only lights
+
+Home Assistant lights that explicitly report only:
+
+~~~yaml
+supported_color_modes:
+  - onoff
+~~~
+
+are treated as simple switches.
+
+For those lights:
+- short tap still toggles the entity
+- the status label is `On` or `Off`
+- long press does not open the Light detail module, because brightness, presets and palettes are not applicable
+
+Honeycomb only applies this rule when Home Assistant explicitly reports `onoff`. Missing capability data, including temporary remote/unavailable states, is not treated as proof that the light is on/off-only.
+
 ## Live presentation
 
 The persistent Light launcher:
 - uses neutral dark appearance while off
 - uses live RGB/HS/temperature-derived color while on
-- shows brightness while on
+- shows brightness percentage for dimmable lights while on
+- shows `On` for an on/off-only light while on
+- shows `Off` for any available light while off
 - updates while menus remain open
 - shows gray + `Unavailable` if the entity disappears
 
