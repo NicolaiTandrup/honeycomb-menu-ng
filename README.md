@@ -139,6 +139,8 @@ The detailed Light menu contains:
 The palette is capability-aware:
 - RGB/HS/XY lights receive a 12-color outer ring.
 - color-temperature-only lights receive a 12-step warm-to-cool white outer ring.
+- pure on/off lights show `On` / `Off` and do not open a detail level.
+- dimmable lights show brightness while on and `Off` while off.
 - palette expansion does **not** move the physical module center.
 
 ### Optional Light preset values

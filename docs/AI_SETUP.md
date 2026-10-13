@@ -116,6 +116,13 @@ Ranges:
 
 Helpers may be device-owned values, for example Shelly `number.*` entities. Do not assume they must be Home Assistant-created helpers.
 
+If the Light entity explicitly reports `supported_color_modes: [onoff]`:
+- do not add or expect a Light detail level
+- short tap toggles the light
+- expect `On` / `Off` status instead of brightness percentage
+
+Do not infer on/off-only behavior merely because capability attributes are missing while an entity is unavailable.
+
 ## Sonos rules
 
 Minimal:
@@ -176,7 +183,10 @@ Verify:
 - `custom:button-card` is installed
 - Hub renders without errors
 - Light short tap toggles
-- Light hold opens detail
+- dimmable Light hold opens detail
+- explicit on/off-only Light hold does not open a detail level
+- dimmable Light shows brightness while on and `Off` while off
+- on/off-only Light shows `On` / `Off`
 - Light Color/White expansion does not move slot 0
 - helper-backed Light preset tap applies and hold stores
 - Sonos short tap play/pauses

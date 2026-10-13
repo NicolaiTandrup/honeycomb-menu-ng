@@ -40,27 +40,52 @@ function currentColor(state)
     return null;
 }
 
+function isOnOffOnly(state)
+{
+    if( ! state || ['unavailable', 'unknown'].includes(state.state) )
+        return false;
+
+    const attrs = state.attributes || {};
+    const modes = Array.isArray(attrs.supported_color_modes)
+        ? attrs.supported_color_modes.filter(Boolean)
+        : [];
+
+    // Be conservative: only suppress the detail menu when Home Assistant
+    // explicitly tells us that this is an on/off-only light. Missing
+    // capabilities can happen temporarily for remote/unavailable entities.
+    return modes.length > 0 && modes.every(mode => mode === 'onoff');
+}
+
 function brightnessLabel(config, state)
 {
     const mode = config.show_brightness || 'when_on';
 
-    if( mode === 'never' || ! state || ! state.attributes )
+    if( mode === 'never' || ! state )
         return null;
 
-    if( mode === 'when_on' && state.state !== 'on' )
+    if( state.state === 'off' )
+        return 'Off';
+
+    if( state.state !== 'on' )
         return null;
 
-    const brightness = Number(state.attributes.brightness);
+    const attrs = state.attributes || {};
+    const brightness = Number(attrs.brightness);
 
-    if( ! Number.isFinite(brightness) )
-        return null;
+    if( Number.isFinite(brightness) )
+    {
+        const percentage = Math.max(
+            0,
+            Math.min(100, Math.round((brightness / 255) * 100))
+        );
 
-    const percentage = Math.max(
-        0,
-        Math.min(100, Math.round((brightness / 255) * 100))
-    );
+        return `${percentage}%`;
+    }
 
-    return `${percentage}%`;
+    // On/off-only lights have no meaningful brightness percentage.
+    // "On" also gives a sensible fallback for integrations that report an
+    // active light without a brightness attribute.
+    return 'On';
 }
 
 function resolve({ config, state, runtime })
@@ -126,5 +151,6 @@ function resolve({ config, state, runtime })
 module.exports = {
     resolve,
     currentColor,
-    brightnessLabel
+    brightnessLabel,
+    isOnOffOnly
 };

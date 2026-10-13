@@ -199,9 +199,43 @@ function testPersistentPresentations()
         runtime: lightRuntime
     });
 
-    assert.strictEqual(lightOff.secondary, null);
+    assert.strictEqual(lightOff.secondary, 'Off');
     assert.strictEqual(lightOff.colors.center, '#202224');
     assert.strictEqual(lightOff.colors.inner, 'rgb(255, 128, 0)');
+
+    const lightOnOffOn = light.presentation.resolve({
+        config: {
+            show_brightness: 'when_on',
+            colors: { outer_border: '#34383d' },
+            off: { center_color: '#202224' }
+        },
+        state: {
+            state: 'on',
+            attributes: {
+                supported_color_modes: ['onoff']
+            }
+        },
+        runtime: { lastKnownColor: null }
+    });
+
+    assert.strictEqual(lightOnOffOn.secondary, 'On');
+
+    const lightOnOffOff = light.presentation.resolve({
+        config: {
+            show_brightness: 'when_on',
+            colors: { outer_border: '#34383d' },
+            off: { center_color: '#202224' }
+        },
+        state: {
+            state: 'off',
+            attributes: {
+                supported_color_modes: ['onoff']
+            }
+        },
+        runtime: { lastKnownColor: null }
+    });
+
+    assert.strictEqual(lightOnOffOff.secondary, 'Off');
 
     const mediaPlaying = media.presentation.resolve({
         config: {
@@ -462,6 +496,45 @@ function testModuleMenusAreDeclarative()
 
     assert.strictEqual(lightMenu.buttons.length, 6);
     assert.strictEqual(lightMenu.promote_to_center, true);
+
+    const onOffOnlyLightMenu = light.buildMenu({
+        item: {
+            type: 'light',
+            entity: 'light.onoff_only'
+        },
+        hass: {
+            states: {
+                'light.onoff_only': {
+                    state: 'off',
+                    attributes: {
+                        supported_color_modes: ['onoff']
+                    }
+                }
+            }
+        }
+    });
+
+    assert.strictEqual(onOffOnlyLightMenu, null);
+
+    const unavailableLightMenu = light.buildMenu({
+        item: {
+            type: 'light',
+            entity: 'light.remote'
+        },
+        hass: {
+            states: {
+                'light.remote': {
+                    state: 'unavailable',
+                    attributes: {}
+                }
+            }
+        }
+    });
+
+    // Do not permanently classify a remote/unavailable light as on/off-only
+    // just because its capabilities are temporarily missing.
+    assert.ok(unavailableLightMenu);
+    assert.strictEqual(unavailableLightMenu.buttons.length, 6);
 
     const sonos = moduleRegistry.resolve({ type: 'media' });
     const sonosMenu = sonos.buildMenu({
