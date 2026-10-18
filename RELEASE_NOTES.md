@@ -1,3 +1,26 @@
+# v1.6.0-beta.4 — Restore Nested Palette Faces
+
+Fix #74: nested light palettes retain the dark faces behind their inherited
+inner controls. Existing dashboard YAML works unchanged.
+
+- Beta.2 stopped carrying parent `button_defaults` into nested menus. With
+  `nested_expand` and `inherit_inner`, copied controls lost their resolved
+  backgrounds and text styles, while independently styled swatches stayed filled.
+- Resolve inherited controls against the parent menu before expansion. Preserve
+  their default fills, explicit background overrides and text presentation in
+  persistent and regular menus. New nested controls keep their own defaults.
+- Keep shared ring rendering, physical geometry, actions and back navigation.
+  No SVG, slot allocation, configuration schema or charging automation changes.
+- The anonymous browser fixture reproduces the persistent-control failure on
+  beta.2 and passes on beta.1. New desktop/mobile checks sample painted pixels,
+  verify text contrast, all 12 palette colors, inherited geometry, actions and back.
+
+This is a beta pre-release. Tests simulate Home Assistant state/services with
+real button-card; actual integration/device behavior requires HA validation.
+Stable v1.5.1 remains the latest stable release.
+
+---
+
 # v1.6.0-beta.3 — Canonical Persistent Hub
 
 This pre-release addresses #72 by making `persistent-hub` the canonical component

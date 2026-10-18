@@ -122,6 +122,11 @@ and each local Hub retain separate contexts; nested actions never choose a new
 global context based on a lost shadow-DOM event. Explicit replacement remains
 available via nested_expand:false. Animation-free close disposes immediately.
 
+With `inherit_inner:true`, copy each inner control's resolved item configuration,
+including parent `button_defaults`, before changing menus. Copying only raw
+buttons loses inherited face fills and text styles. Do not propagate the whole
+parent defaults object to new nested buttons or independent templates.
+
 
 ## Canonical persistent Hub (#72)
 

@@ -120,7 +120,10 @@ function openHoneycombMenu(context, config, owner = null)
                 if( button && ! isEmpty(button) )
                 {
                     combined[i] = [
-                        merge({}, button, {
+                        // Preserve what was rendered, including the parent's
+                        // button_defaults. New nested buttons keep their own
+                        // defaults; copying the raw button loses inherited fill.
+                        merge({}, context.honeycomb._computeItemConfig(button), {
                             slot: i + 1,
                             slot_mode: 'hard'
                         })

@@ -161,6 +161,11 @@ If `center_button` defines its own background color, that explicit background wi
 
 Use `button_defaults` to apply common configuration to all ring buttons without repeating it on every button.
 
+Nested expansion with `inherit_inner: true` keeps the existing inner controls'
+resolved defaults and local overrides, including their background and text
+styles. New nested buttons use their own menu defaults. Existing YAML needs no
+changes for the nested palette fill fix in v1.6.0-beta.4.
+
 ```yaml
 honeycomb_menu:
   entity: light.kitchen
