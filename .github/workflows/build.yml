@@ -41,7 +41,20 @@ jobs:
         run: npm run build
 
       - name: Verify build output
-        run: test -f honeycomb-menu-ng.js
+        run: node scripts/validate-release.js
+
+      - name: Setup Python for browser regression tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install browser test dependencies
+        run: |
+          python -m pip install -r test/requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Test visibility, drag selection and Charging Hub in Chromium
+        run: python test/browser-smoke.py --bundle honeycomb-menu-ng.js
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -50,7 +63,7 @@ jobs:
           path: honeycomb-menu-ng.js
 
       - name: Commit compiled build
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -1,72 +1,88 @@
 name: Create GitHub Release
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - package.json
-      - release.json
-      - RELEASE_NOTES.md
-      - .github/workflows/release.yml
+  workflow_run:
+    workflows: [Build Honeycomb Menu NG]
+    types: [completed]
+    branches: [master]
   workflow_dispatch:
+
+concurrency:
+  group: validated-github-release
+  cancel-in-progress: false
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'master' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout validated master revision
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
-      - name: Read release metadata
-        id: meta
+      - name: Require successful master build for this exact revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
+          set -euo pipefail
+          SHA=$(git rev-parse HEAD)
+          git merge-base --is-ancestor "$SHA" origin/master
+          RUN_ID=$(gh run list --workflow build.yml --branch master --commit "$SHA" --event push --status success --json databaseId --jq '.[0].databaseId // empty')
+          test -n "$RUN_ID"
+          gh run download "$RUN_ID" --name honeycomb-menu-ng --dir "$RUNNER_TEMP/validated-artifact"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Reproduce and validate release artifact
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+        run: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run build
+          cmp honeycomb-menu-ng.js "$RUNNER_TEMP/validated-artifact/honeycomb-menu-ng.js"
+          node scripts/validate-release.js honeycomb-menu-ng.js "$RUNNER_TEMP/validated-artifact/SHA256SUMS.txt"
+
+      - name: Publish validated release once
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
           VERSION=$(node -p "require('./package.json').version")
           TAG="v$VERSION"
           TITLE=$(node -p "require('./release.json').title")
           PRERELEASE=$(node -p "String(require('./release.json').prerelease)")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
-
-      - name: Check whether release already exists
-        id: existing
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.meta.outputs.tag }}
-        shell: bash
-        run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+          # A failed API request is not evidence that a release does not exist.
+          if gh api "repos/$GH_REPO/releases" --paginate --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags.txt"; then
+            if grep -Fxq "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
+              echo "Release already exists; leaving published assets unchanged."
+              exit 0
+            fi
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 1
           fi
-
-      - name: Create release
-        if: steps.existing.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.meta.outputs.tag }}
-          TITLE: ${{ steps.meta.outputs.title }}
-          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
-        shell: bash
-        run: |
-          ARGS=(
-            release create "$TAG"
-            --target "${GITHUB_SHA}"
-            --title "$TITLE"
-            --notes-file RELEASE_NOTES.md
-          )
-
+          ARGS=(release create "$TAG" --target "$(git rev-parse HEAD)" --title "$TITLE" --notes-file RELEASE_NOTES.md)
           if [ "$PRERELEASE" = "true" ]; then
-            ARGS+=(--prerelease)
+            ARGS+=(--prerelease --latest=false)
           fi
-
-          gh "${ARGS[@]}"
+          gh "${ARGS[@]}" "$RUNNER_TEMP/validated-artifact/honeycomb-menu-ng.js" "$RUNNER_TEMP/validated-artifact/SHA256SUMS.txt"

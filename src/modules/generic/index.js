@@ -19,7 +19,9 @@ module.exports = {
         const icon = requestedIcon(item, 'honeycomb:bee');
         const button = {
             slot: physicalSlot(item, index, slot),
-            slot_mode: 'hard',
+            slot_mode: item.slot_mode || 'hard',
+            visibility: item.visibility,
+            show: item.show,
             entity: item.entity,
             icon,
             name: item.name || '',

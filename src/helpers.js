@@ -1,4 +1,18 @@
 const isString = require('lodash/isString');
+const { matchesVisibility } = require('./core/visibility.js');
+
+export function isButtonVisible(button, hass, variables = {})
+{
+    if( !button || !matchesVisibility(button.visibility, hass) )
+        return false;
+    if( button.show === undefined )
+        return true;
+    try {
+        return !!stringToBool(getTemplateOrValue(hass, hass && hass.states[button.entity], variables, button.show));
+    } catch(error) {
+        return false;
+    }
+}
 
 export function fireEvent( _node, _event, _detail = {}, _options = {})
 {
