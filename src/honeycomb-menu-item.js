@@ -1,10 +1,12 @@
 import { LitElement, html, css } from 'lit';
+import { renderHexFace, faceColors, faceBorder } from './hex-face.js';
 import { objectEvalTemplate, getTemplateOrValue, stringToBool, provideHass, createCard } from "./helpers.js";
 
 const merge = require('lodash/merge');
 const assign = require('lodash/assign');
 const isEmpty = require('lodash/isEmpty');
 const isString = require('lodash/isString');
+const { cardTextTemplate } = require('./core/text-template.js');
 
 class HoneycombMenuItem extends LitElement
 {
@@ -49,6 +51,7 @@ class HoneycombMenuItem extends LitElement
             this._card.hass = obj;
 
         this.requestUpdate('hass', oldHass);
+        this.requestUpdate();
     }
 
     get hass()
@@ -178,18 +181,28 @@ class HoneycombMenuItem extends LitElement
             :host([disabled]) #item {
                 background: var(--honeycomb-menu-disabled, #9a9a9a6e);
             }
+            .dual-rings .honey { transform: none; padding-bottom: 115.47%; visibility: visible; }
+            .dual-rings .comb { transform: translateZ(0); background: transparent;
+                clip-path: polygon(50% 4.33%, 95.67% 27.165%, 95.67% 72.835%, 50% 95.67%, 4.33% 72.835%, 4.33% 27.165%); }
+            .dual-rings.cell .comb { clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); }
+            .hex-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
         `;
     }
 
     render()
     {
         const bee = this.config && this.config.icon === 'honeycomb:bee';
+        const rings = this.config && (this.config.colors || this.config.border);
+        const colors = rings && faceColors(this.hass, this.config,
+            { center: 'var(--ha-card-background, #20262d)', inner: '#f2b705', outer: '#34383d' });
 
         return html`
-            <div class="honeycomb">
+            <div class="honeycomb ${rings ? 'dual-rings' : ''} ${this.config && this.config.face_mode === 'cell' ? 'cell' : ''}">
                 <div class="honey">
                     <div class="comb">
-                        <div id="item"></div>
+                        <div id="item" style=${rings ? `background:${colors.center}` : ''}></div>
+                        ${rings ? renderHexFace(this.size || this.getBoundingClientRect().width,
+                            faceBorder(this.hass, this.config), this.config.face_mode, colors, true) : ''}
                         ${bee ? html`
                             <div class="bee-overlay ${this._beeFlapping ? 'flap' : ''}">
                                 <svg viewBox="0 0 80 72" aria-hidden="true">
@@ -311,13 +324,14 @@ class HoneycombMenuItem extends LitElement
             if( ! actionConfig )
                 continue;
 
-            if( 'honeycomb_menu' in actionConfig )
+            if( 'honeycomb_menu' in actionConfig || 'honeycomb_nested_menu' in actionConfig )
             {
+                const nested = actionConfig.honeycomb_menu || actionConfig.honeycomb_nested_menu;
                 if( this.config.variables )
                 {
-                    actionConfig.honeycomb_menu.variables = {
+                    nested.variables = {
                         ...this.config.variables,
-                        ...actionConfig.honeycomb_menu.variables
+                        ...nested.variables
                     };
                 }
                 continue;
@@ -353,9 +367,14 @@ class HoneycombMenuItem extends LitElement
         // them on the wrapper for live action guards and drag-select checks.
         delete config.visibility;
         delete config.show;
+        delete config.colors;
+        delete config.border;
+        delete config.face_mode;
 
         if( ! config.type || config.type == 'custom:button-card' )
         {
+            config.name = cardTextTemplate(config.name);
+            config.label = cardTextTemplate(config.label);
             if( ! config.styles )
                 config.styles = {};
 
@@ -367,6 +386,8 @@ class HoneycombMenuItem extends LitElement
                 position: 'fixed',
                 padding: '0'
             });
+            if (this.config.colors || this.config.border)
+                config.styles.card.push({ background: 'transparent', 'background-color': 'transparent', border: 'none', 'box-shadow': 'none' });
 
             if( config.icon === 'honeycomb:bee' )
             {

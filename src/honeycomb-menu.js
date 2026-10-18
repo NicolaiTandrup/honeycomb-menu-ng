@@ -80,6 +80,17 @@ function openHoneycombMenu(context, config)
         // Hub base -> selected module. Every deeper level reuses that anchor.
         navigationCore.enterNested(context, current, honeycombConfig);
 
+        // Expanding changes content, never the owning overlay's physical size
+        // or anchor. Local Hub promotion is the one deliberate exception.
+        if (!navigationCore.isHubRoot(current)) {
+            honeycombConfig.anchor_x = context.honeycomb._anchorX;
+            honeycombConfig.anchor_y = context.honeycomb._anchorY;
+        }
+        honeycombConfig.position_mode = current.position_mode || 'anchored';
+        honeycombConfig.size = current.size;
+        if (honeycombConfig.layout_envelope === undefined)
+            honeycombConfig.layout_envelope = current.layout_envelope;
+
         context.stack.push({
             __honeycomb_stack_entry: true,
             config: merge({}, current),
@@ -143,9 +154,6 @@ function openHoneycombMenu(context, config)
 
             if( honeycombConfig.idle_timeout === undefined && current.idle_timeout !== undefined )
                 honeycombConfig.idle_timeout = current.idle_timeout;
-
-            if( honeycombConfig.button_defaults === undefined && current.button_defaults !== undefined )
-                honeycombConfig.button_defaults = merge({}, current.button_defaults);
 
             if( honeycombConfig.promote_to_center === true && honeycombConfig.promoted_center )
             {
@@ -322,6 +330,7 @@ function honeycombBack(context = manager)
         ? previous.config
         : previous;
 
+    navigationCore.prepareBack(context, previousConfig);
     showHoneycombMenu(previousConfig, { nested: false, context });
     return true;
 }
@@ -665,6 +674,7 @@ class HoneycombMenu extends LitElement
                             top: calc(var(--item-size) * ${centerPos.y});
                         "
                         .hass=${this.hass}
+                        .size=${this.sizes.item}
                         .config=${centerConfig}
                         @action=${this._handleItemAction}>
                     </honeycomb-menu-item>
@@ -714,6 +724,7 @@ class HoneycombMenu extends LitElement
                                 top: calc(var(--item-size) * ${pos.y});
                             "
                             .hass=${this.hass}
+                            .size=${this.sizes.item}
                             .config=${this._computeItemConfig(v)}
                             @action=${this._handleItemAction}>
                         </honeycomb-menu-item>
@@ -881,7 +892,8 @@ class HoneycombMenu extends LitElement
         document.removeEventListener('pointerup', this._boundPointerUp, true);
         document.removeEventListener('pointercancel', this._boundPointerUp, true);
 
-        const items = this.shadowRoot.querySelectorAll('honeycomb-menu-item');
+        const items = Array.from(this.shadowRoot.querySelectorAll('honeycomb-menu-item'))
+            .filter(item => !item.hidden && !item.disabled);
         let ele = _item || items[items.length - 1];
 
         if( _item )
@@ -891,6 +903,12 @@ class HoneycombMenu extends LitElement
         }
 
         fireEvent(this, 'closing', { item: _item });
+
+        if (this.config.animate === false) {
+            this.remove();
+            fireEvent(this, 'closed', { item: _item });
+            return;
+        }
 
         const shade = this.shadowRoot.querySelector('#shade');
         if( shade )
@@ -1142,7 +1160,7 @@ class HoneycombMenu extends LitElement
 
             openHoneycombMenu(
                 this._menuContext || manager,
-                merge({}, actionConfig.honeycomb_nested_menu)
+                merge({ nested_expand: true }, actionConfig.honeycomb_nested_menu)
             );
 
             this._resetIdleTimeout();

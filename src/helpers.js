@@ -1,5 +1,6 @@
 const isString = require('lodash/isString');
 const { matchesVisibility } = require('./core/visibility.js');
+const { templateBody } = require('./core/text-template.js');
 
 export function isButtonVisible(button, hass, variables = {})
 {
@@ -73,8 +74,9 @@ export function getTemplateOrValue(hass, state, custom_variables, value, _callba
 
     const trimmed = value.trim();
 
-    if (trimmed.substring(0, 3) === '[[[' && trimmed.slice(-3) === ']]]') {
-        return evalTemplate(hass, state, custom_variables, trimmed.slice(3, -3));
+    const body = templateBody(trimmed);
+    if (body !== null) {
+        return evalTemplate(hass, state, custom_variables, body);
     } else if(trimmed.substring(0, 5) === 'HCJS:') {
         return evalTemplate(hass, state, custom_variables, trimmed.slice(5));
     } else {

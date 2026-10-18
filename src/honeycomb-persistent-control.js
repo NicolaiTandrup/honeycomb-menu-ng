@@ -1,10 +1,10 @@
 import { LitElement, html, css } from 'lit';
-import { fireEvent, provideHass, isButtonVisible } from "./helpers.js";
+import { renderHexFace, faceColors, faceBorder, presentationValue } from './hex-face.js';
+import { fireEvent, provideHass, isButtonVisible, getTemplateOrValue } from "./helpers.js";
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
-const layoutCore = require('./core/layout.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
 
 class HoneycombPersistentControl extends LitElement
@@ -68,11 +68,6 @@ class HoneycombPersistentControl extends LitElement
                 z-index: 0;
             }
 
-            .hex-polygon {
-                vector-effect: non-scaling-stroke;
-                stroke-linejoin: round;
-            }
-
             .interaction-surface {
                 position: absolute;
                 inset: 0;
@@ -91,6 +86,7 @@ class HoneycombPersistentControl extends LitElement
                 -webkit-tap-highlight-color: transparent;
                 outline: none;
             }
+            .interaction-surface:focus-visible { outline: 2px solid var(--primary-color, #2196f3); }
 
             .content {
                 position: absolute;
@@ -144,6 +140,9 @@ class HoneycombPersistentControl extends LitElement
                 transform: translateY(-2px);
             }
 
+            .primary { font-size: calc(var(--honeycomb-persistent-size, 72px) * 0.18); font-weight: 650; }
+            .content.has-primary .secondary { font-size: calc(var(--honeycomb-persistent-size, 72px) * 0.12); }
+            .primary, .secondary { max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
             .secondary {
                 margin-top: 2px;
                 font-size: calc(var(--honeycomb-persistent-size, 72px) * 0.16);
@@ -162,6 +161,7 @@ class HoneycombPersistentControl extends LitElement
         this._hass = obj;
 
         this.requestUpdate('hass', oldHass);
+        this.requestUpdate();
     }
 
     get hass()
@@ -225,6 +225,7 @@ class HoneycombPersistentControl extends LitElement
 
         this.config = next;
         this.size = Number(next.size) || 72;
+        this.style.setProperty('--honeycomb-persistent-size', `${this.size}px`);
 
         provideHass(this);
 
@@ -258,19 +259,21 @@ class HoneycombPersistentControl extends LitElement
 
     _resolvePresentation()
     {
-        const configured = (this.config && this.config.colors) || {};
-
         if( this.config && this.config.mode === 'hub' )
         {
             return {
-                colors: {
-                    center: configured.center || '#20262d',
-                    inner: configured.inner_border || '#f2b705',
-                    outer: configured.outer_border || '#34383d'
-                },
+                colors: faceColors(this.hass, this.config,
+                    { center: '#20262d', inner: '#f2b705', outer: '#34383d' }),
                 secondary: null
             };
         }
+
+        const evaluated = faceColors(this.hass, this.config || {},
+            { center: 'auto', inner: 'auto', outer: 'auto' });
+        const configured = { ...((this.config && this.config.colors) || {}),
+            center: evaluated.center, inner_border: evaluated.inner,
+            outer_border: this.config.colors && this.config.colors.outer_border !== undefined
+                ? evaluated.outer : '#34383d' };
 
         const module = moduleRegistry.resolvePresentation(
             this.config ? this.config.mode : null
@@ -283,7 +286,7 @@ class HoneycombPersistentControl extends LitElement
             };
 
             const presentation = module.presentation.resolve({
-                config: this.config || {},
+                config: { ...this.config, colors: configured },
                 state: this._entityState(),
                 runtime
             });
@@ -460,6 +463,10 @@ class HoneycombPersistentControl extends LitElement
         const center = merge({}, this.config);
         delete center.menu;
         center.interactive = false;
+        if (this.config.mode === 'hub') {
+            center.interactive = true;
+            center.tap_action = { action: 'honeycomb-close' };
+        }
         center.size = this.size;
 
         if( ! center.off )
@@ -508,7 +515,8 @@ class HoneycombPersistentControl extends LitElement
         this._holdTimer = setTimeout(() => {
             this._holdTimer = null;
             this._holdTriggered = true;
-            this._openMenu();
+            if (this.config.hold_action) this._executeAction(this.config.hold_action);
+            else this._openMenu();
         }, holdTime);
     }
 
@@ -638,6 +646,14 @@ class HoneycombPersistentControl extends LitElement
         if( ! action || ! this.hass || !isButtonVisible(this.config, this.hass, this.config.variables) )
             return;
 
+        // Evaluate service arguments at activation time, preserving nested menu
+        // definitions for their own rendering context.
+        if (action.action !== 'honeycomb-open-nested') {
+            try {
+                action = getTemplateOrValue(this.hass, this._entityState(), this.config.variables || {}, merge({}, action));
+            } catch (_) { return; }
+        }
+
         const actionName = action.action || 'toggle';
 
         if( actionName === 'none' )
@@ -646,6 +662,21 @@ class HoneycombPersistentControl extends LitElement
         if( actionName === 'honeycomb-open-menu' )
         {
             this._openMenu();
+            return;
+        }
+
+        if( actionName === 'honeycomb-open-nested' && action.honeycomb_nested_menu )
+        {
+            const nested = merge({ nested_expand: true }, action.honeycomb_nested_menu);
+            nested.variables = merge({}, this.config.variables || {}, nested.variables || {});
+            this._openHoneycombMenu(nested);
+            return;
+        }
+
+        if( actionName === 'honeycomb-close' )
+        {
+            const host = this.getRootNode().host;
+            window.honeycomb_menu_context_close(host && host._menuContext);
             return;
         }
 
@@ -681,7 +712,7 @@ class HoneycombPersistentControl extends LitElement
 
         if( actionName === 'more-info' )
         {
-            fireEvent(this, 'hass-more-info', { entityId: this.config.entity });
+            fireEvent(this, 'hass-more-info', { entityId: action.entity || this.config.entity });
             return;
         }
 
@@ -728,22 +759,13 @@ class HoneycombPersistentControl extends LitElement
 
         const presentation = this._resolvePresentation();
         const colors = presentation.colors;
-        const border = (this.config && this.config.border) || {};
-        const outerWidth = Math.max(0, Number(border.outer_width !== undefined ? border.outer_width : 3));
-        const innerWidth = Math.max(0, Number(border.inner_width !== undefined ? border.inner_width : 3));
-
-        // Build the two borders as uniformly scaled copies of the exact same
-        // hexagon. This keeps the shape homogeneous while avoiding the double
-        // dark stripe that occurs when two centered SVG strokes overlap.
-        const outerScale = 1;
-        const innerScale = Math.max(0.55, 1 - ((outerWidth * 2) / this.size));
-        const centerScale = Math.max(
-            0.45,
-            innerScale - ((innerWidth * 2) / this.size)
-        );
+        const border = faceBorder(this.hass, this.config);
         const foreground = this._foregroundForBackground(colors.center);
-        const secondary = presentation.secondary;
-        const hexPoints = layoutCore.persistentHexPoints(this.config.face_mode);
+        const secondary = this.config.label !== undefined
+            ? presentationValue(this.hass, this.config, this.config.label, 'Unavailable') : presentation.secondary;
+        const name = this.config.name === undefined ? ''
+            : presentationValue(this.hass, this.config, this.config.name, 'Unavailable');
+        const icon = presentationValue(this.hass, this.config, this.config.icon, 'mdi:hexagon-outline');
 
         return html`
             <div
@@ -753,43 +775,17 @@ class HoneycombPersistentControl extends LitElement
                     --honeycomb-persistent-foreground: ${foreground};
                 "
             >
-                <svg
-                    class="hex-svg"
-                    viewBox="0 0 100 115.47"
-                    preserveAspectRatio="xMidYMid meet"
-                    aria-hidden="true"
-                >
-                    <polygon
-                        class="hex-polygon"
-                        points="${hexPoints}"
-                        fill="${colors.outer}">
-                    </polygon>
+                ${renderHexFace(this.size, border, this.config.face_mode, colors)}
 
-                    <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
-                        <polygon
-                            class="hex-polygon"
-                            points="${hexPoints}"
-                            fill="${colors.inner}">
-                        </polygon>
-                    </g>
-
-                    <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
-                        <polygon
-                            class="hex-polygon"
-                            points="${hexPoints}"
-                            fill="${colors.center}">
-                        </polygon>
-                    </g>
-                </svg>
-
-                <div class="content ${secondary ? 'has-secondary' : ''}">
-                    ${(this.config.icon === '' || this.config.icon === 'honeycomb:bee') ? html`
+                <div class="content ${secondary ? 'has-secondary' : ''} ${name ? 'has-primary' : ''}">
+                    ${(icon === '' || icon === 'honeycomb:bee') ? html`
                         <img
                             class="bee-icon ${this._beeFlapping ? 'flap' : ''}"
                             .src=${HONEYCOMB_BEE_PNG}
                             alt=""
                             aria-hidden="true">
-                    ` : html`<ha-icon .icon=${this.config.icon}></ha-icon>`}
+                    ` : html`<ha-icon .icon=${icon}></ha-icon>`}
+                    ${name ? html`<div class="primary">${name}</div>` : ''}
                     ${secondary ? html`<div class="secondary">${secondary}</div>` : ''}
                 </div>
 
@@ -798,6 +794,8 @@ class HoneycombPersistentControl extends LitElement
                         class="interaction-surface"
                         role="button"
                         tabindex="0"
+                        aria-label=${name || 'Honeycomb control'}
+                        @keydown=${e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._executeAction(this.config.tap_action); } }}
                         @pointerdown=${this._handlePointerDown}
                         @pointermove=${this._handlePointerMove}
                         @pointerup=${this._handlePointerUp}

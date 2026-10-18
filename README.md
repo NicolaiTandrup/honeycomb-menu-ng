@@ -111,206 +111,296 @@ visibility:
                 state: 'off'
 ```
 
+## Shared dual-ring cubes and nested menus (v1.6 beta)
+
+Ordinary menu cubes can now use the same `colors.center`, `colors.inner_border`,
+`colors.outer_border`, `border.inner_width`, and `border.outer_width` as native
+persistent controls. Widths are pixels; each ring is independent. Omit `colors`
+and `border` to retain the classic appearance. `face_mode: inset` (default) and
+`face_mode: cell` select the same geometry in both renderers. The ring overlay
+leaves button-card text, custom fields and actions interactive. A configured
+center color takes precedence over the wrapped card's background.
+
+Native persistent controls support live `name`, `label`, `icon`, colors and
+width templates. Light/Media state presentation remains the default when no text
+is configured. `mode: hub` can display aggregate information without an entity.
+`tap_action` and `hold_action` are independent; omitting a native hold action
+retains hold-to-open behavior. Enter/Space activates its tap action.
+
+Use `action: honeycomb-open-nested` with `honeycomb_nested_menu` to open content
+inside the owning menu. It defaults to `nested_expand: true`, preserving the
+same overlay, anchor and cube size. Set `nested_expand: false` explicitly for
+legacy replacement behavior. `honeycomb-back` restores history. A persistent
+Hub's first Light/Media promotion retains its established behavior; deeper
+levels keep that module's anchor. `layout_envelope: outer` reserves space for
+outer-ring content without moving the center. `inherit_inner` still adds an
+outer ring around existing controls.
+
+Define complex menus once under dashboard-level `honeycomb_menu_templates`.
+Both a standalone `honeycomb_menu: {template: vehicle_controls, variables: ...}`
+launcher and a nested `honeycomb_nested_menu: {template: vehicle_controls}` use
+the same buttons, layout, labels and actions. Nested invocation passes the
+calling cube's variables; menu variables may override them. Navigation alone
+adds the native back center; it does not copy the parent button defaults onto
+the reused content.
+
+**Template dialect:** Honeycomb evaluates `[[[ return ...; ]]]`, `HCJS: ...`,
+and legacy `${...}` expressions with `states`, `entity`, `variables`, `user`,
+and `hass`. Native presentation fields are plain text, not HTML. Wrapped
+button-card names/labels use button-card's JS context (including its helpers).
+Missing/failed name and label expressions display `Unavailable`. Use explicit
+fallbacks for domain-specific unknown states. Honeycomb's final text host also
+normalizes extra bracket escape layers so they cannot appear as raw JS text.
+When embedding a menu inside another button-card's action, that ancestor still
+needs an extra bracket pair (`[[[[ ... ]]]]`) to delay evaluation until the
+child exists. The native parent in the example below needs only three brackets.
+Do not embed Jinja templates in these frontend fields.
+
 ## Generic Charging Hub
 
-This is a composition of **existing button-card and Honeycomb capabilities**,
-not a device integration or a new charging module. The persistent parent cube
-shows total current power as its primary text and active/total charger count as
-its secondary text. Tap or hold opens charger controls followed by optional
-vehicle controls. Each charger shows power, its associated vehicle name, and an
-inner ring: charging color while permitted and charging, allowed color while
-permitted and idle, otherwise blocked color.
+This complete dashboard example composes native persistent controls, ordinary
+menu cubes and existing template/actions. Merge its `honeycomb_menu_templates`
+into your dashboard and place the card in any view. Replace every placeholder
+entity and request script with your existing Home Assistant entities/actions.
 
-Replace every placeholder entity with an existing entity from your installation:
+The parent displays current aggregate power and active/total charger count.
+One tap opens the hub; a charger tap requests permission through an external
+script and a hold opens session energy and read-only cable-lock status. A
+vehicle tap opens the reusable `vehicle_controls` menu; hold opens more-info.
+The ring is green when permitted, blue when online/blocked, red on fault, and
+gray offline. Vehicle colors are separately configurable. The parent center
+changes while charging, and remains accessible with no known vehicles.
 
-| Placeholder pattern | Supplies |
+| Generic entity | Purpose |
 |---|---|
-| `sensor.charger_1_power` / `sensor.charger_2_power` | Current power, with unit `W` or `kW` |
-| `binary_sensor.charger_1_charging` / `...2_charging` | `on` while actively charging |
-| `sensor.charger_1_vehicle` / `...2_vehicle` | Associated vehicle name, e.g. Vehicle A/B |
-| `switch.charger_1_charging_allowed` / `...2_charging_allowed` | Manual charging permission, toggled by the charger action |
-| `binary_sensor.vehicle_a_present` / `...b_present` | Vehicle-control visibility |
-| `sensor.vehicle_a_battery` / `...b_battery` | Optional vehicle battery information |
+| `sensor.charger_1_power` | Current W/kW; missing or invalid power shows Unavailable |
+| `binary_sensor.charger_1_charging` | Active charger count |
+| `binary_sensor.charger_1_online` / `..._fault` | Availability/fault ring |
+| `switch.charger_1_charging_allowed` | Read permission status |
+| `script.request_charger_1_permission` | External policy-checked permission request |
+| `sensor.charger_1_vehicle` | Associated Vehicle A/B or No vehicle |
+| `sensor.charger_1_session_energy` | Reported session energy |
+| `binary_sensor.charger_1_cable_locked` | Read-only lock status |
+| `binary_sensor.vehicle_a_present` / `sensor.vehicle_a_battery` | Optional vehicle visibility/information |
 
-The entity names and actions are configurable placeholders, not entities to
-create blindly. Replace `homeassistant.toggle` with your own permitted action if
-necessary. Association, charging sessions, disable-on-unplug and optimization
-belong to Home Assistant or another external automation system. Honeycomb does
-not infer a vehicle, track sessions, or schedule charging.
+Add/remove charger records in both `variables.chargers` and the menu buttons;
+add/remove vehicle controls independently. Zero chargers uses `chargers: []`
+and no charger buttons, displaying `0 W` and `0/0 charging`. No vehicle presence
+condition belongs on the parent. Each menu has 18 ring cells; use nested menus
+for larger groups. There is no device discovery or fixed installation count.
 
-Add/remove charger entries in **both** `variables.chargers` and the menu's charger
-buttons. Add/remove vehicle buttons independently. With zero chargers, use
-`chargers: []` and remove their buttons; the parent reads `0 W` and `0/0 charging`.
-With no known/present vehicles, charger controls remain available for manual guest
-charging. The parent and menu close control are never conditioned on a vehicle.
-There is no fixed charger/vehicle count in the implementation. A single menu
-has 18 ring cells; group larger installations using existing nested menus rather
-than relying on overflow to expose important controls.
+Permission overrides, association, unplug handling, charging sessions and
+optimization belong to external automation. The example calls a request script
+which must enforce that policy; it never directly toggles the permission switch.
+A binary sensor cannot lock/unlock. Only if your integration exposes a real
+`lock` entity and the service is supported should you replace its read-only
+action with e.g. `action: perform-action` with `perform_action: lock.unlock`, targeting that real entity.
 
-**Template depth matters:** this example places a Honeycomb menu inside a
-button-card action. Four brackets (`[[[[ ... ]]]]`) protect child button-card
-expressions for live evaluation after the parent evaluates the action. The
-parent's own expressions and the variables copied into the menu use three.
-Requires button-card with nested-template support (tested with v7.0.1).
-
-Complete single-card example (also [examples/charging-hub.yaml](examples/charging-hub.yaml)):
+Complete anonymous example (also [examples/charging-hub.yaml](examples/charging-hub.yaml)):
 
 ```yaml
-# One dashboard card. Replace every placeholder entity with an existing entity.
-# Charging sessions, unplug handling and optimization stay in external automation.
-type: custom:button-card
-icon: mdi:ev-station
-show_name: true
-show_label: true
-triggers_update: all
-variables:
-  chargers:
-    - power: sensor.charger_1_power
-      charging: binary_sensor.charger_1_charging
-      vehicle: sensor.charger_1_vehicle
-      permission: switch.charger_1_charging_allowed
-    - power: sensor.charger_2_power
-      charging: binary_sensor.charger_2_charging
-      vehicle: sensor.charger_2_vehicle
-      permission: switch.charger_2_charging_allowed
-  allowed_color: '#00bcd4'
-  charging_color: '#4caf50'
-  blocked_color: '#6b7280'
-name: |
-  [[[
-    let watts = 0;
-    for (const charger of variables.chargers) {
-      const power = states[charger.power];
-      if (!power || !['W', 'kW'].includes(power.attributes.unit_of_measurement) ||
-          power.state.trim() === '' || !Number.isFinite(Number(power.state))) return 'Unavailable';
-      watts += Number(power.state) * (power.attributes.unit_of_measurement === 'kW' ? 1000 : 1);
-    }
-    return watts >= 1000 ? (watts / 1000).toFixed(1) + ' kW' : Math.round(watts) + ' W';
-  ]]]
-label: |
-  [[[
-    const active = variables.chargers.filter(c => states[c.charging]?.state === 'on').length;
-    return active + '/' + variables.chargers.length + ' charging';
-  ]]]
-styles:
-  grid:
-    - grid-template-areas: '"i" "n" "l"'
-    - grid-template-columns: 1fr
-    - grid-template-rows: 44% 28% 28%
-    - height: 100%
-  card:
-    - width: 120px
-    - height: 139px
-    - border-radius: 0
-    - clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)
-  name:
-    - font-size: 22px
-    - align-self: center
-  label:
-    - font-size: 12px
-    - align-self: start
-tap_action: &open_charging_menu
-  action: fire-dom-event
-  honeycomb_menu:
-    size: 260
+# Complete dashboard example. Merge templates into your dashboard's existing
+# honeycomb_menu_templates and place the card in any view. All entities are placeholders.
+honeycomb_menu_templates:
+  charger_details:
+    nested_expand: true
     empty_slots: hidden
-    variables:
-      chargers: '[[[ return variables.chargers; ]]]'
-      allowed_color: '[[[ return variables.allowed_color; ]]]'
-      charging_color: '[[[ return variables.charging_color; ]]]'
-      blocked_color: '[[[ return variables.blocked_color; ]]]'
-    center_button:
-      icon: mdi:close
-      name: Charging
-      show_name: true
-      show_label: false
-      tap_action:
-        action: honeycomb-close
     button_defaults:
       show_name: true
       show_label: true
       autoclose: false
       triggers_update: all
-      name: |
-        [[[[
-          if (!entity || !['W', 'kW'].includes(entity.attributes.unit_of_measurement) ||
-              entity.state.trim() === '' || !Number.isFinite(Number(entity.state))) return 'Unavailable';
-          return entity.state + ' ' + entity.attributes.unit_of_measurement;
-        ]]]]
-      label: |
-        [[[[
-          const charger = variables.chargers.find(c => c.power === entity?.entity_id);
-          const vehicle = charger && states[charger.vehicle]?.state;
-          return vehicle && !['unknown', 'unavailable', 'none'].includes(vehicle) ? vehicle : 'No vehicle';
-        ]]]]
-      custom_fields:
-        permission_ring: |
-          [[[[
-            const charger = variables.chargers.find(c => c.power === entity?.entity_id);
-            if (!charger) return '';
-            const allowed = states[charger.permission]?.state === 'on';
-            const charging = states[charger.charging]?.state === 'on';
-            const color = !allowed ? variables.blocked_color : charging ? variables.charging_color : variables.allowed_color;
-            return `<svg viewBox="0 0 100 115.47" width="100%" height="100%" aria-hidden="true"><polygon points="50,5 95.67,31.37 95.67,84.1 50,110.47 4.33,84.1 4.33,31.37" fill="none" stroke="${color}" stroke-width="3"/></svg>`;
-          ]]]]
-      styles:
-        grid:
-          - grid-template-areas: '"i" "n" "l"'
-          - grid-template-columns: 1fr
-          - grid-template-rows: 44% 28% 28%
-          - height: 100%
-        icon:
-          - width: 22px
-          - align-self: end
-        custom_fields:
-          permission_ring:
-            - position: absolute
-            - inset: 0
-            - pointer-events: none
-        name:
-          - font-size: 14px
-          - align-self: center
-        label:
-          - font-size: 10px
-          - align-self: start
-      tap_action:
-        action: perform-action
-        perform_action: homeassistant.toggle
-        target:
-          entity_id: |
-            [[[[ return variables.chargers.find(c => c.power === entity?.entity_id)?.permission; ]]]]
     buttons:
-      - entity: sensor.charger_1_power
-        icon: mdi:ev-station
-        slot_mode: soft
-      - entity: sensor.charger_2_power
-        icon: mdi:ev-station
-        slot_mode: soft
-      - entity: sensor.vehicle_a_battery
-        name: Vehicle A
-        label: '[[[[ return entity ? entity.state + " %" : "Unavailable"; ]]]]'
-        icon: mdi:car-electric
-        slot: 3
-        slot_mode: priority
-        visibility:
-          - condition: state
-            entity: binary_sensor.vehicle_a_present
-            state: 'on'
+      - name: Session energy
+        icon: mdi:lightning-bolt
+        label: >-
+          [[[ const s = states[variables.charger.energy];
+              return s && !['unknown','unavailable'].includes(s.state)
+                ? s.state + ' ' + (s.attributes.unit_of_measurement || '') : 'Unavailable'; ]]]
         tap_action:
           action: more-info
-      - entity: sensor.vehicle_b_battery
-        name: Vehicle B
-        label: '[[[[ return entity ? entity.state + " %" : "Unavailable"; ]]]]'
-        icon: mdi:car-electric
-        slot: 4
-        slot_mode: priority
-        visibility:
-          - condition: state
-            entity: binary_sensor.vehicle_b_present
-            state: 'on'
+          entity: '[[[ return variables.charger.energy; ]]]'
+      - name: Cable lock
+        icon: mdi:lock
+        label: >-
+          [[[ const s = states[variables.charger.cable_lock]?.state;
+              return s === 'on' ? 'Locked' : s === 'off' ? 'Unlocked' : 'Unavailable'; ]]]
+        # A binary sensor reports status only. There is deliberately no lock command.
         tap_action:
           action: more-info
-hold_action: *open_charging_menu
+          entity: '[[[ return variables.charger.cable_lock; ]]]'
+  vehicle_controls:
+    # Reuse this exact template from a standalone launcher or a nested cube.
+    nested_expand: true
+    empty_slots: hidden
+    button_defaults:
+      autoclose: false
+      show_name: true
+      show_label: true
+      triggers_update: all
+    buttons:
+      - name: Battery
+        icon: mdi:battery
+        entity: '[[[ return variables.vehicle.battery; ]]]'
+        label: >-
+          [[[ return entity && !['unknown','unavailable'].includes(entity.state)
+              ? entity.state + ' %' : 'Unavailable'; ]]]
+        tap_action:
+          action: more-info
+      - name: Vehicle details
+        icon: mdi:car-electric
+        entity: '[[[ return variables.vehicle.battery; ]]]'
+        tap_action:
+          action: more-info
+views:
+  - title: Charging
+    cards:
+      - type: custom:honeycomb-persistent-control
+        mode: hub
+        size: 90
+        icon: mdi:ev-station
+        variables: &hub_variables
+          chargers:
+            - &charger_1
+              power: sensor.charger_1_power
+              charging: binary_sensor.charger_1_charging
+              online: binary_sensor.charger_1_online
+              fault: binary_sensor.charger_1_fault
+              vehicle: sensor.charger_1_vehicle
+              permission: switch.charger_1_charging_allowed
+              energy: sensor.charger_1_session_energy
+              cable_lock: binary_sensor.charger_1_cable_locked
+              request_script: script.request_charger_1_permission
+            - &charger_2
+              power: sensor.charger_2_power
+              charging: binary_sensor.charger_2_charging
+              online: binary_sensor.charger_2_online
+              fault: binary_sensor.charger_2_fault
+              vehicle: sensor.charger_2_vehicle
+              permission: switch.charger_2_charging_allowed
+              energy: sensor.charger_2_session_energy
+              cable_lock: binary_sensor.charger_2_cable_locked
+              request_script: script.request_charger_2_permission
+          permitted_color: '#4caf50'
+          blocked_color: '#2196f3'
+          fault_color: '#f44336'
+          offline_color: '#6b7280'
+        name: >-
+          [[[ let watts = 0;
+              for (const charger of variables.chargers) {
+                const p = states[charger.power];
+                if (!p || !['W','kW'].includes(p.attributes.unit_of_measurement) ||
+                    p.state.trim() === '' || !Number.isFinite(Number(p.state))) return 'Unavailable';
+                watts += Number(p.state) * (p.attributes.unit_of_measurement === 'kW' ? 1000 : 1);
+              }
+              return watts >= 1000 ? (watts / 1000).toFixed(1) + ' kW' : Math.round(watts) + ' W'; ]]]
+        label: >-
+          [[[ return variables.chargers.filter(c => states[c.charging]?.state === 'on').length
+              + '/' + variables.chargers.length + ' charging'; ]]]
+        colors:
+          center: >-
+            [[[ return variables.chargers.some(c => states[c.charging]?.state === 'on') ? '#174b32' : '#20262d'; ]]]
+          inner_border: >-
+            [[[ const cs = variables.chargers;
+                if (cs.some(c => states[c.fault]?.state === 'on')) return variables.fault_color;
+                if (!cs.length || cs.every(c => states[c.online]?.state !== 'on')) return variables.offline_color;
+                return cs.some(c => states[c.permission]?.state === 'on') ? variables.permitted_color : variables.blocked_color; ]]]
+          outer_border: '#34383d'
+        border: {outer_width: 3, inner_width: 3}
+        tap_action: {action: honeycomb-open-menu}
+        hold_action: {action: honeycomb-open-menu}
+        menu:
+          empty_slots: hidden
+          layout_envelope: outer
+          variables: *hub_variables
+          button_defaults:
+            show_name: true
+            show_label: true
+            autoclose: false
+            triggers_update: all
+            border: {outer_width: 3, inner_width: 3}
+            colors:
+              center: '#20262d'
+              outer_border: '#34383d'
+              inner_border: >-
+                [[[ const c = variables.charger;
+                    if (!c || states[c.online]?.state !== 'on') return variables.offline_color;
+                    if (states[c.fault]?.state === 'on') return variables.fault_color;
+                    return states[c.permission]?.state === 'on' ? variables.permitted_color : variables.blocked_color; ]]]
+            name: >-
+              [[[ return entity && ['W','kW'].includes(entity.attributes.unit_of_measurement)
+                  && entity.state.trim() !== '' && Number.isFinite(Number(entity.state))
+                  ? entity.state + ' ' + entity.attributes.unit_of_measurement : 'Unavailable'; ]]]
+            label: >-
+              [[[ const v = states[variables.charger.vehicle]?.state;
+                  return v && !['unknown','unavailable','none'].includes(v) ? v : 'No vehicle'; ]]]
+            styles:
+              grid:
+                - grid-template-areas: '"i" "n" "l"'
+                - grid-template-columns: 1fr
+                - grid-template-rows: 38% 26% 22%
+                - height: 100%
+                - align-items: center
+              icon:
+                - width: 22px
+                - align-self: end
+              name:
+                - font-size: 14px
+                - align-self: center
+              label:
+                - font-size: 10px
+                - align-self: start
+            # The external script requests permission through your optimizer.
+            # It must validate policy; this UI never toggles the permission switch.
+            tap_action:
+              action: perform-action
+              perform_action: script.turn_on
+              target:
+                entity_id: '[[[ return variables.charger.request_script; ]]]'
+            hold_action:
+              action: honeycomb-open-nested
+              honeycomb_nested_menu: {template: charger_details}
+          buttons:
+            - entity: sensor.charger_1_power
+              icon: mdi:ev-station
+              slot_mode: soft
+              variables: {charger: *charger_1}
+            - entity: sensor.charger_2_power
+              icon: mdi:ev-station
+              slot_mode: soft
+              variables: {charger: *charger_2}
+            - entity: sensor.vehicle_a_battery
+              name: Vehicle A
+              label: '[[[ return entity && !["unknown","unavailable"].includes(entity.state) ? entity.state + " %" : "Unavailable"; ]]]'
+              icon: mdi:car-electric
+              slot: 3
+              slot_mode: priority
+              variables:
+                vehicle: {battery: sensor.vehicle_a_battery}
+              visibility:
+                - {condition: state, entity: binary_sensor.vehicle_a_present, state: 'on'}
+              colors:
+                inner_border: '[[[ return entity?.state === "unavailable" ? variables.offline_color : "#ab47bc"; ]]]'
+              tap_action:
+                action: honeycomb-open-nested
+                honeycomb_nested_menu: {template: vehicle_controls}
+              hold_action: {action: more-info}
+            - entity: sensor.vehicle_b_battery
+              name: Vehicle B
+              label: '[[[ return entity && !["unknown","unavailable"].includes(entity.state) ? entity.state + " %" : "Unavailable"; ]]]'
+              icon: mdi:car-electric
+              slot: 4
+              slot_mode: priority
+              variables:
+                vehicle: {battery: sensor.vehicle_b_battery}
+              visibility:
+                - {condition: state, entity: binary_sensor.vehicle_b_present, state: 'on'}
+              colors:
+                inner_border: '[[[ return entity?.state === "unavailable" ? variables.offline_color : "#ab47bc"; ]]]'
+              tap_action:
+                action: honeycomb-open-nested
+                honeycomb_nested_menu: {template: vehicle_controls}
+              hold_action: {action: more-info}
 ```
 
 For deterministic configuration rules, also see [docs/AI_SETUP.md](docs/AI_SETUP.md).
