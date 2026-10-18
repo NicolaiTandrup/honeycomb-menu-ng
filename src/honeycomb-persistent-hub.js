@@ -1,11 +1,12 @@
-import HoneycombPersistentControl from "./honeycomb-persistent-control.js";
+import HoneycombCube from './honeycomb-cube.js';
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
-const { toCenterDescriptor } = require('./core/hub-launcher.js');
+const { hubSlots } = require('./core/hub-items.js');
+const { normalizeLauncher } = require('./core/hub-launcher.js');
 
-class HoneycombPersistentHub extends HoneycombPersistentControl
+class HoneycombPersistentHub extends HoneycombCube
 {
     static get is()
     {
@@ -23,7 +24,6 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         this._lastAnchorY = null;
         this._menuContext = null;
         this._hubBaseFaceMode = 'cell';
-        this._hubCenterDescriptor = null;
     }
 
     _ensureMenuContext()
@@ -39,7 +39,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         const context = this._ensureMenuContext();
 
         if( context && typeof window.honeycomb_menu_in_context === 'function' )
-            return window.honeycomb_menu_in_context(context, menu);
+            return window.honeycomb_menu_in_context(context, menu, this.config);
 
         return super._openHoneycombMenu(menu);
     }
@@ -51,7 +51,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         // The host element is only a bootstrap/anchor when auto-open is
         // enabled. Keep it hidden so reconnect/edit transitions cannot flash
         // the default bee before the real persistent Hub is mounted.
-        if( this.config && this.config.auto_open !== false )
+        if( !this._singleControl && this.config && this.config.auto_open !== false )
             this.style.visibility = 'hidden';
 
         this._scheduleHubOpen();
@@ -95,7 +95,6 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         this._lastAnchorX = null;
         this._lastAnchorY = null;
         this._menuContext = null;
-        this._hubCenterDescriptor = null;
     }
 
     _watchAnchor()
@@ -126,7 +125,15 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     this._lastAnchorX = x;
                     this._lastAnchorY = y;
 
-                    if( typeof this._hubMenu.reanchor === 'function' )
+                    // Refresh the saved base anchor during responsive layout,
+                    // while a promoted child retains its locked module anchor.
+                    const context = this._menuContext;
+                    const base = context && context.stack[0];
+                    if (base && base.config) {
+                        base.config.anchor_x = x;
+                        base.config.anchor_y = y;
+                    }
+                    if (!context || !context.moduleAnchor)
                         this._hubMenu.reanchor(x, y);
                 }
             }
@@ -140,6 +147,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
     _scheduleHubOpen()
     {
         if(
+            this._singleControl ||
+            (this.config && this.config.auto_open === false) ||
             this._hubOpenScheduled ||
             this._hubMenu ||
             ! this.isConnected ||
@@ -156,65 +165,50 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             if( ! this.isConnected || this._hubMenu )
                 return;
 
-            const opened = super._openMenu();
-
-            if( opened )
-            {
-                this._hubMenu = opened;
-                this._lastAnchorX = null;
-                this._lastAnchorY = null;
-                this._watchAnchor();
-
-                opened.addEventListener('closed', () => {
-                    if( this._anchorWatchRaf )
-                    {
-                        cancelAnimationFrame(this._anchorWatchRaf);
-                        this._anchorWatchRaf = null;
-                    }
-
-                    this._hubMenu = null;
-                    this._lastAnchorX = null;
-                    this._lastAnchorY = null;
-
-                    if( this.isConnected && this.config && this.config.auto_open !== false )
-                        setTimeout(() => this._scheduleHubOpen(), 0);
-                }, { once: true });
-            }
+            this._openMenu();
         });
+    }
+
+    _openMenu()
+    {
+        const opened = super._openMenu();
+        if (opened && !this._singleControl) this._trackMenu(opened);
+        return opened;
+    }
+
+    _trackMenu(menu)
+    {
+        if (this._hubMenu === menu) return;
+        this._hubMenu = menu;
+        this._lastAnchorX = this._lastAnchorY = null;
+        this._watchAnchor();
+        menu.addEventListener('closed', () => {
+            // A replacement/back may install its next renderer synchronously
+            // after the old one closes. Follow the context; never open a second
+            // base over an existing child.
+            setTimeout(() => {
+                if (!this.isConnected || this._singleControl) return;
+                const next = this._menuContext && this._menuContext.honeycomb;
+                if (next && !next.closing) this._trackMenu(next);
+                else {
+                    this._hubMenu = null;
+                    if (this.config.auto_open !== false) this._scheduleHubOpen();
+                }
+            }, 0);
+        }, {once:true});
     }
 
     _hubSlots(count, showLogo)
     {
-        const noLogoLayouts = {
-            1: [0],
-            2: [2, 3],
-            3: [2, 3, 0],
-            4: [1, 2, 0, 3],
-            5: [1, 2, 0, 3, 4],
-            6: [1, 2, 3, 4, 5, 6],
-            7: [0, 1, 2, 3, 4, 5, 6]
-        };
-
-        const logoLayouts = {
-            1: [2],
-            2: [2, 3],
-            3: [2, 4, 6],
-            4: [2, 3, 1, 4],
-            5: [1, 2, 3, 4, 5],
-            6: [1, 2, 3, 4, 5, 6]
-        };
-
-        const safeCount = Math.max(1, Math.min(7, count));
-
-        if( showLogo && safeCount <= 6 )
-            return logoLayouts[safeCount] || [];
-
-        return noLogoLayouts[safeCount] || [];
+        return hubSlots(count, showLogo);
     }
 
     _shouldShowLogo()
     {
         const logo = this.config ? this.config.logo : 'auto';
+        if (logo === 'auto' && (this.config.items || []).some(item => item &&
+            (item.slot === 0 || (typeof item.slot === 'string' && item.slot.trim() && Number(item.slot) === 0))))
+            return false;
         const count = this.config && Array.isArray(this.config.items)
             ? this.config.items.filter(Boolean).length
             : 0;
@@ -237,7 +231,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
     {
         const menu = super._persistentMenuConfig();
 
-        if( ! menu )
+        if( ! menu || this._singleControl )
             return menu;
 
         menu.idle_timeout = 0;
@@ -249,50 +243,15 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         // animation because they do not inherit this flag.
         menu.animate = false;
 
-        const showLogo = this._shouldShowLogo();
-
-        if( showLogo )
-        {
-            menu.persistent_center = merge(
-                {},
-                menu.persistent_center || {},
-                {
-                    icon: 'honeycomb:bee',
-                    interactive: true,
-                    tap_action: { action: 'honeycomb-bee-flap' },
-                    show_brightness: 'never',
-                    mode: 'hub',
-                    face_mode: this.config.base_face_mode || 'cell'
-                }
-            );
-            menu.center_button = null;
-        }
-        else
-        {
-            const center = this._hubCenterDescriptor;
-
-            if( center && center.config )
-            {
-                if( center.kind === 'persistent' )
-                {
-                    // Physical slot 0 uses the same native control contract as
-                    // the exact same module would use on the ring. Sonos/light
-                    // therefore keep native live state + hold-to-open behavior.
-                    menu.persistent_center = merge({}, center.config);
-                    menu.center_button = null;
-                }
-                else
-                {
-                    menu.persistent_center = null;
-                    menu.center_button = merge({}, center.config);
-                }
-            }
-            else
-            {
-                menu.persistent_center = null;
-                menu.center_button = false;
-            }
-        }
+        menu._hub_items = this._hubItems;
+        menu._hub_show_logo = this._shouldShowLogo();
+        menu._hub_logo = merge({}, menu.persistent_center || {}, {
+            icon: 'honeycomb:bee', name: '', label: '', interactive: true,
+            tap_action: { action: 'honeycomb-bee-flap' },
+            show_brightness: 'never', mode: 'hub', face_mode: this._hubBaseFaceMode
+        });
+        menu.persistent_center = null;
+        menu.center_button = false;
 
         return menu;
     }
@@ -318,13 +277,13 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         if( typeof module.buildLauncher !== 'function' )
             throw new Error(`Honeycomb module "${module.id}" does not provide buildLauncher().`);
 
-        const launcher = module.buildLauncher({
+        const launcher = normalizeLauncher(module, module.buildLauncher({
             item,
             index,
             slot,
             submenu,
             hass: this.hass
-        });
+        }));
 
         // Only the persistent Hub base uses the full physical hex cell.
         // Detail/promoted centers keep the normal inset face, so this does not
@@ -340,6 +299,21 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         if( ! config || typeof config !== 'object' )
             throw new Error('Honeycomb Persistent Hub requires a configuration.');
 
+        const single = !Object.prototype.hasOwnProperty.call(config, 'items');
+        if (this._hubOpenRaf) cancelAnimationFrame(this._hubOpenRaf);
+        if (this._anchorWatchRaf) cancelAnimationFrame(this._anchorWatchRaf);
+        this._hubOpenRaf = this._anchorWatchRaf = null;
+        this._hubOpenScheduled = false;
+        // Switching modes during Lovelace editing must not orphan an overlay.
+        if (this._menuContext && this.config)
+            window.honeycomb_menu_context_dispose(this._menuContext);
+        this._hubMenu = null;
+        this._singleControl = single;
+        if (single) {
+            super.setConfig(merge({size:82, mode:config.entity ? 'persistent' : 'hub'}, config));
+            this.style.visibility = '';
+            return;
+        }
         const next = merge({}, config);
 
         _defaults(next, {
@@ -361,7 +335,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             }
         });
 
-        this._hubBaseFaceMode = next.base_face_mode || 'cell';
+        this._hubBaseFaceMode = config.base_face_mode || config.face_mode || 'cell';
 
         // The underlying custom element is only an anchor/bootstrap while the
         // persistent base is auto-open. Never let its default bee become a
@@ -369,44 +343,21 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         next.restore_on_close = next.auto_open === false;
         this.style.visibility = next.auto_open === false ? '' : 'hidden';
 
-        const items = (next.items || []).filter(Boolean).slice(0, 7);
+        const items = (next.items || []).filter(Boolean);
         const showLogo = this._shouldShowLogo.call({ config: next });
         const slots = this._hubSlots(items.length, showLogo);
-
-        const resolved = items.map((item, index) => {
-            const targetSlot = item.slot !== undefined ? Number(item.slot) : slots[index];
-            const slot = Number.isInteger(targetSlot) ? targetSlot : slots[index];
+        const defaults = merge({}, (next.menu || {}).button_defaults || {}, next.button_defaults || {});
+        this._hubItems = items.map((source, index) => {
+            const item = merge({}, defaults, source);
+            const slot = item.slot !== undefined ? item.slot : slots[index];
             const module = moduleRegistry.resolve(item, this.hass);
-            const launcher = this._launcherButton(item, index, slot, module);
-
-            return {
-                item,
-                index,
-                slot,
-                module,
-                launcher
-            };
+            return merge({}, this._launcherButton(item, index, slot, module), {
+                _hub_key: index, slot
+            });
         });
-
-        const centerEntry = ! showLogo
-            ? resolved.find(entry => entry.slot === 0)
-            : null;
-
-        this._hubCenterButton = centerEntry
-            ? centerEntry.launcher
-            : null;
-        this._hubCenterDescriptor = centerEntry
-            ? toCenterDescriptor(centerEntry.module, centerEntry.launcher)
-            : null;
-
-        const ringButtons = resolved
-            .filter(entry => entry.slot !== 0)
-            .map(entry => entry.launcher);
-
         next.menu = merge({}, next.menu || {}, {
-            empty_slots: 'hidden',
-            idle_timeout: 0,
-            buttons: ringButtons
+            empty_slots: 'hidden', idle_timeout: 0, buttons: [],
+            button_defaults: defaults
         });
 
         super.setConfig(next);

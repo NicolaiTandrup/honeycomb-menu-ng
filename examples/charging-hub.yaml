@@ -54,7 +54,7 @@ honeycomb_menu_templates:
 views:
   - title: Charging
     cards:
-      - type: custom:honeycomb-persistent-control
+      - type: custom:honeycomb-persistent-hub
         mode: hub
         size: 90
         icon: mdi:ev-station

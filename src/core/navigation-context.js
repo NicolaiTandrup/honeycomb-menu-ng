@@ -165,7 +165,15 @@ function canEstablishAnchor(context)
     );
 }
 
+// The first hidden owner invalidates its descendants. Unwinding to this
+// stack length returns to the closest surviving parent, using normal back.
+function hiddenOwnerIndex(context, visible)
+{
+    return (context.stack || []).findIndex(entry => entry && entry.owner && !visible(entry.owner));
+}
+
 module.exports = {
+    hiddenOwnerIndex,
     HUB_ROOT_FLAG,
     createMenuContext,
     isHubRoot,

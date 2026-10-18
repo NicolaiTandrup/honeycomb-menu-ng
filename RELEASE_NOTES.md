@@ -1,3 +1,32 @@
+# v1.6.0-beta.3 — Canonical Persistent Hub
+
+This pre-release addresses #72 by making `persistent-hub` the canonical component
+for single controls and groups, building on visibility/slots from #68 and shared
+rings/navigation from #70. Existing `persistent-control` configurations remain
+supported through the same shared cube implementation.
+
+- Hub groups reevaluate conditions and hard/soft/priority placement live, retain
+  legacy small-group layouts, and support up to 19 simultaneous item cells.
+- Empty or fully hidden groups retain an accessible launcher. Hidden controls
+  cannot execute actions; nested children return through valid back history
+  after an active gesture finishes.
+- Native and wrapped layered cubes share physical sizing and content metrics,
+  live ring colors, owned nested navigation, responsive anchors and drag selection.
+- Module launcher contracts, Light presets, Media/Sonos helpers, custom actions,
+  legacy styling and explicit overrides remain supported.
+- Migration documentation explains single/group APIs, legacy size defaults,
+  physical `cube_size`, common item defaults and compatibility behavior. The
+  complete anonymous Charging Hub example uses the canonical single Hub API;
+  permission policy, sessions and optimization remain external automation.
+- Validation includes 39 unit/contract tests and 34 real button-card Chromium
+  checks across desktop/mobile, plus reproducible release artifact validation.
+
+This is a beta pre-release. Tests simulate Home Assistant state/services with
+real button-card; actual integration/device behavior requires HA validation.
+Stable v1.5.1 remains the latest stable release.
+
+---
+
 # v1.6.0-beta.2 — Unified Rings and Nested Navigation
 
 This pre-release addresses #70 with shared dual-ring presentation and stable

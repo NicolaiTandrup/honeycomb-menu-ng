@@ -533,3 +533,13 @@ New configurations should generally use `slot` instead of `position`.
 The classic popup engine remains available for backwards compatibility. New modular Light/Sonos behavior is primarily exposed through `custom:honeycomb-persistent-hub` and `custom:honeycomb-persistent-control`.
 
 For current architecture details, see [ARCHITECTURE.md](../ARCHITECTURE.md).
+
+
+## Explicit cube width (canonical Hub migration)
+
+Classic `size` remains the historical menu extent. To match a persistent
+82 px cube without changing existing dashboards, set `cube_size: 82` on the menu.
+Expanded nested levels retain that width. Compare the same `face_mode` for equal
+visible face geometry; inset deliberately leaves margins. Colors/border opt into
+shared layered metrics, while existing styles can override icon/text proportions.
+See [the migration guide](PERSISTENT_HUB_MIGRATION.md).

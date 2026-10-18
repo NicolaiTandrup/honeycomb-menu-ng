@@ -6,6 +6,7 @@ const merge = require('lodash/merge');
 const assign = require('lodash/assign');
 const isEmpty = require('lodash/isEmpty');
 const isString = require('lodash/isString');
+const { contentMetrics } = require('./core/cube-metrics.js');
 const { cardTextTemplate } = require('./core/text-template.js');
 
 class HoneycombMenuItem extends LitElement
@@ -61,6 +62,7 @@ class HoneycombMenuItem extends LitElement
 
     set config(config)
     {
+        this.toggleAttribute('layered', !!(config.colors || config.border));
         if( config.type == 'break' || isEmpty(config) || config.disabled )
         {
             this.disabled = true;
@@ -181,7 +183,7 @@ class HoneycombMenuItem extends LitElement
             :host([disabled]) #item {
                 background: var(--honeycomb-menu-disabled, #9a9a9a6e);
             }
-            .dual-rings .honey { transform: none; padding-bottom: 115.47%; visibility: visible; }
+            .dual-rings .honey { display: block; transform: none; padding-bottom: 115.47%; visibility: visible; }
             .dual-rings .comb { transform: translateZ(0); background: transparent;
                 clip-path: polygon(50% 4.33%, 95.67% 27.165%, 95.67% 72.835%, 50% 95.67%, 4.33% 72.835%, 4.33% 27.165%); }
             .dual-rings.cell .comb { clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); }
@@ -375,6 +377,21 @@ class HoneycombMenuItem extends LitElement
         {
             config.name = cardTextTemplate(config.name);
             config.label = cardTextTemplate(config.label);
+            if (this.config.colors || this.config.border) {
+                const metrics = contentMetrics(this.size, config.show_name !== false && !!config.name,
+                    config.show_label && !!config.label);
+                const defaults = {
+                    grid: [{'grid-template-areas':'"i" "n" "l"'}, {'grid-template-columns':'1fr'},
+                        {'grid-template-rows':'38% 26% 22%'}, {height:'100%'}, {'align-items':'center'}],
+                    icon: [{width:metrics.icon+'px'}, {'align-self':'end'}],
+                    name: [{'font-size':metrics.primary+'px'}, {'align-self':'center'}],
+                    label: [{'font-size':metrics.secondary+'px'}, {'align-self':'start'}]
+                };
+                const supplied = config.styles || {};
+                config.styles = {...defaults, ...supplied};
+                for (const key of Object.keys(defaults))
+                    config.styles[key] = [...defaults[key], ...(supplied[key] || [])];
+            }
             if( ! config.styles )
                 config.styles = {};
 

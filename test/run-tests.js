@@ -646,7 +646,7 @@ function testSharedBeeBranding()
     assert.strictEqual(Buffer.compare(master, embedded), 0);
 
     const persistentControlSource = fs.readFileSync(
-        path.resolve(__dirname, '../src/honeycomb-persistent-control.js'),
+        path.resolve(__dirname, '../src/honeycomb-cube.js'),
         'utf8'
     );
 
@@ -699,7 +699,7 @@ function testArchitectureBoundaries()
     assert.ok(lightControlsSource.includes('honeycomb-open-nested'));
 
     const persistentControlSource = fs.readFileSync(
-        path.resolve(__dirname, '../src/honeycomb-persistent-control.js'),
+        path.resolve(__dirname, '../src/honeycomb-cube.js'),
         'utf8'
     );
     const rendererSource = fs.readFileSync(
@@ -709,8 +709,12 @@ function testArchitectureBoundaries()
 
     // Persistent-Hub lifecycle contracts.
     assert.ok(hubSource.includes('honeycomb_menu_context_dispose'));
-    assert.ok(hubSource.includes('toCenterDescriptor(centerEntry.module, centerEntry.launcher)'));
-    assert.ok(hubSource.includes("center.kind === 'persistent'"));
+    assert.ok(rendererSource.includes('toCenterDescriptor(null, allocated.center)'));
+    assert.ok(hubSource.includes("extends HoneycombCube"));
+    const adapter = fs.readFileSync(path.resolve(__dirname, '../src/honeycomb-persistent-control.js'), 'utf8');
+    assert.ok(adapter.includes('extends HoneycombCube'));
+    assert.strictEqual(adapter.includes('render()'), false);
+    assert.ok(rendererSource.includes("center.kind === 'persistent'"));
     assert.strictEqual(hubSource.includes('center._persistent_launcher === true'), false);
     assert.ok(hubSource.includes("next.restore_on_close = next.auto_open === false"));
     assert.ok(persistentControlSource.includes('restore_on_close !== false'));
