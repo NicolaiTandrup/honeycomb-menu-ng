@@ -91,6 +91,12 @@ class BrowserContracts(unittest.TestCase):
 
     def snapshot(self, name):
         if self.evidence:
+            self.page.evaluate('''async () => {
+                await menu.updateComplete;
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                await Promise.all(menu.shadowRoot.getAnimations({subtree:true})
+                    .map(animation => animation.finished.catch(() => {})));
+            }''')
             self.page.screenshot(path=str(self.evidence / f'{self.viewport["width"]}-{name}.png'))
 
     def test_live_priority_reclaims_and_releases_with_same_hass_identity(self):
