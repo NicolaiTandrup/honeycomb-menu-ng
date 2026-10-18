@@ -21,6 +21,24 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent.parent
 
 
+class AnnotatedResult(unittest.TextTestResult):
+    """Keep CI failures readable through the checks API when log storage is blocked."""
+    def annotate(self, test, err):
+        if os.environ.get('GITHUB_ACTIONS') != 'true':
+            return
+        message = self._exc_info_to_string(err, test)
+        message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+        print(f'::error title={test._testMethodName}::{message}', flush=True)
+
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+        self.annotate(test, err)
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        self.annotate(test, err)
+
+
 class FixtureHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         resources = {
@@ -642,7 +660,7 @@ def main():
             for width, height in [(1100, 900), (390, 844)]:
                 BrowserContracts.viewport = {'width': width, 'height': height}
                 print(f'Chromium / real button-card: {width}x{height}', flush=True)
-                results.append(unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(BrowserContracts)).wasSuccessful())
+                results.append(unittest.TextTestRunner(verbosity=2, resultclass=AnnotatedResult).run(unittest.defaultTestLoader.loadTestsFromTestCase(BrowserContracts)).wasSuccessful())
             browser.close()
     finally:
         server.shutdown()
