@@ -346,7 +346,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             mode: 'hub',
             size: 82,
             icon: 'honeycomb:bee',
-            name: 'Honeycomb',
+            name: '',
             items: [],
             auto_open: true,
             logo: 'auto',
