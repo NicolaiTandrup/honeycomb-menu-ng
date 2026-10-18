@@ -193,6 +193,11 @@ label: |
     return active + '/' + variables.chargers.length + ' charging';
   ]]]
 styles:
+  grid:
+    - grid-template-areas: '"i" "n" "l"'
+    - grid-template-columns: 1fr
+    - grid-template-rows: 44% 28% 28%
+    - height: 100%
   card:
     - width: 120px
     - height: 139px
@@ -200,8 +205,10 @@ styles:
     - clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)
   name:
     - font-size: 22px
+    - align-self: center
   label:
     - font-size: 12px
+    - align-self: start
 tap_action: &open_charging_menu
   action: fire-dom-event
   honeycomb_menu:
@@ -216,6 +223,7 @@ tap_action: &open_charging_menu
       icon: mdi:close
       name: Charging
       show_name: true
+      show_label: false
       tap_action:
         action: honeycomb-close
     button_defaults:
@@ -246,6 +254,14 @@ tap_action: &open_charging_menu
             return `<svg viewBox="0 0 100 115.47" width="100%" height="100%" aria-hidden="true"><polygon points="50,5 95.67,31.37 95.67,84.1 50,110.47 4.33,84.1 4.33,31.37" fill="none" stroke="${color}" stroke-width="3"/></svg>`;
           ]]]]
       styles:
+        grid:
+          - grid-template-areas: '"i" "n" "l"'
+          - grid-template-columns: 1fr
+          - grid-template-rows: 44% 28% 28%
+          - height: 100%
+        icon:
+          - width: 22px
+          - align-self: end
         custom_fields:
           permission_ring:
             - position: absolute
@@ -253,8 +269,10 @@ tap_action: &open_charging_menu
             - pointer-events: none
         name:
           - font-size: 14px
+          - align-self: center
         label:
           - font-size: 10px
+          - align-self: start
       tap_action:
         action: perform-action
         perform_action: homeassistant.toggle

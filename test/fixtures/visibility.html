@@ -4,7 +4,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Honeycomb visibility regression fixture</title>
 <style>
-  body { margin: 0; background: #14191f; color: #eee; font: 16px sans-serif; }
+  body { margin: 0; background: #14191f; color: #eee; font: 16px sans-serif;
+    --ha-card-background: #253443; --card-background-color: #253443; --primary-text-color: #eee; }
   h1 { margin: 24px; font-size: 20px; }
   honeycomb-persistent-hub { position: absolute; top: 240px; left: 150px; }
   #second { top: 540px; }
@@ -64,7 +65,7 @@ window.view = document.createElement('hui-view');
 window.view.style.cssText = 'display:block;min-height:100vh;position:relative';
 viewContainer.append(window.view);
 customElements.define('ha-card', class extends HTMLElement {
-  constructor() { super(); this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:block;height:100%;}</style><slot></slot>'; }
+  constructor() { super(); this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:block;position:relative;height:100%;box-sizing:border-box;background:var(--ha-card-background);color:var(--primary-text-color);}</style><slot></slot>'; }
 });
 customElements.define('hui-error-card', class extends HTMLElement { setConfig(config) { this.textContent=config.error; } });
 </script>
