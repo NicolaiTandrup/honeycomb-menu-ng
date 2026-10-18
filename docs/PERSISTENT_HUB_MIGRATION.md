@@ -178,5 +178,5 @@ Run `npm test`, `NODE_OPTIONS=--openssl-legacy-provider npm run build`,
 `python test/browser-smoke.py --bundle honeycomb-menu-ng.js`.
 Tests use synthetic entities and the real pinned button-card in a simulated HA
 shell at desktop/mobile sizes. Actual integration/device actions need HA testing.
-This change is delivered as a feature PR; it does not create a release or change
-stable-release metadata.
+These changes ship in v1.6.0-beta.3 after successful merge, CI and release artifact
+validation. This is a pre-release; v1.5.1 remains the latest stable release.
