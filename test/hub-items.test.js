@@ -112,3 +112,16 @@ test('Hub diagnoses malformed/excess slots instead of coercing them to center', 
     assert.equal(allocated.buttons.filter(Boolean).length,0);
     assert.equal(allocated.diagnostics.length,malformed.length);
 });
+
+test('Hub preserves module launcherKind classification for both center and ring', () => {
+    const {normalizeLauncher, toCenterDescriptor} = require('../src/core/hub-launcher');
+    const source = {name:'Vehicle A',mode:'hub'};
+    const native = normalizeLauncher({launcherKind:'persistent'},source);
+    assert.equal(native._persistent_launcher,true);
+    assert.equal(toCenterDescriptor(null,native).kind,'persistent');
+    assert.equal(source._persistent_launcher,undefined);
+    const generic = normalizeLauncher({launcherKind:'generic'},{...source,_persistent_launcher:true});
+    assert.equal(generic._persistent_launcher,false);
+    assert.equal(toCenterDescriptor(null,generic).kind,'generic');
+    assert.equal(normalizeLauncher({}, {...source,_persistent_launcher:true})._persistent_launcher,true);
+});

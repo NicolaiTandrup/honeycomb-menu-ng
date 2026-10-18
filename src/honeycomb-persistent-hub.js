@@ -4,6 +4,7 @@ const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const { hubSlots } = require('./core/hub-items.js');
+const { normalizeLauncher } = require('./core/hub-launcher.js');
 
 class HoneycombPersistentHub extends HoneycombCube
 {
@@ -276,13 +277,13 @@ class HoneycombPersistentHub extends HoneycombCube
         if( typeof module.buildLauncher !== 'function' )
             throw new Error(`Honeycomb module "${module.id}" does not provide buildLauncher().`);
 
-        const launcher = module.buildLauncher({
+        const launcher = normalizeLauncher(module, module.buildLauncher({
             item,
             index,
             slot,
             submenu,
             hass: this.hass
-        });
+        }));
 
         // Only the persistent Hub base uses the full physical hex cell.
         // Detail/promoted centers keep the normal inset face, so this does not
