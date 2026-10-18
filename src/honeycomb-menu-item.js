@@ -349,6 +349,10 @@ class HoneycombMenuItem extends LitElement
     _buildLovelaceCardConfig()
     {
         const config = merge({}, this.config);
+        // These belong to Honeycomb allocation, not to the wrapped card. Keep
+        // them on the wrapper for live action guards and drag-select checks.
+        delete config.visibility;
+        delete config.show;
 
         if( ! config.type || config.type == 'custom:button-card' )
         {

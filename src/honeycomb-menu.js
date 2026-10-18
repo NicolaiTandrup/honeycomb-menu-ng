@@ -3,7 +3,7 @@ import "./honeycomb-menu-item.js";
 import "./honeycomb-persistent-control.js";
 import "./honeycomb-persistent-hub.js";
 import "./xy-pad.js";
-import { objectEvalTemplate, getTemplateOrValue, stringToBool, fireEvent, lovelace_view, provideHass, honeycomb_menu_templates } from "./helpers.js";
+import { objectEvalTemplate, getTemplateOrValue, stringToBool, fireEvent, lovelace_view, provideHass, honeycomb_menu_templates, isButtonVisible } from "./helpers.js";
 
 const hass = document.querySelector('home-assistant').hass;
 
@@ -18,6 +18,7 @@ const _defaults = require('lodash/defaults');
 
 const navigationCore = require('./core/navigation-context.js');
 const layoutCore = require('./core/layout.js');
+const { resolveButtons, allocateButtons } = require('./core/slot-allocation.js');
 const { applyEntityInheritance } = require('./core/entity-inheritance.js');
 const { customActionRegistry } = require('./core/action-registry.js');
 const { applyPresetControls } = require('./modules/light/controls.js');
@@ -473,6 +474,8 @@ class HoneycombMenu extends LitElement
         this._anchorY = null;
         this._boundPointerMove = this._handleGlobalPointerMove.bind(this);
         this._boundPointerUp = this._handleGlobalPointerUp.bind(this);
+        for( const name of ['action', 'hass-action', 'll-custom', 'click', 'mousedown', 'mouseup', 'touchend', 'pointerdown', 'pointerup'] )
+            this.addEventListener(name, event => this._guardVisibilityAction(event), true);
     }
 
     static get styles()
@@ -547,6 +550,7 @@ class HoneycombMenu extends LitElement
                 animation-name: fadeOut;
                 animation-duration: 500ms;
             }
+            [hidden] { display: none !important; }
             .honeycombs {
                 --filter-color: rgba(0, 0, 0, 0.76);
                 filter: drop-shadow(2px 4px 3px var(--filter-color) );
@@ -638,6 +642,7 @@ class HoneycombMenu extends LitElement
                 ${this.config.persistent_center ? html`
                     <honeycomb-persistent-control
                         class="center-item persistent-center-item"
+                        ?hidden=${!this._isButtonVisible(this.config.persistent_center)}
                         style="
                             left: calc(var(--item-size) * ${centerPos.x});
                             top: calc(var(--item-size) * ${centerPos.y});
@@ -651,6 +656,7 @@ class HoneycombMenu extends LitElement
                     <honeycomb-menu-item
                         class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''} ${this._dragHoverSlot === 18 ? 'drag-hover' : ''}"
                         data-honeycomb-slot="center"
+                        ?hidden=${!this._isButtonVisible(centerConfig)}
                         @pointerenter=${() => this._setDragHoverSlot(18)}
                         @pointerleave=${() => this._clearDragHoverSlot(18)}
                         style="
@@ -681,6 +687,7 @@ class HoneycombMenu extends LitElement
                             <honeycomb-persistent-control
                                 class="ring-item"
                                 data-honeycomb-slot="${i}"
+                            ?hidden=${!this._isButtonVisible(v)}
                                 style="
                                     animation-delay: ${this._computeButtonAnimateDelay(i)};
                                     left: calc(var(--item-size) * ${pos.x});
@@ -698,6 +705,7 @@ class HoneycombMenu extends LitElement
                         <honeycomb-menu-item
                             class="${this._dragHoverSlot === i ? 'drag-hover' : ''}"
                             data-honeycomb-slot="${i}"
+                                ?hidden=${!this._isButtonVisible(v)}
                             @pointerenter=${() => this._setDragHoverSlot(i)}
                             @pointerleave=${() => this._clearDragHoverSlot(i)}
                             style="
@@ -906,203 +914,72 @@ class HoneycombMenu extends LitElement
         }
     }
 
+    _isButtonVisible(button)
+    {
+        const root = document.querySelector('home-assistant');
+        return isButtonVisible(button, root && root.hass || this.hass, this.config.variables);
+    }
+
     _assignButtons()
     {
-        const resolved = [];
+        const entries = resolveButtons(this.config.buttons, button => this._isButtonVisible(button));
+        const allocated = allocateButtons(entries, this.config);
+        const signature = JSON.stringify([allocated.buttons, allocated.rings]);
+        if( signature === this._allocationSignature )
+            return false;
+        this._allocationSignature = signature;
+        this._rings = allocated.rings;
+        this.buttons = allocated.buttons;
+        const warnings = allocated.diagnostics.join(' ');
+        if( warnings && warnings !== this._allocationWarnings )
+            console.warn('[Honeycomb Menu NG] ' + warnings);
+        this._allocationWarnings = warnings;
+        return true;
+    }
 
-        for( let i = 0; i < this.config.buttons.length; i++ )
+    _refreshVisibility()
+    {
+        if( this._dragPointerId !== null || this._dragPointerActive )
         {
-            const stack = this.config.buttons[i];
-
-            if( ! stack )
-                continue;
-
-            let button = {};
-
-            for( let b of stack )
-            {
-                if( b.show !== undefined )
-                {
-                    b.show = stringToBool(
-                        getTemplateOrValue(
-                            this.hass,
-                            this.hass.states[this.config.entity],
-                            this.config.variables,
-                            b.show
-                        )
-                    );
-                }
-                else if( b != 'break' && b != 'skip' )
-                {
-                    b.show = true;
-                }
-
-                if( b != 'break' && (! b.show || b == 'skip') )
-                    continue;
-
-                button = b;
-                break;
-            }
-
-            if( button == 'break' )
-                button = {};
-
-            if( ! isEmpty(button) )
-                resolved.push({ button: merge({}, button), sourceIndex: i });
+            this._visibilityPending = true;
+            this.requestUpdate(); // Hide unsafe targets immediately, keep all positions.
+            return;
         }
-
-        const assigned = new Array(18);
-        const hard = [];
-        const soft = [];
-        const automatic = [];
-
-        resolved.forEach(entry => {
-            const button = entry.button;
-
-            // Legacy position remains an absolute physical position.
-            if( button.position !== undefined )
-            {
-                const target = Number(button.position);
-
-                if( Number.isInteger(target) && target >= 0 && target <= 17 )
-                    hard.push({ ...entry, target, legacy: true });
-
-                return;
-            }
-
-            if( button.slot !== undefined )
-            {
-                const requestedSlot = Number(button.slot);
-
-                if( Number.isInteger(requestedSlot) && requestedSlot >= 1 && requestedSlot <= 18 )
-                {
-                    if( button.slot_mode === 'hard' )
-                        hard.push({ ...entry, target: requestedSlot - 1 });
-                    else
-                        soft.push({ ...entry, requestedSlot });
-                }
-
-                return;
-            }
-
-            automatic.push(entry);
-        });
-
-        const totalCount = resolved.length;
-        this._rings = layoutCore.resolveRings(
-            totalCount,
-            hard.map(entry => entry.target)
-        );
-
-        const innerActive = this._rings.inner;
-        const outerActive = this._rings.outer;
-        const activePool = layoutCore.activeSlotPool(this._rings);
-
-        // Hard slots are absolute. Never move them.
-        hard.forEach(entry => {
-            if( assigned[entry.target] === undefined )
-            {
-                assigned[entry.target] = entry.button;
-            }
-            else
-            {
-                console.warn(
-                    `[Honeycomb Menu NG] Hard slot ${entry.target + 1} is already occupied. Ignoring duplicate hard slot.`
-                );
-            }
-        });
-
-        // Soft slots are preferences inside the currently active layout.
-        // Keep the requested physical slot when its ring is active.
-        // Otherwise map it to the corresponding position in the active ring.
-        // If the preferred position is occupied, move clockwise to the first free slot.
-        soft.forEach(entry => {
-            if( activePool.length === 0 )
-                return;
-
-            const requestedIndex = entry.requestedSlot - 1;
-            let preferredTarget;
-
-            if( activePool.includes(requestedIndex) )
-            {
-                // Requested physical slot already belongs to an active ring.
-                preferredTarget = requestedIndex;
-            }
-            else if( innerActive && ! outerActive )
-            {
-                // Inner-only layout: wrap any soft slot onto slots 1-6.
-                preferredTarget = requestedIndex % 6;
-            }
-            else if( outerActive && ! innerActive )
-            {
-                // Outer-only layout: map inner slots 1-6 onto outer slots 7-12.
-                // Outer slot requests 7-18 are already handled above.
-                preferredTarget = 6 + (requestedIndex % 12);
-            }
-            else
-            {
-                // Both rings active: all valid requested slots are physical.
-                preferredTarget = requestedIndex;
-            }
-
-            let preferredPoolIndex = activePool.indexOf(preferredTarget);
-
-            if( preferredPoolIndex < 0 )
-                preferredPoolIndex = 0;
-
-            let target;
-
-            for( let offset = 0; offset < activePool.length; offset++ )
-            {
-                const candidate = activePool[(preferredPoolIndex + offset) % activePool.length];
-
-                if( assigned[candidate] === undefined )
-                {
-                    target = candidate;
-                    break;
-                }
-            }
-
-            if( target !== undefined )
-                assigned[target] = entry.button;
-            else
-                console.warn('[Honeycomb Menu NG] No free slot available for soft slot button.');
-        });
-
-        // Buttons without slot information use the first free active position.
-        automatic.forEach(entry => {
-            const target = activePool.find(index => assigned[index] === undefined);
-
-            if( target !== undefined )
-                assigned[target] = entry.button;
-            else
-                console.warn('[Honeycomb Menu NG] No free slot available for automatic button.');
-        });
-
-        const showEmptySlots = this.config.empty_slots !== 'hidden';
-
-        if( showEmptySlots )
+        this._visibilityPending = false;
+        if( !this._assignButtons() )
+            return;
+        this._layoutEnvelopeOuter = this._computeLayoutEnvelopeOuter(this.config);
+        const itemSize = this.config.size / 3.586;
+        this.sizes = {
+            item: itemSize,
+            containerWidth: itemSize * (this._hasOuterRing() ? 5 : 3),
+            containerHeight: itemSize * (this._hasOuterRing() ? 4.63 : 2.9)
+        };
+        if( this.view )
         {
-            if( this._rings.inner )
-            {
-                for( let i = 0; i < 6; i++ )
-                {
-                    if( assigned[i] === undefined )
-                        assigned[i] = {};
-                }
-            }
-
-            if( this._rings.outer )
-            {
-                for( let i = 6; i < 18; i++ )
-                {
-                    if( assigned[i] === undefined )
-                        assigned[i] = {};
-                }
-            }
+            this._setCssVars();
+            this._setPosition(this._anchorX, this._anchorY);
         }
+        this.requestUpdate();
+    }
 
-        this.buttons = assigned;
+    _guardVisibilityAction(event)
+    {
+        if( event.type === 'pointerdown' )
+            this._suppressPointerTapUntil = 0;
+        const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+        const item = path.find(node => node && node !== this && node.config &&
+            ['HONEYCOMB-MENU-ITEM', 'HONEYCOMB-PERSISTENT-CONTROL'].includes(node.tagName));
+        // Completing a drag dispatches one tap explicitly. Suppress the native
+        // compatibility mouse/touch action which follows the same pointerup,
+        // including when reflow has put a different card under the pointer.
+        const duplicate = !this._dispatchingDragTap && performance.now() < (this._suppressPointerTapUntil || 0) &&
+            ['click', 'mouseup', 'touchend', 'action', 'hass-action'].includes(event.type);
+        if( item && (duplicate || !this._isButtonVisible(item.config)) )
+        {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }
     }
 
     reanchor(_x, _y)
@@ -1112,6 +989,11 @@ class HoneycombMenu extends LitElement
 
         if( ! Number.isFinite(x) || ! Number.isFinite(y) )
             return;
+
+        // Live visibility reflow must use the current promoted center, not the
+        // original coordinates from display().
+        this._anchorX = x;
+        this._anchorY = y;
 
         if( this.config )
         {
@@ -1408,6 +1290,7 @@ class HoneycombMenu extends LitElement
             this._dragStartX = null;
             this._dragStartY = null;
             this._dragHoverSlot = -1;
+            this._refreshVisibility();
             return;
         }
 
@@ -1419,16 +1302,21 @@ class HoneycombMenu extends LitElement
         this._dragStartY = null;
         this._dragHoverSlot = -1;
 
-        if( item )
+        this._suppressPointerTapUntil = performance.now() + 250;
+        if( item && e.type !== 'pointercancel' )
         {
             e.preventDefault();
             e.stopPropagation();
             this._triggerMenuItemTap(item);
         }
+        if( !this.closing )
+            this._refreshVisibility();
     }
 
     _triggerMenuItemTap(item)
     {
+        if( item.disabled || !this._isButtonVisible(item.config) )
+            return;
         // honeycomb-menu-item is a wrapper around a Lovelace card (normally
         // custom:button-card). Clicking the wrapper itself does not execute the
         // wrapped card action. Trigger a normal tap on the actual action-handler
@@ -1460,11 +1348,16 @@ class HoneycombMenu extends LitElement
         // The HA/button-card action-handler reacts to an `action` event with
         // action: tap. This follows the same path as a normal tap and therefore
         // preserves toggle, call-service, fire-dom-event, navigation, etc.
-        actionTarget.dispatchEvent(new CustomEvent('action', {
-            bubbles: true,
-            composed: true,
-            detail: { action: 'tap' }
-        }));
+        this._dispatchingDragTap = true;
+        try {
+            actionTarget.dispatchEvent(new CustomEvent('action', {
+                bubbles: true,
+                composed: true,
+                detail: { action: 'tap' }
+            }));
+        } finally {
+            this._dispatchingDragTap = false;
+        }
     }
 
     _startStateRefresh()
@@ -1490,6 +1383,7 @@ class HoneycombMenu extends LitElement
             // children. honeycomb-menu-item forwards it to the wrapped
             // custom:button-card, forcing its JS templates to re-evaluate.
             this.hass = latestHass;
+            this._refreshVisibility();
 
             if( this.shadowRoot )
             {
@@ -1876,7 +1770,7 @@ class HoneycombMenu extends LitElement
             // Only hard slots force a physical ring. Soft slots may wrap into
             // the currently active ring and therefore do not require an outer
             // envelope by themselves.
-            if( button.slot_mode === 'hard' && button.slot !== undefined )
+            if( ['hard', 'priority'].includes(button.slot_mode) && button.slot !== undefined )
             {
                 const slot = Number(button.slot);
                 if( Number.isInteger(slot) && slot >= 7 && slot <= 18 )

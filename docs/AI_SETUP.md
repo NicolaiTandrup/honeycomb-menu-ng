@@ -208,3 +208,48 @@ Verify:
 6. A module may expand from 7 to 19 cubes without moving slot 0.
 
 For code changes also read [../ARCHITECTURE.md](../ARCHITECTURE.md).
+
+
+## v1.6 conditional controls and Charging Hub contract
+
+New Honeycomb configuration: `visibility: [condition, ...]` and the existing
+`slot_mode` extended with value `priority`. Do not invent `charging_hub`,
+`chargers`, `vehicle_entities`, `auto_disable`, `session`, or other Honeycomb keys.
+`variables.chargers` in the example is a user-defined button-card variable,
+not a Honeycomb schema field.
+
+1. Start from the complete [charging-hub example](../examples/charging-hub.yaml).
+2. Collect real power/active/permission/association entities for each charger.
+   Power must report W or kW. Do not assume any manufacturer or automation stack.
+3. Collect optional battery and presence entities for Vehicle A/B or other
+   anonymously documented vehicles. Vehicles and chargers have independent counts.
+4. Preserve the parent aggregate power `name` and active/total `label`; no presence
+   condition belongs on the parent. Preserve an accessible close center.
+5. Charger child `name` is power, `label` is associated vehicle, custom-field SVG
+   is an inner permission/status ring. Use existing button-card styling/actions.
+6. Add/remove charger variable records and corresponding buttons together. Zero
+   chargers uses an empty list and no charger buttons. Vehicle buttons can all
+   be absent/hidden without disabling manual permission actions.
+7. Keep four brackets on nested child templates, three on parent/menu variables.
+8. For each ring button use `hard` to reserve a physical slot while hidden, `soft`
+   to fill space dynamically, or `priority` to reclaim a preferred slot when shown.
+   Hard beats priority; first declaration breaks ties; displaced priority claims
+   move clockwise before soft/automatic buttons. At most 18 ring cells per menu.
+9. Use existing nested menus for larger groups. Do not promise unlimited visible
+   cells, auto-discovery, automatic vehicle association or charging automation.
+10. HA-style condition lists support state/state_not (scalar/list, optional
+    attribute), numeric_state (exclusive above/below, optional attribute/entity
+    threshold), and/or/not with `conditions`. A list is AND; NOT negates its
+    entire child-list conjunction. Omitted/empty visibility is true. Unsupported
+    or malformed trees are false. Missing state entities read as `unknown`;
+    invalid numeric states/bounds are false. `show` AND visibility both apply.
+11. Core reevaluates against live frontend state about every 200 ms. Reflow waits
+    until drag release/cancel; hidden targets are immediately non-actionable.
+12. Preserve existing Light/Sonos actions, menu anchor ownership and classic
+    `position`/`show`/template-stack behavior. Do not substitute disabled for hidden.
+13. Keep public examples anonymous. Never publish installation-specific IDs,
+    private names, locations, hosts or addresses. Existing public legal attribution
+    and repository ownership links are not installation identifiers.
+
+Only publish `v1.6.0-beta.1` after PR/master validation. Keep
+`release.json.prerelease: true`; do not publish stable/latest on the user's behalf.

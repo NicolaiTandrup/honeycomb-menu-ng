@@ -86,3 +86,17 @@ Public v1.5 documentation is split by responsibility:
 - `docs/CLASSIC_MENU.md` — classic popup/XY-pad/template compatibility reference
 
 When changing a public module schema, update both the human module document and the AI setup contract in the same pull request.
+
+
+## v1.6 visibility and allocation
+
+`core/visibility.js` is a pure, validated frontend-condition evaluator.
+`core/slot-allocation.js` resolves template-stack fallbacks and owns hard
+reservations, priority claims, soft placement and deterministic overflow. The
+renderer supplies the existing `show` template evaluator without modifying YAML
+source. Rendering reevaluates visibility, guards action delivery, and defers
+allocation while the drag pointer is active. A completed drag suppresses its
+compatibility mouse/touch tap so a reflowed cell cannot receive a second action.
+
+The Charging Hub is a documented composition of button-card templates and
+classic Honeycomb menus. There is no charging domain module or session state.

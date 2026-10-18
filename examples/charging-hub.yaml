@@ -1,0 +1,137 @@
+# One dashboard card. Replace every placeholder entity with an existing entity.
+# Charging sessions, unplug handling and optimization stay in external automation.
+type: custom:button-card
+icon: mdi:ev-station
+show_name: true
+show_label: true
+triggers_update: all
+variables:
+  chargers:
+    - power: sensor.charger_1_power
+      charging: binary_sensor.charger_1_charging
+      vehicle: sensor.charger_1_vehicle
+      permission: switch.charger_1_charging_allowed
+    - power: sensor.charger_2_power
+      charging: binary_sensor.charger_2_charging
+      vehicle: sensor.charger_2_vehicle
+      permission: switch.charger_2_charging_allowed
+  allowed_color: '#00bcd4'
+  charging_color: '#4caf50'
+  blocked_color: '#6b7280'
+name: |
+  [[[
+    let watts = 0;
+    for (const charger of variables.chargers) {
+      const power = states[charger.power];
+      if (!power || !['W', 'kW'].includes(power.attributes.unit_of_measurement) ||
+          power.state.trim() === '' || !Number.isFinite(Number(power.state))) return 'Unavailable';
+      watts += Number(power.state) * (power.attributes.unit_of_measurement === 'kW' ? 1000 : 1);
+    }
+    return watts >= 1000 ? (watts / 1000).toFixed(1) + ' kW' : Math.round(watts) + ' W';
+  ]]]
+label: |
+  [[[
+    const active = variables.chargers.filter(c => states[c.charging]?.state === 'on').length;
+    return active + '/' + variables.chargers.length + ' charging';
+  ]]]
+styles:
+  card:
+    - width: 120px
+    - height: 139px
+    - border-radius: 0
+    - clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)
+  name:
+    - font-size: 22px
+  label:
+    - font-size: 12px
+tap_action: &open_charging_menu
+  action: fire-dom-event
+  honeycomb_menu:
+    size: 260
+    empty_slots: hidden
+    variables:
+      chargers: '[[[ return variables.chargers; ]]]'
+      allowed_color: '[[[ return variables.allowed_color; ]]]'
+      charging_color: '[[[ return variables.charging_color; ]]]'
+      blocked_color: '[[[ return variables.blocked_color; ]]]'
+    center_button:
+      icon: mdi:close
+      name: Charging
+      show_name: true
+      tap_action:
+        action: honeycomb-close
+    button_defaults:
+      show_name: true
+      show_label: true
+      autoclose: false
+      triggers_update: all
+      name: |
+        [[[[
+          if (!entity || !['W', 'kW'].includes(entity.attributes.unit_of_measurement) ||
+              entity.state.trim() === '' || !Number.isFinite(Number(entity.state))) return 'Unavailable';
+          return entity.state + ' ' + entity.attributes.unit_of_measurement;
+        ]]]]
+      label: |
+        [[[[
+          const charger = variables.chargers.find(c => c.power === entity?.entity_id);
+          const vehicle = charger && states[charger.vehicle]?.state;
+          return vehicle && !['unknown', 'unavailable', 'none'].includes(vehicle) ? vehicle : 'No vehicle';
+        ]]]]
+      custom_fields:
+        permission_ring: |
+          [[[[
+            const charger = variables.chargers.find(c => c.power === entity?.entity_id);
+            if (!charger) return '';
+            const allowed = states[charger.permission]?.state === 'on';
+            const charging = states[charger.charging]?.state === 'on';
+            const color = !allowed ? variables.blocked_color : charging ? variables.charging_color : variables.allowed_color;
+            return `<svg viewBox="0 0 100 115.47" width="100%" height="100%" aria-hidden="true"><polygon points="50,5 95.67,31.37 95.67,84.1 50,110.47 4.33,84.1 4.33,31.37" fill="none" stroke="${color}" stroke-width="3"/></svg>`;
+          ]]]]
+      styles:
+        custom_fields:
+          permission_ring:
+            - position: absolute
+            - inset: 0
+            - pointer-events: none
+        name:
+          - font-size: 14px
+        label:
+          - font-size: 10px
+      tap_action:
+        action: perform-action
+        perform_action: homeassistant.toggle
+        target:
+          entity_id: |
+            [[[[ return variables.chargers.find(c => c.power === entity?.entity_id)?.permission; ]]]]
+    buttons:
+      - entity: sensor.charger_1_power
+        icon: mdi:ev-station
+        slot_mode: soft
+      - entity: sensor.charger_2_power
+        icon: mdi:ev-station
+        slot_mode: soft
+      - entity: sensor.vehicle_a_battery
+        name: Vehicle A
+        label: '[[[[ return entity ? entity.state + " %" : "Unavailable"; ]]]]'
+        icon: mdi:car-electric
+        slot: 3
+        slot_mode: priority
+        visibility:
+          - condition: state
+            entity: binary_sensor.vehicle_a_present
+            state: 'on'
+        tap_action:
+          action: more-info
+      - entity: sensor.vehicle_b_battery
+        name: Vehicle B
+        label: '[[[[ return entity ? entity.state + " %" : "Unavailable"; ]]]]'
+        icon: mdi:car-electric
+        slot: 4
+        slot_mode: priority
+        visibility:
+          - condition: state
+            entity: binary_sensor.vehicle_b_present
+            state: 'on'
+        tap_action:
+          action: more-info
+hold_action: *open_charging_menu

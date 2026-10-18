@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'lit';
-import { fireEvent, provideHass } from "./helpers.js";
+import { fireEvent, provideHass, isButtonVisible } from "./helpers.js";
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
@@ -571,6 +571,8 @@ class HoneycombPersistentControl extends LitElement
 
     _openMenu()
     {
+        if( !isButtonVisible(this.config, this.hass, this.config.variables) )
+            return;
         const menu = this._persistentMenuConfig();
 
         if( ! menu || typeof window.honeycomb_menu !== 'function' )
@@ -633,7 +635,7 @@ class HoneycombPersistentControl extends LitElement
 
     _executeAction(action)
     {
-        if( ! action || ! this.hass )
+        if( ! action || ! this.hass || !isButtonVisible(this.config, this.hass, this.config.variables) )
             return;
 
         const actionName = action.action || 'toggle';

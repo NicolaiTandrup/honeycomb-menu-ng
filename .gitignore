@@ -2,3 +2,4 @@
 node_modules
 package-lock.json
 src/brand/bee.generated.js
+__pycache__/

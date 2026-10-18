@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Honeycomb visibility regression fixture</title>
+<style>
+  body { margin: 0; background: #14191f; color: #eee; font: 16px sans-serif; }
+  h1 { margin: 24px; font-size: 20px; }
+  honeycomb-persistent-hub { position: absolute; top: 240px; left: 150px; }
+  #second { top: 540px; }
+</style>
+<h1>Honeycomb visibility regression fixture</h1>
+<home-assistant></home-assistant>
+<script>
+// Only the Home Assistant shell is mocked. Honeycomb and the real button-card
+// release run unchanged; their templates and action handlers are exercised.
+window.calls = [];
+window.liveHass = {
+  locale: {language:'en', number_format:'language', time_format:'language'},
+  localize: key => key,
+  formatEntityState: e => e.state,
+  states: {
+    'light.room': { state: 'on', attributes: { brightness: 128, rgb_color: [255, 128, 0], supported_color_modes: ['hs', 'color_temp'] } },
+    'media_player.room': { state: 'playing', attributes: { volume_level: 0.42, group_members: [] } },
+    'sensor.sonos_favorites': { state: '2', attributes: { items: { one: 'Radio One', two: 'Radio Two' } } },
+    'sensor.sonos_favorites_cache': { attributes: { items: [] } }
+  },
+  callService: (...args) => { window.calls.push(args); return Promise.resolve(); },
+  user: { name: 'Test' }
+};
+const provided = new Set();
+const ha = document.querySelector('home-assistant');
+ha.hass = window.liveHass;
+for(const [entity_id,state] of Object.entries(ha.hass.states)) state.entity_id = entity_id;
+ha.provideHass = element => { provided.add(element); element.hass = ha.hass; };
+window.updateHass = () => { for (const element of provided) element.hass = ha.hass; };
+// Current button-card delegates evaluated actions to Home Assistant. Simulate
+// that shell contract, keeping the original event source/composed path intact.
+document.body.addEventListener('hass-action', event => {
+  const config = event.detail.config;
+  const action = config[event.detail.action + '_action'] || config.tap_action;
+  const source = event.composedPath().find(node => node.tagName === 'BUTTON-CARD');
+  if (!action || !source) return;
+  if (action.action === 'fire-dom-event') {
+    source.dispatchEvent(new CustomEvent('ll-custom', {detail:action,bubbles:true,composed:true}));
+  } else if (action.action === 'perform-action') {
+    const [domain, service] = action.perform_action.split('.');
+    ha.hass.callService(domain,service,action.data || {},action.target || {});
+  }
+});
+function child(parent, tag, shadow = true) {
+  const node = document.createElement(tag); parent.append(node);
+  return shadow ? node.attachShadow({ mode: 'open' }) : node;
+}
+const main = child(ha.attachShadow({ mode: 'open' }), 'home-assistant-main');
+const drawer = child(main, 'ha-drawer', false);
+const resolver = child(drawer, 'partial-panel-resolver');
+const panel = child(resolver, 'ha-panel-lovelace');
+const root = document.createElement('hui-root'); panel.append(root);
+root.lovelace = { config: {} };
+const viewContainer = document.createElement('div'); viewContainer.id = 'view';
+root.attachShadow({ mode: 'open' }).append(viewContainer);
+window.view = document.createElement('hui-view');
+window.view.style.cssText = 'display:block;min-height:100vh;position:relative';
+viewContainer.append(window.view);
+customElements.define('ha-card', class extends HTMLElement {
+  constructor() { super(); this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:block;height:100%;}</style><slot></slot>'; }
+});
+customElements.define('hui-error-card', class extends HTMLElement { setConfig(config) { this.textContent=config.error; } });
+</script>
+<script type="module">
+await import('/button-card.js');
+await customElements.whenDefined('button-card');
+await import('/honeycomb-menu-ng.js');
+window.openFixture = buttons => window.honeycomb_menu({
+  position_mode:'anchored', anchor_x:Math.min(500,innerWidth/2), anchor_y:300, size:260,
+  animation_speed:0, animate:false, empty_slots:'hidden',
+  center_button:false, buttons
+});
+window.fixtureReady = true;
+</script>
+</html>

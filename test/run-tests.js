@@ -721,23 +721,20 @@ function testArchitectureBoundaries()
     assert.strictEqual(rendererSource.includes('_handlePresetAction('), false);
 }
 
-function run()
-{
-    testNavigationAnchorLock();
-    testGlobalNavigationDoesNotLock();
-    testPersistentHexGeometry();
-    testLayoutGrowthKeepsCenterDefinition();
-    testModuleRegistry();
-    testBuiltInModuleResolution();
-    testPersistentPresentations();
-    testLightNestedMenusStayInOwningContext();
-    testLightPresetHelperDomains();
-    testSonosSlotZeroUsesPersistentContract();
-    testModuleMenusAreDeclarative();
-    testSharedBeeBranding();
-    testArchitectureBoundaries();
-
-    console.log('Honeycomb NG core tests: OK');
-}
-
-run();
+const { test } = require('node:test');
+for( const contract of [
+    testNavigationAnchorLock,
+    testGlobalNavigationDoesNotLock,
+    testPersistentHexGeometry,
+    testLayoutGrowthKeepsCenterDefinition,
+    testModuleRegistry,
+    testBuiltInModuleResolution,
+    testPersistentPresentations,
+    testLightNestedMenusStayInOwningContext,
+    testLightPresetHelperDomains,
+    testSonosSlotZeroUsesPersistentContract,
+    testModuleMenusAreDeclarative,
+    testSharedBeeBranding,
+    testArchitectureBoundaries
+] )
+    test(contract.name, contract);

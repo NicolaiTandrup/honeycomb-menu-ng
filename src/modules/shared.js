@@ -48,7 +48,9 @@ function persistentLauncher(options)
         {
             _persistent_launcher: true,
             slot: physicalSlot(item, index, slot),
-            slot_mode: 'hard',
+            slot_mode: item.slot_mode || 'hard',
+            visibility: item.visibility,
+            show: item.show,
             entity: item.entity,
             icon,
             mode,
