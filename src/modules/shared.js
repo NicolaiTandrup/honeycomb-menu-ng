@@ -47,6 +47,7 @@ function persistentLauncher(options)
         {},
         {
             _persistent_launcher: true,
+            _layered: !!(item.colors || item.border),
             slot: physicalSlot(item, index, slot),
             slot_mode: item.slot_mode || 'hard',
             visibility: item.visibility,
@@ -59,6 +60,10 @@ function persistentLauncher(options)
             menu: submenu
         },
         extra || {},
+        Object.fromEntries(['colors', 'border', 'face_mode', 'variables', 'tap_action',
+            'hold_action', 'double_tap_action', 'show_brightness', 'show_volume']
+            .filter(key => item[key] !== undefined).map(key => [key, item[key]])),
+        (item.colors || item.border || item.show_name) ? {name:item.name, label:item.label} : {},
         item.persistent || {}
     );
 }

@@ -222,7 +222,7 @@ class BrowserContracts(unittest.TestCase):
                 config.menu.variables.chargers = [];
                 config.menu.buttons = config.menu.buttons.slice(2);
             }
-            window.parentCube = document.createElement('honeycomb-persistent-control');
+            window.parentCube = document.createElement(config.type.replace('custom:',''));
             parentCube.setConfig(config);
             document.querySelector('home-assistant').provideHass(parentCube);
             Object.assign(parentCube.style, {position:'absolute',left:(innerWidth/2-45)+'px',top:'250px'});
@@ -233,7 +233,7 @@ class BrowserContracts(unittest.TestCase):
     def test_complete_charging_yaml_power_counts_vehicles_permissions_and_updates(self):
         self.charging_states()
         self.add_charging_parent()
-        parent = self.page.locator('body > honeycomb-persistent-control')
+        parent = self.page.locator('body > honeycomb-persistent-hub')
         self.assertEqual(parent.locator('.primary').inner_text(), '3.0 kW')
         self.assertEqual(parent.locator('.secondary').inner_text(), '1/2 charging')
         self.assertTrue(parent.locator('.secondary').evaluate('(e) => e.scrollWidth <= e.clientWidth'))
@@ -264,7 +264,7 @@ class BrowserContracts(unittest.TestCase):
     def test_zero_chargers_and_no_known_vehicles_leave_parent_and_close_accessible(self):
         self.charging_states()
         self.add_charging_parent(zero=True)
-        parent = self.page.locator('body > honeycomb-persistent-control')
+        parent = self.page.locator('body > honeycomb-persistent-hub')
         self.assertEqual(parent.locator('.primary').inner_text(), '0 W')
         self.assertEqual(parent.locator('.secondary').inner_text(), '0/0 charging')
         parent.locator('.interaction-surface').click()
@@ -285,7 +285,7 @@ class BrowserContracts(unittest.TestCase):
         self.charging_states()
         self.states({'binary_sensor.vehicle_a_present': {'state': 'on'}})
         self.add_charging_parent()
-        self.page.locator('body > honeycomb-persistent-control .interaction-surface').click()
+        self.page.locator('body > honeycomb-persistent-hub .interaction-surface').click()
         self.page.wait_for_function('view.querySelector("honeycomb-menu")')
         self.page.evaluate('window.menu = view.querySelector("honeycomb-menu"); window.originalMenu = menu')
         charger = self.page.locator('honeycomb-menu').get_by_text('1200 W', exact=True)
@@ -313,7 +313,7 @@ class BrowserContracts(unittest.TestCase):
         self.page.locator('honeycomb-menu .interaction-surface').click()
         self.assertTrue(charger.is_visible())
         self.page.evaluate("""() => {
-            window.honeycomb_menu_close();
+            window.honeycomb_menu_context_close(parentCube._menuContext);
             window.menu = honeycomb_menu({template:'vehicle_controls', position_mode:'anchored', anchor_x:innerWidth/2,
                 anchor_y:300, variables:{vehicle:{battery:'sensor.vehicle_a_battery'}}});
         }""")
@@ -394,6 +394,223 @@ class BrowserContracts(unittest.TestCase):
         self.assertEqual(center.get_attribute('fill'),'#174b32')
         self.assertEqual(self.page.evaluate('menu.shadowRoot.querySelector("honeycomb-persistent-control").shadowRoot.querySelector(".hex-center").namespaceURI'), 'http://www.w3.org/2000/svg')
         self.snapshot('matching-rings')
+
+    def add_hub(self, config):
+        self.page.evaluate('''config => {
+            window.hub = document.createElement('honeycomb-persistent-hub');
+            hub.setConfig({size:70,...config});
+            Object.assign(hub.style,{position:'absolute',left:(innerWidth/2-35)+'px',top:'300px'});
+            document.body.append(hub);
+        }''', config)
+        self.page.wait_for_function('hub._hubMenu?.shadowRoot.querySelector("#honeycombs")')
+        self.page.evaluate('window.menu = hub._hubMenu')
+
+    def test_hub_live_priority_hard_reservations_and_drag_deferral(self):
+        self.states({'binary_sensor.vehicle_a_present': {'state':'off'}})
+        visible = [{'entity':'binary_sensor.vehicle_a_present','state':'on'}]
+        self.add_hub({'logo':True,'items':[
+            {'name':'Charger 1','slot':1,'slot_mode':'soft'},
+            {'name':'Vehicle A','slot':1,'slot_mode':'priority','visibility':visible},
+            {'name':'Reserved','slot':2,'slot_mode':'hard','visibility':visible}
+        ]})
+        self.wait_slot(0,'Charger 1')
+        self.assertIsNone(self.allocation()[1])
+        center = self.physical_center()
+        self.drag_start('Charger 1')
+        self.states({'binary_sensor.vehicle_a_present': {'state':'on'}}, same_object=True)
+        self.page.wait_for_function('menu._visibilityPending')
+        self.assertEqual(self.allocation()[0],'Charger 1')
+        self.page.mouse.up()
+        self.wait_slot(0,'Vehicle A')
+        self.wait_slot(1,'Reserved')
+        self.wait_slot(2,'Charger 1')
+        self.assertEqual(self.physical_center(),center)
+        self.states({'binary_sensor.vehicle_a_present': {'state':'off'}}, same_object=True)
+        self.wait_slot(0,'Charger 1')
+        self.assertIsNone(self.allocation()[1])
+
+    def test_hub_hidden_child_unwinds_nearest_parent_after_gesture_and_tracks_base_resize(self):
+        self.states({'binary_sensor.vehicle_a_present':{'state':'on'}, 'binary_sensor.details_visible':{'state':'on'}})
+        child = {'buttons':[{'name':'Session energy'}]}
+        vehicle = {'buttons':[{'name':'Details','show_name':True,'autoclose':False,
+            'visibility':[{'entity':'binary_sensor.details_visible','state':'on'}],
+            'tap_action':{'action':'honeycomb-open-nested','honeycomb_nested_menu':child}}]}
+        self.add_hub({'logo':True,'items':[{'name':'Vehicle A','slot':1,'slot_mode':'soft',
+            'visibility':[{'entity':'binary_sensor.vehicle_a_present','state':'on'}],
+            'tap_action':{'action':'honeycomb-open-nested','honeycomb_nested_menu':vehicle}}]})
+        self.page.locator('honeycomb-menu').get_by_text('Vehicle A',exact=True).click()
+        self.page.locator('honeycomb-menu').get_by_text('Details',exact=True).click()
+        self.page.wait_for_function('hub._menuContext.stack.length === 2')
+        center = self.physical_center()
+        self.page.evaluate("hub.style.left = (parseFloat(hub.style.left)+20)+'px'")
+        self.page.wait_for_function('hub._menuContext.stack[0].config.anchor_x !== hub._menuContext.moduleAnchor.x')
+        self.assertEqual(self.physical_center(),center)
+        self.states({'binary_sensor.details_visible':{'state':'off'}}, same_object=True)
+        self.page.wait_for_function('hub._menuContext.stack.length === 1')
+        self.assertEqual(self.physical_center(),center)
+        self.page.mouse.move(10,100)
+        self.page.mouse.down()
+        self.states({'binary_sensor.vehicle_a_present':{'state':'off'}}, same_object=True)
+        self.page.wait_for_function('menu._visibilityPending')
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),1)
+        self.page.mouse.up()
+        self.page.wait_for_function('hub._menuContext.stack.length === 0')
+        self.assertEqual(self.page.evaluate('view.querySelectorAll("honeycomb-menu").length'),1)
+        self.assertAlmostEqual(self.physical_center()[0],center[0]+20,delta=0.1)
+        self.assertTrue(self.page.locator('honeycomb-menu .center-item .interaction-surface').is_visible())
+        self.assertEqual(self.page.evaluate('menu.buttons.filter(Boolean).length'),0)
+        self.snapshot('empty-hub')
+
+    def test_hub_zero_items_and_unavailable_entity_do_not_disappear(self):
+        self.add_hub({'items':[]})
+        self.assertTrue(self.page.locator('honeycomb-menu .center-item .interaction-surface').is_visible())
+        self.assertEqual(self.page.evaluate('menu.buttons.filter(Boolean).length'),0)
+        self.page.evaluate('hub.remove()')
+        self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
+        self.states({'sensor.vehicle_a_battery':{'state':'unavailable'}})
+        self.add_hub({'items':[{'name':'Vehicle A','entity':'sensor.vehicle_a_battery','tap_action':{'action':'more-info'}}]})
+        self.assertTrue(self.page.locator('honeycomb-menu').get_by_text('Vehicle A',exact=True).is_visible())
+        self.assertFalse(self.page.locator('honeycomb-menu .center-item').evaluate('(e) => e.hidden'))
+
+    def test_hub_keeps_more_than_seven_items_and_neutral_outer_defaults(self):
+        self.add_hub({'logo':False,'button_defaults':{'colors':{'center':'#20262d','inner_border':'#4caf50'},
+            'border':{'inner_width':2,'outer_width':3}},'items':[
+            {'name':f'Charger {i+1}','slot':i,'slot_mode':'hard'} for i in range(12)
+        ]})
+        self.assertEqual(self.page.evaluate('menu.buttons.filter(Boolean).length'),11)
+        self.assertEqual(self.page.locator('honeycomb-menu .hex-outer[fill="#34383d"]').count(),12)
+        self.assertEqual(self.page.evaluate('menu.sizes.item'),70)
+        self.snapshot('many-items')
+
+    def test_canonical_single_and_compatibility_actions_tap_hold_double_and_keyboard(self):
+        for index, tag in enumerate(['honeycomb-persistent-control','honeycomb-persistent-hub']):
+            self.page.evaluate('''({tag,index}) => {
+                window.cube = document.createElement(tag);
+                const action = kind => ({action:'perform-action',perform_action:'script.turn_on',
+                    data:{kind},target:{entity_id:'script.request_vehicle_a_permission'}});
+                cube.setConfig({mode:'hub',size:82,name:'Vehicle A',tap_action:action('tap'),
+                    hold_action:action('hold'),double_tap_action:action('double')});
+                Object.assign(cube.style,{position:'absolute',left:(20+index*110)+'px',top:'180px'});
+                document.body.append(cube);
+            }''', {'tag':tag,'index':index})
+            target = self.page.locator('body > '+tag+' .interaction-surface')
+            start = self.page.evaluate('calls.length')
+            target.click()
+            self.page.wait_for_function('(n) => calls.length === n',arg=start+1)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[2].kind'),'tap')
+            target.dblclick(delay=60)
+            self.page.wait_for_function('(n) => calls.length === n',arg=start+2)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[2].kind'),'double')
+            box = target.bounding_box()
+            self.page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
+            self.page.mouse.down()
+            self.page.wait_for_timeout(650)
+            self.page.mouse.up()
+            self.assertEqual(self.page.evaluate('calls.length'),start+3)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[2].kind'),'hold')
+            target.focus()
+            target.press('Enter')
+            self.assertEqual(self.page.evaluate('calls.length'),start+4)
+            self.page.evaluate('cube._executeAction({action:"honeycomb-media-volume",entity:"media_player.room",direction:"up"})')
+            self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['media_player','volume_up'])
+            self.page.evaluate('cube.config = {...cube.config, disabled:true}; cube._executeAction({action:"toggle"})')
+            self.assertEqual(self.page.evaluate('calls.length'),start+5)
+            self.page.evaluate('cube.remove()')
+
+    def test_cube_size_geometry_and_metrics_match_adapter_hub_classic_and_nested(self):
+        self.page.evaluate('''() => {
+            const colors = {center:'#20262d',inner_border:'#4caf50'};
+            window.samples = [];
+            for (const [index,tag] of ['honeycomb-persistent-control','honeycomb-persistent-hub'].entries()) {
+                const cube = document.createElement(tag);
+                cube.setConfig({mode:'hub',size:82,face_mode:'cell',name:'Vehicle A',label:'60 %',colors});
+                Object.assign(cube.style,{position:'absolute',left:(40+index*110)+'px',top:'100px'});
+                document.body.append(cube); samples.push(cube);
+            }
+            window.menu = honeycomb_menu({cube_size:82,animate:false,position_mode:'anchored',anchor_x:innerWidth/2,
+                anchor_y:400,empty_slots:'hidden',center_button:false,buttons:[{
+                    name:'Vehicle A',label:'60 %',icon:'mdi:car-electric',show_name:true,show_label:true,face_mode:'cell',colors,
+                    tap_action:{action:'honeycomb-open-nested',honeycomb_nested_menu:{buttons:[{
+                        name:'Details',show_name:true,colors,face_mode:'cell'}]}}
+                }]});
+        }''')
+        ordinary = self.page.locator('honeycomb-menu-item')
+        self.assertAlmostEqual(ordinary.bounding_box()['width'],82,delta=0.01)
+        self.assertAlmostEqual(ordinary.bounding_box()['height'],82*1.1547,delta=0.02)
+        sizes = self.page.evaluate('samples.map(c=>({w:c.getBoundingClientRect().width,h:c.getBoundingClientRect().height}))')
+        for size in sizes:
+            self.assertAlmostEqual(size['w'],82,delta=0.01)
+            self.assertAlmostEqual(size['h'],82*1.1547,delta=0.02)
+        metrics = self.page.evaluate('''() => {
+            const native = samples.map(c=>{const r=c.shadowRoot; return [
+                getComputedStyle(r.querySelector('ha-icon')).width,
+                getComputedStyle(r.querySelector('.primary')).fontSize,
+                getComputedStyle(r.querySelector('.secondary')).fontSize];});
+            const r=menu.shadowRoot.querySelector('honeycomb-menu-item')._card.shadowRoot;
+            native.push([getComputedStyle(r.querySelector('#icon')).width,
+                getComputedStyle(r.querySelector('#name')).fontSize,getComputedStyle(r.querySelector('#label')).fontSize]);
+            return native;
+        }''')
+        self.assertEqual(metrics[0],metrics[1])
+        for first,second in zip(metrics[0],metrics[2]):
+            self.assertAlmostEqual(float(first.rstrip('px')),float(second.rstrip('px')),delta=0.1)
+        self.snapshot('shared-size')
+        ordinary.get_by_text('Vehicle A',exact=True).click()
+        self.page.wait_for_function('menu.buttons.some(b=>b?.name === "Details")')
+        self.assertEqual(self.page.evaluate('menu.sizes.item'),82)
+        self.page.evaluate('''async () => {
+            await menu.updateComplete;
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await Promise.all(menu.shadowRoot.getAnimations({subtree:true})
+                .map(animation => animation.finished.catch(() => {})));
+        }''')
+        self.snapshot('shared-size-nested')
+        self.assertAlmostEqual(self.page.locator('honeycomb-menu-item').last.bounding_box()['width'],82,delta=0.01)
+        self.page.evaluate('honeycomb_menu_back()')
+        self.page.wait_for_function('menu.buttons.some(b=>b?.name === "Vehicle A")')
+        self.assertEqual(self.page.evaluate('menu.sizes.item'),82)
+
+    def test_hub_explicit_replacement_back_and_edit_teardown_do_not_stack_overlays(self):
+        self.add_hub({'logo':True,'items':[{'name':'Vehicle A','slot':1,
+            'tap_action':{'action':'honeycomb-open-nested','honeycomb_nested_menu':{
+                'nested_expand':False,'animate':False,'cube_size':70,'buttons':[{'name':'Details','show_name':True}]}}}]})
+        self.page.locator('honeycomb-menu').get_by_text('Vehicle A',exact=True).click()
+        self.page.wait_for_function('hub._hubMenu === hub._menuContext.honeycomb && hub._menuContext.stack.length === 1')
+        self.page.evaluate('window.menu = hub._hubMenu')
+        self.assertTrue(self.page.locator('honeycomb-menu').get_by_text('Details',exact=True).is_visible())
+        self.assertEqual(self.page.evaluate('view.querySelectorAll("honeycomb-menu").length'),1)
+        self.page.evaluate('honeycomb_menu_context_back(hub._menuContext)')
+        self.page.wait_for_function('hub._hubMenu === hub._menuContext.honeycomb && hub._menuContext.stack.length === 0')
+        self.assertTrue(self.page.locator('honeycomb-menu').get_by_text('Vehicle A',exact=True).is_visible())
+        self.page.evaluate("hub.setConfig({mode:'hub',name:'Vehicle A',size:82})")
+        self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
+        self.assertTrue(self.page.locator('body > honeycomb-persistent-hub .interaction-surface').is_visible())
+        self.page.evaluate('hub.remove()')
+        self.assertEqual(self.page.evaluate('view.querySelectorAll("honeycomb-menu").length'),0)
+
+    def test_native_module_drag_hidden_actions_and_layered_unavailable_outer(self):
+        self.states({'binary_sensor.vehicle_a_present':{'state':'on'}})
+        self.add_hub({'logo':True,'button_defaults':{'colors':{'inner_border':'#4caf50'}},'items':[
+            {'type':'light','entity':'light.room','slot':1,
+             'visibility':[{'entity':'binary_sensor.vehicle_a_present','state':'on'}]}
+        ]})
+        target = self.page.locator('honeycomb-menu .ring-item')
+        box = target.bounding_box()
+        self.page.mouse.move(box['x']+box['width']/2-20,box['y']+box['height']/2)
+        self.page.mouse.down()
+        self.page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2,steps=3)
+        self.page.wait_for_function('menu._dragPointerActive')
+        self.page.mouse.up()
+        self.assertEqual(self.page.evaluate('calls.length'),1)
+        self.states({'light.room':{'state':'unavailable','attributes':{}}},same_object=True)
+        self.page.wait_for_function('menu.shadowRoot.querySelector(".ring-item").shadowRoot.querySelector(".secondary").textContent === "Unavailable"')
+        self.assertEqual(target.locator('.hex-outer').get_attribute('fill'),'#34383d')
+        self.assertTrue(target.is_visible())
+        self.page.evaluate('window.oldNative = menu.shadowRoot.querySelector(".ring-item")')
+        self.states({'binary_sensor.vehicle_a_present':{'state':'off'}})
+        self.page.evaluate('oldNative._executeAction({action:"toggle"})')
+        self.assertEqual(self.page.evaluate('calls.length'),1)
+        self.page.wait_for_function('menu.buttons.filter(Boolean).length === 0')
 
 
 def main():

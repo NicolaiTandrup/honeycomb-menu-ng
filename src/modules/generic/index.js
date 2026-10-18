@@ -1,3 +1,5 @@
+const merge = require('lodash/merge');
+const omit = require('lodash/omit');
 const { physicalSlot, requestedIcon } = require('../shared.js');
 
 module.exports = {
@@ -77,6 +79,10 @@ module.exports = {
             button.hold_action = item.hold_action || { action: 'more-info' };
         }
 
-        return button;
+        // Pass generic action/card fields through without requiring a module
+        // rewrite. Module/type metadata must not become a Lovelace card type.
+        if (item.colors || item.border) button.styles = {};
+        return merge({}, button, omit(item, ['type','module','profile','menu','slot','slot_mode','persistent']),
+            { slot:button.slot, slot_mode:button.slot_mode });
     }
 };

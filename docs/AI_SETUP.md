@@ -279,3 +279,45 @@ Only publish a new v1.6 beta after PR/master validation. Keep
   not engine rules. Vehicle ring colors are independent.
 - Validate unit and real button-card browser tests at desktop/mobile sizes, including
   Light/Sonos, drag, live state, native back/history and reusable template behavior.
+
+
+## Canonical Hub configuration contract (#72)
+
+Read [PERSISTENT_HUB_MIGRATION.md](PERSISTENT_HUB_MIGRATION.md) before migrating.
+
+1. Recommend custom:honeycomb-persistent-hub for both a single control and groups.
+   Omit items for single mode; items:[] is explicitly an empty group. Keep the
+   legacy persistent-control type supported without edits or runtime warnings.
+2. Hub/control size is cell width. Hub default 82 px, compatibility default 72 px. Native
+   inset and Hub cell face defaults remain; choose equal face_mode for comparison.
+   Classic size stays menu extent (cube=size/3.586). cube_size explicitly selects
+   cell width and persists across expanded nested levels. Never reinterpret old size.
+3. Hub button_defaults (also existing menu.button_defaults) supplies item defaults;
+   per-item common fields override, then legacy persistent overrides. Hub colors
+   styles its own root/logo. Generic styles/custom_fields/actions pass through.
+4. No dedicated charger/vehicle module is required; missing/unregistered item type
+   uses generic. Light, explicit generic Media, Sonos and legacy Media resolution
+   remains unchanged. Modules supply data/presentation to the shared engine.
+5. Slots 0–18 (center 0) reuse the #68 ring allocator. Default hard preserves legacy
+   configured-count layouts; no seven-item truncation. Hard beats priority, then
+   soft. Center hard/priority/soft follows the same ordering; displaced non-hard
+   center claims enter the ring at slot 1. First hard declaration wins collisions.
+   Overflow/invalid slots are diagnosed; do not rely on overflow for important actions.
+6. Visibility uses #68 conditions and legacy show, reevaluated live. Availability
+   alone does not hide. Hide actions immediately; defer reflow/back until pointer
+   release/cancel. Hidden owners unwind to nearest surviving ancestor through back.
+7. Zero visible items leaves an inert accessible bee launcher, not a hidden item's
+   action. Auto logo yields to explicit center items; existing seven-item layouts
+   consume center. Forced small-group logo reserves it.
+8. Shared colors/border/face geometry and proportional icon/text metrics come from
+   #70 internals. Layered outer defaults independently to #34383d, including unknown
+   states. Preserve legacy appearances and explicit user style overrides.
+9. Reuse honeycomb_menu_templates and native honeycomb-open-nested/back in the owning
+   context. Respect nested_expand:false replacement history; do not auto-open a new
+   base over a child. Responsive base movement does not move an open module anchor.
+10. Tap/hold/double_tap, HA delegation, custom Honeycomb actions and drag use shared
+    internals. Native double tap delays single tap 300 ms only when configured.
+11. Migration/type changes do not authorize device automation changes. Permission,
+    charging session policy, association and optimizer behavior remain external.
+12. Keep release validation separate from configuration migration; never publish
+    a stable release without explicit authorization.

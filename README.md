@@ -25,6 +25,26 @@ The project **originated as a fork** of [Sian-Lee-SA/honeycomb-menu](https://git
 - modular core with isolated domain modules and regression tests
 - one shared Honeycomb bee brand across Home Assistant and GitHub
 
+## Canonical persistent Hub (v1.6 development)
+
+Use `custom:honeycomb-persistent-hub` for a single control or a group. Omit `items`
+for a single control with existing entity/actions/menu, or provide `items` for a
+live group. `persistent-control` remains a supported compatibility adapter.
+
+Hub items now reuse conditional visibility and hard/soft/priority placement,
+including slot 0. Hidden children return to the nearest visible parent, and
+layout changes wait for pointer release. Existing small layouts stay intact;
+larger groups can use up to 19 cells. Empty groups keep an accessible launcher.
+
+Use `button_defaults` for shared item colors/border/actions and per-item overrides.
+Generic cubes need no domain module. Persistent `size: 82` is cube width; classic
+menu `size` retains its old extent meaning. Use `cube_size: 82` on classic menus
+when matching physical dimensions, and compare equal `face_mode` settings.
+
+See the [migration guide and functionality matrix](docs/PERSISTENT_HUB_MIGRATION.md)
+for precise defaults, compatible advanced actions, examples and upgrade steps.
+No configuration migration is required for existing dashboards.
+
 ## v1.6 beta: conditional visibility and placement
 
 A button can appear only while a vehicle is present, a charger is using power,
@@ -255,7 +275,7 @@ honeycomb_menu_templates:
 views:
   - title: Charging
     cards:
-      - type: custom:honeycomb-persistent-control
+      - type: custom:honeycomb-persistent-hub
         mode: hub
         size: 90
         icon: mdi:ev-station
