@@ -12,6 +12,8 @@ const HUB_ROOT_FLAG = '_persistent_hub_root';
 
 function finiteNumber(value)
 {
+    if (value === null || value === undefined || typeof value === 'boolean' ||
+        (typeof value === 'string' && !value.trim())) return null;
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
 }
@@ -68,7 +70,7 @@ function enterNested(context, currentConfig, incomingConfig)
 
     if( fromBase )
     {
-        const selectedAnchor = readAnchor(incomingConfig);
+        const selectedAnchor = readAnchor(incomingConfig) || readAnchor(currentConfig);
 
         if( selectedAnchor )
         {

@@ -215,7 +215,7 @@ For code changes also read [../ARCHITECTURE.md](../ARCHITECTURE.md).
 New Honeycomb configuration: `visibility: [condition, ...]` and the existing
 `slot_mode` extended with value `priority`. Do not invent `charging_hub`,
 `chargers`, `vehicle_entities`, `auto_disable`, `session`, or other Honeycomb keys.
-`variables.chargers` in the example is a user-defined button-card variable,
+`variables.chargers` in the example is a user-defined presentation variable,
 not a Honeycomb schema field.
 
 1. Start from the complete [charging-hub example](../examples/charging-hub.yaml).
@@ -225,12 +225,13 @@ not a Honeycomb schema field.
    anonymously documented vehicles. Vehicles and chargers have independent counts.
 4. Preserve the parent aggregate power `name` and active/total `label`; no presence
    condition belongs on the parent. Preserve an accessible close center.
-5. Charger child `name` is power, `label` is associated vehicle, custom-field SVG
-   is an inner permission/status ring. Use existing button-card styling/actions.
+5. Charger child `name` is power, `label` is associated vehicle, `colors.inner_border`
+   is the shared permission/status ring. Use existing colors/border/actions.
 6. Add/remove charger variable records and corresponding buttons together. Zero
    chargers uses an empty list and no charger buttons. Vehicle buttons can all
    be absent/hidden without disabling manual permission actions.
-7. Keep four brackets on nested child templates, three on parent/menu variables.
+7. Use three brackets in the native-parent example. Add one escape layer only
+   when an ancestor button-card must defer evaluation to a child.
 8. For each ring button use `hard` to reserve a physical slot while hidden, `soft`
    to fill space dynamically, or `priority` to reclaim a preferred slot when shown.
    Hard beats priority; first declaration breaks ties; displaced priority claims
@@ -251,5 +252,30 @@ not a Honeycomb schema field.
     private names, locations, hosts or addresses. Existing public legal attribution
     and repository ownership links are not installation identifiers.
 
-Only publish `v1.6.0-beta.1` after PR/master validation. Keep
+Only publish a new v1.6 beta after PR/master validation. Keep
 `release.json.prerelease: true`; do not publish stable/latest on the user's behalf.
+
+
+## Issue #70 shared presentation/navigation contract
+
+- Use existing `colors.{center,inner_border,outer_border}`, `border.{inner_width,outer_width}`,
+  `face_mode`, `name`, `label`, `variables`, `tap_action`, `hold_action`; no charging schema.
+- Ordinary cubes opt into dual rings with colors/border. Native and ordinary cubes
+  share geometry and update even when the hass object identity is unchanged.
+- Native text/color templates use Honeycomb JS context. Wrapped text uses button-card
+  context; unknown/missing state must yield readable fallback, never raw brackets.
+- Use `honeycomb-open-nested` / `honeycomb_nested_menu: {template: ...}` for owned
+  navigation. Default expand is true; explicit false keeps replacement semantics.
+  Keep the physical anchor/size; honor layout_envelope and inherit_inner. Back must
+  restore every level. Do not dispatch a second global overlay from a local Hub.
+- Reuse dashboard honeycomb_menu_templates for existing vehicle menus without
+  rebuilding buttons/defaults. Pass cube variables; template variables override.
+- Parent native mode hub uses current aggregate W/kW name, active/total label and
+  live center/rings. It has no vehicle visibility condition; zero chargers works.
+- Charger tap calls a policy-checking external script, hold opens energy/lock details.
+  Never infer that a binary sensor supports lock commands. Use lock services only
+  with real integration support. Do not bypass an external optimizer.
+- Green permitted, blue online/blocked, red fault, gray offline are example colors,
+  not engine rules. Vehicle ring colors are independent.
+- Validate unit and real button-card browser tests at desktop/mobile sizes, including
+  Light/Sonos, drag, live state, native back/history and reusable template behavior.

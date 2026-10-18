@@ -28,6 +28,10 @@ module.exports = {
             show_name: true,
             show_label: !!item.label,
             label: item.label || '',
+            variables: item.variables,
+            colors: item.colors,
+            border: item.border,
+            face_mode: item.face_mode,
             autoclose: false,
             styles: {
                 card: [
@@ -61,10 +65,10 @@ module.exports = {
 
         if( submenu )
         {
-            button.tap_action = { action: 'toggle' };
-            button.hold_action = {
-                action: 'fire-dom-event',
-                honeycomb_menu: submenu
+            button.tap_action = item.tap_action || { action: 'toggle' };
+            button.hold_action = item.hold_action || {
+                action: 'honeycomb-open-nested',
+                honeycomb_nested_menu: submenu
             };
         }
         else

@@ -1,3 +1,29 @@
+# v1.6.0-beta.2 — Unified Rings and Nested Navigation
+
+This pre-release addresses #70 with shared dual-ring presentation and stable
+nested Charging Hub navigation. It builds on the conditional controls in beta.1.
+
+- Ordinary menu cubes opt into the existing native colors/border/face_mode
+  settings, with independently configurable inner/outer rings and live updates.
+- Native controls support templated primary name and secondary label, icon,
+  colors and widths; existing Light/Media presentation stays the default.
+- Native nested actions retain their owning overlay, physical anchor, cube size
+  and back history. Reuse existing menu templates without copying parent styles.
+- Final name/label templates normalize escape depth and show readable fallbacks.
+  Both face renderers refresh even when HA reuses the same hass object.
+- The anonymous Charging Hub dashboard example has aggregate power/counts,
+  configurable status rings, separate permission-request tap and details hold,
+  session energy, read-only cable-lock status and reusable vehicle controls.
+- Permission policy, session management, association and optimization remain in
+  external automation. No direct permission-switch toggle or inferred lock service.
+- Unit tests and desktop/mobile Chromium checks cover shared geometry, live
+  colors/text, charging/vehicle back navigation, Light palettes, Sonos and drag.
+
+This is a beta pre-release. Tests simulate Home Assistant state/services with
+real button-card; actual integration/device behavior requires HA validation.
+
+---
+
 # v1.6.0-beta.1 — Conditional Visibility and Priority Slots
 
 This pre-release adds live Home Assistant-style visibility conditions and

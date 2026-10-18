@@ -98,5 +98,26 @@ source. Rendering reevaluates visibility, guards action delivery, and defers
 allocation while the drag pointer is active. A completed drag suppresses its
 compatibility mouse/touch tap so a reflowed cell cannot receive a second action.
 
-The Charging Hub is a documented composition of button-card templates and
-classic Honeycomb menus. There is no charging domain module or session state.
+The Charging Hub is a documented composition of native aggregate presentation, button-card templates and
+Honeycomb menus. There is no charging domain module or session state.
+
+
+## v1.6 shared presentation and nested ownership
+
+`core/hex-face.js` owns pure geometry/width normalization. `hex-face.js` renders
+one SVG face/ring contract for native controls and ordinary menu items. Wrapped
+cards retain their content/actions below pointer-transparent rings. Opt-in
+rings preserve a containing block for button-card's fixed content. Legacy
+ordinary cubes keep their original geometry when no colors/border is supplied.
+
+`core/text-template.js` parses equal bracket depths and guards final button-card
+name/label templates. Presentation evaluation never mutates source configuration.
+Honeycomb/native templates and button-card contexts remain separate; ancestor
+button-card escaping is resolved before final text rendering.
+
+Renderer-owned nested actions default to expansion in the current context. Core
+still owns the local Hub base-to-module lock; deeper expansion preserves anchor,
+size and back history. Reused templates keep their own defaults. A global menu
+and each local Hub retain separate contexts; nested actions never choose a new
+global context based on a lost shadow-DOM event. Explicit replacement remains
+available via nested_expand:false. Animation-free close disposes immediately.
