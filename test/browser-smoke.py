@@ -5,6 +5,7 @@ Install test/requirements.txt and Chromium, then run:
 python test/browser-smoke.py --bundle honeycomb-menu-ng.js
 """
 import argparse
+import base64
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -380,6 +381,133 @@ class BrowserContracts(unittest.TestCase):
         self.assertEqual(self.page.evaluate('view.querySelectorAll("honeycomb-menu").length'),1)
         self.page.locator('honeycomb-menu .center-item .interaction-surface').click()
         self.page.wait_for_function('hub._menuContext.stack.length === 0')
+
+    def open_palette_fixture(self, regular=False, override=False):
+        config = yaml.safe_load((ROOT / 'test/fixtures/light-palette.yaml').read_text())
+        self.page.evaluate('''({config, regular, override}) => {
+            // A bright synthetic floorplan makes transparent faces conspicuous.
+            document.body.style.background = '#d1bca5';
+            if (override) config.menu.buttons[4].styles = {card:[{background:'#174b32'}]};
+            window.paletteControl = document.createElement(config.type.replace('custom:', ''));
+            paletteControl.setConfig(config);
+            Object.assign(paletteControl.style, {position:'absolute',left:(innerWidth/2-32)+'px',top:'300px'});
+            if (regular) {
+                const menuConfig = paletteControl._persistentMenuConfig();
+                delete menuConfig.persistent_center;
+                menuConfig.center_button = {icon:'mdi:arrow-left',tap_action:{action:'honeycomb-back'}};
+                window.menu = honeycomb_menu({...menuConfig,anchor_x:innerWidth/2,anchor_y:337});
+            } else document.body.append(paletteControl);
+        }''', {'config': config, 'regular': regular, 'override': override})
+        if not regular:
+            control = self.page.locator('body > honeycomb-persistent-control .interaction-surface')
+            box = control.bounding_box()
+            self.page.mouse.move(box['x']+box['width']/2, box['y']+box['height']/2)
+            self.page.mouse.down()
+            self.page.wait_for_timeout(650)
+            self.page.mouse.up()
+            self.page.wait_for_function('view.querySelector("honeycomb-menu")')
+            self.page.evaluate('window.menu = view.querySelector("honeycomb-menu")')
+        self.page.wait_for_function('menu.buttons.filter(Boolean).length === 6')
+        self.page.mouse.move(0, 0)
+
+    def palette_faces(self):
+        self.page.evaluate('''async () => {
+            await menu.updateComplete;
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await Promise.all(menu.shadowRoot.getAnimations({subtree:true})
+                .map(animation => animation.finished.catch(() => {})));
+        }''')
+        faces = self.page.evaluate('''() => [...menu.shadowRoot.querySelectorAll('[data-honeycomb-slot]:not(.center-item)')].map(item => {
+            const card = item._card.shadowRoot.querySelector('ha-card'), style = getComputedStyle(card);
+            const name = item._card.shadowRoot.querySelector('#name'), label = item._card.shadowRoot.querySelector('#label');
+            const rect = item.getBoundingClientRect();
+            return {background:style.backgroundColor, name:name?.textContent, label:label?.textContent,
+                foreground:getComputedStyle(name || card).color, labelColor:label && getComputedStyle(label).color,
+                box:[rect.x,rect.y,rect.width,rect.height], point:[rect.x+rect.width*.2,rect.y+rect.height*.5]};
+        })''')
+        # Sample the painted face, not just a configured CSS value. Decode the
+        # screenshot in Chromium so the test needs no extra image dependency.
+        pixels = self.page.evaluate('''async ({png,points}) => {
+            const image = new Image(); image.src = 'data:image/png;base64,'+png; await image.decode();
+            const canvas = document.createElement('canvas'); canvas.width=image.width; canvas.height=image.height;
+            const context = canvas.getContext('2d'); context.drawImage(image,0,0);
+            return points.map(([x,y]) => [...context.getImageData(Math.floor(x),Math.floor(y),1,1).data].slice(0,3));
+        }''', {'png': base64.b64encode(self.page.screenshot()).decode(), 'points': [f['point'] for f in faces]})
+        for face, pixel in zip(faces, pixels):
+            face['pixel'] = pixel
+        return faces
+
+    def assert_palette_faces(self, faces, override=False):
+        self.assertEqual(len(faces), 18)
+        for index, face in enumerate(faces[:6]):
+            expected = 'rgb(23, 75, 50)' if override and index == 4 else 'rgba(52, 66, 78, 0.94)'
+            self.assertEqual(face['background'], expected, f'inner slot {index+1}: {face}')
+            def luminance(rgb):
+                channels = [value/255 for value in rgb]
+                linear = [value/12.92 if value <= .04045 else ((value+.055)/1.055)**2.4 for value in channels]
+                return sum(value*weight for value, weight in zip(linear, [.2126,.7152,.0722]))
+            for text_color in [face['foreground'], face['labelColor']]:
+                if text_color:
+                    channels = [float(v.strip()) for v in text_color[text_color.index('(')+1:-1].split(',')]
+                    alpha = channels[3] if len(channels) == 4 else 1
+                    foreground = [value*alpha+background*(1-alpha) for value,background in zip(channels[:3],face['pixel'])]
+                    ratio = (luminance(foreground)+.05)/(luminance(face['pixel'])+.05)
+                    self.assertGreater(ratio, 4.5, f'inner slot {index+1} text contrast: {face}')
+        swatches = self.page.evaluate('''() => menu.buttons.slice(6).map(button => {
+            const sample=document.createElement('div');
+            sample.style.background=button.styles.card[0].background; document.body.append(sample);
+            const color=getComputedStyle(sample).backgroundColor; sample.remove(); return color;
+        })''')
+        for index, (face, expected) in enumerate(zip(faces[6:], swatches), 7):
+            self.assertEqual(face['background'], expected, f'palette slot {index}')
+            rgb = [float(v.strip()) for v in expected[4:-1].split(',')]
+            for actual, channel in zip(face['pixel'], rgb):
+                self.assertAlmostEqual(actual, channel, delta=2, msg=f'painted palette slot {index}')
+
+    def check_palette_inheritance(self, regular=False, override=False):
+        self.open_palette_fixture(regular, override)
+        before = self.palette_faces()
+        center = self.physical_center()
+        self.snapshot('palette-regular-before' if regular else 'palette-persistent-before')
+        self.page.locator('honeycomb-menu').get_by_text('Color', exact=True).click()
+        self.page.wait_for_function('menu.buttons.filter(Boolean).length === 18')
+        self.page.mouse.move(0, 0)
+        after = self.palette_faces()
+        self.snapshot('palette-regular-expanded' if regular else 'palette-persistent-expanded')
+        self.assert_palette_faces(after, override)
+        if regular:
+            # Preserve resolved inherited cells without restoring the broad
+            # defaults propagation that would restyle unrelated nested menus.
+            self.assertEqual(self.page.evaluate('menu.config.button_defaults'), {})
+            self.assertEqual(after[6]['foreground'], 'rgb(238, 238, 238)')
+        self.assertEqual(self.physical_center(), center)
+        for original, inherited in zip(before, after[:6]):
+            self.assert_inherited_face(original, inherited)
+        self.page.locator('[data-honeycomb-slot="6"] button-card').click()
+        self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'), ['light','turn_on'])
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].hs_color'), [0,85])
+        self.page.locator('honeycomb-menu .center-item').click()
+        self.page.wait_for_function('menu.buttons.filter(Boolean).length === 6')
+        for original, restored in zip(before, self.palette_faces()):
+            self.assert_inherited_face(original, restored)
+        self.assertEqual(self.physical_center(), center)
+        self.page.locator('[data-honeycomb-slot="4"] button-card').click()
+        self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'), ['light','turn_on'])
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].brightness_step_pct'), -5)
+
+    def assert_inherited_face(self, original, inherited):
+        for key in ['background', 'name', 'label', 'foreground', 'labelColor']:
+            self.assertEqual(inherited[key], original[key], f'inherited {key}')
+        for actual, expected in zip(inherited['box'], original['box']):
+            self.assertAlmostEqual(actual, expected, delta=.1, msg='inherited geometry')
+        for actual, expected in zip(inherited['pixel'], original['pixel']):
+            self.assertAlmostEqual(actual, expected, delta=2, msg='inherited painted face')
+
+    def test_persistent_palette_inherited_faces_keep_default_fill_and_contrast(self):
+        self.check_palette_inheritance()
+
+    def test_regular_palette_inherited_faces_keep_explicit_fill_override(self):
+        self.check_palette_inheritance(regular=True, override=True)
 
     def test_native_and_normal_faces_match_and_update_with_safe_text_templates(self):
         self.states({'sensor.charger_1_power': {'state':'0'}})
