@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack",
     "watch": "webpack --watch --mode=development",
-    "test": "node test/run-tests.js && node --test test/shared-engine.test.js test/hub-state.test.js",
+    "test": "node test/run-tests.js && node --test test/shared-engine.test.js test/hub-state.test.js test/release-retention.test.js",
     "prepare:brand": "node scripts/generate-bee-asset.js",
     "pretest": "npm run prepare:brand",
     "prebuild": "npm run prepare:brand",
