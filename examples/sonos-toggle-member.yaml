@@ -1,14 +1,14 @@
 # Sonos Join toggle script for Honeycomb Menu NG
 #
-# Replace media_player.living_room with the coordinator used by the Hub item.
+# Replace media_player.player_a with the coordinator used by the Hub item.
 # Honeycomb passes "member" whenever a Join cube is tapped.
 #
 # When configuration.yaml already contains script: !include scripts.yaml,
-# copy only sonos_living_room_toggle_member: and below into scripts.yaml.
+# copy only player_a_toggle_member: and below into scripts.yaml.
 
 script:
-  sonos_living_room_toggle_member:
-    alias: Sonos Living Room - Toggle Group Member
+  player_a_toggle_member:
+    alias: Player A - Toggle Group Member
     mode: queued
     fields:
       member:
@@ -20,7 +20,7 @@ script:
 
     sequence:
       - variables:
-          coordinator: media_player.living_room
+          coordinator: media_player.player_a
           current_members: >
             {{ state_attr(coordinator, 'group_members') or [coordinator] }}
 

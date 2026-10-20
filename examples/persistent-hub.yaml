@@ -1,24 +1,12 @@
-# Honeycomb Menu NG v1.5 persistent Hub example
+# Honeycomb v1.7: complete synthetic quick start; see examples/v1.7 for all cards.
 type: custom:honeycomb-persistent-hub
-name: Living room
+name: Hub A
 size: 82
 logo: auto
-
 items:
   - type: light
-    entity: light.living_room
-    name: Living room
-    icon: mdi:lightbulb
-    presets:
-      brightness:
-        entity: number.wall_switch_normal_brightness
-      kelvin:
-        entity: number.wall_switch_standard_kelvin
-
+    entity: light.zone_a
+    name: Light A
   - type: sonos
-    entity: media_player.living_room
-    name: Sonos
-    icon: mdi:speaker
-    active_color: "#00bcd4"
-    favorites_sensor: sensor.sonos_favorites
-    favorites_cache_sensor: sensor.sonos_favorites_cache
+    entity: media_player.player_a
+    name: Player A
