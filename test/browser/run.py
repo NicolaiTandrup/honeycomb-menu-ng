@@ -512,6 +512,77 @@ class Cubes(unittest.TestCase):
         self.hub({'logo':False,'items':[]})
         self.assertEqual(self.controls().count(),0)
         self.capture('empty-hub')
+    def zoom_menu(self):
+        return self.page.locator('honeycomb-menu')
+    def zoom_palette(self):
+        return self.page.evaluate("""()=>view.querySelector('honeycomb-menu').buttons.filter(b=>b && b.slot>=7).map(b=>b.tap_action.data.hs_color)""")
+    def zoom_cell(self, slot):
+        return self.page.locator(f'honeycomb-menu [data-honeycomb-slot="{slot-1}"] .interaction-surface')
+    def zoom_tap(self, slot):
+        target=self.zoom_cell(slot)
+        if self.viewport['width']<500:target.tap()
+        else:target.click()
+    def zoom_open(self, standalone=False):
+        if standalone:
+            self.page.evaluate("makeControl({module:'light',entity:'light.zone_a'})")
+            target=self.page.locator('body > honeycomb-persistent-control .interaction-surface')
+        else:
+            self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
+            target=self.page.locator('honeycomb-menu .interaction-surface')
+        self.hold_input(target)
+        self.page.wait_for_function('view.querySelector("honeycomb-menu").buttons.filter(Boolean).length===6')
+        self.zoom_tap(3)
+        self.page.wait_for_function('view.querySelector("honeycomb-menu").buttons.filter(Boolean).length===18')
+        self.settle()
+    def test_issue85_zoom_fixed_slots_recursion_and_live_updates(self):
+        self.zoom_open();original=self.zoom_palette();self.capture('issue85-original-palette')
+        geometry=self.page.locator('honeycomb-menu [data-honeycomb-slot]').evaluate_all('(els)=>els.map(el=>[el.dataset.honeycombSlot,el.offsetLeft,el.offsetTop,el.offsetWidth])')
+        for slot in [7,8,10,18]:
+            self.hold_input(self.zoom_cell(slot))
+            self.page.wait_for_function('hub._menuContext.stack.length===3')
+            current=self.zoom_palette();self.assertEqual(current[slot-7],original[slot-7])
+            self.assertEqual(self.page.evaluate('calls.length'),0,'Hold must not tap on release')
+            self.assertEqual(self.page.locator('honeycomb-menu [data-honeycomb-slot]').evaluate_all('(els)=>els.map(el=>[el.dataset.honeycombSlot,el.offsetLeft,el.offsetTop,el.offsetWidth])'),geometry)
+            self.page.evaluate("pushState('light.zone_a','on',{brightness:200,hs_color:[210,85],supported_color_modes:['hs','color_temp']})")
+            self.settle();self.assertEqual(self.zoom_palette(),current)
+            if slot==8:self.capture('issue85-orange-zoom')
+            self.back();self.page.wait_for_function('hub._menuContext.stack.length===2')
+            self.assertEqual(self.zoom_palette(),original)
+        history=[original]
+        for slot in [10,18,7]:
+            self.hold_input(self.zoom_cell(slot));self.settle();history.append(self.zoom_palette())
+            self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.capture('issue85-recursive-zoom')
+        for expected in reversed(history[:-1]):
+            self.back();self.settle();self.assertEqual(self.zoom_palette(),expected)
+        self.zoom_tap(8);self.assertEqual(self.page.evaluate('calls'),[['light','turn_on',{'hs_color':[25,85]},{'entity_id':'light.zone_a'}]])
+    def test_issue85_control_keyboard_cancel_full_close_and_reset(self):
+        self.zoom_open(True);original=self.zoom_palette()
+        target=self.zoom_cell(10);target.press('Shift+Enter');self.settle()
+        self.assertEqual(self.zoom_palette()[3],original[3]);self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.assertIn('zoom',self.zoom_cell(10).get_attribute('aria-label'))
+        self.zoom_cell(10).press('Enter');self.assertEqual(self.page.evaluate('calls.length'),1)
+        self.zoom_cell(10).press('Escape');self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
+        self.hold_input(self.page.locator('body > honeycomb-persistent-control .interaction-surface'))
+        self.page.wait_for_function('view.querySelector("honeycomb-menu").buttons.filter(Boolean).length===6')
+        self.zoom_tap(3);self.settle();self.assertEqual(self.zoom_palette(),original)
+        target=self.zoom_cell(8)
+        target.dispatch_event('pointerdown',{'pointerId':77,'pointerType':'touch','clientX':30,'clientY':30,'button':0})
+        target.dispatch_event('pointercancel',{'pointerId':77,'pointerType':'touch'})
+        self.page.wait_for_timeout(550);self.assertEqual(self.zoom_palette(),original);self.assertEqual(self.page.evaluate('calls.length'),1)
+        self.capture('issue85-control-reset')
+    def test_issue85_white_palette_remains_outside_zoom(self):
+        self.page.evaluate("pushState('light.zone_a','on',{supported_color_modes:['color_temp'],color_temp_kelvin:3000})")
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
+        self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+        self.zoom_tap(3);self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===18')
+        self.assertTrue(self.page.evaluate('hub._hubMenu.buttons.filter(b=>b && b.slot>=7).every(b=>!b.hold_action)'))
+        self.hold_input(self.zoom_cell(8));self.settle()
+        self.assertEqual(self.page.evaluate('calls.length'),0);self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        self.zoom_tap(8);self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'turn_on')
+        self.assertIn('color_temp_kelvin',self.page.evaluate('calls.at(-1)[2]'))
+
     def test_light_presets_palette_swatches_and_back_keep_anchor(self):
         self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','presets':{'brightness':{'entity':'input_number.brightness_a'}}}]})
         self.hold(self.page.locator('honeycomb-menu .center-item .interaction-surface'))

@@ -238,3 +238,61 @@ items:
 ~~~
 
 Complete current example: [Control Light](../examples/v1.7/control-light.yaml).
+
+## Recursive color zoom (Issue #85, unreleased)
+
+This Light-only review branch starts at stable v1.7.0. It is **not** a separate
+published HACS version. Its approved release target is cumulative
+**v1.7.1-beta.3**, integrated on the exact tested Sonos beta.2 source. A single
+HACS install always replaces the complete Honeycomb bundle.
+
+In the twelve-color outer palette (physical slots 7–18), **tap applies the color
+once**. **Hold for the existing 500 ms threshold** to refine around that swatch
+without sending any HA service call. The selected swatch stays in its physical
+slot with its exact hue/saturation. Hold any new color to refine again.
+`hold_time` keeps its existing component semantics (minimum 250 ms).
+
+Each refinement uses the two current adjacent colors, with circular slot wrapping:
+
+- The next clockwise color becomes the endpoint five clockwise slots away.
+- The previous color becomes the endpoint six counterclockwise slots away.
+- Samples interpolate from the selected color towards those endpoints. The two
+  interval endpoints meet at the opposite-side boundary; the selected slot never
+  moves. This unequal 5/6 spacing follows the owner's slot-8 example.
+- Hue follows the shortest circular path (0°/360° wraps); a 180° tie goes positive.
+  Saturation interpolates linearly on each side without introducing a neutral
+  color. Selected and endpoint HS values are copied exactly; intermediate values
+  retain floating-point precision rather than rounding HA service data.
+
+For the original wheel, these are the resulting hues (display rounded to 3 decimals):
+
+| Physical slot | Select 7 (0°) | Select 8 (25°) | Select 10 (80°) | Select 18 (335°) |
+|---:|---:|---:|---:|---:|
+| 7 | **0** | 20.833 | 65 | 340 |
+| 8 | 5 | **25** | 70 | 345 |
+| 9 | 10 | 30 | 75 | 350 |
+| 10 | 15 | 35 | **80** | 355 |
+| 11 | 20 | 40 | 87 | 0 |
+| 12 | 25 | 45 | 94 | 300 |
+| 13 | 335 | 50 | 101 | 305.833 |
+| 14 | 339.167 | 0 | 108 | 311.667 |
+| 15 | 343.333 | 4.167 | 115 | 317.5 |
+| 16 | 347.5 | 8.333 | 50 | 323.333 |
+| 17 | 351.667 | 12.5 | 55 | 329.167 |
+| 18 | 355.833 | 16.667 | 60 | **335** |
+
+Back restores the entire previous palette exactly, one level at a time, then
+returns to the original palette and existing Light menu. The existing menu
+navigation stack is the zoom history; there is no global/persistent palette state.
+Full close/reopen resets to the original wheel. Idle timeout keeps its existing
+behavior. Live HA state updates do not reset an open palette.
+
+Keyboard: focus a swatch, press Enter/Space to apply, **Shift+Enter/Shift+Space**
+to zoom, or **Escape** to fully close/reset. Hidden visual names provide accessible
+color/gesture labels. Pointer cancel and movement retain existing gesture guards.
+
+The feature does not apply to White/Kelvin, numeric presets, on/off-only lights,
+Sonos favorites or generic Media. Shared 82 px geometry and inner controls remain
+unchanged. It adds no timers/listeners/polling beyond the existing active-pointer
+hold timer. History uses bounded-size 12-color snapshots per level and is released
+on navigation close/teardown. No fixed maximum zoom depth is imposed.

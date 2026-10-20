@@ -20,6 +20,11 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > or read the [release notes](RELEASE_NOTES.md). No v1.6 implementation or unfinished
 > recursive palette, Car or Climate/Thermostat features (#85–#87) are included.
 
+> **Unreleased Light review (#85):** hold a Color swatch to zoom its palette;
+> taps keep applying colors. Publication is reserved for cumulative
+> **v1.7.1-beta.3**, containing all tested Sonos beta.2 fixes.
+> [Gestures and exact slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-unreleased).
+
 ## What you can build
 
 - Persistent Hubs and individual Controls with consistent icons, labels and rings.

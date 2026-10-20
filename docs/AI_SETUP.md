@@ -482,3 +482,18 @@ Hub base selection may establish a module center; deeper menus may expand rings
 but never move that center. [Architecture](../ARCHITECTURE.md),
 [Phase 1](V1_7_PHASE1.md), [Issue #78](ISSUE_78.md), [Phase 2](V1_7_PHASE2.md),
 [documentation validation commands](DOCUMENTATION.md).
+
+## Light Color Zoom — unreleased Issue #85
+
+This independent Light review change is based on stable master v1.7.0. Publish it
+only as cumulative **v1.7.1-beta.3** after integrating all tested Sonos beta.2 code;
+never imply module patches install side-by-side. No new public YAML key is needed.
+In Color outer slots 7–18, tap applies the exact current HS color; hold (default
+500 ms) or Shift+Enter/Shift+Space refines without HA service calls. Preserve the
+selected physical slot/HS exactly. Interpolate towards current clockwise neighbor
+in five clockwise steps and current counterclockwise neighbor in six reverse
+steps. Shortest circular hue, positive 180° tie, linear saturation, exact copied
+endpoints, unrounded intermediates. See the verified [slot grid](LIGHT_MODULE.md#recursive-color-zoom-issue-85-unreleased).
+Back restores each complete palette via the owning menu's stack. Full close or
+Escape/reopen resets. HA updates preserve open history. Never add zoom to Kelvin,
+static presets, Sonos or generic Media; preserve gestures, nested anchor and size.

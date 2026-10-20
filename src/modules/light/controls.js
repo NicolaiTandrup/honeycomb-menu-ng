@@ -1,5 +1,6 @@
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
+const { INITIAL } = require('./color-zoom.js');
 
 function presetTemplateNumber(entityId, suffix = '')
 {
@@ -147,26 +148,30 @@ function kelvinToCssRgb(kelvin)
     return `rgb(${clampChannel(red)}, ${clampChannel(green)}, ${clampChannel(blue)})`;
 }
 
-function buildColorPaletteButtons()
+function buildColorPaletteButtons(palette = INITIAL)
 {
-    const hues = [0, 25, 50, 80, 115, 150, 180, 205, 230, 265, 300, 335];
-
-    return hues.map((hue, index) => ({
+    return palette.map(([hue, saturation], index) => ({
         slot: index + 7,
         slot_mode: 'hard',
         show_icon: false,
         show_name: false,
+        name: `Color ${hue} degrees, ${saturation}% saturation; hold or Shift+Enter to zoom`,
         autoclose: false,
         styles: {
             card: [
-                { background: `hsl(${hue}, 85%, 55%)` },
+                { background: `hsl(${hue}, ${saturation}%, 55%)` },
                 { border: '1px solid rgba(255,255,255,0.20)' }
             ]
         },
         tap_action: {
             action: 'perform-action',
             perform_action: 'light.turn_on',
-            data: { hs_color: [hue, 85] }
+            data: { hs_color: [hue, saturation] }
+        },
+        hold_action: {
+            action: 'honeycomb-light-color-zoom',
+            palette: palette.map(color=>[...color]),
+            selected: index
         }
     }));
 }
