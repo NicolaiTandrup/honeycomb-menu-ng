@@ -69,6 +69,123 @@ class Cubes(unittest.TestCase):
         self.page.mouse.down();self.page.wait_for_timeout(600);self.page.mouse.up()
     def back(self):
         self.page.evaluate('honeycomb_menu_context_back(hub._menuContext)')
+    def issue78_hub(self):
+        self.page.evaluate('''()=>{
+            pushState('light.zone_b','on',{brightness:200,hs_color:[210,65],rgb_color:[89,172,255],supported_color_modes:['hs','color_temp']});
+            for(const [id,value] of Object.entries({
+                'number.zone_a_normal_brightness':60,'number.zone_a_standard_kelvin':2700,
+                'number.zone_b_normal_brightness':70,'number.zone_b_standard_kelvin':3000,
+                'number.zone_b_standard_hue':210,'number.zone_b_standard_saturation':65
+            }))pushState(id,String(value));
+        }''')
+        self.hub({'logo':'auto','items':[
+            {'type':'light','entity':'light.zone_a','name':'Zone A','presets':{
+                'brightness':{'entity':'number.zone_a_normal_brightness'},'kelvin':{'entity':'number.zone_a_standard_kelvin'}}},
+            {'type':'light','entity':'light.zone_b','name':'Zone B','presets':{
+                'brightness':{'entity':'number.zone_b_normal_brightness'},'kelvin':{'entity':'number.zone_b_standard_kelvin'},
+                'color':{'hue_entity':'number.zone_b_standard_hue','saturation_entity':'number.zone_b_standard_saturation'}}},
+            {'type':'media','entity':'media_player.player_a','name':'Media','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
+        self.settle()
+    def activate(self, target):
+        if self.viewport['width']<500: target.tap()
+        else: target.click()
+    def hold_input(self, target):
+        if self.viewport['width']>=500:
+            self.hold(target);return
+        box=target.bounding_box()
+        session=self.page.context.new_cdp_session(self.page)
+        try:
+            session.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':box['x']+box['width']/2,'y':box['y']+box['height']/2}]})
+            self.page.wait_for_timeout(600)
+            session.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
+        finally: session.detach()
+    def assert_visible_unique_cells(self, count):
+        self.settle()
+        cells=self.controls()
+        self.assertEqual(cells.count(),count)
+        for cell in cells.all():
+            self.assertTrue(cell.is_visible(),cell.get_attribute('data-honeycomb-slot'))
+            self.assertEqual(cell.evaluate('(el)=>getComputedStyle(el).visibility'),'visible')
+            self.assertEqual(cell.evaluate('(el)=>parseFloat(getComputedStyle(el).width)'),82)
+        positions=cells.evaluate_all('(els)=>els.map(el=>{const r=el.getBoundingClientRect();return [Math.round(r.x),Math.round(r.y)].join(",")})')
+        self.assertEqual(len(set(positions)),count)
+        self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+    def test_issue78_hub_launchers_survive_repeated_light_navigation(self):
+        self.issue78_hub()
+        root_geometry=self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop,el.offsetWidth,el.offsetHeight])')
+        self.page.evaluate('''()=>{window.rootMenu=hub._hubMenu;window.rootCubes=[...rootMenu.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control')]}''')
+        for cycle in range(2):
+            for slot,entity in [(1,'light.zone_a'),(3,'light.zone_b')]:
+                launcher=self.page.locator(f'honeycomb-menu [data-honeycomb-slot="{slot}"] .interaction-surface')
+                calls_before=self.page.evaluate('calls.length')
+                self.activate(launcher)
+                self.assertEqual(self.page.evaluate('calls.length'),calls_before+1)
+                self.assertEqual(self.page.evaluate('calls.at(-1)'),['homeassistant','toggle',{}, {'entity_id':entity}])
+                self.hold_input(launcher)
+                self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+                self.assert_visible_unique_cells(7)
+                self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+                self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===18')
+                self.assert_visible_unique_cells(19)
+                # Return through the visible center controls, using real touch on mobile.
+                self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.page.wait_for_function('hub._menuContext.stack.length===1')
+                self.assert_visible_unique_cells(7)
+                self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.page.wait_for_function('hub._menuContext.stack.length===0')
+                self.assert_visible_unique_cells(4)
+                self.assertEqual(self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop,el.offsetWidth,el.offsetHeight])'),root_geometry)
+                self.assertTrue(self.page.evaluate('hub._hubMenu===rootMenu && rootCubes.every(el=>el.isConnected && el.style.visibility!=="hidden")'))
+        self.capture('issue78-restored-hub')
+        # Full close from a nested palette must produce exactly one clean base overlay.
+        self.hold_input(self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface'))
+        self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+        self.page.evaluate('honeycomb_menu_context_close(hub._menuContext)')
+        self.page.wait_for_function('hub._hubMenu && hub._hubMenu!==rootMenu && hub._menuContext.stack.length===0')
+        self.assert_visible_unique_cells(4)
+        self.hold_input(self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.assert_visible_unique_cells(7)
+    def test_issue78_light_slot_mapping_presets_and_capabilities(self):
+        self.issue78_hub()
+        for slot,labels,preset in [(1,['100%','60%','Color','2700K','5%','5%'],'kelvin'),(3,['100%','70%','Color','210° · 65%','5%','5%'],'color')]:
+            self.hold_input(self.page.locator(f'honeycomb-menu [data-honeycomb-slot="{slot}"] .interaction-surface'))
+            self.assert_visible_unique_cells(7)
+            self.assertEqual(self.page.locator('honeycomb-menu-item .interaction-surface').evaluate_all('(els)=>els.map(el=>el.getAttribute("aria-label"))'),labels)
+            mapping=self.page.evaluate('hub._hubMenu.buttons.map(b=>({slot:b.slot,action:b.tap_action.action,preset:b.tap_action.preset_type||null}))')
+            self.assertEqual([b['slot'] for b in mapping],list(range(1,7)))
+            self.assertEqual([b['preset'] for b in mapping],[None,'brightness',None,preset,None,None])
+            self.assertEqual(mapping[2]['action'],'honeycomb-open-nested')
+            self.capture(f'issue78-light-{preset}')
+            target=self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface')
+            self.activate(target)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'turn_on')
+            self.hold_input(target)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'set_value')
+            self.back()
+        # The existing capability-dependent slot 3 is White for temperature-only
+        # lights and a passive Light action for brightness-only lights.
+        for modes,label in [(['color_temp'],'White'),(['brightness'],'Light')]:
+            self.page.evaluate('modes=>pushState("light.zone_a","on",{brightness:128,supported_color_modes:modes})',modes)
+            self.hold_input(self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface'))
+            self.assert_visible_unique_cells(7)
+            self.assertEqual(self.page.locator('honeycomb-menu [data-honeycomb-slot="2"] .interaction-surface').get_attribute('aria-label'),label)
+            if label=='White':
+                self.activate(self.page.locator('honeycomb-menu [aria-label="White"]'))
+                self.assert_visible_unique_cells(19)
+                self.assertTrue(self.page.evaluate('hub._hubMenu.buttons.slice(6).every(b=>b.tap_action.data.color_temp_kelvin>0)'))
+                self.back()
+            self.back()
+    def test_standalone_launcher_restores_after_close(self):
+        self.page.evaluate('makeControl({module:"light",entity:"light.zone_a"})')
+        target=self.page.locator('body > honeycomb-persistent-control .interaction-surface')
+        for cycle in range(2):
+            self.hold_input(target)
+            self.page.wait_for_function('view.querySelector("honeycomb-menu")')
+            self.assertEqual(self.page.locator('body > honeycomb-persistent-control').evaluate('(el)=>getComputedStyle(el).visibility'),'hidden')
+            self.page.evaluate('honeycomb_menu_close()')
+            self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
+            self.assertTrue(target.is_visible())
     def test_shared_default_size_and_rendered_parity(self):
         item={'type':'light','entity':'light.zone_a','show_name':True,'name':'Light A','label':'Status','show_label':True,
               'colors':{'center':'#20262d','inner_border':'#2196f3','outer_border':'#34383d'},'border':{'inner_width':4,'outer_width':2}}

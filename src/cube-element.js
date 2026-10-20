@@ -663,9 +663,16 @@ class CubeElement extends LitElement
         menu.anchor_x = rect.left + (rect.width / 2);
         menu.anchor_y = rect.top + (rect.height / 2);
 
+        const root = this.getRootNode();
+        const owner = root && root.host;
+        const isMenuItem = owner && owner._menuContext;
         const openedMenu = this._openHoneycombMenu(menu);
 
-        if( openedMenu )
+        // Only dashboard launchers need to hide behind an overlay. Menu-owned
+        // cells are reused across in-place navigation: hiding one here also
+        // hides the next control assigned to that cell, and no `closed` event
+        // fires on back to restore it. The scene owns those cells' lifecycle.
+        if( openedMenu && ! isMenuItem )
         {
             this.style.visibility = 'hidden';
 

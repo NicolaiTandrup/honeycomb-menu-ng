@@ -1,4 +1,4 @@
-> **v1.7.0-beta.1 Phase 1:** use the exact current contract in
+> **v1.7.0-beta.2 Phase 1:** use the exact current contract in
 > [V1_7_PHASE1.md](V1_7_PHASE1.md). Both public components default to 82 px and
 > share full-cell rendering. Standalone Control selects `module: light`, `media`,
 > `sonos` or `generic`. `logo: false` disables branding, not ordinary slot-0 items.

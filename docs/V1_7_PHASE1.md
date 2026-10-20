@@ -6,6 +6,9 @@ cherry-picked or ported v1.6 implementation. Its feature PR targets the restart
 branch. The beta is published from the tested feature commit and is **not yet
 merged into restart/v1.5.1**. Master and the latest stable release are unchanged.
 
+Beta.2 fixes menu-owned launcher visibility after nested Light navigation.
+See the [Issue #78 investigation and unchanged Light slot map](ISSUE_78.md).
+
 ## Public components
 
 Both components use `CubeElement` for geometry, appearance, HA presentation,

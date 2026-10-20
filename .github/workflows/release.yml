@@ -44,7 +44,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
           git merge-base --is-ancestor c1d9507ee48e65b951f6302c668dadf17043c195 HEAD
           git merge-base --is-ancestor HEAD "origin/$GITHUB_REF_NAME"
-          test "$(git rev-parse 'v1.7.0-beta.1^{commit}')" = "$RELEASE_COMMIT"
+          TAG="v$(node -p "require('./package.json').version")"
+          [[ "$TAG" =~ ^v1\.7\.0-beta\.[0-9]+$ ]]
+          test "$(git rev-parse "$TAG^{commit}")" = "$RELEASE_COMMIT"
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
           git cat-file -e "$RELEASE_COMMIT:src/cube-element.js"
           RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event push --status success --json databaseId --jq '.[0].databaseId // empty')
           PR_RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event pull_request --status success --json databaseId --jq '.[0].databaseId // empty')
@@ -72,7 +75,7 @@ jobs:
           test -n "$ARTIFACT"
           cmp honeycomb-menu-ng.js "$ARTIFACT"
           node scripts/check-beta.js > "$RUNNER_TEMP/SHA256SUMS.txt"
-          test "$(node -p "require('./package.json').version")" = '1.7.0-beta.1'
+          test "v$(node -p "require('./package.json').version")" = "$RELEASE_TAG"
           test "$(node -p "require('./release.json').prerelease")" = 'true'
           printf '%s\n' "$APPROVED_NOTES" > "$RUNNER_TEMP/approved-release-notes.md"
 
@@ -80,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG=v1.7.0-beta.1
+          TAG="$RELEASE_TAG"
           gh api "repos/$GH_REPO/releases" --paginate --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags.txt"
           if grep -Fxq "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
             echo 'Release already exists; refusing to replace published assets.'

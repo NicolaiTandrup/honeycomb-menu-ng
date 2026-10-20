@@ -10,12 +10,14 @@ Honeycomb Menu NG is a modular Home Assistant dashboard interaction system built
 
 The project **originated as a fork** of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu) by Sian Croser. Honeycomb Menu NG still contains portions of that GPLv3 codebase and keeps full attribution, but NG has evolved into a substantially larger modular implementation with persistent Hubs, native Light/Media/Sonos modules, locked-center navigation, state-aware controls and automated regression tests.
 
-## v1.7.0-beta.1: Phase 1 preview
+## v1.7.0-beta.2: Phase 1 preview
 
 Hub and Control share the v1.5.1 Hub full-cell renderer and default to 82 px.
 Control can select the same Light/Media/Sonos modules with `module`; Hub retains
 `logo: auto`, and `logo: false` removes branding while allowing an ordinary center
 item. Large Hub configurations are no longer truncated at seven items.
+Beta.2 fixes disappearing Light launchers and hidden preset cells after nested
+navigation; Light actions and slot assignments remain unchanged from v1.5.1.
 
 This pre-release comes from a tested feature branch based on `restart/v1.5.1` and
 is **not yet merged** into that branch. Dynamic visibility, priority placement and

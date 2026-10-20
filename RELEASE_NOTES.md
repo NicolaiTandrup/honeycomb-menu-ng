@@ -1,3 +1,32 @@
+# Honeycomb NG v1.7.0-beta.2 — Light navigation fix
+
+Fix #78: menu-owned cubes no longer hide themselves when opening nested menus.
+Lit reuses those cells during in-place navigation; the old dashboard-launcher
+hide/restore logic left a preset and the returned Hub launcher invisible.
+Standalone launchers retain their normal hide/restore behavior.
+
+The v1.5.1 Light mapping is unchanged: 100%, brightness preset, Color/White,
+standard color/Kelvin preset, −5%, +5%. Color was already present. The reported
+empty position is the reused hidden preset cell (physical slot 2 for the first
+Light; slot 4 for the second Light in the three-item fixture).
+
+- Preserve the shared 82 px renderer, all Light/Media/Sonos features and drag-select.
+- Add desktop/mobile repeated nested/back/close/reopen, preset/capability and
+  standalone restore regressions, including Chromium touch input.
+- Validate unit/contract tests, production build and the complete browser suite
+  before publication; exact results/commit are recorded in the GitHub release.
+- Generalize the guarded manual publisher to validated v1.7.0 beta tags, retaining
+  exact tag/commit/CI/artifact checks and prerelease=true/latest=false.
+
+This beta is published from PR #77's tested feature commit, **not merged into
+restart/v1.5.1**. Master and stable v1.5.1 remain unchanged. Dynamic visibility,
+priority placement and Car/Charger are not implemented. Existing narrow-screen
+outer-ring clipping and simulated-HA/Chromium-only test limitations still apply.
+
+See [the investigation and slot map](docs/ISSUE_78.md) for details.
+
+---
+
 # Honeycomb NG v1.7.0-beta.1 — Shared Hub and Control Engine
 
 Phase 1 of #76, developed exclusively from `restart/v1.5.1` at
