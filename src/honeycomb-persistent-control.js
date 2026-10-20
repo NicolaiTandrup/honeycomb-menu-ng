@@ -1,18 +1,14 @@
-// Public v1.x compatibility adapter. Rendering, gestures, presentation and
-// actions live in the same base used by the canonical persistent Hub.
-import HoneycombCube from './honeycomb-cube.js';
+import CubeElement from './cube-element.js';
 
-class HoneycombPersistentControl extends HoneycombCube
-{
+// The standalone adapter resolves the same modules and uses the same renderer
+// as Hub items and nested menu cubes. Public mode aliases remain optional.
+class HoneycombPersistentControl extends CubeElement {
     static get is() { return 'honeycomb-persistent-control'; }
 }
-
 if (!customElements.get(HoneycombPersistentControl.is))
     customElements.define(HoneycombPersistentControl.is, HoneycombPersistentControl);
 window.customCards = window.customCards || [];
-if (!window.customCards.some(card => card.type === HoneycombPersistentControl.is))
-    window.customCards.push({ type: HoneycombPersistentControl.is,
-        name: 'Honeycomb Persistent Control (compatibility)',
-        description: 'Supported v1.x adapter; use honeycomb-persistent-hub for new configurations.' });
-
+if (!window.customCards.some(card=>card.type===HoneycombPersistentControl.is))
+    window.customCards.push({type:HoneycombPersistentControl.is,name:'Honeycomb Persistent Control',
+        description:'Single module using the shared Honeycomb cube engine.'});
 export default HoneycombPersistentControl;

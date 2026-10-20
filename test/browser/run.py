@@ -1,0 +1,683 @@
+"""Real Chromium, synthetic HA shell. Browser plugin not available.
+Baseline mode captures only the unchanged v1.5.1 bundle supplied by git.
+"""
+import argparse
+import hashlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json
+import io
+from PIL import Image, ImageChops, ImageStat
+import os
+from pathlib import Path
+import shutil
+import threading
+import unittest
+from playwright.sync_api import sync_playwright
+
+ROOT = Path(__file__).resolve().parents[2]
+BUTTON_SHA = '5d6e9c6afca01e8014653fa56bb5d6aa9248d832c34fb944a7f2c36329bc22d1'
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        paths = {'/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button}
+        if self.path == '/favicon.ico':
+            self.send_response(204); self.end_headers(); return
+        if self.path not in paths:
+            self.send_error(404); return
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html' if self.path == '/' else 'text/javascript')
+        self.end_headers(); self.wfile.write(paths[self.path].read_bytes())
+    def log_message(self, *args): pass
+
+class CheckResult(unittest.TextTestResult):
+    def printErrors(self):
+        super().printErrors()
+        if os.getenv('GITHUB_ACTIONS') == 'true':
+            for test, detail in self.errors+self.failures:
+                detail=detail.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+                print(f'::error title={test.id()}::{detail}',flush=True)
+
+
+class Cubes(unittest.TestCase):
+    def setUp(self):
+        self.page = self.browser.new_page(viewport=self.viewport,has_touch=self.viewport['width']<500)
+        self.page.set_default_timeout(7000)
+        self.errors=[]
+        self.page.on('pageerror',lambda e:self.errors.append(str(e)))
+        self.page.on('console',lambda e:self.errors.append(e.text) if e.type=='error' else None)
+        self.page.goto(self.url); self.page.wait_for_function('window.ready')
+        self.assertEqual(self.page.title(),'Honeycomb shared cube test')
+        self.assertTrue(self.page.locator('h1').is_visible())
+    def tearDown(self):
+        try:
+            self.assertEqual(self.errors,[])
+            self.assertEqual(self.page.locator('hui-error-card').count(),0)
+        finally: self.page.close()
+    def hub(self, config):
+        self.page.evaluate('config=>makeHub(config)',config)
+        self.page.wait_for_function('hub._hubMenu?.shadowRoot.querySelector("#honeycombs")')
+    def settle(self):
+        self.page.evaluate('''async()=>{await new Promise(r=>requestAnimationFrame(r));for(const menu of view.querySelectorAll('honeycomb-menu')){await menu.updateComplete;await Promise.all(menu.shadowRoot.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))}}''')
+    def capture(self, name):
+        self.settle()
+        if self.evidence:
+            self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-{name}.png'))
+    def controls(self):
+        return self.page.locator('honeycomb-menu honeycomb-menu-item, honeycomb-menu honeycomb-persistent-control')
+    def hold(self, locator):
+        box=locator.bounding_box();self.page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2)
+        self.page.mouse.down();self.page.wait_for_timeout(600);self.page.mouse.up()
+    def back(self):
+        self.page.evaluate('honeycomb_menu_context_back(hub._menuContext)')
+    def issue78_hub(self):
+        self.page.evaluate('''()=>{
+            pushState('light.zone_b','on',{brightness:200,hs_color:[210,65],rgb_color:[89,172,255],supported_color_modes:['hs','color_temp']});
+            for(const [id,value] of Object.entries({
+                'number.zone_a_normal_brightness':60,'number.zone_a_standard_kelvin':2700,
+                'number.zone_b_normal_brightness':70,'number.zone_b_standard_kelvin':3000,
+                'number.zone_b_standard_hue':210,'number.zone_b_standard_saturation':65
+            }))pushState(id,String(value));
+        }''')
+        self.hub({'logo':'auto','items':[
+            {'type':'light','entity':'light.zone_a','name':'Zone A','presets':{
+                'brightness':{'entity':'number.zone_a_normal_brightness'},'kelvin':{'entity':'number.zone_a_standard_kelvin'}}},
+            {'type':'light','entity':'light.zone_b','name':'Zone B','presets':{
+                'brightness':{'entity':'number.zone_b_normal_brightness'},'kelvin':{'entity':'number.zone_b_standard_kelvin'},
+                'color':{'hue_entity':'number.zone_b_standard_hue','saturation_entity':'number.zone_b_standard_saturation'}}},
+            {'type':'media','entity':'media_player.player_a','name':'Media','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
+        self.settle()
+    def activate(self, target):
+        if self.viewport['width']<500: target.tap()
+        else: target.click()
+    def hold_input(self, target):
+        if self.viewport['width']>=500:
+            self.hold(target);return
+        box=target.bounding_box()
+        session=self.page.context.new_cdp_session(self.page)
+        try:
+            session.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':box['x']+box['width']/2,'y':box['y']+box['height']/2}]})
+            self.page.wait_for_timeout(600)
+            session.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
+        finally: session.detach()
+    def assert_visible_unique_cells(self, count):
+        self.settle()
+        cells=self.controls()
+        self.assertEqual(cells.count(),count)
+        for cell in cells.all():
+            self.assertTrue(cell.is_visible(),cell.get_attribute('data-honeycomb-slot'))
+            self.assertEqual(cell.evaluate('(el)=>getComputedStyle(el).visibility'),'visible')
+            self.assertEqual(cell.evaluate('(el)=>parseFloat(getComputedStyle(el).width)'),82)
+        positions=cells.evaluate_all('(els)=>els.map(el=>{const r=el.getBoundingClientRect();return [Math.round(r.x),Math.round(r.y)].join(",")})')
+        self.assertEqual(len(set(positions)),count)
+        self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+    def test_issue78_hub_launchers_survive_repeated_light_navigation(self):
+        self.issue78_hub()
+        root_geometry=self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop,el.offsetWidth,el.offsetHeight])')
+        self.page.evaluate('''()=>{window.rootMenu=hub._hubMenu;window.rootCubes=[...rootMenu.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control')]}''')
+        for cycle in range(2):
+            for slot,entity in [(1,'light.zone_a'),(3,'light.zone_b')]:
+                launcher=self.page.locator(f'honeycomb-menu [data-honeycomb-slot="{slot}"] .interaction-surface')
+                calls_before=self.page.evaluate('calls.length')
+                self.activate(launcher)
+                self.assertEqual(self.page.evaluate('calls.length'),calls_before+1)
+                self.assertEqual(self.page.evaluate('calls.at(-1)'),['homeassistant','toggle',{}, {'entity_id':entity}])
+                self.hold_input(launcher)
+                self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+                self.assert_visible_unique_cells(7)
+                self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+                self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===18')
+                self.assert_visible_unique_cells(19)
+                # Return through the visible center controls, using real touch on mobile.
+                self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.page.wait_for_function('hub._menuContext.stack.length===1')
+                self.assert_visible_unique_cells(7)
+                self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.page.wait_for_function('hub._menuContext.stack.length===0')
+                self.assert_visible_unique_cells(4)
+                self.assertEqual(self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop,el.offsetWidth,el.offsetHeight])'),root_geometry)
+                self.assertTrue(self.page.evaluate('hub._hubMenu===rootMenu && rootCubes.every(el=>el.isConnected && el.style.visibility!=="hidden")'))
+        self.capture('issue78-restored-hub')
+        # Full close from a nested palette must produce exactly one clean base overlay.
+        self.hold_input(self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface'))
+        self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+        self.page.evaluate('honeycomb_menu_context_close(hub._menuContext)')
+        self.page.wait_for_function('hub._hubMenu && hub._hubMenu!==rootMenu && hub._menuContext.stack.length===0')
+        self.assert_visible_unique_cells(4)
+        self.hold_input(self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.assert_visible_unique_cells(7)
+    def test_issue78_light_slot_mapping_presets_and_capabilities(self):
+        self.issue78_hub()
+        for slot,labels,preset in [(1,['100%','60%','Color','2700K','5%','5%'],'kelvin'),(3,['100%','70%','Color','210° · 65%','5%','5%'],'color')]:
+            self.hold_input(self.page.locator(f'honeycomb-menu [data-honeycomb-slot="{slot}"] .interaction-surface'))
+            self.assert_visible_unique_cells(7)
+            self.assertEqual(self.page.locator('honeycomb-menu-item .interaction-surface').evaluate_all('(els)=>els.map(el=>el.getAttribute("aria-label"))'),labels)
+            mapping=self.page.evaluate('hub._hubMenu.buttons.map(b=>({slot:b.slot,action:b.tap_action.action,preset:b.tap_action.preset_type||null}))')
+            self.assertEqual([b['slot'] for b in mapping],list(range(1,7)))
+            self.assertEqual([b['preset'] for b in mapping],[None,'brightness',None,preset,None,None])
+            self.assertEqual(mapping[2]['action'],'honeycomb-open-nested')
+            self.capture(f'issue78-light-{preset}')
+            target=self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface')
+            self.activate(target)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'turn_on')
+            self.hold_input(target)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'set_value')
+            self.back()
+        # The existing capability-dependent slot 3 is White for temperature-only
+        # lights and a passive Light action for brightness-only lights.
+        for modes,label in [(['color_temp'],'White'),(['brightness'],'Light')]:
+            self.page.evaluate('modes=>pushState("light.zone_a","on",{brightness:128,supported_color_modes:modes})',modes)
+            self.hold_input(self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface'))
+            self.assert_visible_unique_cells(7)
+            self.assertEqual(self.page.locator('honeycomb-menu [data-honeycomb-slot="2"] .interaction-surface').get_attribute('aria-label'),label)
+            if label=='White':
+                self.activate(self.page.locator('honeycomb-menu [aria-label="White"]'))
+                self.assert_visible_unique_cells(19)
+                self.assertTrue(self.page.evaluate('hub._hubMenu.buttons.slice(6).every(b=>b.tap_action.data.color_temp_kelvin>0)'))
+                self.back()
+            self.back()
+    def test_standalone_launcher_restores_after_close(self):
+        self.page.evaluate('makeControl({module:"light",entity:"light.zone_a"})')
+        target=self.page.locator('body > honeycomb-persistent-control .interaction-surface')
+        for cycle in range(2):
+            self.hold_input(target)
+            self.page.wait_for_function('view.querySelector("honeycomb-menu")')
+            self.assertEqual(self.page.locator('body > honeycomb-persistent-control').evaluate('(el)=>getComputedStyle(el).visibility'),'hidden')
+            self.page.evaluate('honeycomb_menu_close()')
+            self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
+            self.assertTrue(target.is_visible())
+    def placements(self, hub='hub'):
+        return self.page.evaluate(f'Object.fromEntries({hub}._placements)')
+    def hub_item(self, index):
+        return self.page.locator(f'honeycomb-menu [data-honeycomb-id="items[{index}]"]')
+    def test_phase2_priority_center_hidden_hard_and_stable_soft_positions(self):
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+        self.hub({'logo':False,'items':[
+            {'type':'light','entity':'light.zone_a','slot':0,'slot_mode':'hard'},
+            {'type':'generic','name':'Reserved','slot':2,'slot_mode':'hard','visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'disabled'}]},
+            {'type':'generic','name':'Vehicle A','slot':1,'slot_mode':'priority','visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]},
+            {'type':'generic','name':'Item A','slot_mode':'soft'},
+            {'type':'generic','name':'Item B','slot_mode':'soft'}]})
+        self.assertEqual(self.placements(),{'items[0]':0,'items[3]':1,'items[4]':3})
+        self.page.evaluate('window.stableCube=hub._hubMenu.shadowRoot.querySelector(\'[data-honeycomb-id="items[4]"]\')')
+        stable_box=self.hub_item(4).bounding_box()
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[2]")')
+        self.assertEqual(self.placements(),{'items[0]':0,'items[2]':1,'items[3]':4,'items[4]':3})
+        self.assert_visible_unique_cells(4)
+        self.assertEqual(self.hub_item(4).bounding_box(),stable_box)
+        self.assertTrue(self.page.evaluate('stableCube.isConnected'))
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+        self.page.wait_for_function('!hub._placements.has("items[2]")')
+        self.assertEqual(self.placements(),{'items[0]':0,'items[3]':4,'items[4]':3})
+        self.page.evaluate('hub.setConfig({...hub.config})')
+        self.settle()
+        actual=self.page.evaluate('''()=>Object.fromEntries([...hub._hubMenu.shadowRoot.querySelectorAll('[data-honeycomb-id]')].filter(el=>el.dataset.honeycombId).map(el=>[el.dataset.honeycombId,el.classList.contains('center-item')?0:Number(el.dataset.honeycombSlot)+1]))''')
+        self.assertEqual(actual,self.placements())
+        self.assertEqual(self.placements()['items[3]'],4)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[2]")')
+        self.assertEqual(self.placements()['items[2]'],1)
+        self.capture('phase2-priority')
+    def test_phase2_defer_visibility_until_light_descendants_close_and_preserve_issue78(self):
+        self.issue78_hub()
+        self.page.evaluate('''()=>{pushState('device_tracker.vehicle_a','home');hub.setConfig({...hub.config,items:hub.config.items.map((item,i)=>i===0?{...item,visibility:[{condition:'state',entity:'device_tracker.vehicle_a',state:'home'}]}:item)})}''')
+        self.settle()
+        initial=self.placements(); self.assertEqual(len(initial),3)
+        other_boxes=[self.hub_item(i).bounding_box() for i in [1,2]]
+        self.hold_input(self.hub_item(0).locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        menu_box=self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop])')
+        allocations=self.page.evaluate('hub._hubMetrics.allocations')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away');pushState('light.zone_a','on',{brightness:230,rgb_color:[255,128,0],supported_color_modes:['hs','color_temp']})")
+        self.settle()
+        self.assertEqual(self.placements(),initial)
+        self.assertEqual(self.page.evaluate('hub._hubMetrics.allocations'),allocations)
+        self.assertEqual(self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop])'),menu_box)
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item .secondary').inner_text(),'90%')
+        self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+        self.assert_visible_unique_cells(19)
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.assert_visible_unique_cells(7)
+        self.assertEqual(self.placements(),initial)
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('!hub._placements.has("items[0]")')
+        self.assert_visible_unique_cells(3) # branding + the other Light and Media
+        self.assertEqual([self.hub_item(i).bounding_box() for i in [1,2]],other_boxes)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[0]")')
+        self.assert_visible_unique_cells(4)
+        self.hold_input(self.hub_item(0).locator('.interaction-surface'))
+        self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+        self.page.evaluate("window.oldMenu=hub._hubMenu;pushState('device_tracker.vehicle_a','away');honeycomb_menu_context_close(hub._menuContext)")
+        self.page.wait_for_function('hub._hubMenu && hub._hubMenu!==oldMenu && !hub._placements.has("items[0]")')
+        self.assert_visible_unique_cells(3)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[0]")')
+        self.hold_input(self.hub_item(0).locator('.interaction-surface'))
+        self.assert_visible_unique_cells(7)
+        self.back();self.assert_visible_unique_cells(4)
+        self.capture('phase2-restored-hub')
+    def test_phase2_pointer_release_cancel_and_delayed_tap_keep_original_identity(self):
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        config={'logo':False,'items':[
+            {'type':'generic','name':'Original','slot_mode':'soft','tap_action':{'action':'perform-action','perform_action':'test.original'},
+             'double_tap_action':{'action':'perform-action','perform_action':'test.double'},
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]},
+            {'type':'generic','name':'Replacement','slot':0,'slot_mode':'priority','tap_action':{'action':'perform-action','perform_action':'test.replacement'},
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'away'}]}]}
+        self.hub(config)
+        target=self.hub_item(0).locator('.interaction-surface');box=target.bounding_box()
+        session=self.page.context.new_cdp_session(self.page) if self.viewport['width']<500 else None
+        def down():
+            if session: session.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':box['x']+41,'y':box['y']+40}]})
+            else: self.page.mouse.move(box['x']+41,box['y']+40);self.page.mouse.down()
+        def up():
+            if session: session.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
+            else: self.page.mouse.up()
+        try:
+            down();self.page.evaluate("pushState('device_tracker.vehicle_a','away')");self.settle()
+            self.assertEqual(self.placements(),{'items[0]':0});self.assertTrue(target.is_visible())
+            up();self.page.wait_for_timeout(100)
+            self.assertEqual(self.placements(),{'items[0]':0}) # double-tap window still owns the identity
+            self.page.wait_for_function('hub._placements.has("items[1]")')
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original'])
+            self.assertEqual(self.placements(),{'items[1]':0})
+            self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+            self.page.wait_for_function('hub._placements.has("items[0]")')
+            down();self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+            if session: session.send('Input.dispatchTouchEvent',{'type':'touchCancel','touchPoints':[]})
+            else:
+                target.dispatch_event('pointercancel',{'pointerId':1,'pointerType':'mouse'})
+                self.page.mouse.up()
+            self.page.wait_for_function('hub._placements.has("items[1]")')
+            self.page.wait_for_timeout(350)
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original'])
+            self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+            self.page.wait_for_function('hub._placements.has("items[0]")')
+            self.activate(self.hub_item(0).locator('.interaction-surface'))
+            self.page.evaluate("pushState('device_tracker.vehicle_a','away');window.dispatchEvent(new Event('blur'))")
+            self.page.wait_for_function('hub._placements.has("items[1]")')
+            self.page.wait_for_timeout(350)
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original'])
+            self.hub_item(1).locator('.interaction-surface').press('Enter')
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original','replacement'])
+        finally:
+            if session: session.detach()
+    def test_phase2_multiple_hubs_are_isolated_and_drag_select_uses_frozen_target(self):
+        self.page.evaluate("pushStates([['device_tracker.vehicle_a','home'],['device_tracker.vehicle_b','home']])")
+        items=[{'type':'generic','name':'Item A','slot':2,'slot_mode':'hard','tap_action':{'action':'perform-action','perform_action':'test.item_a'}},
+            {'type':'generic','name':'Item B','slot':3,'slot_mode':'hard','tap_action':{'action':'perform-action','perform_action':'test.item_b'},
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]}]
+        self.hub({'logo':False,'items':items})
+        self.page.evaluate('''()=>{window.firstHub=hub;makeHub({logo:false,items:[{type:'generic',name:'Other Hub',slot_mode:'soft',visibility:[{condition:'state',entity:'device_tracker.vehicle_b',state:'home'}]}]});window.secondHub=hub;secondHub.id='second-hub';secondHub.style.top='550px';window.hub=firstHub}''')
+        self.page.wait_for_function('secondHub._hubMenu?.shadowRoot.querySelector("#honeycombs")')
+        self.settle()
+        targets=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"] .interaction-surface');target=targets.first
+        box=target.bounding_box();self.page.mouse.move(box['x']+20,box['y']+40);self.page.mouse.down()
+        self.page.evaluate("pushStates([['device_tracker.vehicle_a','away'],['device_tracker.vehicle_b','away']])")
+        self.page.wait_for_function('secondHub._placements.size===0')
+        self.assertTrue(self.page.evaluate('firstHub._placements.has("items[1]")'))
+        self.page.mouse.move(box['x']+55,box['y']+40,steps=4);self.page.mouse.up()
+        self.page.wait_for_function('!firstHub._placements.has("items[1]")')
+        self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['item_b'])
+        self.page.evaluate('''()=>{honeycomb_menu_context_dispose(secondHub._menuContext);secondHub.remove()}''')
+        self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+    def test_phase2_availability_show_invalid_inputs_and_live_dependency_reconfiguration(self):
+        self.page.evaluate("pushStates([['device_tracker.vehicle_a','home'],['binary_sensor.permission_a','off'],['light.zone_a','unavailable']])")
+        self.hub({'logo':False,'items':[
+            {'type':'light','entity':'light.zone_a','slot':0},
+            {'type':'generic','name':'Vehicle A','slot':2,'slot_mode':'priority','show':"[[[ return states['binary_sensor.permission_a'].state === 'on' ]]]",
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]},
+            {'type':'generic','name':'Missing input','slot':3,'visibility':[{'condition':'not','conditions':[{'condition':'state','entity':'device_tracker.missing_a','state':'home'}]}]}]})
+        self.assertEqual(self.placements(),{'items[0]':0})
+        self.assertEqual(self.hub_item(0).locator('.secondary').inner_text(),'Unavailable')
+        self.assertTrue(self.page.evaluate('hub.diagnostics.some(d=>d.code==="visibility-indeterminate")'))
+        self.page.evaluate("pushState('binary_sensor.permission_a','on')")
+        self.page.wait_for_function('hub._placements.has("items[1]")')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+        self.page.wait_for_function('!hub._placements.has("items[1]")')
+        self.page.evaluate('''()=>{pushState('device_tracker.vehicle_b','home');hub.setConfig({...hub.config,items:hub.config.items.map((item,i)=>i===1?{...item,visibility:[{condition:'state',entity:'device_tracker.vehicle_b',state:'home'}]}:item)})}''')
+        self.page.wait_for_function('hub._placements.has("items[1]")')
+        before=self.page.evaluate('hub._visibilityIndex.metrics.evaluations')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.settle();self.assertEqual(self.page.evaluate('hub._visibilityIndex.metrics.evaluations'),before)
+        for condition in [{'condition':'xor'},{'condition':'state','entity':'device_tracker.vehicle_a'}]:
+            message=self.page.evaluate('''condition=>{try {const el=document.createElement('honeycomb-persistent-hub');el.setConfig({items:[{type:'generic',visibility:[condition]}]});return null}catch(e){return e.message}}''',condition)
+            self.assertIn('items[0].visibility',message)
+    def test_phase2_overflow_keeps_all_dependencies_and_all_hidden_hub_is_valid(self):
+        self.page.evaluate('''()=>pushStates(Array.from({length:250},(_,i)=>['binary_sensor.item_'+i,'off']))''')
+        self.hub({'logo':False,'size':8,'items':[{'type':'generic','name':f'Item {i}','slot_mode':'soft','visibility':[{'condition':'state','entity':f'binary_sensor.item_{i}','state':'on'}]} for i in range(250)]})
+        self.assertEqual(self.controls().count(),0)
+        self.assertEqual(self.page.evaluate('hub._hubEntries.length'),250)
+        self.page.evaluate("pushState('binary_sensor.item_249','on')")
+        self.page.wait_for_function('hub._placements.has("items[249]")')
+        self.assertEqual(self.controls().count(),1)
+        self.page.evaluate('''()=>pushStates(Array.from({length:250},(_,i)=>['binary_sensor.item_'+i,'on']))''')
+        self.page.wait_for_function('hub._placements.size===217')
+        self.assertEqual(self.controls().count(),217)
+        self.assertEqual(self.page.evaluate('hub.diagnostics.filter(d=>d.code==="overflow").length'),33)
+        self.assertEqual(self.page.evaluate('hub._visibilityIndex.conditions.size'),250)
+        self.page.evaluate('''()=>pushStates(Array.from({length:250},(_,i)=>['binary_sensor.item_'+i,'off']))''')
+        self.page.wait_for_function('hub._placements.size===0')
+        self.assertEqual(self.controls().count(),0)
+        self.capture('phase2-empty-hub')
+    def test_phase2_collision_rules_preclaim_and_invalid_slots_are_diagnosed(self):
+        self.hub({'logo':False,'items':[
+            {'type':'generic','name':'Reserved','slot':0,'slot_mode':'hard','visibility':[{'condition':'state','entity':'sensor.value_a','state':'0'}]},
+            {'type':'generic','name':'Duplicate','slot':0,'slot_mode':'hard'},
+            {'type':'generic','name':'Fallback','slot':0,'slot_mode':'priority'},
+            {'type':'generic','name':'Preferred','slot':1,'slot_mode':'priority'},
+            {'type':'generic','name':'Tie','slot':1,'slot_mode':'priority'},
+            {'type':'generic','name':'Invalid','slot':1.5,'slot_mode':'hard'},
+            {'type':'generic','name':'Soft','slot_mode':'soft'}]})
+        self.assertEqual(self.placements(),{'items[3]':1,'items[2]':2,'items[4]':3,'items[6]':4})
+        self.assertEqual(self.page.evaluate('hub.diagnostics.map(d=>d.code).sort()'),['hard-collision','invalid-slot'])
+        self.assert_visible_unique_cells(4)
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item').count(),0)
+    def test_phase2_performance_relevant_unrelated_updates_and_dom_listeners(self):
+        rows=[]
+        for count in [5,20,50]:
+            self.page.evaluate('''count=>pushStates(Array.from({length:count},(_,i)=>['binary_sensor.item_'+i,'on']))''',count)
+            self.hub({'logo':False,'size':20,'items':[{'type':'generic','name':f'Item {i}','entity':'sensor.value_a','slot_mode':'soft',
+                'visibility':[{'condition':'state','entity':f'binary_sensor.item_{i}','state':'on'}]} for i in range(count)]})
+            self.settle()
+            self.page.evaluate("pushState('sensor.warmup','1')")
+            self.settle()
+            session=self.page.context.new_cdp_session(self.page)
+            try:
+                session.send('HeapProfiler.collectGarbage')
+                dom_before=session.send('Memory.getDOMCounters')
+                heap_before=session.send('Runtime.getHeapUsage')['usedSize']
+                result=self.page.evaluate('''async count=>{
+                    const proto=Object.getPrototypeOf(customElements.get('honeycomb-menu-item').prototype);
+                    const render=proto.render;window.itemRenders={};
+                    proto.render=function(){const id=this.config && this.config._hub_item_id;if(id)itemRenders[id]=(itemRenders[id]||0)+1;return render.call(this)};
+                    const start={evaluations:hub._visibilityIndex.metrics.evaluations,allocations:hub._hubMetrics.allocations};
+                    const started=performance.now();
+                    for(let i=0;i<1000;i++)pushState('sensor.unrelated',String(i));
+                    await new Promise(requestAnimationFrame);
+                    return {count,visible:hub._placements.size,unrelated:{elapsedMs:performance.now()-started,
+                        evaluations:hub._visibilityIndex.metrics.evaluations-start.evaluations,
+                        allocations:hub._hubMetrics.allocations-start.allocations,renders:{...itemRenders}},
+                        providerCount:[...providedClients].filter(el=>el.isConnected).length,restoreRender:window.restoreRender=()=>{delete proto.render;proto.render=render}};
+                }''',count)
+                dom_unrelated=session.send('Memory.getDOMCounters')
+                self.assertEqual(result['unrelated']['evaluations'],0)
+                self.assertEqual(result['unrelated']['allocations'],0)
+                self.assertEqual(result['unrelated']['renders'],{})
+                self.assertEqual(result['visible'],count)
+                self.assertEqual(result['providerCount'],2) # one Hub and one owning scene, independent of item count
+                self.assertEqual(dom_unrelated,dom_before)
+                relevant=self.page.evaluate('''async()=>{
+                    const before={evaluations:hub._visibilityIndex.metrics.evaluations,allocations:hub._hubMetrics.allocations};
+                    const started=performance.now();
+                    for(let i=0;i<20;i++){
+                        pushState('binary_sensor.item_0',i%2?'on':'off');
+                        await new Promise(requestAnimationFrame);
+                        await new Promise(requestAnimationFrame);
+                    }
+                    return {elapsedMs:performance.now()-started,evaluations:hub._visibilityIndex.metrics.evaluations-before.evaluations,
+                        allocations:hub._hubMetrics.allocations-before.allocations,renders:{...itemRenders}};
+                }''')
+                self.assertEqual(relevant['evaluations'],20);self.assertEqual(relevant['allocations'],20)
+                self.assertTrue(all(identity=='items[0]' for identity in relevant['renders']),relevant)
+                session.send('HeapProfiler.collectGarbage')
+                result.pop('restoreRender',None)
+                result.update({'relevant':relevant,'domBefore':dom_before,'domAfterUnrelated':dom_unrelated,
+                    'domAfterRelevant':session.send('Memory.getDOMCounters'),'heapBefore':heap_before,'heapAfter':session.send('Runtime.getHeapUsage')['usedSize']})
+                rows.append(result)
+            finally:
+                self.page.evaluate('window.restoreRender && window.restoreRender()')
+                session.detach()
+                self.page.evaluate('''()=>{const scene=hub._menuContext.honeycomb;honeycomb_menu_context_dispose(hub._menuContext);hub.remove();providedClients.delete(hub);providedClients.delete(scene)}''')
+        if self.evidence:
+            (self.evidence/f'{self.viewport["width"]}-hub-performance.json').write_text(json.dumps({'viewport':self.viewport,'rows':rows,
+                'caveat':'Current Chromium fixture; frame-paced relevant times include frame waits. Heap values include browser/framework caches; no historical speedup or leak claim.'},indent=2)+'\n')
+    def test_phase2_coalescing_blur_cleanup_and_replacement_menu_deferral(self):
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.hub({'logo':False,'items':[{'type':'generic','name':'Item A','slot_mode':'soft',
+            'tap_action':{'action':'perform-action','perform_action':'test.item_a'},
+            'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}],
+            'menu':{'nested_expand':False,'animate':False,'buttons':[{'name':'Details','show_name':True,'tap_action':{'action':'none'}}]}}]})
+        target=self.hub_item(0).locator('.interaction-surface');box=target.bounding_box()
+        allocations=self.page.evaluate('hub._hubMetrics.allocations')
+        self.page.mouse.move(box['x']+41,box['y']+40);self.page.mouse.down()
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away');pushState('device_tracker.vehicle_a','home')")
+        self.page.mouse.up();self.settle()
+        self.assertEqual(self.page.evaluate('hub._hubMetrics.allocations'),allocations)
+        self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['item_a'])
+        self.hold_input(target)
+        self.page.wait_for_function('hub._menuContext.stack.length===1 && hub._hubMenu===hub._menuContext.honeycomb')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')");self.settle()
+        self.assertEqual(self.placements(),{'items[0]':0})
+        self.assertTrue(self.page.locator('honeycomb-menu [aria-label="Details"]').is_visible())
+        self.back();self.page.wait_for_function('hub._placements.size===0')
+        self.assertEqual(self.controls().count(),0)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.size===1')
+        target=self.hub_item(0).locator('.interaction-surface');box=target.bounding_box()
+        self.page.mouse.move(box['x']+41,box['y']+40);self.page.mouse.down()
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away');window.dispatchEvent(new Event('blur'))")
+        self.page.wait_for_function('hub._placements.size===0')
+        self.page.mouse.up();self.page.wait_for_timeout(550)
+        self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['item_a'])
+        self.assertEqual(self.page.evaluate('hub._menuContext.pointers.size+hub._menuContext.pendingActions.size'),0)
+    def test_shared_default_size_and_rendered_parity(self):
+        item={'type':'light','entity':'light.zone_a','show_name':True,'name':'Light A','label':'Status','show_label':True,
+              'colors':{'center':'#20262d','inner_border':'#2196f3','outer_border':'#34383d'},'border':{'inner_width':4,'outer_width':2}}
+        self.hub({'logo':False,'items':[item]})
+        self.page.evaluate('item=>{makeControl({...item,type:"custom:honeycomb-persistent-control",module:"light"});control.id="second";control.style.top="500px"}',item)
+        self.settle()
+        values=self.page.evaluate('''()=>[hub._hubMenu.shadowRoot.querySelector('.center-item'),control].map(el=>({
+            width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,
+            svg:el.shadowRoot.querySelector('.hex-svg').outerHTML,
+            icon:getComputedStyle(el.shadowRoot.querySelector('ha-icon')).width,
+            name:getComputedStyle(el.shadowRoot.querySelector('.primary')).fontSize,
+            label:getComputedStyle(el.shadowRoot.querySelector('.secondary')).fontSize}))''')
+        self.assertEqual(values[0],values[1]);self.assertEqual(values[0]['width'],82)
+        self.assertAlmostEqual(values[0]['height'],82*1.1547,delta=.1)
+        self.capture('shared-parity')
+    def test_generic_media_sonos_have_identical_painted_cells_in_both_adapters(self):
+        for module, entity in [('generic','sensor.value_a'),('media','media_player.player_a'),('sonos','media_player.player_a')]:
+            self.hub({'logo':False,'items':[{'module':module,'entity':entity,'name':'Item A','show_name':True,'icon':'mdi:plus'}]})
+            self.page.evaluate('config=>{makeControl(config);control.style.top="500px"}',{'module':module,'entity':entity,'name':'Item A','show_name':True,'icon':'mdi:plus'})
+            self.settle()
+            # Compare equal physical cells on the same device-pixel phase;
+            # fractional scene origins otherwise add a screenshot edge row.
+            self.page.evaluate("""()=>{const menu=hub._hubMenu;const r=menu.shadowRoot.querySelector('.center-item').getBoundingClientRect();menu.style.left=(parseFloat(menu.style.left)+Math.round(r.x)-r.x)+'px';menu.style.top=(parseFloat(menu.style.top)+Math.round(r.y)-r.y)+'px'}""")
+            a=Image.open(io.BytesIO(self.page.locator('honeycomb-menu .center-item').screenshot())).convert('RGB')
+            b=Image.open(io.BytesIO(self.page.locator('body > honeycomb-persistent-control').screenshot())).convert('RGB')
+            self.assertEqual(a.size,b.size)
+            box=(10,10,a.width-10,a.height-10)
+            difference=ImageChops.difference(a.crop(box),b.crop(box))
+            self.assertLess(max(ImageStat.Stat(difference).mean),1, module+' painted parity')
+            self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove();control.remove()')
+    def test_canonical_hub_full_cell_colors_and_logo(self):
+        self.hub({'logo':'auto','items':[{'type':'light','entity':'light.zone_a'},{'type':'sonos','entity':'media_player.player_a'}]})
+        self.settle()
+        self.assertEqual(self.controls().count(),3)
+        faces=self.page.evaluate('''()=>[...hub._hubMenu.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control')].map(el=>({
+            width:el.getBoundingClientRect().width,points:el.shadowRoot.querySelector('.hex-outer').getAttribute('points'),
+            fill:el.shadowRoot.querySelector('.hex-fill').getAttribute('fill'),outer:el.shadowRoot.querySelector('.hex-outer').getAttribute('fill')}))''')
+        self.assertTrue(all(f['width']==82 and f['points'].startswith('50,0 ') and f['outer']=='#34383d' for f in faces))
+        self.assertIn('rgb(255, 128, 0)',[f['fill'] for f in faces])
+        self.assertTrue(self.page.locator('honeycomb-menu .bee-icon').is_visible())
+        self.capture('hub-reference')
+    def test_logo_false_allows_functional_center_and_zero_items(self):
+        self.hub({'logo':False,'items':[{'type':'generic','entity':'sensor.value_a','name':'Value A','slot':0}]})
+        self.assertTrue(self.page.locator('honeycomb-menu .primary').is_visible())
+        self.assertEqual(self.page.locator('honeycomb-menu .bee-icon').count(),1) # generic default icon, not branding
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.hub({'logo':False,'items':[]})
+        self.assertEqual(self.controls().count(),0)
+        self.capture('empty-hub')
+    def test_light_presets_palette_swatches_and_back_keep_anchor(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','presets':{'brightness':{'entity':'input_number.brightness_a'}}}]})
+        self.hold(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+        origin=self.page.evaluate('[hub._hubMenu._anchorX,hub._hubMenu._anchorY,hub._hubMenu.sizes.item]')
+        fills=self.page.locator('honeycomb-menu-item .hex-fill').evaluate_all('(nodes)=>nodes.map(n=>n.getAttribute("fill"))')
+        self.page.locator('honeycomb-menu [aria-label="Color"]').click()
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===18')
+        self.assertEqual(self.page.evaluate('[hub._hubMenu._anchorX,hub._hubMenu._anchorY,hub._hubMenu.sizes.item]'),origin)
+        self.assertEqual(self.page.locator('honeycomb-menu-item .hex-fill').evaluate_all('(nodes)=>nodes.slice(0,6).map(n=>n.getAttribute("fill"))'),fills)
+        swatches=self.page.evaluate('''()=>[...hub._hubMenu.shadowRoot.querySelectorAll('honeycomb-menu-item')].slice(-12).map(el=>el.shadowRoot.querySelector('.hex-fill').getAttribute('fill'))''')
+        self.assertEqual(len(set(swatches)),12);self.assertTrue(all(c.startswith('hsl(') for c in swatches))
+        self.capture('light-palette')
+        self.back();self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+        preset=self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface')
+        preset.click();self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['light','turn_on'])
+        self.hold(preset);self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['input_number','set_value'])
+    def test_sonos_favorites_cache_volume_and_grouping(self):
+        self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache','members':[{'entity':'media_player.player_b','name':'Player B'}],'toggle_member_script':'script.toggle_member_a'}]})
+        self.page.locator('honeycomb-menu .interaction-surface').click()
+        self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['media_player','media_play_pause'])
+        self.hold(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+        self.page.locator('honeycomb-menu [data-honeycomb-slot="0"] .interaction-surface').click()
+        self.assertEqual(self.page.evaluate('calls.at(-1)[3].entity_id'),['media_player.player_a','media_player.player_b'])
+        self.page.locator('honeycomb-menu [aria-label="Join"]').click()
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===7')
+        self.page.locator('honeycomb-menu [data-honeycomb-slot="6"] .interaction-surface').click()
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].member'),'media_player.player_b')
+        self.back();self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+        self.page.locator('honeycomb-menu [aria-label="Radio"]').click()
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===7')
+        self.assertTrue(self.page.locator('honeycomb-menu .primary').filter(has_text='Station A').is_visible())
+        thumbnail='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Crect width=%2224%22 height=%2224%22 fill=%22red%22/%3E%3C/svg%3E'
+        self.page.evaluate("thumbnail=>pushState('sensor.favorites_cache','1',{items:[{media_content_id:'favorite_a',thumbnail}]})",thumbnail)
+        self.page.wait_for_function("getComputedStyle(hub._hubMenu.shadowRoot.querySelector('[data-honeycomb-slot=\"6\"]').shadowRoot.querySelector('.artwork')).backgroundImage.includes('data:image/svg+xml')")
+        self.assertEqual(self.page.locator('honeycomb-menu [data-honeycomb-slot="6"] .primary').evaluate('(el)=>getComputedStyle(el).display'),'none')
+        self.capture('favorite-artwork')
+        self.page.locator('honeycomb-menu [data-honeycomb-slot="6"] .interaction-surface').click()
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].media_content_id'),'favorite_a')
+    def test_standalone_media_menu_and_touch_cancel(self):
+        self.page.evaluate('makeControl({module:"media",entity:"media_player.player_a"})')
+        target=self.page.locator('body > honeycomb-persistent-control .interaction-surface')
+        target.dispatch_event('pointerdown',{'pointerId':55,'pointerType':'touch','clientX':190,'clientY':300,'button':0})
+        target.dispatch_event('pointercancel',{'pointerId':55,'pointerType':'touch'})
+        self.page.wait_for_timeout(550);self.assertEqual(self.page.evaluate('calls.length'),0)
+        if self.viewport['width']<500:
+            box=target.bounding_box();self.page.touchscreen.tap(box['x']+40,box['y']+40)
+            self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'media_play_pause')
+        self.hold(target)
+        self.page.wait_for_function('view.querySelector("honeycomb-menu").buttons.filter(Boolean).length===4')
+        self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface').click()
+        self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'volume_up')
+        self.assertEqual(self.page.evaluate('calls.at(-1)[3].entity_id'),['media_player.player_a','media_player.player_b'])
+    def test_state_updates_same_hass_identity_and_unrelated_no_render(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
+        self.page.evaluate('''()=>{window.renders=0;const cube=hub._hubMenu.shadowRoot.querySelector('.center-item');const original=cube.render;cube.render=function(){renders++;return original.call(this)}}''')
+        self.page.evaluate("pushState('sensor.unrelated','1')")
+        self.page.wait_for_timeout(100);self.assertEqual(self.page.evaluate('renders'),0)
+        self.page.evaluate("pushState('light.zone_a','off',{brightness:0,supported_color_modes:['hs']})")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "Off"')
+        self.assertEqual(self.page.evaluate('renders'),1)
+        self.page.evaluate("pushState('light.zone_a','unavailable')")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "Unavailable"')
+        self.assertEqual(self.page.locator('honeycomb-menu .hex-outer').get_attribute('fill'),'#34383d')
+    def test_centerless_light_menu_and_replacement_keep_one_owned_overlay(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'},{'type':'light','entity':'light.zone_a'}]})
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item').count(),0)
+        self.hold(self.page.locator('honeycomb-menu .interaction-surface').first)
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item').count(),1)
+        self.back();self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===2')
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item').count(),0)
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.hub({'logo':False,'items':[{'module':'generic','entity':'sensor.value_a','name':'Item A','menu':{
+            'nested_expand':False,'animate':False,'buttons':[{'name':'Replacement','show_name':True,'tap_action':{'action':'none'}}]}}]})
+        self.hold(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.page.wait_for_function('hub._hubMenu===hub._menuContext.honeycomb && hub._menuContext.stack.length===1')
+        self.assertTrue(self.page.locator('honeycomb-menu [aria-label="Replacement"]').is_visible())
+        self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+        self.back();self.page.wait_for_function('hub._hubMenu===hub._menuContext.honeycomb && hub._menuContext.stack.length===0')
+        self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+    def test_nested_menu_keeps_its_own_defaults(self):
+        child={'nested_expand':True,'animate':False,'buttons':[{'name':'Child','show_name':True,'tap_action':{'action':'none'}}]}
+        self.hub({'logo':False,'items':[{'module':'generic','entity':'sensor.value_a','name':'Item A','menu':{
+            'animate':False,'button_defaults':{'styles':{'card':[{'background':'#174b32'}]}},'buttons':[
+                {'name':'Details','show_name':True,'tap_action':{'action':'honeycomb-open-nested','honeycomb_nested_menu':child}}]}}]})
+        self.hold(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.page.locator('honeycomb-menu [aria-label="Details"]').click()
+        target=self.page.locator('honeycomb-menu-item').filter(has=self.page.locator('.primary',has_text='Child'))
+        self.assertEqual(target.locator('.hex-fill').get_attribute('fill'),'#34424e')
+    def test_empty_placeholders_are_passive(self):
+        self.page.evaluate("window.menu=honeycomb_menu({entity:'light.zone_a',animate:false,position_mode:'anchored',anchor_x:innerWidth/2,anchor_y:300,buttons:[{slot:1,slot_mode:'hard',name:'Action A',show_name:true,tap_action:{action:'none'}}]})")
+        self.page.wait_for_function('window.menu.shadowRoot.querySelectorAll("honeycomb-menu-item").length===7')
+        passive=self.page.locator('honeycomb-menu-item').filter(has=self.page.locator('.interaction-surface')).count()
+        self.assertEqual(passive,2) # ordinary center + one action; holes have no hit surface
+    def test_fifty_items_render_without_fixed_ring_limit(self):
+        self.hub({'size':30,'logo':False,'items':[{'type':'generic','name':f'Item {i}','icon':'mdi:plus'} for i in range(50)]})
+        self.settle();self.assertEqual(self.controls().count(),50)
+        boxes=self.controls().evaluate_all('(items)=>items.map(el=>{const r=el.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})')
+        self.assertEqual(len(set((b[0],b[1]) for b in boxes)),50)
+        self.assertTrue(all(b[2]==30 for b in boxes));self.capture('fifty-items')
+    def test_double_tap_keyboard_and_cancel_do_not_duplicate_actions(self):
+        self.page.evaluate('makeControl({module:"generic",entity:"sensor.value_a",name:"Value A",tap_action:{action:"perform-action",perform_action:"test.tap"},double_tap_action:{action:"perform-action",perform_action:"test.double"}})')
+        target=self.page.locator('body > honeycomb-persistent-control .interaction-surface')
+        target.dblclick();self.page.wait_for_timeout(350)
+        self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['double'])
+        target.press('Enter');self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'tap')
+        box=target.bounding_box();self.page.mouse.move(box['x']+40,box['y']+40);self.page.mouse.down()
+        self.page.mouse.move(box['x']+65,box['y']+40);self.page.mouse.up();self.page.wait_for_timeout(350)
+        self.assertEqual(self.page.evaluate('calls.length'),2)
+    def test_drag_select_native_cube_executes_one_action(self):
+        self.hub({'logo':False,'items':[{'type':'generic','entity':'sensor.value_a','name':'Value A','icon':'mdi:plus','tap_action':{'action':'perform-action','perform_action':'test.tap'}}]})
+        target=self.page.locator('honeycomb-menu .interaction-surface');box=target.bounding_box()
+        self.page.mouse.move(box['x']+25,box['y']+40);self.page.mouse.down();self.page.mouse.move(box['x']+50,box['y']+40,steps=4);self.page.mouse.up()
+        self.assertEqual(self.page.evaluate('calls.length'),1)
+    def test_lifecycle_resize_and_reconnect_leave_one_overlay(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
+        self.page.evaluate("hub.style.left='100px'")
+        self.page.wait_for_function('Math.abs(hub._hubMenu._anchorX-141)<.1')
+        self.hold(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        origin=self.page.evaluate('[hub._hubMenu._anchorX,hub._hubMenu._anchorY]')
+        self.page.evaluate("hub.style.left='150px'")
+        self.page.wait_for_timeout(100)
+        self.assertEqual(self.page.evaluate('[hub._hubMenu._anchorX,hub._hubMenu._anchorY]'),origin)
+        self.back();self.page.wait_for_function('Math.abs(hub._hubMenu._anchorX-191)<.1')
+        self.page.evaluate('hub.remove()');self.assertEqual(self.page.locator('honeycomb-menu').count(),0)
+        self.page.evaluate('document.body.append(hub)');self.page.wait_for_function('view.querySelectorAll("honeycomb-menu").length===1')
+
+    def test_baseline(self):
+        self.page.evaluate("document.body.style.setProperty('--honeycomb-persistent-size','82px')")
+        self.hub({'size':82,'logo':True,'items':[{'type':'light','entity':'light.zone_a'},{'type':'sonos','entity':'media_player.player_a'}]})
+        # Fix the host CSS width to the reference cell size. v1.5.1 applies size
+        # inside its host, otherwise the bootstrap falls back to 72 px.
+        self.page.evaluate("hub.style.setProperty('--honeycomb-persistent-size','82px')")
+        self.page.evaluate('hub._menuContext.honeycomb.reanchor(innerWidth/2,310)')
+        self.capture('hub-reference')
+        if self.evidence:
+            self.page.locator('honeycomb-menu .ring-item').first.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-light-cell.png'))
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.hub({'size':82,'logo':False,'items':[{'type':'generic','entity':'sensor.value_a','name':'Value A','label':'24'}]})
+        self.capture('generic-reference')
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--bundle',type=Path,required=True)
+    parser.add_argument('--button-card',type=Path,required=True)
+    parser.add_argument('--baseline',action='store_true')
+    parser.add_argument('--evidence-dir',type=Path)
+    args=parser.parse_args()
+    assert hashlib.sha256(args.button_card.read_bytes()).hexdigest()==BUTTON_SHA
+    if args.evidence_dir: args.evidence_dir.mkdir(parents=True,exist_ok=True)
+    server=ThreadingHTTPServer(('127.0.0.1',0),Handler);server.bundle=args.bundle.resolve();server.button=args.button_card.resolve()
+    threading.Thread(target=server.serve_forever,daemon=True).start()
+    success=True
+    try:
+        with sync_playwright() as p:
+            Cubes.browser=p.chromium.launch(executable_path=os.getenv('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox'])
+            Cubes.url=f'http://127.0.0.1:{server.server_port}';Cubes.evidence=args.evidence_dir
+            for width,height in [(1100,900),(390,844)]:
+                Cubes.viewport={'width':width,'height':height}
+                names=['test_baseline'] if args.baseline else [n for n in unittest.defaultTestLoader.getTestCaseNames(Cubes) if n!='test_baseline']
+                result=unittest.TextTestRunner(verbosity=2,resultclass=CheckResult).run(unittest.TestSuite(Cubes(n) for n in names))
+                success=result.wasSuccessful() and success
+            Cubes.browser.close()
+    finally: server.shutdown();server.server_close()
+    return 0 if success else 1
+if __name__=='__main__': raise SystemExit(main())

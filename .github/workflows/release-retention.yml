@@ -1,0 +1,101 @@
+name: GitHub Release retention (dry-run by default)
+
+on:
+  release:
+    types: [published]
+  # Manual runs are always read-only, even after automatic cleanup is enabled.
+  workflow_dispatch:
+  # GITHUB_TOKEN-created releases do not fan out release events. A stable
+  # publisher may call this only after publication; runtime verifies fresh proof.
+  workflow_call:
+    inputs:
+      published_release_id:
+        description: ID of the stable Release just published by this caller run
+        required: true
+        type: string
+
+      dry_run_only:
+        description: Force this publication to remain read-only even if the owner gate changes
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-retention-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    if: github.event_name == 'workflow_dispatch' || inputs.published_release_id != '' || (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
+    steps:
+      - name: Check out trusted default-branch policy (never release-tag code)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Pin policy source for the apply job
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Read all release pages and report the proposed retention
+        run: node scripts/release-retention.js --dry-run --output "$RUNNER_TEMP/retention-plan"
+      - name: Save inventory and exact deletion plan for owner review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-retention-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/retention-plan
+          retention-days: 90
+          if-no-files-found: error
+
+  cleanup:
+    needs: inventory
+    # Owner must first review the dry-run and explicitly set this repository variable.
+    # Direct dispatch has no publication-ID input and cannot enter this job.
+    if: inputs.dry_run_only != true && vars.RELEASE_RETENTION_ENABLED == 'true' && (inputs.published_release_id != '' || (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read # Read current publisher-run metadata for workflow_call proof.
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
+      RETENTION_PUBLISHED_RELEASE_ID: ${{ inputs.published_release_id }}
+      RETENTION_DRY_RUN_ONLY: ${{ inputs.dry_run_only }}
+    steps:
+      - name: Check out the same trusted policy commit used by inventory
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.inventory.outputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-retention-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/retention-plan
+      - name: Revalidate and remove only eligible Release records
+        run: node scripts/release-retention.js --apply --plan "$RUNNER_TEMP/retention-plan/plan.json" --output "$RUNNER_TEMP/retention-result"
+      - name: Save confirmed deletions, partial results and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-retention-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/retention-result
+          retention-days: 90
+          if-no-files-found: error

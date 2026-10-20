@@ -1,19 +1,4 @@
 const isString = require('lodash/isString');
-const { matchesVisibility } = require('./core/visibility.js');
-const { templateBody } = require('./core/text-template.js');
-
-export function isButtonVisible(button, hass, variables = {})
-{
-    if( !button || !matchesVisibility(button.visibility, hass) )
-        return false;
-    if( button.show === undefined )
-        return true;
-    try {
-        return !!stringToBool(getTemplateOrValue(hass, hass && hass.states[button.entity], variables, button.show));
-    } catch(error) {
-        return false;
-    }
-}
 
 export function fireEvent( _node, _event, _detail = {}, _options = {})
 {
@@ -74,9 +59,8 @@ export function getTemplateOrValue(hass, state, custom_variables, value, _callba
 
     const trimmed = value.trim();
 
-    const body = templateBody(trimmed);
-    if (body !== null) {
-        return evalTemplate(hass, state, custom_variables, body);
+    if (trimmed.substring(0, 3) === '[[[' && trimmed.slice(-3) === ']]]') {
+        return evalTemplate(hass, state, custom_variables, trimmed.slice(3, -3));
     } else if(trimmed.substring(0, 5) === 'HCJS:') {
         return evalTemplate(hass, state, custom_variables, trimmed.slice(5));
     } else {

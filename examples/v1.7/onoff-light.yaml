@@ -1,0 +1,7 @@
+# Prerequisite: the real HA entity explicitly reports supported_color_modes: [onoff].
+# This is an HA state attribute, not a Honeycomb configuration key.
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.switch_a
+name: Switch A
+size: 82

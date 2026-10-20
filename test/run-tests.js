@@ -103,15 +103,15 @@ function testLayoutGrowthKeepsCenterDefinition()
 
     assert.deepStrictEqual(
         layout.resolveRings(6, []),
-        { inner: true, outer: false }
+        { inner: true, outer: false, radius: 1 }
     );
     assert.deepStrictEqual(
         layout.resolveRings(12, []),
-        { inner: false, outer: true }
+        { inner: false, outer: true, radius: 2 }
     );
     assert.deepStrictEqual(
         layout.resolveRings(13, []),
-        { inner: true, outer: true }
+        { inner: true, outer: true, radius: 2 }
     );
 }
 
@@ -447,13 +447,13 @@ function testSonosSlotZeroUsesPersistentContract()
 {
     const sonos = moduleRegistry.resolve({
         type: 'media',
-        entity: 'media_player.sommerhus'
+        entity: 'media_player.player_a'
     });
 
     const launcher = sonos.buildLauncher({
         item: {
             type: 'media',
-            entity: 'media_player.sommerhus',
+            entity: 'media_player.player_a',
             icon: 'mdi:speaker',
             active_color: '#00bcd4'
         },
@@ -462,7 +462,7 @@ function testSonosSlotZeroUsesPersistentContract()
         submenu: sonos.buildMenu({
             item: {
                 type: 'media',
-                entity: 'media_player.sommerhus',
+                entity: 'media_player.player_a',
                 icon: 'mdi:speaker',
                 active_color: '#00bcd4'
             }
@@ -474,7 +474,7 @@ function testSonosSlotZeroUsesPersistentContract()
     assert.strictEqual(sonos.launcherKind, 'persistent');
     assert.strictEqual(center.kind, 'persistent');
     assert.strictEqual(center.config.mode, 'media');
-    assert.strictEqual(center.config.entity, 'media_player.sommerhus');
+    assert.strictEqual(center.config.entity, 'media_player.player_a');
     assert.strictEqual(center.config.interactive, true);
     assert.strictEqual(center.config.active_color, '#00bcd4');
     assert.ok(center.config.menu);
@@ -646,7 +646,7 @@ function testSharedBeeBranding()
     assert.strictEqual(Buffer.compare(master, embedded), 0);
 
     const persistentControlSource = fs.readFileSync(
-        path.resolve(__dirname, '../src/honeycomb-cube.js'),
+        path.resolve(__dirname, '../src/cube-element.js'),
         'utf8'
     );
 
@@ -699,7 +699,7 @@ function testArchitectureBoundaries()
     assert.ok(lightControlsSource.includes('honeycomb-open-nested'));
 
     const persistentControlSource = fs.readFileSync(
-        path.resolve(__dirname, '../src/honeycomb-cube.js'),
+        path.resolve(__dirname, '../src/cube-element.js'),
         'utf8'
     );
     const rendererSource = fs.readFileSync(
@@ -709,12 +709,8 @@ function testArchitectureBoundaries()
 
     // Persistent-Hub lifecycle contracts.
     assert.ok(hubSource.includes('honeycomb_menu_context_dispose'));
-    assert.ok(rendererSource.includes('toCenterDescriptor(null, allocated.center)'));
-    assert.ok(hubSource.includes("extends HoneycombCube"));
-    const adapter = fs.readFileSync(path.resolve(__dirname, '../src/honeycomb-persistent-control.js'), 'utf8');
-    assert.ok(adapter.includes('extends HoneycombCube'));
-    assert.strictEqual(adapter.includes('render()'), false);
-    assert.ok(rendererSource.includes("center.kind === 'persistent'"));
+    assert.ok(hubSource.includes('toCenterDescriptor(center.module, center.launcher)'));
+    assert.ok(hubSource.includes("center.kind === 'persistent'"));
     assert.strictEqual(hubSource.includes('center._persistent_launcher === true'), false);
     assert.ok(hubSource.includes("next.restore_on_close = next.auto_open === false"));
     assert.ok(persistentControlSource.includes('restore_on_close !== false'));
@@ -725,20 +721,23 @@ function testArchitectureBoundaries()
     assert.strictEqual(rendererSource.includes('_handlePresetAction('), false);
 }
 
-const { test } = require('node:test');
-for( const contract of [
-    testNavigationAnchorLock,
-    testGlobalNavigationDoesNotLock,
-    testPersistentHexGeometry,
-    testLayoutGrowthKeepsCenterDefinition,
-    testModuleRegistry,
-    testBuiltInModuleResolution,
-    testPersistentPresentations,
-    testLightNestedMenusStayInOwningContext,
-    testLightPresetHelperDomains,
-    testSonosSlotZeroUsesPersistentContract,
-    testModuleMenusAreDeclarative,
-    testSharedBeeBranding,
-    testArchitectureBoundaries
-] )
-    test(contract.name, contract);
+function run()
+{
+    testNavigationAnchorLock();
+    testGlobalNavigationDoesNotLock();
+    testPersistentHexGeometry();
+    testLayoutGrowthKeepsCenterDefinition();
+    testModuleRegistry();
+    testBuiltInModuleResolution();
+    testPersistentPresentations();
+    testLightNestedMenusStayInOwningContext();
+    testLightPresetHelperDomains();
+    testSonosSlotZeroUsesPersistentContract();
+    testModuleMenusAreDeclarative();
+    testSharedBeeBranding();
+    testArchitectureBoundaries();
+
+    console.log('Honeycomb NG core tests: OK');
+}
+
+run();

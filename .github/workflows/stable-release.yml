@@ -1,0 +1,150 @@
+name: Publish verified stable release
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: Exact tested master SHA to publish (never a branch or tag)
+        required: true
+        type: string
+      publish:
+        description: Publish after all verification; false only prepares verified assets
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: stable-publication-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      commit: ${{ steps.gates.outputs.commit }}
+      ci_run: ${{ steps.gates.outputs.run_id }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+      RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.expected_commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Verify exact master, disabled retention and completed CI
+        id: gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$RELEASE_RETENTION_ENABLED" = false
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/master" --jq .commit.sha)" = "$EXPECTED_COMMIT"
+          git merge-base --is-ancestor 7706859016872ee95bde4299b10a07c072fa38b6 HEAD
+          git diff --exit-code 7706859016872ee95bde4299b10a07c072fa38b6 HEAD -- src
+          RUN_ID=$(gh run list --workflow build.yml --commit "$EXPECTED_COMMIT" --event push --status success --json databaseId,headBranch --jq '[.[] | select(.headBranch == "master")][0].databaseId // empty')
+          test -n "$RUN_ID"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq .head_sha)" = "$EXPECTED_COMMIT"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "commit=$EXPECTED_COMMIT" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          name: honeycomb-menu-ng
+          path: ${{ runner.temp }}/validated-master
+          run-id: ${{ steps.gates.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Reproduce the tested and committed HACS artifact
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+          PUBLICATION_MODE: prepare
+          RELEASE_OUTPUT: ${{ runner.temp }}/stable-assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run build
+          git diff --exit-code -- honeycomb-menu-ng.js
+          node scripts/check-release.js --stable > "$RUNNER_TEMP/reproduced-SHA256SUMS.txt"
+          cmp honeycomb-menu-ng.js "$RUNNER_TEMP/validated-master/honeycomb-menu-ng.js"
+          cmp "$RUNNER_TEMP/reproduced-SHA256SUMS.txt" "$RUNNER_TEMP/validated-master/SHA256SUMS.txt"
+          node scripts/stable-release.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-stable-assets-${{ inputs.expected_commit }}
+          path: ${{ runner.temp }}/stable-assets
+          if-no-files-found: error
+
+  publish:
+    needs: verify
+    if: inputs.publish && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      release_id: ${{ steps.publish.outputs.release_id }}
+      version: ${{ steps.publish.outputs.version }}
+      url: ${{ steps.publish.outputs.url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_COMMIT: ${{ needs.verify.outputs.commit }}
+      VALIDATED_CI_RUN: ${{ needs.verify.outputs.ci_run }}
+      RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-stable-assets-${{ needs.verify.outputs.commit }}
+          path: ${{ runner.temp }}/stable-assets
+      - name: Compare verified assets before any tag or release mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RELEASE_RETENTION_ENABLED" = false
+          cmp honeycomb-menu-ng.js "$RUNNER_TEMP/stable-assets/honeycomb-menu-ng.js"
+          node scripts/check-release.js --stable > "$RUNNER_TEMP/current-SHA256SUMS.txt"
+          cmp "$RUNNER_TEMP/current-SHA256SUMS.txt" "$RUNNER_TEMP/stable-assets/SHA256SUMS.txt"
+      - name: Create new tag, verify draft assets, publish stable and verify inventory
+        id: publish
+        env:
+          PUBLICATION_MODE: publish
+          RELEASE_OUTPUT: ${{ runner.temp }}/stable-assets
+        run: node scripts/stable-release.js
+      - name: Preserve publication evidence, including partial draft/tag results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-publication-${{ needs.verify.outputs.commit }}
+          path: ${{ runner.temp }}/stable-assets
+          if-no-files-found: error
+
+  retention:
+    needs: publish
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/release-retention.yml
+    with:
+      published_release_id: ${{ needs.publish.outputs.release_id }}
+      # Explicitly forbid cleanup during v1.7.0 even if an external actor changes the variable.
+      dry_run_only: ${{ needs.publish.outputs.version == '1.7.0' }}

@@ -1,0 +1,49 @@
+name: Read-only release retention preview
+
+on:
+  pull_request:
+    paths:
+      - scripts/release-retention.js
+      - test/release-retention.test.js
+      - .github/workflows/release-retention*.yml
+      - docs/RELEASE_RETENTION*.md
+  push:
+    branches: [feature/**]
+    paths:
+      - scripts/release-retention.js
+      - test/release-retention.test.js
+      - .github/workflows/release-retention*.yml
+      - docs/RELEASE_RETENTION*.md
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-retention-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Preview live inventory without mutation permission
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/release-retention.js --dry-run --output "$RUNNER_TEMP/retention-preview"
+      - name: Upload read-only inventory for owner review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-retention-preview-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/retention-preview
+          retention-days: 90
+          if-no-files-found: error

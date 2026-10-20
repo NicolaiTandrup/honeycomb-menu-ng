@@ -11,7 +11,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -41,39 +41,59 @@ jobs:
         run: npm run build
 
       - name: Verify build output
-        run: node scripts/validate-release.js
-
-      - name: Setup Python for browser regression tests
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install browser test dependencies
         run: |
-          python -m pip install -r test/requirements.txt
-          python -m playwright install --with-deps chromium
-
-      - name: Test visibility, drag selection and Charging Hub in Chromium
-        run: python test/browser-smoke.py --bundle honeycomb-menu-ng.js
+          mkdir -p "$RUNNER_TEMP/build-artifact"
+          node scripts/check-release.js | tee "$RUNNER_TEMP/build-artifact/SHA256SUMS.txt"
+          cp honeycomb-menu-ng.js "$RUNNER_TEMP/build-artifact/honeycomb-menu-ng.js"
+          echo "::notice title=Bundle checksum::$(node scripts/check-release.js)"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: honeycomb-menu-ng
-          path: honeycomb-menu-ng.js
+          path: ${{ runner.temp }}/build-artifact
 
-      - name: Commit compiled build
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      - name: Set up browser validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned browser dependencies
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python -m pip install -r test/browser/requirements.txt
+          python -m playwright install --with-deps chromium
+          curl --fail --location --retry 2 https://github.com/custom-cards/button-card/releases/download/v7.0.1/button-card.js --output "$RUNNER_TEMP/button-card.js"
 
-          git add honeycomb-menu-ng.js
+      - name: Measure core visibility and allocation
+        run: node test/performance/hub-benchmark.js --output "$RUNNER_TEMP/cube-evidence/core-performance.json"
 
-          if git diff --cached --quiet; then
-            echo "Compiled file is already up to date."
-            exit 0
-          fi
+      - name: Verify shared cubes and module interactions
+        run: python test/browser/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence"
 
-          git commit -m "Update compiled build [skip ci]"
-          git push origin HEAD:"${GITHUB_REF_NAME}"
+      - name: Validate documentation and complete YAML examples
+        run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
+
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-cube-evidence
+          path: ${{ runner.temp }}/cube-evidence
+          if-no-files-found: ignore
+
+  workflow-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Lint every workflow using pinned, checksum-verified actionlint
+        shell: bash
+        env:
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck="" -pyflakes=""

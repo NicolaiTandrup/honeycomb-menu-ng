@@ -1,13 +1,16 @@
 # Light module
 
+**Supported as of v1.7.0** Stable (validated on beta.3 and the stable candidate).
+For complete tested cards and setup decisions see [AI_SETUP.md](AI_SETUP.md).
+
 The Light module is selected with:
 
 ~~~yaml
 type: light
-entity: light.example
+entity: light.zone_a
 ~~~
 
-It is designed for Home Assistant `light.*` entities, including Philips Hue lights exposed through Home Assistant.
+It is designed for Home Assistant `light.*` entities, including color, temperature-only, brightness-only and on/off-only lights.
 
 ## Default detail layout
 
@@ -27,8 +30,8 @@ The selected Light is promoted into slot 0 when the module opens. Nested Light m
 
 ~~~yaml
 - type: light
-  entity: light.living_room
-  name: Living room
+  entity: light.zone_a
+  name: Light A
   icon: mdi:lightbulb
 ~~~
 
@@ -43,7 +46,7 @@ Override fallback values if desired:
 
 ~~~yaml
 - type: light
-  entity: light.living_room
+  entity: light.zone_a
   presets:
     brightness:
       default: 70
@@ -55,7 +58,7 @@ Override fallback values if desired:
 
 Honeycomb can read and write preset values from numeric Home Assistant entities.
 
-Supported writable helper domains in v1.5:
+Supported writable helper domains in v1.7:
 - `number.*`
 - `input_number.*`
 
@@ -63,12 +66,13 @@ The entity state must be numeric.
 
 ### Brightness
 
-Expected range: 0–100.
+Expected range: 0–100 **percent**. HA's Light `brightness` attribute is 0–255;
+Honeycomb converts it to percent when storing. Kelvin must fit the target Light.
 
 ~~~yaml
 presets:
   brightness:
-    entity: number.wall_switch_normal_brightness
+    entity: number.relay_a_brightness
 ~~~
 
 Tap applies the stored value. Hold stores the light's current brightness.
@@ -78,7 +82,7 @@ Tap applies the stored value. Hold stores the light's current brightness.
 ~~~yaml
 presets:
   kelvin:
-    entity: number.wall_switch_standard_kelvin
+    entity: number.relay_a_kelvin
 ~~~
 
 Tap applies stored Kelvin. Hold stores current `color_temp_kelvin`.
@@ -92,8 +96,8 @@ Expected:
 ~~~yaml
 presets:
   color:
-    hue_entity: number.wall_switch_standard_hue
-    saturation_entity: number.wall_switch_standard_saturation
+    hue_entity: number.relay_a_hue
+    saturation_entity: number.relay_a_saturation
 ~~~
 
 Tap applies stored HS color. Hold stores current `hs_color`.
@@ -102,22 +106,22 @@ Tap applies stored HS color. Hold stores current `hs_color`.
 
 The values are ordinary Home Assistant entities. They do not have to be created by Honeycomb.
 
-### Device-owned values, for example Shelly
+### Values on another device or integration
 
-A Shelly relay/script can expose writable `number.*` entities:
+A separate relay/device or integration may expose writable `number.*` entities:
 
 ~~~yaml
 presets:
   brightness:
-    entity: number.shelly_wall_normal_brightness
+    entity: number.relay_a_brightness
   kelvin:
-    entity: number.shelly_wall_standard_kelvin
+    entity: number.relay_a_kelvin
   color:
-    hue_entity: number.shelly_wall_standard_hue
-    saturation_entity: number.shelly_wall_standard_saturation
+    hue_entity: number.relay_a_hue
+    saturation_entity: number.relay_a_saturation
 ~~~
 
-This is useful when a physical wall switch also uses the same normal brightness/color values. Honeycomb and the Shelly share one source of truth.
+This is useful when a physical wall switch also uses the same normal brightness/color values. The physical switch and Honeycomb can share those values, independently of the Light integration.
 
 ### Home Assistant helpers
 
@@ -125,36 +129,38 @@ You can also create `input_number` helpers:
 
 ~~~yaml
 input_number:
-  living_room_normal_brightness:
-    name: Living room normal brightness
-    min: 1
+  preset_a_normal_brightness:
+    name: Light A normal brightness
+    min: 0
     max: 100
     step: 1
     initial: 60
 
-  living_room_standard_kelvin:
-    name: Living room standard Kelvin
+  preset_a_standard_kelvin:
+    name: Light A standard Kelvin
     min: 2000
     max: 6500
     step: 50
     initial: 2700
 
-  living_room_standard_hue:
-    name: Living room standard hue
+  preset_a_standard_hue:
+    name: Light A standard hue
     min: 0
     max: 360
     step: 1
     initial: 30
 
-  living_room_standard_saturation:
-    name: Living room standard saturation
+  preset_a_standard_saturation:
+    name: Light A standard saturation
     min: 0
     max: 100
     step: 1
     initial: 80
 ~~~
 
-Then reference those `input_number.*` entities from Honeycomb.
+Then reference those `input_number.*` entities from Honeycomb. These are external
+HA helpers, not dashboard configuration; run HA configuration validation and reload
+helpers as appropriate. The sample Kelvin bounds must match your Light capabilities.
 
 ## Capability-aware Color / White
 
@@ -212,23 +218,23 @@ The persistent Light launcher:
 
 ~~~yaml
 type: custom:honeycomb-persistent-hub
-name: Living room
+name: Light A
 size: 82
 logo: auto
 
 items:
   - type: light
-    entity: light.living_room
-    name: Living room
+    entity: light.zone_a
+    name: Light A
     icon: mdi:lightbulb
     presets:
       brightness:
-        entity: number.wall_switch_normal_brightness
+        entity: number.relay_a_brightness
       kelvin:
-        entity: number.wall_switch_standard_kelvin
+        entity: number.relay_a_kelvin
       color:
-        hue_entity: number.wall_switch_standard_hue
-        saturation_entity: number.wall_switch_standard_saturation
+        hue_entity: number.relay_a_hue
+        saturation_entity: number.relay_a_saturation
 ~~~
 
-See [examples/light-presets.yaml](../examples/light-presets.yaml).
+Complete current example: [Control Light](../examples/v1.7/control-light.yaml).

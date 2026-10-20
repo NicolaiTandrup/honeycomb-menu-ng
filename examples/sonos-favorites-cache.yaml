@@ -1,10 +1,12 @@
 # Sonos Favorites Cache for Honeycomb Menu NG
 #
-# sensor.sonos_favorites supplies favorite names + IDs.
+# Enable the official Sonos favorites entity and substitute its actual ID
+# for sensor.favorites_a. It supplies favorite names + IDs.
 # This optional trigger-based template sensor enriches them with Browse Media
-# thumbnails so Honeycomb can render station logos.
+# thumbnails so Honeycomb can render station logos. Confirm the resulting
+# cache entity ID in HA; the dashboard example uses sensor.favorites_cache_a.
 #
-# Replace every media_player.living_room with one real Sonos player.
+# Replace every media_player.player_a with one real Sonos player.
 #
 # If configuration.yaml already has:
 #   template: !include templates.yaml
@@ -17,7 +19,7 @@ template:
 
       # No from/to means attribute changes also trigger a refresh.
       - trigger: state
-        entity_id: sensor.sonos_favorites
+        entity_id: sensor.favorites_a
 
       - trigger: time_pattern
         minutes: "/15"
@@ -25,30 +27,30 @@ template:
     conditions:
       - condition: template
         value_template: >
-          {{ has_value('media_player.living_room')
-             and has_value('sensor.sonos_favorites') }}
+          {{ has_value('media_player.player_a')
+             and has_value('sensor.favorites_a') }}
 
     actions:
       - action: media_player.browse_media
         target:
-          entity_id: media_player.living_room
+          entity_id: media_player.player_a
         data:
           media_content_type: favorites_folder
           media_content_id: object.item.audioItem.audioBroadcast
         response_variable: sonos_radio_favorites
 
     sensor:
-      - name: Sonos Favorites Cache
-        unique_id: sonos_favorites_cache
+      - name: Favorites Cache A
+        unique_id: favorites_cache_a
         icon: mdi:radio
 
         state: >
-          {% set response = sonos_radio_favorites.get('media_player.living_room', {}) %}
+          {% set response = sonos_radio_favorites.get('media_player.player_a', {}) %}
           {{ response.get('children', []) | count }}
 
         attributes:
           items: >
-            {% set response = sonos_radio_favorites.get('media_player.living_room', {}) %}
+            {% set response = sonos_radio_favorites.get('media_player.player_a', {}) %}
             {% set children = response.get('children', []) %}
             {% set ns = namespace(items=[]) %}
             {% for item in children[:12] %}

@@ -1,0 +1,17 @@
+type: custom:honeycomb-persistent-hub
+name: Audio Hub A
+size: 82
+logo: false
+items:
+  - type: sonos
+    entity: media_player.player_a
+    name: Player A
+    active_color: "#00bcd4"
+    favorites_sensor: sensor.favorites_a
+    favorites_cache_sensor: sensor.favorites_cache_a
+    toggle_member_script: script.player_a_toggle_member
+    members:
+      - entity: media_player.player_b
+        name: Player B
+      - entity: media_player.player_c
+        name: Player C

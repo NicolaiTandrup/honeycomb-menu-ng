@@ -12,8 +12,6 @@ const HUB_ROOT_FLAG = '_persistent_hub_root';
 
 function finiteNumber(value)
 {
-    if (value === null || value === undefined || typeof value === 'boolean' ||
-        (typeof value === 'string' && !value.trim())) return null;
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
 }
@@ -52,6 +50,8 @@ function createMenuContext(options = {})
         honeycomb: null,
         stack: [],
         currentConfig: null,
+        pointers: new Set(),
+        pendingActions: new Set(),
         local,
         moduleAnchor: null,
         navigation: {
@@ -70,7 +70,7 @@ function enterNested(context, currentConfig, incomingConfig)
 
     if( fromBase )
     {
-        const selectedAnchor = readAnchor(incomingConfig) || readAnchor(currentConfig);
+        const selectedAnchor = readAnchor(incomingConfig);
 
         if( selectedAnchor )
         {
@@ -165,15 +165,7 @@ function canEstablishAnchor(context)
     );
 }
 
-// The first hidden owner invalidates its descendants. Unwinding to this
-// stack length returns to the closest surviving parent, using normal back.
-function hiddenOwnerIndex(context, visible)
-{
-    return (context.stack || []).findIndex(entry => entry && entry.owner && !visible(entry.owner));
-}
-
 module.exports = {
-    hiddenOwnerIndex,
     HUB_ROOT_FLAG,
     createMenuContext,
     isHubRoot,

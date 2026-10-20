@@ -1,0 +1,11 @@
+type: custom:honeycomb-persistent-hub
+name: Hub A
+size: 82
+logo: auto
+items:
+  - type: light
+    entity: light.zone_a
+    name: Light A
+  - type: sonos
+    entity: media_player.player_a
+    name: Player A

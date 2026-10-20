@@ -1,88 +1,96 @@
-name: Create GitHub Release
+name: Publish manually approved feature beta
 
 on:
-  workflow_run:
-    workflows: [Build Honeycomb Menu NG]
-    types: [completed]
-    branches: [master]
   workflow_dispatch:
-
-concurrency:
-  group: validated-github-release
-  cancel-in-progress: false
+    inputs:
+      tagged_commit:
+        description: Exact tested commit already targeted by the beta tag
+        required: true
+        type: string
+      release_notes:
+        description: Approved release notes including tests and unmerged status
+        required: true
+        type: string
 
 permissions:
   contents: write
   actions: read
 
+concurrency:
+  group: manually-approved-feature-beta
+  cancel-in-progress: false
+
 jobs:
-  release:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'master' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+  publish:
+    if: startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_COMMIT: ${{ inputs.tagged_commit }}
+      APPROVED_NOTES: ${{ inputs.release_notes }}
     steps:
-      - name: Checkout validated master revision
+      - name: Checkout exact tested source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ inputs.tagged_commit }}
           fetch-depth: 0
 
-      - name: Require successful master build for this exact revision
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+      - name: Verify feature ancestry, tag and successful CI
         shell: bash
         run: |
           set -euo pipefail
-          SHA=$(git rev-parse HEAD)
-          git merge-base --is-ancestor "$SHA" origin/master
-          RUN_ID=$(gh run list --workflow build.yml --branch master --commit "$SHA" --event push --status success --json databaseId --jq '.[0].databaseId // empty')
+          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          git merge-base --is-ancestor 697dec5846fc6b73199fb39562eef5a733ba49c5 HEAD
+          git merge-base --is-ancestor HEAD "origin/$GITHUB_REF_NAME"
+          TAG="v$(node -p "require('./package.json').version")"
+          [[ "$TAG" =~ ^v1\.7\.0-beta\.[0-9]+$ ]]
+          test "$(git rev-parse "$TAG^{commit}")" = "$RELEASE_COMMIT"
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+          git cat-file -e "$RELEASE_COMMIT:src/cube-element.js"
+          RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event push --status success --json databaseId --jq '.[0].databaseId // empty')
+          PR_RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event pull_request --status success --json databaseId --jq '.[0].databaseId // empty')
           test -n "$RUN_ID"
-          gh run download "$RUN_ID" --name honeycomb-menu-ng --dir "$RUNNER_TEMP/validated-artifact"
+          test -n "$PR_RUN_ID"
+          gh run download "$RUN_ID" --name honeycomb-menu-ng --dir "$RUNNER_TEMP/validated"
 
-      - name: Setup Node.js
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Reproduce and validate release artifact
+      - name: Reproduce the validated artifact
         env:
           NODE_OPTIONS: --openssl-legacy-provider
+        shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          trap 'echo "::error title=Artifact reproduction::Failed command: $BASH_COMMAND"' ERR
           npm ci
           npm test
           npm run build
-          cmp honeycomb-menu-ng.js "$RUNNER_TEMP/validated-artifact/honeycomb-menu-ng.js"
-          node scripts/validate-release.js honeycomb-menu-ng.js "$RUNNER_TEMP/validated-artifact/SHA256SUMS.txt"
+          ARTIFACT=$(find "$RUNNER_TEMP/validated" -type f -name honeycomb-menu-ng.js -print -quit)
+          test -n "$ARTIFACT"
+          cmp honeycomb-menu-ng.js "$ARTIFACT"
+          node scripts/check-beta.js > "$RUNNER_TEMP/SHA256SUMS.txt"
+          test "v$(node -p "require('./package.json').version")" = "$RELEASE_TAG"
+          test "$(node -p "require('./release.json').prerelease")" = 'true'
+          printf '%s\n' "$APPROVED_NOTES" > "$RUNNER_TEMP/approved-release-notes.md"
 
-      - name: Publish validated release once
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+      - name: Publish beta assets without changing latest stable
         shell: bash
         run: |
           set -euo pipefail
-          VERSION=$(node -p "require('./package.json').version")
-          TAG="v$VERSION"
-          TITLE=$(node -p "require('./release.json').title")
-          PRERELEASE=$(node -p "String(require('./release.json').prerelease)")
-          # A failed API request is not evidence that a release does not exist.
-          if gh api "repos/$GH_REPO/releases" --paginate --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags.txt"; then
-            if grep -Fxq "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
-              echo "Release already exists; leaving published assets unchanged."
-              exit 0
-            fi
-          else
+          TAG="$RELEASE_TAG"
+          gh api "repos/$GH_REPO/releases" --paginate --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags.txt"
+          if grep -Fxq "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
+            echo 'Release already exists; refusing to replace published assets.'
             exit 1
           fi
-          ARGS=(release create "$TAG" --target "$(git rev-parse HEAD)" --title "$TITLE" --notes-file RELEASE_NOTES.md)
-          if [ "$PRERELEASE" = "true" ]; then
-            ARGS+=(--prerelease --latest=false)
-          fi
-          gh "${ARGS[@]}" "$RUNNER_TEMP/validated-artifact/honeycomb-menu-ng.js" "$RUNNER_TEMP/validated-artifact/SHA256SUMS.txt"
+          TITLE=$(node -p "require('./release.json').title")
+          gh release create "$TAG" --verify-tag --target "$RELEASE_COMMIT" \
+            --prerelease --latest=false --title "$TITLE" \
+            --notes-file "$RUNNER_TEMP/approved-release-notes.md" \
+            honeycomb-menu-ng.js "$RUNNER_TEMP/SHA256SUMS.txt"

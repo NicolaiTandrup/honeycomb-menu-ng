@@ -19,15 +19,6 @@ function launcherKind(module, launcher)
     return 'generic';
 }
 
-// Normalize the module contract once before dynamic allocation. Both center
-// and ring renderers then receive the same native/generic classification,
-// including third-party modules that declare a kind without the legacy flag.
-function normalizeLauncher(module, launcher)
-{
-    return launcher && {...launcher,
-        _persistent_launcher: launcherKind(module, launcher) === 'persistent'};
-}
-
 function toCenterDescriptor(module, launcher)
 {
     if( ! launcher || typeof launcher !== 'object' )
@@ -55,7 +46,6 @@ function toCenterDescriptor(module, launcher)
 }
 
 module.exports = {
-    normalizeLauncher,
     launcherKind,
     toCenterDescriptor
 };

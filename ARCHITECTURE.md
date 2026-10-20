@@ -87,74 +87,49 @@ Public v1.5 documentation is split by responsibility:
 
 When changing a public module schema, update both the human module document and the AI setup contract in the same pull request.
 
+## v1.7.0 Phase 1 extraction from restart/v1.5.1
 
-## v1.6 visibility and allocation
+`cube-element.js` extracts the v1.5.1 native renderer into the shared Lit engine.
+Both public adapters and `honeycomb-menu-item` consume it. Modules still return
+data through the existing registry; `core/cube-config.js` compiles the same item
+for standalone Control and Hub. One action handler owns native and generic input.
+The existing navigation core keeps local context/anchor ownership.
 
-`core/visibility.js` is a pure, validated frontend-condition evaluator.
-`core/slot-allocation.js` resolves template-stack fallbacks and owns hard
-reservations, priority claims, soft placement and deterministic overflow. The
-renderer supplies the existing `show` template evaluator without modifying YAML
-source. Rendering reevaluates visibility, guards action delivery, and defers
-allocation while the drag pointer is active. A completed drag suppresses its
-compatibility mouse/touch tap so a reflowed cell cannot receive a second action.
+`core/layout.js` retains the first two ring coordinates and generates subsequent
+axial rings. Configured population is not truncated to a viewport capacity.
+Visibility/priority are deliberately absent in this phase; the future allocator
+will operate on stable identities and an extensible physical slot pool, in order
+hard reservations > visible priority claims > soft items. Domain adapters must
+not acquire geometry or navigation responsibilities when that work lands.
 
-The Charging Hub is a documented composition of native aggregate presentation, button-card templates and
-Honeycomb menus. There is no charging domain module or session state.
+State is forwarded by the owning menu, with model-signature checks per cube.
+There is no periodic refresh timer or continuous Hub RAF. Root logo colors do
+not become module item defaults. Full-cell drawing and its content metrics are
+owned once, including palette backgrounds and favorite artwork.
 
-
-## v1.6 shared presentation and nested ownership
-
-`core/hex-face.js` owns pure geometry/width normalization. `hex-face.js` renders
-one SVG face/ring contract for native controls and ordinary menu items. Wrapped
-cards retain their content/actions below pointer-transparent rings. Opt-in
-rings preserve a containing block for button-card's fixed content. Legacy
-ordinary cubes keep their original geometry when no colors/border is supplied.
-
-`core/text-template.js` parses equal bracket depths and guards final button-card
-name/label templates. Presentation evaluation never mutates source configuration.
-Honeycomb/native templates and button-card contexts remain separate; ancestor
-button-card escaping is resolved before final text rendering.
-
-Renderer-owned nested actions default to expansion in the current context. Core
-still owns the local Hub base-to-module lock; deeper expansion preserves anchor,
-size and back history. Reused templates keep their own defaults. A global menu
-and each local Hub retain separate contexts; nested actions never choose a new
-global context based on a lost shadow-DOM event. Explicit replacement remains
-available via nested_expand:false. Animation-free close disposes immediately.
-
-With `inherit_inner:true`, copy each inner control's resolved item configuration,
-including parent `button_defaults`, before changing menus. Copying only raw
-buttons loses inherited face fills and text styles. Do not propagate the whole
-parent defaults object to new nested buttons or independent templates.
+See [Phase 1 migration and known limitations](docs/V1_7_PHASE1.md). The release is
+an explicitly published, unmerged feature beta; PRs target restart/v1.5.1 and do
+not merge into master as part of Phase 1.
 
 
-## Canonical persistent Hub (#72)
+## v1.7.0 Phase 2 from merged PR #77
 
-The public Hub and compatibility Control extend `honeycomb-cube.js` directly.
-The Control is a thin registered adapter; the Hub selects single-control mode
-when items is omitted, or grouped mode when items is present. Both share native
-presentation, gestures, service delegation and menu configuration. Ordinary
-button-card hosts use the same hex face and content metrics for layered visuals.
+`core/visibility.js` compiles the HA-style condition subset and indexes literal
+entity/attribute dependencies using scalar snapshots. `core/hub-allocation.js`
+is a pure allocator: hidden hard reservations, all priority preferred claims,
+priority fallbacks, then stable soft positions. It reports collisions/overflow
+without truncating configured identities. Logical IDs are configuration paths.
 
-`core/cube-metrics.js` is the only physical width / classic menu extent boundary.
-`cube_size` is explicit cell width; old classic `size` remains extent. Native
-layout never contains its own incidental extent factor. The renderer is the
-only reachable-menu envelope scanner. Legacy face modes and custom CSS remain.
+Hub owns desired visibility and last committed placement. Each navigation context
+tracks held pointers and pending tap actions; structural commits wait for a base
+menu and an idle interaction context. One on-demand frame coalesces the latest
+mask and runs after native capture/target release callbacks. Returning through
+nested/back or full close uses the same boundary; presentation can still update.
+No polling or perpetual frame loop is introduced. Menu updates reuse the original
+configuration preparation pipeline and shared renderer, preserving Issue #78.
 
-`core/hub-items.js` extends the #68 allocator only with center slot 0 and legacy
-configured-count defaults. All ring reservation/priority/soft/overflow behavior
-still runs through `core/slot-allocation.js` and `core/visibility.js`. There is no
-seven-item truncation. Dynamic resolved center data is included in navigation
-snapshots, and hidden owners return through the ordinary back engine.
-
-`cube-actions.js` routes Honeycomb actions in native and wrapped hosts through
-one owning context and custom-action registry. Standard wrapped HA actions stay
-with button-card/HA; native actions preserve existing service contracts and
-otherwise delegate to HA. Native and wrapped drag targets share the renderer's
-visibility guard and gesture deferral. Context history stores invoking owner
-conditions; responsive base movement updates saved base anchors without moving
-an active module. Replacement renderers are followed through the same context,
-so auto-open cannot install a second base over a child.
-
-See [migration matrix](docs/PERSISTENT_HUB_MIGRATION.md) for exact compatibility
-boundaries and the supported generic/module extension contract.
+Static faces snapshot entity state/attributes and skip unchanged config/model
+updates; arbitrary JS presentation/show/custom content is conservatively updated.
+Current physical capacity is eight rings plus center; configured population is
+uncapped. See [Phase 2](docs/V1_7_PHASE2.md) for exact semantics, truth tables,
+capacity/diagnostic policy, examples and benchmark limitations.
