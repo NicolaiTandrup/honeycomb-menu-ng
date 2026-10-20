@@ -1,3 +1,38 @@
+# v1.7.1-beta.3 — cumulative Sonos and Light owner test
+
+One HACS bundle combining **all tested Sonos beta.2 code** from PR #91 at
+`282794d3650951d7bc7fd9ce514069ca68fcd121` with isolated Light PR #94 at
+`7c7ee3e7ebc528f0aeaa07243631f09ed8d67bd6`. Both original branches remain
+unmerged. This integration does not change master or authorize stable publication.
+
+- Preserve Sonos slot/alignment, exact/validated station recognition, cached
+  artwork, station/paused colors, native discovery/grouping, script overrides,
+  actual HA Browse Media route, Radio behavior and all beta.2 regression tests.
+- Add recursive Light Color Zoom: tap applies once; hold refines around the fixed
+  selected physical slot/HS without HA calls. Current neighbors bound the new
+  palette, with five clockwise and six counterclockwise samples, circular hue
+  interpolation, linear saturation and exact endpoints.
+- Back restores each complete palette; close/reopen resets. Live HA updates keep
+  history. Keyboard Shift+Enter/Space zooms; Escape closes/resets focused swatches.
+- Preserve 82 px renderer, inner controls, White/Kelvin, presets, on/off-only
+  lights, generic Media, dynamic visibility, nested anchors and gestures.
+
+The isolated Light branch is not published as a competing module-only HACS beta.
+No v1.7.2 release is used. Beta.1/beta.2 tags and assets stay immutable. #83 remains
+an independent read-only retention audit, with the enable gate false and no deletion.
+
+Known limitations: exact Sonos radio-channel/cache/name matches may not identify
+all streams; registry/grouping services and Media panel availability depend on HA.
+Browse uses the supported Media panel route rather than a private lazy dialog.
+The existing 82 px outer ring may crop at very narrow viewport edges. Physical HA,
+external scripts, non-Chromium browsers and actual HACS installation require owner
+validation. Stable v1.7.1 requires explicit approval after cumulative beta.3 testing.
+
+See [combined HACS smoke tests](docs/V1_7_1_BETA.md) and
+[Color Zoom semantics](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
+
+---
+
 # v1.7.1-beta.2 — Sonos real-HA corrections
 
 Sonos-only follow-up on unmerged PR #91. Beta.1 remains immutable. Stable and

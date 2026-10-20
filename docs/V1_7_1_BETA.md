@@ -1,6 +1,6 @@
 # v1.7.1 beta testing
 
-PR #91 remains unmerged. Package/release metadata targets **v1.7.1-beta.2** with
+PR #91 and Light PR #94 remain unmerged. Integration metadata targets **v1.7.1-beta.3** with
 `prerelease=true`. It is intended for real Home Assistant/HACS owner testing,
 not stable v1.7.1 approval. See [beta publishing](BETA_RELEASES.md) for the
 branch-independent, explicitly authorized publication workflow.
@@ -8,7 +8,7 @@ branch-independent, explicitly authorized publication workflow.
 ## HACS installation after publication
 
 1. Back up dashboard YAML. In HACS, open Honeycomb Menu NG, choose **Redownload**
-   from its menu, enable **Show beta versions**, and select **v1.7.1-beta.2**.
+   from its menu, enable **Show beta versions**, and select **v1.7.1-beta.3**.
    If needed first add `NicolaiTandrup/honeycomb-menu-ng` as a Dashboard repository.
 2. Confirm that the selected version is the beta, download it, then hard-refresh
    dashboard clients/clear frontend cache. Keep the existing JavaScript module
@@ -23,8 +23,13 @@ branch-independent, explicitly authorized publication workflow.
 6. Review README layout on desktop/mobile in light/dark GitHub themes.
 
 Return the installed beta version, observed HA state and result using synthetic
-identifiers in public reports. Beta.1 remains immutable. Beta.2 contains Sonos only; beta.3 will cumulatively add
-reviewed Light Color Zoom on top of this tested Sonos version. Never move tags.
+identifiers in public reports. Beta.1 and beta.2 remain immutable. Beta.3 cumulatively contains all tested
+Sonos beta.2 fixes plus Light Color Zoom from independent PR #94. Never move tags.
+For Light: open Color; short tap applies once; hold 500 ms refines without changing
+the light. Verify slots 7/8/10/18, several zoom levels, exact stepwise back, live
+state updates, full close/reopen reset, Shift+Enter zoom and Escape close. White/
+Kelvin and presets remain unchanged. See [the exact grid](LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
+
 Beta.2 also recognizes unique exact radio-channel/favorite/cache-title correspondence
 for validated Sonos radio transports. Media titles and fuzzy matching are excluded.
 Join discovers real Sonos registry entries; native grouping needs supported

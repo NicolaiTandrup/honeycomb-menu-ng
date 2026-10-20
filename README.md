@@ -20,10 +20,10 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > or read the [release notes](RELEASE_NOTES.md). No v1.6 implementation or unfinished
 > recursive palette, Car or Climate/Thermostat features (#85–#87) are included.
 
-> **v1.7.1-beta.2** adds Sonos station recognition, fallback colors, automatic
-> registry-based native Join and actual HA Browse Media. It remains an owner-test
-> prerelease. [Beta test guide](docs/V1_7_1_BETA.md). Light Color Zoom is reserved
-> for the later cumulative beta.3; stable v1.7.0 remains available.
+> **v1.7.1-beta.3 — cumulative owner-test beta.** Includes every tested Sonos
+> beta.2 fix plus Light Color Zoom from isolated PR #94. One HACS bundle supplies
+> both modules; v1.7.0 remains latest stable. [HA beta test guide](docs/V1_7_1_BETA.md)
+> and [Color Zoom slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
 
 ## What you can build
 

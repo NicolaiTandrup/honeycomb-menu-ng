@@ -914,8 +914,14 @@ class CubeElement extends LitElement
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
             </div>`}
             ${this.config.interactive !== false && !this.config.disabled ? html`
-            <div class="interaction-surface" role="button" tabindex="0" aria-label=${m.name || String(m.secondary || this.config.entity || 'Honeycomb')}
-                @keydown=${e=>{if(!e.repeat && ['Enter',' '].includes(e.key)){e.preventDefault();this._executeAction(this.config.tap_action || {action:'toggle'});}}}
+            <div class="interaction-surface" role="button" tabindex="0" aria-label=${m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+                @keydown=${e=>{
+                    const zoom=this.config.hold_action && this.config.hold_action.action==='honeycomb-light-color-zoom';
+                    if (zoom && e.key==='Escape') {e.preventDefault();this._dispatchAction({action:'honeycomb-close'});return;}
+                    if(!e.repeat && ['Enter',' '].includes(e.key)) {
+                        e.preventDefault();this._executeAction(zoom && e.shiftKey ? this.config.hold_action : this.config.tap_action || {action:'toggle'});
+                    }
+                }}
                 @pointerdown=${this._handlePointerDown} @pointermove=${this._handlePointerMove}
                 @pointerup=${this._handlePointerUp} @pointercancel=${this._handlePointerCancel}
                 @contextmenu=${e=>e.preventDefault()}></div>` : ''}
