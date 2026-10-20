@@ -1,72 +1,92 @@
-name: Create GitHub Release
+name: Publish manually approved feature beta
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - package.json
-      - release.json
-      - RELEASE_NOTES.md
-      - .github/workflows/release.yml
   workflow_dispatch:
+    inputs:
+      tagged_commit:
+        description: Exact tested commit already targeted by the beta tag
+        required: true
+        type: string
+      release_notes:
+        description: Approved release notes including tests and unmerged status
+        required: true
+        type: string
 
 permissions:
   contents: write
+  actions: read
+
+concurrency:
+  group: manually-approved-feature-beta
+  cancel-in-progress: false
 
 jobs:
-  release:
+  publish:
+    if: startsWith(github.ref, 'refs/heads/feature/')
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_COMMIT: ${{ inputs.tagged_commit }}
+      APPROVED_NOTES: ${{ inputs.release_notes }}
     steps:
-      - name: Checkout repository
+      - name: Checkout exact tested source
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tagged_commit }}
           fetch-depth: 0
 
-      - name: Read release metadata
-        id: meta
+      - name: Verify feature ancestry, tag and successful CI
         shell: bash
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          TAG="v$VERSION"
+          set -euo pipefail
+          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          git merge-base --is-ancestor c1d9507ee48e65b951f6302c668dadf17043c195 HEAD
+          git merge-base --is-ancestor HEAD "origin/$GITHUB_REF_NAME"
+          test "$(git rev-parse 'v1.7.0-beta.1^{commit}')" = "$RELEASE_COMMIT"
+          git cat-file -e "$RELEASE_COMMIT:src/cube-element.js"
+          RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event push --status success --json databaseId --jq '.[0].databaseId // empty')
+          PR_RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event pull_request --status success --json databaseId --jq '.[0].databaseId // empty')
+          test -n "$RUN_ID"
+          test -n "$PR_RUN_ID"
+          gh run download "$RUN_ID" --name honeycomb-menu-ng --dir "$RUNNER_TEMP/validated"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Reproduce the validated artifact
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run build
+          ARTIFACT=$(rg --files "$RUNNER_TEMP/validated" | rg '/honeycomb-menu-ng.js$')
+          test -n "$ARTIFACT"
+          cmp honeycomb-menu-ng.js "$ARTIFACT"
+          node scripts/check-beta.js > "$RUNNER_TEMP/SHA256SUMS.txt"
+          test "$(node -p "require('./package.json').version")" = '1.7.0-beta.1'
+          test "$(node -p "require('./release.json').prerelease")" = 'true'
+          printf '%s\n' "$APPROVED_NOTES" > "$RUNNER_TEMP/approved-release-notes.md"
+
+      - name: Publish beta assets without changing latest stable
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG=v1.7.0-beta.1
+          gh api "repos/$GH_REPO/releases" --paginate --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags.txt"
+          if rg --fixed-strings --line-regexp "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
+            echo 'Release already exists; refusing to replace published assets.'
+            exit 1
+          fi
           TITLE=$(node -p "require('./release.json').title")
-          PRERELEASE=$(node -p "String(require('./release.json').prerelease)")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
-
-      - name: Check whether release already exists
-        id: existing
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.meta.outputs.tag }}
-        shell: bash
-        run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Create release
-        if: steps.existing.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.meta.outputs.tag }}
-          TITLE: ${{ steps.meta.outputs.title }}
-          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
-        shell: bash
-        run: |
-          ARGS=(
-            release create "$TAG"
-            --target "${GITHUB_SHA}"
-            --title "$TITLE"
-            --notes-file RELEASE_NOTES.md
-          )
-
-          if [ "$PRERELEASE" = "true" ]; then
-            ARGS+=(--prerelease)
-          fi
-
-          gh "${ARGS[@]}"
+          gh release create "$TAG" --verify-tag --target "$RELEASE_COMMIT" \
+            --prerelease --latest=false --title "$TITLE" \
+            --notes-file "$RUNNER_TEMP/approved-release-notes.md" \
+            honeycomb-menu-ng.js "$RUNNER_TEMP/SHA256SUMS.txt"
