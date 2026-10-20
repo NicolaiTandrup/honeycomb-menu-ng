@@ -56,6 +56,25 @@ function persistentHexPoints(mode = 'inset')
         : PERSISTENT_HEX_POINTS.inset;
 }
 
+function ringForSlot(slot)
+{
+    let ring = Math.max(1,Math.ceil((Math.sqrt(1+4*(Number(slot)+1)/3)-1)/2));
+    return ring;
+}
+function ringCapacity(radius) { return 3*radius*(radius+1); }
+function sceneCenter(radius) { return {x:radius,y:radius*.865}; }
+function extendedPosition(slot, radius)
+{
+    const ring=ringForSlot(slot), start=3*(ring-1)*ring;
+    let offset=slot-start, q=-ring, r=0;
+    const directions=[[1,-1],[1,0],[0,1],[-1,1],[-1,0],[0,-1]];
+    for (const [dq,dr] of directions) {
+        const steps=Math.min(offset,ring); q+=dq*steps; r+=dr*steps; offset-=steps;
+        if (!offset) break;
+    }
+    return {x:radius+q+r/2,y:radius*.865+r*.865};
+}
+
 function resolveRings(buttonCount, hardTargets = [])
 {
     const total = Math.max(0, Number(buttonCount) || 0);
@@ -82,11 +101,14 @@ function resolveRings(buttonCount, hardTargets = [])
             outer = true;
     });
 
-    return { inner, outer };
+    const maximum=Math.max(total-1,...hardTargets,0);
+    const radius=Math.max(outer?2:1,ringForSlot(maximum));
+    return { inner, outer, radius };
 }
 
 function activeSlotPool(rings)
 {
+    if ((rings || {}).radius > 2) return Array.from({length:ringCapacity(rings.radius)},(_,i)=>i);
     const inner = !!(rings && rings.inner);
     const outer = !!(rings && rings.outer);
 
@@ -112,9 +134,11 @@ function buttonPosition(slot, options = {})
     const hasInner = options.inner !== false;
     const hasOuter = options.outer === true;
 
-    if( ! Number.isInteger(index) || index < 0 || index >= 18 )
+    if( ! Number.isSafeInteger(index) || index < 0 )
         return null;
 
+    const radius=options.radius || (hasOuter?2:1);
+    if (index >= 18) return extendedPosition(index,radius);
     let position;
 
     if( index < 6 )
@@ -135,12 +159,12 @@ function buttonPosition(slot, options = {})
     if( ! position )
         return null;
 
-    return hasOuter
-        ? { x: position.x + 1, y: position.y + 0.865 }
-        : { x: position.x, y: position.y };
+    const shift=radius-1;
+    return {x:position.x+shift,y:position.y+shift*.865};
 }
 
 module.exports = {
+    ringForSlot, ringCapacity, sceneCenter, extendedPosition,
     INNER_RING,
     OUTER_RING,
     INNER_POOL,

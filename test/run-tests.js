@@ -103,15 +103,15 @@ function testLayoutGrowthKeepsCenterDefinition()
 
     assert.deepStrictEqual(
         layout.resolveRings(6, []),
-        { inner: true, outer: false }
+        { inner: true, outer: false, radius: 1 }
     );
     assert.deepStrictEqual(
         layout.resolveRings(12, []),
-        { inner: false, outer: true }
+        { inner: false, outer: true, radius: 2 }
     );
     assert.deepStrictEqual(
         layout.resolveRings(13, []),
-        { inner: true, outer: true }
+        { inner: true, outer: true, radius: 2 }
     );
 }
 
@@ -447,13 +447,13 @@ function testSonosSlotZeroUsesPersistentContract()
 {
     const sonos = moduleRegistry.resolve({
         type: 'media',
-        entity: 'media_player.sommerhus'
+        entity: 'media_player.player_a'
     });
 
     const launcher = sonos.buildLauncher({
         item: {
             type: 'media',
-            entity: 'media_player.sommerhus',
+            entity: 'media_player.player_a',
             icon: 'mdi:speaker',
             active_color: '#00bcd4'
         },
@@ -462,7 +462,7 @@ function testSonosSlotZeroUsesPersistentContract()
         submenu: sonos.buildMenu({
             item: {
                 type: 'media',
-                entity: 'media_player.sommerhus',
+                entity: 'media_player.player_a',
                 icon: 'mdi:speaker',
                 active_color: '#00bcd4'
             }
@@ -474,7 +474,7 @@ function testSonosSlotZeroUsesPersistentContract()
     assert.strictEqual(sonos.launcherKind, 'persistent');
     assert.strictEqual(center.kind, 'persistent');
     assert.strictEqual(center.config.mode, 'media');
-    assert.strictEqual(center.config.entity, 'media_player.sommerhus');
+    assert.strictEqual(center.config.entity, 'media_player.player_a');
     assert.strictEqual(center.config.interactive, true);
     assert.strictEqual(center.config.active_color, '#00bcd4');
     assert.ok(center.config.menu);
@@ -646,7 +646,7 @@ function testSharedBeeBranding()
     assert.strictEqual(Buffer.compare(master, embedded), 0);
 
     const persistentControlSource = fs.readFileSync(
-        path.resolve(__dirname, '../src/honeycomb-persistent-control.js'),
+        path.resolve(__dirname, '../src/cube-element.js'),
         'utf8'
     );
 
@@ -699,7 +699,7 @@ function testArchitectureBoundaries()
     assert.ok(lightControlsSource.includes('honeycomb-open-nested'));
 
     const persistentControlSource = fs.readFileSync(
-        path.resolve(__dirname, '../src/honeycomb-persistent-control.js'),
+        path.resolve(__dirname, '../src/cube-element.js'),
         'utf8'
     );
     const rendererSource = fs.readFileSync(

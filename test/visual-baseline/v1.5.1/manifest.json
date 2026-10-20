@@ -1,0 +1,17 @@
+{
+  "commit": "c1d9507ee48e65b951f6302c668dadf17043c195",
+  "bundle_sha256": "d5f4aab8c52520810763aa27c49699b56fff78c3e429ec9e6f8d5ff768197816",
+  "viewports": [
+    "1100x900",
+    "390x844"
+  ],
+  "reference": "Unchanged v1.5.1 full-cell Hub at controlled 82px host width; real button-card 7.0.1; synthetic HA shell and deterministic icon glyph.",
+  "images": {
+    "1100-generic-reference.png": "8b09c72d21de808551f10935955eeab200ef5d4d542e09bdd57cc7ebc48adf16",
+    "1100-hub-reference.png": "64d922ae06186d23def42d68593599c4d4f9cf4e804cd035fcc0f027d5803dad",
+    "1100-light-cell.png": "7a6764eecf020db2d8a0052297be86ab69f0dfe2c2f8c5dcf90636ae0e51557e",
+    "390-generic-reference.png": "234e33bd5db4b39ca5e570d4b826501daf5fc2426944c93e0081b0db3235017e",
+    "390-hub-reference.png": "7f2ec3fdf612de7a60c2bf77bd0869c5818d77bdf1e0967550dde7eddd583195",
+    "390-light-cell.png": "7a6764eecf020db2d8a0052297be86ab69f0dfe2c2f8c5dcf90636ae0e51557e"
+  }
+}

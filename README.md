@@ -10,6 +10,18 @@ Honeycomb Menu NG is a modular Home Assistant dashboard interaction system built
 
 The project **originated as a fork** of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu) by Sian Croser. Honeycomb Menu NG still contains portions of that GPLv3 codebase and keeps full attribution, but NG has evolved into a substantially larger modular implementation with persistent Hubs, native Light/Media/Sonos modules, locked-center navigation, state-aware controls and automated regression tests.
 
+## v1.7.0-beta.1: Phase 1 preview
+
+Hub and Control share the v1.5.1 Hub full-cell renderer and default to 82 px.
+Control can select the same Light/Media/Sonos modules with `module`; Hub retains
+`logo: auto`, and `logo: false` removes branding while allowing an ordinary center
+item. Large Hub configurations are no longer truncated at seven items.
+
+This pre-release comes from a tested feature branch based on `restart/v1.5.1` and
+is **not yet merged** into that branch. Dynamic visibility, priority placement and
+Car/Charger modules are not implemented. See the [Phase 1 configuration, migration
+and limitations](docs/V1_7_PHASE1.md) before trying it. Latest stable is v1.5.1.
+
 ## What Honeycomb Menu NG gives you
 
 - persistent Honeycomb Hubs for floorplans and compact dashboards
@@ -19,7 +31,7 @@ The project **originated as a fork** of [Sian-Lee-SA/honeycomb-menu](https://git
 - generic media controls for non-Sonos players
 - fixed physical module center: nested menus may expand from 7 to 19 cubes without moving slot 0
 - state-aware launcher colors, brightness/volume labels and explicit `Unavailable` status
-- 6-slot inner ring + 12-slot outer ring
+- established inner/outer layouts plus expandable rings for larger Hub configurations
 - soft/hard slot placement and classic popup compatibility
 - nested menus, templates and XY Pad
 - modular core with isolated domain modules and regression tests
