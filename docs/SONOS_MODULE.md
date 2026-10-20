@@ -18,15 +18,19 @@ Legacy `type: media` still resolves to Sonos unless `module: media` is specified
 
 ## Default detail layout
 
+Issue #90 development patch (target v1.7.1, pending owner review) moves the Radio,
+Browse and volume launchers. Published v1.7.0 used volume down/up at 1/4 and
+Radio/Browse at 5/6. The Radio outer submenu is unchanged.
+
 | Slot | Function |
 |---:|---|
 | 0 | selected Sonos / live volume |
-| 1 | group-aware volume down |
+| 1 | Radio favorites |
 | 2 | play/pause |
 | 3 | Join |
-| 4 | group-aware volume up |
-| 5 | Radio favorites |
-| 6 | Browse / more-info |
+| 4 | Browse / more-info |
+| 5 | group-aware volume down |
+| 6 | group-aware volume up |
 
 While playing, the center fills with `active_color` and shows live volume. When not playing, the center is dark with active-color ring.
 
@@ -154,11 +158,27 @@ Join is optional. It requires:
 ~~~
 
 Do not include the coordinator in candidates. At most 12 candidates are displayed.
-Without both script and members, Join falls back to more-info. Browse also opens
-HA more-info. For `script: !include scripts.yaml`, copy only the script key and
-below, without the top-level `script:` wrapper. Validate HA config and reload scripts.
+Join always opens the outer ring: no eligible candidates shows `No rooms` /
+`Configure members` (or `Check members` for invalid/self-only entries). Missing
+script configuration shows `Configure script`; a missing entity/service shows
+`Script unavailable`. Browse continues to open HA more-info.
+For `script: !include scripts.yaml`, copy only the script key and below, without
+the top-level `script:` wrapper. Validate HA config and reload scripts.
 
-Honeycomb highlights candidates already present in the selected player's `group_members`.
+Candidate order follows `members`; duplicate entries and the selected player are
+excluded. Names fall back to HA's `friendly_name`, then the configured entity ID.
+`Joined` with a teal fill and `Not joined` with a dark fill reflect HA
+`group_members` live, including changes while the ring is open. Tapping a room
+calls the configured script with `{member: <candidate entity>}`; the ring stays
+open for more selections. Tap the center/back arrow to return to primary controls.
+
+The script must exist as an available `script.*` entity and service and be bound
+to the selected coordinator. Unknown membership, an unavailable player, a selected
+follower (`Use group leader`), or a candidate in another group (`Other group`) is
+read-only. Open the leader or ungroup the other room in HA before retrying;
+Honeycomb does not move unrelated groups or infer Sonos rooms from areas.
+Script failures show a HA notification and keep the last actual membership; no
+optimistic success is displayed. The existing external script recipe is unchanged.
 
 Copy the standard join/unjoin script from:
 [examples/sonos-toggle-member.yaml](../examples/sonos-toggle-member.yaml)

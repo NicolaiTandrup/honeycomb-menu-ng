@@ -529,13 +529,205 @@ class Cubes(unittest.TestCase):
         preset=self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface')
         preset.click();self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['light','turn_on'])
         self.hold(preset);self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['input_number','set_value'])
+    def sonos_setup(self):
+        self.page.evaluate('''()=>{
+            window.notifications=[];
+            document.querySelector('home-assistant').addEventListener('hass-notification',e=>notifications.push(e.detail.message));
+            hass.services={script:{toggle_member_a:{}}};
+            pushStates([
+                ['media_player.player_a','playing',{volume_level:.42,media_title:'A long synthetic track title for alignment',group_members:['media_player.player_a','media_player.player_b']}],
+                ['media_player.player_b','idle',{friendly_name:'Room B',volume_level:.2,group_members:['media_player.player_a','media_player.player_b']}],
+                ['media_player.player_c','idle',{friendly_name:'Room C with a longer name',volume_level:.2,group_members:['media_player.player_c']}],
+                ['script.toggle_member_a','off',{}]
+            ]);
+        }''')
+    def sonos_item(self):
+        return {'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache',
+            'members':[{'entity':'media_player.player_b','name':'Room B'},{'entity':'media_player.player_c','name':'Room C with a longer name'}],
+            'toggle_member_script':'script.toggle_member_a'}
+    def sonos_open(self, item=None):
+        self.sonos_setup()
+        self.hub({'logo':False,'items':[item or self.sonos_item()]})
+        self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
+        self.settle()
+    def sonos_slot(self, physical):
+        # DOM ring indices start at zero; documented/configured slots start at 1.
+        return self.page.locator(f'honeycomb-menu [data-honeycomb-slot="{physical-1}"]')
+    def sonos_radio_state(self):
+        return self.page.evaluate('''()=>({
+            outer:[...hub._hubMenu.shadowRoot.querySelectorAll('[data-honeycomb-slot]')].filter(el=>Number(el.dataset.honeycombSlot)>=6).map(el=>({
+                index:Number(el.dataset.honeycombSlot),x:el.offsetLeft,y:el.offsetTop,width:el.offsetWidth,height:el.offsetHeight,model:el._model,
+                artwork:getComputedStyle(el.shadowRoot.querySelector('.artwork')).backgroundImage})),
+            center:hub._hubMenu.shadowRoot.querySelector('.center-item')._model
+        })''')
+    def sonos_radio_data(self):
+        self.page.evaluate('''()=>{
+            const items=Object.fromEntries(Array.from({length:12},(_,i)=>['favorite_'+i,'Station '+String(i+1).padStart(2,'0')]));
+            const thumbnail='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Crect width=%2224%22 height=%2224%22 fill=%22red%22/%3E%3C/svg%3E';
+            pushStates([['sensor.favorites','12',{items}],['sensor.favorites_cache','1',{items:[{media_content_id:'favorite_5',thumbnail}]}]]);
+        }''')
+    def test_issue90_slots_handlers_and_light_alignment(self):
+        self.sonos_open()
+        self.assert_visible_unique_cells(7)
+        self.assertEqual(self.page.locator('honeycomb-menu-item .interaction-surface').evaluate_all('(els)=>els.map(el=>el.getAttribute("aria-label"))'),['Radio','Pause','Join','Browse','Vol','Vol'])
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item .secondary').inner_text(),'42%')
+        for physical,service in [(2,'media_play_pause'),(5,'volume_down'),(6,'volume_up')]:
+            self.activate(self.sonos_slot(physical).locator('.interaction-surface'))
+            self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),service)
+            if physical>2:self.assertEqual(self.page.evaluate('calls.at(-1)[3].entity_id'),['media_player.player_a','media_player.player_b'])
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('moreInfo'),['media_player.player_a'])
+        # Track and status strings stay centered/truncated inside the same cells.
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector("[data-honeycomb-slot=\\"1\\"]")._model.secondary.includes("synthetic")')
+        metrics=self.sonos_slot(2).evaluate('''el=>{const root=el.shadowRoot,content=root.querySelector('.content'),r=content.getBoundingClientRect();return {
+            grid:getComputedStyle(content).gridTemplateRows,
+            items:['ha-icon','.primary','.secondary'].map(s=>{const n=root.querySelector(s),b=n.getBoundingClientRect(),c=getComputedStyle(n);return {x:b.x+b.width/2-r.x,width:b.width,y:b.y-r.y,height:b.height,font:c.fontSize,align:c.alignSelf,padding:c.paddingTop}})
+        }}''')
+        for item in metrics['items']:self.assertAlmostEqual(item['x'],41,delta=.6)
+        self.assertLessEqual(metrics['items'][1]['width'],66)
+        self.assertLessEqual(metrics['items'][2]['width'],66)
+        self.capture('issue90-controls')
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
+        self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.settle()
+        light=self.sonos_slot(2).evaluate('''el=>{const r=el.shadowRoot.querySelector('.content').getBoundingClientRect();return ['ha-icon','.primary','.secondary'].map(s=>{const n=el.shadowRoot.querySelector(s),b=n.getBoundingClientRect(),c=getComputedStyle(n);return {x:b.x+b.width/2-r.x,width:b.width,y:b.y-r.y,height:b.height,font:c.fontSize,align:c.alignSelf,padding:c.paddingTop}})}''')
+        for index in range(3):
+            for key in ['x','y','height','font','align','padding']:
+                if key in ['x','y','height']:
+                    self.assertAlmostEqual(metrics['items'][index][key],light[index][key],delta=.1,msg=f'Light/Sonos {index} {key}')
+                else:self.assertEqual(metrics['items'][index][key],light[index][key],f'Light/Sonos {index} {key}')
+        self.capture('issue90-light-reference')
+    def test_issue90_join_unjoin_live_state_failure_and_retry(self):
+        self.sonos_open()
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===8')
+        self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Joined')
+        self.assertEqual(self.sonos_slot(8).locator('.secondary').inner_text(),'Not joined')
+        joined=self.sonos_slot(7).locator('.hex-fill').get_attribute('fill')
+        solo=self.sonos_slot(8).locator('.hex-fill').get_attribute('fill')
+        self.assertNotEqual(joined,solo)
+        self.capture('issue90-join')
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','toggle_member_a',{'member':'media_player.player_b'},{}])
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Joined','HA remains authoritative until updated')
+        self.page.evaluate("pushStates([['media_player.player_a','playing',{volume_level:.42,group_members:['media_player.player_a']}],['media_player.player_b','idle',{group_members:['media_player.player_b']} ]])")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector("[data-honeycomb-slot=\\"6\\"]")._model.secondary==="Not joined"')
+        self.assertEqual(self.sonos_slot(7).locator('.hex-fill').get_attribute('fill'),solo)
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].member'),'media_player.player_b')
+        self.page.evaluate("pushStates([['media_player.player_a','playing',{volume_level:.42,group_members:['media_player.player_a','media_player.player_b']}],['media_player.player_b','idle',{group_members:['media_player.player_a','media_player.player_b']} ]])")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector("[data-honeycomb-slot=\\"6\\"]")._model.secondary==="Joined"')
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        # Rejected promises produce user feedback and no optimistic membership.
+        self.page.evaluate("()=>{hass.callService=(...args)=>{calls.push(args);return Promise.reject(new Error('synthetic grouping failure'))}}")
+        self.activate(self.sonos_slot(8).locator('.interaction-surface'))
+        self.page.wait_for_function('notifications.length===1')
+        self.assertIn('Could not update Sonos group',self.page.evaluate('notifications[0]'))
+        self.assertEqual(self.sonos_slot(8).locator('.secondary').inner_text(),'Not joined')
+        self.page.evaluate('()=>{hass.callService=(...args)=>{calls.push(args);return Promise.resolve()}}')
+        self.activate(self.sonos_slot(8).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].member'),'media_player.player_c')
+        # Real center/back navigation returns to primary controls without playback.
+        count=self.page.evaluate('calls.length')
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.assertEqual(self.page.evaluate('calls.length'),count)
+        self.assertEqual(self.page.locator('honeycomb-menu-item').count(),6)
+    def test_issue90_empty_setup_single_room_and_script_errors(self):
+        self.sonos_open({'type':'sonos','entity':'media_player.player_a'})
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.assertEqual(self.sonos_slot(7).locator('.primary').inner_text(),'No rooms')
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Configure members')
+        self.assertEqual(self.page.evaluate('moreInfo.length+calls.length'),0)
+        self.capture('issue90-empty')
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        item=self.sonos_item();item['members']=[{'entity':'media_player.player_a'},{'entity':'media_player.player_b','name':'Room B'},{'entity':'media_player.player_b'}]
+        item.pop('toggle_member_script')
+        self.sonos_open(item);self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.assertEqual(self.page.locator('honeycomb-menu-item').count(),7)
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Configure script')
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.assertIn('toggle_member_script',self.page.evaluate('notifications[0]'))
+        self.capture('issue90-script-setup')
+    def test_issue90_join_hold_and_touch_cancel_do_not_execute_actions(self):
+        self.sonos_open();self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        target=self.sonos_slot(7).locator('.interaction-surface')
+        target.dispatch_event('pointerdown',{'pointerId':55,'pointerType':'touch','clientX':30,'clientY':300,'button':0})
+        target.dispatch_event('pointercancel',{'pointerId':55,'pointerType':'touch'})
+        self.page.wait_for_timeout(550)
+        self.hold_input(target)
+        self.assertEqual(self.page.evaluate('calls.length+moreInfo.length'),0)
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        self.activate(target)
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].member'),'media_player.player_b')
+    def test_issue90_live_candidate_availability_and_group_safety(self):
+        self.sonos_open();self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        cases=[('media_player.player_c','idle',{'group_members':['media_player.player_d','media_player.player_c']},'Other group'),
+            ('media_player.player_c','unavailable',{},'Unavailable'),
+            ('media_player.player_c','idle',{},'Group unknown'),
+            ('media_player.player_c','idle',{'group_members':['media_player.player_c']},'Not joined'),
+            ('script.toggle_member_a','unavailable',{},'Script unavailable'),
+            ('script.toggle_member_a','off',{},'Not joined'),
+            ('media_player.player_a','playing',{'group_members':['media_player.player_d','media_player.player_a']},'Use group leader')]
+        for entity,state,attrs,label in cases:
+            self.page.evaluate('([id,s,a])=>pushState(id,s,a)',[entity,state,attrs])
+            self.page.wait_for_function('(label)=>hub._hubMenu.shadowRoot.querySelector("[data-honeycomb-slot=\\"7\\"]")._model.secondary===label',arg=label)
+            if label!='Not joined':
+                count=self.page.evaluate('calls.length');self.activate(self.sonos_slot(8).locator('.interaction-surface'))
+                self.assertEqual(self.page.evaluate('calls.length'),count)
+        self.capture('issue90-other-group')
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+    def test_issue90_radio_outer_render_matches_v170_reference(self):
+        self.sonos_open();self.sonos_radio_data()
+        self.activate(self.sonos_slot(1).locator('.interaction-surface'));self.settle()
+        snapshot=self.sonos_radio_state()
+        if self.evidence:
+            reference=json.loads((self.evidence/'before'/f'{self.viewport["width"]}-radio-state.json').read_text())
+            self.assertEqual(snapshot,reference,'Radio outer descriptors, rendered models/geometry/artwork and center remain unchanged')
+        self.assertEqual([x['model']['name'] for x in snapshot['outer']],[f'Station {i:02d}' for i in range(1,13)])
+        self.assertEqual([x['index'] for x in snapshot['outer']],list(range(6,18)))
+        self.capture('issue90-radio')
+        for index in [0,5,11]:
+            if index:
+                self.page.wait_for_function('hub._menuContext.currentConfig?._persistent_hub_root===true && !hub._hubMenu?.closing')
+                self.settle()
+                self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.page.wait_for_function('hub._menuContext.stack.length===1')
+                self.activate(self.sonos_slot(1).locator('.interaction-surface'))
+            self.activate(self.sonos_slot(index+7).locator('.interaction-surface'))
+            self.assertEqual(self.page.evaluate('calls.at(-1)'),['media_player','play_media',{'media_content_id':f'favorite_{index}','media_content_type':'favorite_item_id'},{'entity_id':'media_player.player_a'}])
+    def test_issue90_legacy_hub_and_standalone_sonos_share_actions(self):
+        self.sonos_setup()
+        for adapter in ['legacy','control']:
+            item=self.sonos_item()
+            if adapter=='legacy':
+                item['type']='media';self.hub({'logo':False,'items':[item]})
+                target=self.page.locator('honeycomb-menu .interaction-surface')
+            else:
+                item.pop('type');item['module']='sonos'
+                self.page.evaluate('config=>makeControl(config)',item)
+                target=self.page.locator('body > honeycomb-persistent-control .interaction-surface')
+            self.hold_input(target)
+            self.page.wait_for_function('view.querySelector("honeycomb-menu").buttons.filter(Boolean).length===6')
+            self.activate(self.sonos_slot(5).locator('.interaction-surface'))
+            self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'volume_down')
+            self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+            self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+            self.assertEqual(self.page.evaluate('calls.at(-1)[2].member'),'media_player.player_b')
+            if adapter=='legacy':self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+
     def test_sonos_favorites_cache_volume_and_grouping(self):
+        self.sonos_setup()
         self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache','members':[{'entity':'media_player.player_b','name':'Player B'}],'toggle_member_script':'script.toggle_member_a'}]})
         self.page.locator('honeycomb-menu .interaction-surface').click()
         self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['media_player','media_play_pause'])
         self.hold(self.page.locator('honeycomb-menu .interaction-surface'))
         self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
-        self.page.locator('honeycomb-menu [data-honeycomb-slot="0"] .interaction-surface').click()
+        self.page.locator('honeycomb-menu [data-honeycomb-slot="4"] .interaction-surface').click()
         self.assertEqual(self.page.evaluate('calls.at(-1)[3].entity_id'),['media_player.player_a','media_player.player_b'])
         self.page.locator('honeycomb-menu [aria-label="Join"]').click()
         self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===7')
@@ -672,6 +864,9 @@ def main():
         with sync_playwright() as p:
             Cubes.browser=p.chromium.launch(executable_path=os.getenv('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox'])
             Cubes.url=f'http://127.0.0.1:{server.server_port}';Cubes.evidence=args.evidence_dir
+            if args.evidence_dir and not args.baseline:
+                from sonos_reference import capture_reference
+                capture_reference(Cubes,Handler,args.button_card.resolve(),args.evidence_dir)
             for width,height in [(1100,900),(390,844)]:
                 Cubes.viewport={'width':width,'height':height}
                 names=['test_baseline'] if args.baseline else [n for n in unittest.defaultTestLoader.getTestCaseNames(Cubes) if n!='test_baseline']

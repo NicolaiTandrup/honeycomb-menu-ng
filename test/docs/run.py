@@ -194,6 +194,7 @@ STATES={
  'media_player.player_a':{'state':'playing','attributes':{'volume_level':.42,'group_members':['media_player.player_a','media_player.player_b']}},
  'media_player.player_b':{'state':'idle','attributes':{'volume_level':.2}},
  'media_player.player_c':{'state':'idle','attributes':{'volume_level':.2}},
+ 'script.player_a_toggle_member':{'state':'off','attributes':{}},
  'number.relay_a_brightness':{'state':'60','attributes':{}},
  'number.relay_a_kelvin':{'state':'2700','attributes':{}},
  'input_number.preset_a_hue':{'state':'30','attributes':{}},
@@ -206,6 +207,7 @@ for entity,state in STATES.items():state['entity_id']=entity
 class Examples(BROWSER.Cubes):
     def setUp(self):
         super().setUp()
+        self.page.evaluate('hass.services={script:{player_a_toggle_member:{}}}')
         self.page.evaluate('states=>pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]))',STATES)
     def control_example(self,name):
         self.page.evaluate('config=>makeControl(config)',self.examples[name]);self.settle()
@@ -247,7 +249,7 @@ class Examples(BROWSER.Cubes):
         self.activate(self.page.locator('honeycomb-menu [aria-label="Join"]'))
         self.page.wait_for_function('hub._menuContext.stack.length===2')
         self.activate(self.page.locator('honeycomb-menu [data-honeycomb-slot="6"] .interaction-surface'))
-        self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','player_a_toggle_member',{'member':'media_player.player_b'},{'entity_id':'media_player.player_b'}])
+        self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','player_a_toggle_member',{'member':'media_player.player_b'},{}])
         self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
         self.activate(self.page.locator('honeycomb-menu [aria-label="Radio"]'))
         self.page.wait_for_function('hub._menuContext.stack.length===2')

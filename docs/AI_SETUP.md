@@ -5,7 +5,8 @@
 PR #84 and release-retention PR #88. Use it with v1.7.0 code, not stable v1.5.1 or
 the abandoned v1.6 implementation. Package/release metadata is `1.7.0`, stable.
 Unfinished recursive palette, native Car and Climate/Thermostat features (#85–#87)
-are excluded. Existing Light/Media/Sonos behavior and all examples below are unchanged.
+are excluded. All YAML examples remain valid; unreleased Issue #90 Sonos slot/Join
+differences are marked in the Sonos section below.
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute
@@ -249,9 +250,29 @@ that member; otherwise `media_player.join` targets the coordinator with
 Install under `script:` in configuration.yaml, or copy only
 `player_a_toggle_member:` and below into `scripts.yaml` when using
 `script: !include scripts.yaml`. Reload scripts and confirm the entity ID.
-Use at most 12 candidate entries; exclude the coordinator itself. Without both
-script and candidates, Join opens more-info. Browse is also HA more-info, not a
-custom library browser. [Sonos details](SONOS_MODULE.md).
+Use at most 12 candidate entries; exclude the coordinator itself. Browse is HA
+more-info, not a custom library browser. [Sonos details](SONOS_MODULE.md).
+
+**Issue #90 development patch, target v1.7.1 (not yet released):** Sonos inner
+slots are 1 Radio, 2 Play/Pause, 3 Solo/Join, 4 Browse, 5 Volume Down, 6 Volume Up.
+Center 0 and Radio outer slots 7–18 retain their behavior. Generic `module: media`
+keeps its own layout; Hub `type: sonos`, legacy `type: media` and Control
+`module: sonos` use the corrected Sonos layout.
+
+Join always opens an outer ring. Configure explicit Sonos `members` and a loaded,
+available `script.*` entity/service for `toggle_member_script`, still accepting
+only `member`. No candidates → `No rooms` / `Configure members`; invalid/self-only
+candidates → `Check members`; no script → `Configure script`; missing/unsupported
+script → `Script unavailable`. Candidate order is configured order, deduplicated
+and excluding the selected player. Missing names use HA friendly names/entity IDs.
+Membership labels/fills follow actual `group_members`; a request does not invent
+success. Failed requests show a HA notification; the ring remains open.
+
+Use the selected group leader with its matching script. Unknown group state,
+unavailable rooms, a selected follower or a candidate in another group are
+read-only; use HA to ungroup the other room before adding it. Do not discover
+Sonos by domain alone, fabricate room entities, insert backend scripts silently,
+or modify the existing Radio cache/order/artwork/playback recipe.
 
 ## Canonical complete cards
 

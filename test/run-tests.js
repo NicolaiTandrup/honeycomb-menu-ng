@@ -548,19 +548,19 @@ function testModuleMenusAreDeclarative()
 
     assert.strictEqual(sonosMenu.buttons.length, 6);
     assert.strictEqual(
-        sonosMenu.buttons[4].tap_action.action,
+        sonosMenu.buttons[0].tap_action.action,
         'honeycomb-open-nested'
     );
     assert.strictEqual(
-        sonosMenu.buttons[4].tap_action.honeycomb_nested_menu.buttons[0].slot,
+        sonosMenu.buttons[0].tap_action.honeycomb_nested_menu.buttons[0].slot,
         7
     );
 
-    // Sonos controls own their visual grid instead of inheriting the generic
-    // persistent defaults. Buttons with a secondary label get three rows.
+    // Sonos uses Light's three-row hierarchy, reserving the status line
+    // even when a control has no secondary label. Radio outer styles stay local.
     assert.strictEqual(
         sonosMenu.buttons[0].styles.grid[0]['grid-template-areas'],
-        '"i" "n"'
+        '"i" "n" "l"'
     );
     assert.strictEqual(
         sonosMenu.buttons[1].styles.grid[0]['grid-template-areas'],
@@ -572,7 +572,7 @@ function testModuleMenusAreDeclarative()
     );
 
     const firstFavorite =
-        sonosMenu.buttons[4]
+        sonosMenu.buttons[0]
             .tap_action
             .honeycomb_nested_menu
             .buttons[0];

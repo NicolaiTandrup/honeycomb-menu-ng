@@ -272,6 +272,11 @@ The [complete Sonos example](examples/v1.7/sonos.yaml) and
 [AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)
 explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_MODULE.md).
 
+Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
+2 Play/Pause, 3 Solo/Join, 4 Browse, 5 Volume Down, 6 Volume Up**. Join shows live
+room membership or an explicit setup/availability state. Radio's outer submenu
+retains its ordering, artwork and playback.
+
 ## Actions, appearance and navigation
 
 - Tap, hold and optional double tap use HA action objects (`toggle`, `more-info`,

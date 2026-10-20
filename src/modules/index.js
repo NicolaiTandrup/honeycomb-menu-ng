@@ -18,6 +18,7 @@ moduleRegistry
 
 lightActions.registerActions(customActionRegistry);
 mediaActions.registerActions(customActionRegistry);
+sonos.registerActions(customActionRegistry);
 
 module.exports = {
     moduleRegistry,
