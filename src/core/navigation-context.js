@@ -50,6 +50,8 @@ function createMenuContext(options = {})
         honeycomb: null,
         stack: [],
         currentConfig: null,
+        pointers: new Set(),
+        pendingActions: new Set(),
         local,
         moduleAnchor: null,
         navigation: {

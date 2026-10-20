@@ -24,19 +24,22 @@ function buildCubeConfig(item, hass, index = 0, slot = 0)
     return compiled;
 }
 
-function validatePhaseOne(config)
+// Phase 2 applies only at the Hub item boundary. Classic submenu conditions
+// keep their existing show semantics; unsupported dynamic keys fail explicitly.
+function validateCubeConfig(config, {hubItems = false, placement = false} = {})
 {
     if (!config || typeof config !== 'object') throw new Error('A Honeycomb configuration is required.');
-    if (config.visibility !== undefined || config.slot_mode === 'priority')
-        throw new Error('Dynamic visibility and priority placement are planned for a later v1.7 phase.');
-    if (Array.isArray(config)) { config.forEach(value=>{if(value && typeof value === 'object') validatePhaseOne(value);}); return; }
-    // Only configuration boundaries contain Honeycomb visibility. CSS may
-    // legitimately contain styles.card.visibility and must remain untouched.
+    if (!placement && (config.visibility !== undefined || config.slot_mode === 'priority'))
+        throw new Error('Dynamic visibility and priority placement are supported only on Hub items.');
+    if (Array.isArray(config)) {
+        config.forEach(value => { if (value && typeof value === 'object') validateCubeConfig(value, {placement}); });
+        return;
+    }
     for (const key of ['items','buttons','menu','tap_action','hold_action',
         'double_tap_action','honeycomb_menu','honeycomb_nested_menu']) {
-        const value=config[key];
-        if (value && typeof value === 'object') validatePhaseOne(value);
+        const value = config[key];
+        if (value && typeof value === 'object') validateCubeConfig(value, {placement:hubItems && key === 'items'});
     }
 }
 
-module.exports = { buildCubeConfig, validatePhaseOne };
+module.exports = { buildCubeConfig, validateCubeConfig };

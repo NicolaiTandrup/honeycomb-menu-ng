@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('fs');
 const crypto=require('crypto');
 const layout=require('../src/core/layout');
-const {buildCubeConfig,validatePhaseOne}=require('../src/core/cube-config');
+const {buildCubeConfig,validateCubeConfig}=require('../src/core/cube-config');
 
 test('expanding axial geometry keeps unique cells beyond two rings',()=>{
     for (const count of [5,20,50,200]) {
@@ -34,11 +34,12 @@ test('standalone adapters and Hub use the same generic descriptor',()=>{
     const compiled=buildCubeConfig(item,null,0,0);
     assert.equal(compiled.mode,'generic');assert.equal(compiled.label,'24');assert.equal(compiled.styles.name[0]['font-size'],'12px');
 });
-test('later-phase visibility and priority cannot silently masquerade as implemented',()=>{
+test('dynamic conditions belong only to Hub items; classic CSS and configs stay valid',()=>{
     for (const config of [{visibility:[]},{items:[{slot_mode:'priority'}]},{menu:{buttons:[{visibility:[{condition:'state'}]}]}}])
-        assert.throws(()=>validatePhaseOne(config),/later v1.7 phase/);
-    assert.doesNotThrow(()=>validatePhaseOne({styles:{card:[{visibility:'hidden'}]}}));
-    assert.doesNotThrow(()=>validatePhaseOne({items:Array.from({length:50},()=>({module:'generic'}))}));
+        assert.throws(()=>validateCubeConfig(config),/only on Hub items/);
+    assert.doesNotThrow(()=>validateCubeConfig({items:[{visibility:[],slot_mode:'priority'}]}, {hubItems:true}));
+    assert.doesNotThrow(()=>validateCubeConfig({styles:{card:[{visibility:'hidden'}]}}));
+    assert.doesNotThrow(()=>validateCubeConfig({items:Array.from({length:50},()=>({module:'generic'}))}));
 });
 test('captured baseline provenance and PNG checksums are reproducible',()=>{
     const manifest=require('./visual-baseline/v1.5.1/manifest.json');

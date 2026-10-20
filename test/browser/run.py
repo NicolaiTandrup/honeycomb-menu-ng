@@ -186,6 +186,283 @@ class Cubes(unittest.TestCase):
             self.page.evaluate('honeycomb_menu_close()')
             self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
             self.assertTrue(target.is_visible())
+    def placements(self, hub='hub'):
+        return self.page.evaluate(f'Object.fromEntries({hub}._placements)')
+    def hub_item(self, index):
+        return self.page.locator(f'honeycomb-menu [data-honeycomb-id="items[{index}]"]')
+    def test_phase2_priority_center_hidden_hard_and_stable_soft_positions(self):
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+        self.hub({'logo':False,'items':[
+            {'type':'light','entity':'light.zone_a','slot':0,'slot_mode':'hard'},
+            {'type':'generic','name':'Reserved','slot':2,'slot_mode':'hard','visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'disabled'}]},
+            {'type':'generic','name':'Vehicle A','slot':1,'slot_mode':'priority','visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]},
+            {'type':'generic','name':'Item A','slot_mode':'soft'},
+            {'type':'generic','name':'Item B','slot_mode':'soft'}]})
+        self.assertEqual(self.placements(),{'items[0]':0,'items[3]':1,'items[4]':3})
+        self.page.evaluate('window.stableCube=hub._hubMenu.shadowRoot.querySelector(\'[data-honeycomb-id="items[4]"]\')')
+        stable_box=self.hub_item(4).bounding_box()
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[2]")')
+        self.assertEqual(self.placements(),{'items[0]':0,'items[2]':1,'items[3]':4,'items[4]':3})
+        self.assert_visible_unique_cells(4)
+        self.assertEqual(self.hub_item(4).bounding_box(),stable_box)
+        self.assertTrue(self.page.evaluate('stableCube.isConnected'))
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+        self.page.wait_for_function('!hub._placements.has("items[2]")')
+        self.assertEqual(self.placements(),{'items[0]':0,'items[3]':4,'items[4]':3})
+        self.page.evaluate('hub.setConfig({...hub.config})')
+        self.settle()
+        actual=self.page.evaluate('''()=>Object.fromEntries([...hub._hubMenu.shadowRoot.querySelectorAll('[data-honeycomb-id]')].filter(el=>el.dataset.honeycombId).map(el=>[el.dataset.honeycombId,el.classList.contains('center-item')?0:Number(el.dataset.honeycombSlot)+1]))''')
+        self.assertEqual(actual,self.placements())
+        self.assertEqual(self.placements()['items[3]'],4)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[2]")')
+        self.assertEqual(self.placements()['items[2]'],1)
+        self.capture('phase2-priority')
+    def test_phase2_defer_visibility_until_light_descendants_close_and_preserve_issue78(self):
+        self.issue78_hub()
+        self.page.evaluate('''()=>{pushState('device_tracker.vehicle_a','home');hub.setConfig({...hub.config,items:hub.config.items.map((item,i)=>i===0?{...item,visibility:[{condition:'state',entity:'device_tracker.vehicle_a',state:'home'}]}:item)})}''')
+        self.settle()
+        initial=self.placements(); self.assertEqual(len(initial),3)
+        other_boxes=[self.hub_item(i).bounding_box() for i in [1,2]]
+        self.hold_input(self.hub_item(0).locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        menu_box=self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop])')
+        allocations=self.page.evaluate('hub._hubMetrics.allocations')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away');pushState('light.zone_a','on',{brightness:230,rgb_color:[255,128,0],supported_color_modes:['hs','color_temp']})")
+        self.settle()
+        self.assertEqual(self.placements(),initial)
+        self.assertEqual(self.page.evaluate('hub._hubMetrics.allocations'),allocations)
+        self.assertEqual(self.controls().evaluate_all('(els)=>els.map(el=>[el.offsetLeft,el.offsetTop])'),menu_box)
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item .secondary').inner_text(),'90%')
+        self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+        self.assert_visible_unique_cells(19)
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.assert_visible_unique_cells(7)
+        self.assertEqual(self.placements(),initial)
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('!hub._placements.has("items[0]")')
+        self.assert_visible_unique_cells(3) # branding + the other Light and Media
+        self.assertEqual([self.hub_item(i).bounding_box() for i in [1,2]],other_boxes)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[0]")')
+        self.assert_visible_unique_cells(4)
+        self.hold_input(self.hub_item(0).locator('.interaction-surface'))
+        self.activate(self.page.locator('honeycomb-menu [aria-label="Color"]'))
+        self.page.evaluate("window.oldMenu=hub._hubMenu;pushState('device_tracker.vehicle_a','away');honeycomb_menu_context_close(hub._menuContext)")
+        self.page.wait_for_function('hub._hubMenu && hub._hubMenu!==oldMenu && !hub._placements.has("items[0]")')
+        self.assert_visible_unique_cells(3)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.has("items[0]")')
+        self.hold_input(self.hub_item(0).locator('.interaction-surface'))
+        self.assert_visible_unique_cells(7)
+        self.back();self.assert_visible_unique_cells(4)
+        self.capture('phase2-restored-hub')
+    def test_phase2_pointer_release_cancel_and_delayed_tap_keep_original_identity(self):
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        config={'logo':False,'items':[
+            {'type':'generic','name':'Original','slot_mode':'soft','tap_action':{'action':'perform-action','perform_action':'test.original'},
+             'double_tap_action':{'action':'perform-action','perform_action':'test.double'},
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]},
+            {'type':'generic','name':'Replacement','slot':0,'slot_mode':'priority','tap_action':{'action':'perform-action','perform_action':'test.replacement'},
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'away'}]}]}
+        self.hub(config)
+        target=self.hub_item(0).locator('.interaction-surface');box=target.bounding_box()
+        session=self.page.context.new_cdp_session(self.page) if self.viewport['width']<500 else None
+        def down():
+            if session: session.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':box['x']+41,'y':box['y']+40}]})
+            else: self.page.mouse.move(box['x']+41,box['y']+40);self.page.mouse.down()
+        def up():
+            if session: session.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
+            else: self.page.mouse.up()
+        try:
+            down();self.page.evaluate("pushState('device_tracker.vehicle_a','away')");self.settle()
+            self.assertEqual(self.placements(),{'items[0]':0});self.assertTrue(target.is_visible())
+            up();self.page.wait_for_timeout(100)
+            self.assertEqual(self.placements(),{'items[0]':0}) # double-tap window still owns the identity
+            self.page.wait_for_function('hub._placements.has("items[1]")')
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original'])
+            self.assertEqual(self.placements(),{'items[1]':0})
+            self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+            self.page.wait_for_function('hub._placements.has("items[0]")')
+            down();self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+            if session: session.send('Input.dispatchTouchEvent',{'type':'touchCancel','touchPoints':[]})
+            else:
+                target.dispatch_event('pointercancel',{'pointerId':1,'pointerType':'mouse'})
+                self.page.mouse.up()
+            self.page.wait_for_function('hub._placements.has("items[1]")')
+            self.page.wait_for_timeout(350)
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original'])
+            self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+            self.page.wait_for_function('hub._placements.has("items[0]")')
+            self.activate(self.hub_item(0).locator('.interaction-surface'))
+            self.page.evaluate("pushState('device_tracker.vehicle_a','away');window.dispatchEvent(new Event('blur'))")
+            self.page.wait_for_function('hub._placements.has("items[1]")')
+            self.page.wait_for_timeout(350)
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original'])
+            self.hub_item(1).locator('.interaction-surface').press('Enter')
+            self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['original','replacement'])
+        finally:
+            if session: session.detach()
+    def test_phase2_multiple_hubs_are_isolated_and_drag_select_uses_frozen_target(self):
+        self.page.evaluate("pushStates([['device_tracker.vehicle_a','home'],['device_tracker.vehicle_b','home']])")
+        items=[{'type':'generic','name':'Item A','slot':2,'slot_mode':'hard','tap_action':{'action':'perform-action','perform_action':'test.item_a'}},
+            {'type':'generic','name':'Item B','slot':3,'slot_mode':'hard','tap_action':{'action':'perform-action','perform_action':'test.item_b'},
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]}]
+        self.hub({'logo':False,'items':items})
+        self.page.evaluate('''()=>{window.firstHub=hub;makeHub({logo:false,items:[{type:'generic',name:'Other Hub',slot_mode:'soft',visibility:[{condition:'state',entity:'device_tracker.vehicle_b',state:'home'}]}]});window.secondHub=hub;secondHub.id='second-hub';secondHub.style.top='550px';window.hub=firstHub}''')
+        self.page.wait_for_function('secondHub._hubMenu?.shadowRoot.querySelector("#honeycombs")')
+        self.settle()
+        targets=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"] .interaction-surface');target=targets.first
+        box=target.bounding_box();self.page.mouse.move(box['x']+20,box['y']+40);self.page.mouse.down()
+        self.page.evaluate("pushStates([['device_tracker.vehicle_a','away'],['device_tracker.vehicle_b','away']])")
+        self.page.wait_for_function('secondHub._placements.size===0')
+        self.assertTrue(self.page.evaluate('firstHub._placements.has("items[1]")'))
+        self.page.mouse.move(box['x']+55,box['y']+40,steps=4);self.page.mouse.up()
+        self.page.wait_for_function('!firstHub._placements.has("items[1]")')
+        self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['item_b'])
+        self.page.evaluate('''()=>{honeycomb_menu_context_dispose(secondHub._menuContext);secondHub.remove()}''')
+        self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+    def test_phase2_availability_show_invalid_inputs_and_live_dependency_reconfiguration(self):
+        self.page.evaluate("pushStates([['device_tracker.vehicle_a','home'],['binary_sensor.permission_a','off'],['light.zone_a','unavailable']])")
+        self.hub({'logo':False,'items':[
+            {'type':'light','entity':'light.zone_a','slot':0},
+            {'type':'generic','name':'Vehicle A','slot':2,'slot_mode':'priority','show':"[[[ return states['binary_sensor.permission_a'].state === 'on' ]]]",
+             'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}]},
+            {'type':'generic','name':'Missing input','slot':3,'visibility':[{'condition':'not','conditions':[{'condition':'state','entity':'device_tracker.missing_a','state':'home'}]}]}]})
+        self.assertEqual(self.placements(),{'items[0]':0})
+        self.assertEqual(self.hub_item(0).locator('.secondary').inner_text(),'Unavailable')
+        self.assertTrue(self.page.evaluate('hub.diagnostics.some(d=>d.code==="visibility-indeterminate")'))
+        self.page.evaluate("pushState('binary_sensor.permission_a','on')")
+        self.page.wait_for_function('hub._placements.has("items[1]")')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')")
+        self.page.wait_for_function('!hub._placements.has("items[1]")')
+        self.page.evaluate('''()=>{pushState('device_tracker.vehicle_b','home');hub.setConfig({...hub.config,items:hub.config.items.map((item,i)=>i===1?{...item,visibility:[{condition:'state',entity:'device_tracker.vehicle_b',state:'home'}]}:item)})}''')
+        self.page.wait_for_function('hub._placements.has("items[1]")')
+        before=self.page.evaluate('hub._visibilityIndex.metrics.evaluations')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.settle();self.assertEqual(self.page.evaluate('hub._visibilityIndex.metrics.evaluations'),before)
+        for condition in [{'condition':'xor'},{'condition':'state','entity':'device_tracker.vehicle_a'}]:
+            message=self.page.evaluate('''condition=>{try {const el=document.createElement('honeycomb-persistent-hub');el.setConfig({items:[{type:'generic',visibility:[condition]}]});return null}catch(e){return e.message}}''',condition)
+            self.assertIn('items[0].visibility',message)
+    def test_phase2_overflow_keeps_all_dependencies_and_all_hidden_hub_is_valid(self):
+        self.page.evaluate('''()=>pushStates(Array.from({length:250},(_,i)=>['binary_sensor.item_'+i,'off']))''')
+        self.hub({'logo':False,'size':8,'items':[{'type':'generic','name':f'Item {i}','slot_mode':'soft','visibility':[{'condition':'state','entity':f'binary_sensor.item_{i}','state':'on'}]} for i in range(250)]})
+        self.assertEqual(self.controls().count(),0)
+        self.assertEqual(self.page.evaluate('hub._hubEntries.length'),250)
+        self.page.evaluate("pushState('binary_sensor.item_249','on')")
+        self.page.wait_for_function('hub._placements.has("items[249]")')
+        self.assertEqual(self.controls().count(),1)
+        self.page.evaluate('''()=>pushStates(Array.from({length:250},(_,i)=>['binary_sensor.item_'+i,'on']))''')
+        self.page.wait_for_function('hub._placements.size===217')
+        self.assertEqual(self.controls().count(),217)
+        self.assertEqual(self.page.evaluate('hub.diagnostics.filter(d=>d.code==="overflow").length'),33)
+        self.assertEqual(self.page.evaluate('hub._visibilityIndex.conditions.size'),250)
+        self.page.evaluate('''()=>pushStates(Array.from({length:250},(_,i)=>['binary_sensor.item_'+i,'off']))''')
+        self.page.wait_for_function('hub._placements.size===0')
+        self.assertEqual(self.controls().count(),0)
+        self.capture('phase2-empty-hub')
+    def test_phase2_collision_rules_preclaim_and_invalid_slots_are_diagnosed(self):
+        self.hub({'logo':False,'items':[
+            {'type':'generic','name':'Reserved','slot':0,'slot_mode':'hard','visibility':[{'condition':'state','entity':'sensor.value_a','state':'0'}]},
+            {'type':'generic','name':'Duplicate','slot':0,'slot_mode':'hard'},
+            {'type':'generic','name':'Fallback','slot':0,'slot_mode':'priority'},
+            {'type':'generic','name':'Preferred','slot':1,'slot_mode':'priority'},
+            {'type':'generic','name':'Tie','slot':1,'slot_mode':'priority'},
+            {'type':'generic','name':'Invalid','slot':1.5,'slot_mode':'hard'},
+            {'type':'generic','name':'Soft','slot_mode':'soft'}]})
+        self.assertEqual(self.placements(),{'items[3]':1,'items[2]':2,'items[4]':3,'items[6]':4})
+        self.assertEqual(self.page.evaluate('hub.diagnostics.map(d=>d.code).sort()'),['hard-collision','invalid-slot'])
+        self.assert_visible_unique_cells(4)
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item').count(),0)
+    def test_phase2_performance_relevant_unrelated_updates_and_dom_listeners(self):
+        rows=[]
+        for count in [5,20,50]:
+            self.page.evaluate('''count=>pushStates(Array.from({length:count},(_,i)=>['binary_sensor.item_'+i,'on']))''',count)
+            self.hub({'logo':False,'size':20,'items':[{'type':'generic','name':f'Item {i}','entity':'sensor.value_a','slot_mode':'soft',
+                'visibility':[{'condition':'state','entity':f'binary_sensor.item_{i}','state':'on'}]} for i in range(count)]})
+            self.settle()
+            self.page.evaluate("pushState('sensor.warmup','1')")
+            self.settle()
+            session=self.page.context.new_cdp_session(self.page)
+            try:
+                session.send('HeapProfiler.collectGarbage')
+                dom_before=session.send('Memory.getDOMCounters')
+                heap_before=session.send('Runtime.getHeapUsage')['usedSize']
+                result=self.page.evaluate('''async count=>{
+                    const proto=Object.getPrototypeOf(customElements.get('honeycomb-menu-item').prototype);
+                    const render=proto.render;window.itemRenders={};
+                    proto.render=function(){const id=this.config && this.config._hub_item_id;if(id)itemRenders[id]=(itemRenders[id]||0)+1;return render.call(this)};
+                    const start={evaluations:hub._visibilityIndex.metrics.evaluations,allocations:hub._hubMetrics.allocations};
+                    const started=performance.now();
+                    for(let i=0;i<1000;i++)pushState('sensor.unrelated',String(i));
+                    await new Promise(requestAnimationFrame);
+                    return {count,visible:hub._placements.size,unrelated:{elapsedMs:performance.now()-started,
+                        evaluations:hub._visibilityIndex.metrics.evaluations-start.evaluations,
+                        allocations:hub._hubMetrics.allocations-start.allocations,renders:{...itemRenders}},
+                        providerCount:[...providedClients].filter(el=>el.isConnected).length,restoreRender:window.restoreRender=()=>{delete proto.render;proto.render=render}};
+                }''',count)
+                dom_unrelated=session.send('Memory.getDOMCounters')
+                self.assertEqual(result['unrelated']['evaluations'],0)
+                self.assertEqual(result['unrelated']['allocations'],0)
+                self.assertEqual(result['unrelated']['renders'],{})
+                self.assertEqual(result['visible'],count)
+                self.assertEqual(result['providerCount'],2) # one Hub and one owning scene, independent of item count
+                self.assertEqual(dom_unrelated,dom_before)
+                relevant=self.page.evaluate('''async()=>{
+                    const before={evaluations:hub._visibilityIndex.metrics.evaluations,allocations:hub._hubMetrics.allocations};
+                    const started=performance.now();
+                    for(let i=0;i<20;i++){
+                        pushState('binary_sensor.item_0',i%2?'on':'off');
+                        await new Promise(requestAnimationFrame);
+                        await new Promise(requestAnimationFrame);
+                    }
+                    return {elapsedMs:performance.now()-started,evaluations:hub._visibilityIndex.metrics.evaluations-before.evaluations,
+                        allocations:hub._hubMetrics.allocations-before.allocations,renders:{...itemRenders}};
+                }''')
+                self.assertEqual(relevant['evaluations'],20);self.assertEqual(relevant['allocations'],20)
+                self.assertTrue(all(identity=='items[0]' for identity in relevant['renders']),relevant)
+                session.send('HeapProfiler.collectGarbage')
+                result.pop('restoreRender',None)
+                result.update({'relevant':relevant,'domBefore':dom_before,'domAfterUnrelated':dom_unrelated,
+                    'domAfterRelevant':session.send('Memory.getDOMCounters'),'heapBefore':heap_before,'heapAfter':session.send('Runtime.getHeapUsage')['usedSize']})
+                rows.append(result)
+            finally:
+                self.page.evaluate('window.restoreRender && window.restoreRender()')
+                session.detach()
+                self.page.evaluate('''()=>{const scene=hub._menuContext.honeycomb;honeycomb_menu_context_dispose(hub._menuContext);hub.remove();providedClients.delete(hub);providedClients.delete(scene)}''')
+        if self.evidence:
+            (self.evidence/f'{self.viewport["width"]}-hub-performance.json').write_text(json.dumps({'viewport':self.viewport,'rows':rows,
+                'caveat':'Current Chromium fixture; frame-paced relevant times include frame waits. Heap values include browser/framework caches; no historical speedup or leak claim.'},indent=2)+'\n')
+    def test_phase2_coalescing_blur_cleanup_and_replacement_menu_deferral(self):
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.hub({'logo':False,'items':[{'type':'generic','name':'Item A','slot_mode':'soft',
+            'tap_action':{'action':'perform-action','perform_action':'test.item_a'},
+            'visibility':[{'condition':'state','entity':'device_tracker.vehicle_a','state':'home'}],
+            'menu':{'nested_expand':False,'animate':False,'buttons':[{'name':'Details','show_name':True,'tap_action':{'action':'none'}}]}}]})
+        target=self.hub_item(0).locator('.interaction-surface');box=target.bounding_box()
+        allocations=self.page.evaluate('hub._hubMetrics.allocations')
+        self.page.mouse.move(box['x']+41,box['y']+40);self.page.mouse.down()
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away');pushState('device_tracker.vehicle_a','home')")
+        self.page.mouse.up();self.settle()
+        self.assertEqual(self.page.evaluate('hub._hubMetrics.allocations'),allocations)
+        self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['item_a'])
+        self.hold_input(target)
+        self.page.wait_for_function('hub._menuContext.stack.length===1 && hub._hubMenu===hub._menuContext.honeycomb')
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away')");self.settle()
+        self.assertEqual(self.placements(),{'items[0]':0})
+        self.assertTrue(self.page.locator('honeycomb-menu [aria-label="Details"]').is_visible())
+        self.back();self.page.wait_for_function('hub._placements.size===0')
+        self.assertEqual(self.controls().count(),0)
+        self.page.evaluate("pushState('device_tracker.vehicle_a','home')")
+        self.page.wait_for_function('hub._placements.size===1')
+        target=self.hub_item(0).locator('.interaction-surface');box=target.bounding_box()
+        self.page.mouse.move(box['x']+41,box['y']+40);self.page.mouse.down()
+        self.page.evaluate("pushState('device_tracker.vehicle_a','away');window.dispatchEvent(new Event('blur'))")
+        self.page.wait_for_function('hub._placements.size===0')
+        self.page.mouse.up();self.page.wait_for_timeout(550)
+        self.assertEqual(self.page.evaluate('calls.map(c=>c[1])'),['item_a'])
+        self.assertEqual(self.page.evaluate('hub._menuContext.pointers.size+hub._menuContext.pendingActions.size'),0)
     def test_shared_default_size_and_rendered_parity(self):
         item={'type':'light','entity':'light.zone_a','show_name':True,'name':'Light A','label':'Status','show_label':True,
               'colors':{'center':'#20262d','inner_border':'#2196f3','outer_border':'#34383d'},'border':{'inner_width':4,'outer_width':2}}

@@ -1,10 +1,16 @@
-> **v1.7.0-beta.2 Phase 1:** use the exact current contract in
-> [V1_7_PHASE1.md](V1_7_PHASE1.md). Both public components default to 82 px and
-> share full-cell rendering. Standalone Control selects `module: light`, `media`,
-> `sonos` or `generic`. `logo: false` disables branding, not ordinary slot-0 items.
-> Do not generate `visibility`, `slot_mode: priority`, Car or Charger configs for
-> this beta. These are later-phase work. This feature beta is not merged into
-> `restart/v1.5.1`; do not infer release or merge authorization from this document.
+> **Current contract: v1.7.0-beta.3 Phase 2.** Read
+> [V1_7_PHASE2.md](V1_7_PHASE2.md) for exact truth tables, YAML and migration.
+> Hub item `visibility` supports state/numeric_state/and/or/not; a top-level list
+> is AND. Missing/indeterminate results hide; invalid conditions throw. `show` is
+> an additional AND gate. Hard reserves even hidden; all priority preferred claims
+> precede fallbacks, then stable soft placement. Physical slots are 0–216; no cap
+> on configured identities/dependencies. logo:false allows ordinary slot 0.
+> Both public components retain the shared 82 px renderer and Light/Media/Sonos.
+> Do not add dynamic keys to standalone Control/root/submenu buttons, and do not
+> generate Car/Charger modules or charging automations. Real entities/actions are
+> user-configurable; use synthetic names/IDs in public examples.
+> Phase 1 PR #77 is merged in restart/v1.5.1; the Phase 2 PR is not merged.
+> This prerelease does not authorize merges, master changes or stable publication.
 
 # AI setup specification
 

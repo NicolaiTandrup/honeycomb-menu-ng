@@ -1,5 +1,9 @@
 # v1.7.0 Phase 1: shared cube engine
 
+**Historical beta.1/beta.2 contract.** PR #77 was subsequently merged into
+restart/v1.5.1. For the current beta.3 visibility/placement behavior use
+[Phase 2](V1_7_PHASE2.md); the historical limitations below describe Phase 1 only.
+
 This beta starts at `restart/v1.5.1`, commit
 `c1d9507ee48e65b951f6302c668dadf17043c195`. It contains no merged,
 cherry-picked or ported v1.6 implementation. Its feature PR targets the restart

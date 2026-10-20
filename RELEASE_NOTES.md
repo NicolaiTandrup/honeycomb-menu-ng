@@ -1,3 +1,35 @@
+# Honeycomb NG v1.7.0-beta.3 — Dynamic Hub visibility and stable slots
+
+Phase 2 of #76 / #79 starts from merged PR #77 on restart/v1.5.1 at
+`697dec5846fc6b73199fb39562eef5a733ba49c5`. No v1.6 code is used.
+
+- Live HA-style state/numeric_state/and/or/not visibility on Hub items; precise
+  dependency snapshots handle same-object state/attribute changes.
+- Pure hard/priority/soft allocation with hidden hard reservations, preferred
+  priority preclaims, deterministic fallbacks/collision diagnostics, stable soft
+  positions and ordinary slot 0 when logo:false.
+- Preserve old automatic layouts, the shared 82 px renderer, Light/Media/Sonos,
+  presets/favorites/navigation and the beta.2 missing-Light fix.
+- Defer structural transitions through menus, touch/pointer/drag and delayed taps.
+  Commit the latest desired state atomically at an on-demand frame boundary.
+- Cover conditions, collisions, overflow, deferred navigation/gestures, multiple
+  Hubs, availability/show compatibility and current 5/20/50-item performance.
+- Current physical capacity is 216 ring slots plus center. Configured items beyond
+  capacity remain evaluated and report overflow; no silent truncation/wrapping.
+
+The pre-release is tagged at the verified tested feature commit. The Phase 2 PR
+is **not merged** into restart/v1.5.1; master and stable v1.5.1 are unchanged.
+Exact test results, artifact checksum and commit are in the GitHub release notes.
+
+Known limits: the documented condition subset only; arbitrary JS show/presentation
+is conservative; no paging/auto-shrink; anchored menus can clip near viewport edges.
+Actual HA devices/other browsers and long-term memory need owner validation.
+Car/Charger modules and charging automations are not implemented.
+
+[Current Phase 2 contract and YAML](docs/V1_7_PHASE2.md).
+
+---
+
 # Honeycomb NG v1.7.0-beta.2 — Light navigation fix
 
 Fix #78: menu-owned cubes no longer hide themselves when opening nested menus.

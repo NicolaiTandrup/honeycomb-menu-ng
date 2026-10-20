@@ -2,12 +2,13 @@ import { LitElement, html, css } from 'lit';
 import { fireEvent, provideHass, getTemplateOrValue, createCard } from "./helpers.js";
 
 import { styleMap } from 'lit/directives/style-map.js';
-const { buildCubeConfig, validatePhaseOne } = require('./core/cube-config.js');
+const { buildCubeConfig, validateCubeConfig } = require('./core/cube-config.js');
 const { customActionRegistry } = require('./core/action-registry.js');
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
+const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
 
 class CubeElement extends LitElement
@@ -175,11 +176,23 @@ class CubeElement extends LitElement
     {
         this._hass = obj;
         if (this._contentCard) this._contentCard.hass = obj;
+        if (!this.config) return;
+        if (!this._presentationDependencies) this._presentationDependencies = presentationDependencies(this.config);
+        if (!this._presentationDependencies.wildcard) {
+            const snapshot = presentationSnapshot(obj, this._presentationDependencies);
+            if (snapshot === this._entitySnapshot) return;
+            this._entitySnapshot = snapshot;
+        }
         this._updatePresentation();
     }
 
     set config(value)
     {
+        const signature = JSON.stringify(value);
+        if (signature === this._configInputSignature) return;
+        this._configInputSignature = signature;
+        this._presentationDependencies = null;
+        this._entitySnapshot = undefined;
         this._config = value ? merge({mode:'generic',variables:{},face_mode:'cell'}, value,
             Object.keys(value).length === 0 || value.type === 'break' ? {disabled:true} : {}) : null;
         this._contentConfigDirty=true;
@@ -245,7 +258,7 @@ class CubeElement extends LitElement
         if( ! config || typeof config !== 'object' )
             throw new Error('Honeycomb Persistent Control requires a configuration.');
 
-        validatePhaseOne(config);
+        validateCubeConfig(config, {hubItems:config.mode === 'hub'});
         if (!this._hasHassProvider) { this._hasHassProvider = true; provideHass(this); }
         let next = merge({}, config);
         if (next.mode !== 'hub') {
@@ -606,8 +619,19 @@ class CubeElement extends LitElement
 
         if (this._pointerMoved) return;
         if (this.config.double_tap_action) {
-            if (this._tapTimer) { clearTimeout(this._tapTimer); this._tapTimer=null; this._executeAction(this.config.double_tap_action); }
-            else this._tapTimer=setTimeout(()=>{this._tapTimer=null;this._executeAction(this.config.tap_action || {action:'toggle'});},300);
+            if (this._tapTimer) {
+                clearTimeout(this._tapTimer); this._tapTimer=null;
+                this._executeAction(this.config.double_tap_action);
+                this._releasePendingAction();
+            } else {
+                this._pendingActionContext = (this.getRootNode().host || {})._menuContext;
+                if (this._pendingActionContext) this._pendingActionContext.pendingActions.add(this);
+                this._tapTimer=setTimeout(()=>{
+                    this._tapTimer=null;
+                    this._executeAction(this.config.tap_action || {action:'toggle'});
+                    this._releasePendingAction();
+                },300);
+            }
         } else this._executeAction(this.config.tap_action || { action: 'toggle' });
     }
 
@@ -618,11 +642,22 @@ class CubeElement extends LitElement
         this._holdTriggered = false;
     }
 
+    _releasePendingAction()
+    {
+        const context = this._pendingActionContext;
+        this._pendingActionContext = null;
+        if (context) {
+            context.pendingActions.delete(this);
+            if (context.onIdle) context.onIdle();
+        }
+    }
+
     _cancelGesture()
     {
         this._handlePointerCancel();
         if (this._tapTimer) clearTimeout(this._tapTimer);
         this._tapTimer = null;
+        this._releasePendingAction();
     }
 
     _openHoneycombMenu(menu)
