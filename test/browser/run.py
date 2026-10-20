@@ -576,8 +576,6 @@ class Cubes(unittest.TestCase):
             self.activate(self.sonos_slot(physical).locator('.interaction-surface'))
             self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),service)
             if physical>2:self.assertEqual(self.page.evaluate('calls.at(-1)[3].entity_id'),['media_player.player_a','media_player.player_b'])
-        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
-        self.assertEqual(self.page.evaluate('moreInfo'),['media_player.player_a'])
         # Track and status strings stay centered/truncated inside the same cells.
         self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector("[data-honeycomb-slot=\\"1\\"]")._model.secondary.includes("synthetic")')
         metrics=self.sonos_slot(2).evaluate('''el=>{const root=el.shadowRoot,content=root.querySelector('.content'),r=content.getBoundingClientRect();return {
@@ -640,7 +638,7 @@ class Cubes(unittest.TestCase):
         self.sonos_open({'type':'sonos','entity':'media_player.player_a'})
         self.activate(self.sonos_slot(3).locator('.interaction-surface'))
         self.assertEqual(self.sonos_slot(7).locator('.primary').inner_text(),'No rooms')
-        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Configure members')
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Metadata unavailable')
         self.assertEqual(self.page.evaluate('moreInfo.length+calls.length'),0)
         self.capture('issue90-empty')
         self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
@@ -648,10 +646,10 @@ class Cubes(unittest.TestCase):
         item.pop('toggle_member_script')
         self.sonos_open(item);self.activate(self.sonos_slot(3).locator('.interaction-surface'))
         self.assertEqual(self.page.locator('honeycomb-menu-item').count(),7)
-        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Configure script')
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Grouping unsupported')
         self.activate(self.sonos_slot(7).locator('.interaction-surface'))
         self.assertEqual(self.page.evaluate('calls.length'),0)
-        self.assertIn('toggle_member_script',self.page.evaluate('notifications[0]'))
+        self.assertIn('grouping support',self.page.evaluate('notifications[0]'))
         self.capture('issue90-script-setup')
     def test_issue90_join_hold_and_touch_cancel_do_not_execute_actions(self):
         self.sonos_open();self.activate(self.sonos_slot(3).locator('.interaction-surface'))
@@ -724,6 +722,61 @@ class Cubes(unittest.TestCase):
             self.activate(self.sonos_slot(7).locator('.interaction-surface'))
             self.assertEqual(self.page.evaluate('calls.at(-1)[2].member'),'media_player.player_b')
             if adapter=='legacy':self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+
+    def test_beta2_real_shaped_channel_matching_and_legacy_active_color(self):
+        self.sonos_setup()
+        self.page.evaluate("""()=>{
+            pushStates([
+              ['sensor.favorites','2',{items:{'FV:2/57':'Station A','FV:2/58':'Station B'}}],
+              ['sensor.favorites_cache','2',{items:[{media_content_id:'FV:2/57',media_content_type:'favorite_item_id',title:'Station A',thumbnail:'/station-a.svg'}]}],
+              ['media_player.player_a','playing',{volume_level:.42,media_content_id:'x-sonosapi-hls:stream-a?sid=1',media_channel:'Station A',media_title:'Track A',group_members:['media_player.player_a']}]
+            ]);
+        }""")
+        self.hub({'logo':False,'items':[{'type':'media','entity':'media_player.player_a','active_color':'#00bcd4','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
+        cube=self.page.locator('honeycomb-menu .center-item');cube.locator('.station-artwork').wait_for(state='visible')
+        color=cube.locator('.hex-fill').get_attribute('fill');self.assertNotEqual(color,'#00bcd4')
+        self.assertEqual(cube.locator('.hex-inner').get_attribute('fill'),color)
+        self.capture('beta2-real-shaped-playing')
+        self.page.evaluate("pushState('media_player.player_a','paused',{media_content_id:'x-sonosapi-hls:stream-a?sid=1',media_channel:'Station A',group_members:['media_player.player_a']})")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.colors.center==="#202224"')
+        self.assertTrue(cube.locator('.station-artwork').is_visible());self.capture('beta2-real-shaped-paused')
+        self.page.evaluate("pushState('media_player.player_a','playing',{media_content_id:'x-sonosapi-hls:other',media_channel:'Station A live',media_title:'Station A',group_members:['media_player.player_a']})")
+        self.page.wait_for_function('!hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork')
+        self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#00bcd4')
+    def test_beta2_discovered_native_join_unjoin_and_browse_route(self):
+        self.sonos_open({'type':'media','entity':'media_player.player_a','active_color':'#00bcd4'})
+        self.page.evaluate("""()=>{
+          hass.entities=Object.fromEntries(['a','b','c'].map(s=>['media_player.player_'+s,{entity_id:'media_player.player_'+s,platform:'sonos'}]));
+          hass.entities['media_player.other']={entity_id:'media_player.other',platform:'cast'};
+          hass.services.media_player={join:{},unjoin:{}};
+          for(const s of ['a','b','c'])hass.states['media_player.player_'+s].attributes.supported_features=524288;
+        }""")
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===2')
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Joined')
+        self.assertEqual(self.sonos_slot(8).locator('.secondary').inner_text(),'Not joined')
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls.at(-1)'),['media_player','unjoin',{}, {'entity_id':'media_player.player_b'}])
+        self.activate(self.sonos_slot(8).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls.at(-1)'),['media_player','join',{'group_members':['media_player.player_c']},{'entity_id':'media_player.player_a'}])
+        self.capture('beta2-native-join')
+        self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.page.evaluate("window.browseEvents=0;window.addEventListener('location-changed',()=>browseEvents++)")
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
+        self.assertTrue(self.page.url.endswith('/media-browser/media_player.player_a'))
+        self.assertEqual(self.page.evaluate('moreInfo'),[]);self.assertEqual(self.page.evaluate('browseEvents'),1)
+    def test_beta2_registry_ws_failure_and_empty_discovery_are_distinct(self):
+        self.sonos_open({'type':'sonos','entity':'media_player.player_a'})
+        self.page.evaluate("()=>{hass.callWS=async()=>{throw new Error('synthetic permission denial')}}")
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===2')
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Metadata unavailable')
+        self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.page.evaluate("()=>{hass.callWS=async()=>({entities:[{ei:'media_player.player_a',pl:'sonos'}]})}")
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===2')
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'No other Sonos')
+        self.assertEqual(self.page.evaluate('calls.length'),0)
 
     def station_hub(self, overrides=None):
         self.sonos_setup()

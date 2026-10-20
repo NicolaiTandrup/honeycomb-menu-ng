@@ -1,3 +1,31 @@
+# v1.7.1-beta.2 — Sonos real-HA corrections
+
+Sonos-only follow-up on unmerged PR #91. Beta.1 remains immutable. Stable and
+master promotion require owner real-HA approval. Cumulative beta.3 will add Light
+Color Zoom only after its isolated PR and combined regression suite pass.
+
+- Bridge FV favorite IDs to Sonos radio stream URIs through a unique exact
+  radio-channel/favorite-name/cache-title correspondence, preserving exact ID/URI
+  matching, original cache compatibility and all Radio playback/order/artwork.
+- Treat legacy `active_color` as fallback; recognized stations provide their
+  accent while explicit `colors` still win. Paused/stopped center remains neutral.
+- Discover registry-confirmed Sonos players on Join open and use supported native
+  join/unjoin without mandatory member/script keys. Preserve manual/script overrides,
+  live group visuals, safety checks and explicit metadata/feature/error states.
+- Browse opens HA's selected-player Media panel rather than more-info. No private
+  dialog loader, invented events or new backend helper is used.
+- Generalize the optional HA cache recipe to centrally configured source players,
+  failover/startup refresh and source/schema diagnostics. Existing templates work.
+
+Known limits: exact channel names may not identify every stream; ambiguous or
+partial names fall back safely. HA registry access, GROUPING features/services,
+Media panel availability and browser-accessible logos are external prerequisites.
+Actual HA hardware and UI behavior require the owner's beta testing.
+
+See [Sonos details](docs/SONOS_MODULE.md) and [HACS test guide](docs/V1_7_1_BETA.md).
+
+---
+
 # v1.7.1-beta.1 — Sonos owner test
 
 PR #91 remains unmerged. This is beta metadata, not stable v1.7.1 approval.

@@ -1,6 +1,6 @@
 const media = require('../media/index.js');
 const station = require('./station.js');
-const { buildJoinMenu, registerActions } = require('./grouping.js');
+const { registerActions } = require('./grouping.js');
 const { sonosButtonStyles } = require('./presentation.js');
 const { buildRadioMenu } = require('./favorites.js');
 
@@ -23,7 +23,6 @@ function actionForScript(script, fallbackService, entity)
 
 function buildMenu({ item })
 {
-    const joinMenu = buildJoinMenu(item);
     const radioMenu = buildRadioMenu(item);
 
     const playPauseIcon = `[[[
@@ -120,8 +119,8 @@ function buildMenu({ item })
                     background: 'rgba(126, 54, 96, 0.82)'
                 }),
                 tap_action: {
-                    action: 'honeycomb-open-nested',
-                    honeycomb_nested_menu: joinMenu
+                    action: 'honeycomb-sonos-open-join',
+                    sonos_item: {entity:item.entity,members:item.members,toggle_member_script:item.toggle_member_script}
                 }
             },
             {
@@ -131,9 +130,9 @@ function buildMenu({ item })
                 icon: 'mdi:folder-music',
                 name: 'Browse',
                 show_name: true,
-                autoclose: false,
+                autoclose: true,
                 styles: sonosButtonStyles(),
-                tap_action: { action: 'more-info' }
+                tap_action: { action: 'navigate', navigation_path: `/media-browser/${encodeURIComponent(item.entity)}` }
             },
             {
                 slot: 5,

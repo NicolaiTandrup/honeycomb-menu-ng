@@ -28,11 +28,11 @@ Radio/Browse at 5/6. The Radio outer submenu is unchanged.
 | 1 | Radio favorites |
 | 2 | play/pause |
 | 3 | Join |
-| 4 | Browse / more-info |
+| 4 | Home Assistant Browse Media |
 | 5 | group-aware volume down |
 | 6 | group-aware volume up |
 
-While playing, the center fills with `active_color` and shows live volume. When not playing, the center is dark with active-color ring.
+While playing, a recognized station uses its accent and cached logo; other content uses `active_color` as a fallback. Paused/stopped center stays neutral. Live volume remains visible.
 
 If unavailable, the launcher becomes gray and shows `Unavailable`.
 
@@ -104,16 +104,15 @@ template: !include templates.yaml
 
 copy only the list item beginning with `- triggers:` into `templates.yaml`.
 
-Replace every `media_player.player_a` with one real Sonos player supporting Browse
-Media and `sensor.favorites_a` with the enabled favorites entity. Confirm the
-resulting cache entity ID in HA; the example uses `sensor.favorites_cache_a`.
-Both entities must have a value for refresh. There is no startup trigger: fire the
-event after installation or wait for the next trigger.
-
-The cache refreshes:
-- on manual `sonos_favorites_refresh` event
-- whenever `sensor.favorites_a` changes, including attribute updates
-- every 15 minutes as fallback
+Set the ordered `cache_players` list once, using Sonos players sharing the same
+favorites library, and set `sensor.favorites_a` to the enabled favorites entity.
+Each refresh chooses the first available configured player; no repeated player-ID
+replacement is needed. Confirm the resulting `sensor.favorites_cache_a` ID.
+The recipe refreshes on HA start, manual `sonos_favorites_refresh`, favorite
+state/attribute changes, and every 15 minutes. With no available source or base
+sensor it skips refresh rather than publishing an empty successful cache.
+`source_player` and `cache_version` diagnose the chosen source/schema. Existing
+working templates and cache entity references remain supported unchanged.
 
 The base sensor must expose `attributes.items` as an ID→title **map**. The cache
 exposes `attributes.items` as a **list** of up to 12 dictionaries, matched by exact
@@ -138,50 +137,44 @@ Hub item:
 
 ## Join / grouping
 
-Join is optional. It requires:
-1. candidate member players
-2. a script accepting a `member` variable and joining/unjoining that player
+Without `members`, Join discovers only registry entries whose platform is
+`sonos`, using current HA frontend registry metadata or the read-only
+`config/entity_registry/list_for_display` WebSocket command. It never identifies
+Sonos by an entity name, area or `media_player` domain alone. Discovery runs on
+opening, not by polling. Reopen to refresh candidates after registry changes.
 
-~~~yaml
-- type: sonos
-  entity: media_player.player_a
-  name: Player A
-  toggle_member_script: script.player_a_toggle_member
+Native `media_player.join` / `media_player.unjoin` requires the GROUPING feature
+on both players and both services in HA. Join targets the coordinator with
+`group_members: [candidate]`; unjoin targets only the candidate. A selected follower
+uses its reciprocally verified leader for native grouping. Unknown membership,
+unavailable players and candidates grouped elsewhere remain read-only; ungroup
+other rooms in HA first. No optimistic membership changes are made.
 
-  members:
-    - entity: media_player.player_b
-      name: Player B
-    - entity: media_player.player_c
-      name: Player C
-    - entity: media_player.player_d
-      name: Player D
-~~~
+An explicit `members` list overrides automatic candidates (including an empty
+list). Order and names are preserved; selected player/leader/duplicates are
+excluded. Up to twelve candidates fit the existing outer ring. Explicitly listed
+players are a user declaration that they belong to the intended Sonos setup.
+An optional `toggle_member_script` remains authoritative and receives only
+`{member: candidate}`; if configured but invalid/unavailable, it fails visibly
+rather than silently falling back. Its selected-coordinator/follower restrictions
+are preserved. See [the optional script recipe](../examples/sonos-toggle-member.yaml).
 
-Do not include the coordinator in candidates. At most 12 candidates are displayed.
-Join always opens the outer ring: no eligible candidates shows `No rooms` /
-`Configure members` (or `Check members` for invalid/self-only entries). Missing
-script configuration shows `Configure script`; a missing entity/service shows
-`Script unavailable`. Browse continues to open HA more-info.
-For `script: !include scripts.yaml`, copy only the script key and below, without
-the top-level `script:` wrapper. Validate HA config and reload scripts.
+Empty states distinguish `Metadata unavailable`, `No other Sonos`, and invalid
+manual entries (`Check members`). Missing native features/services show
+`Grouping unsupported` / `Grouping unavailable`; configured scripts show their
+existing setup/error states. Request failures produce a notification; actual HA
+`group_members` controls live membership labels/colors. The ring stays open for
+repeated selections and center/back returns to the module.
 
-Candidate order follows `members`; duplicate entries and the selected player are
-excluded. Names fall back to HA's `friendly_name`, then the configured entity ID.
-`Joined` with a teal fill and `Not joined` with a dark fill reflect HA
-`group_members` live, including changes while the ring is open. Tapping a room
-calls the configured script with `{member: <candidate entity>}`; the ring stays
-open for more selections. Tap the center/back arrow to return to primary controls.
+## Browse Media
 
-The script must exist as an available `script.*` entity and service and be bound
-to the selected coordinator. Unknown membership, an unavailable player, a selected
-follower (`Use group leader`), or a candidate in another group (`Other group`) is
-read-only. Open the leader or ungroup the other room in HA before retrying;
-Honeycomb does not move unrelated groups or infer Sonos rooms from areas.
-Script failures show a HA notification and keep the last actual membership; no
-optimistic success is displayed. The existing external script recipe is unchanged.
-
-Copy the standard join/unjoin script from:
-[examples/sonos-toggle-member.yaml](../examples/sonos-toggle-member.yaml)
+Slot 4 navigates to HA's actual `/media-browser/media_player.player_a` panel for
+the selected player, then closes the Honeycomb menu. It does not open more-info.
+This is the supported media-browser route, including the player's sources such
+as Favorites and Plex when HA exposes them. HA's internal lazy-loaded browse
+dialog has no stable custom-card import API; Honeycomb does not call private
+frontend methods or invent dialog-loading events. Use browser/HA back to return.
+The Media panel and player browsing capability must be available in HA.
 
 ## Full example
 
@@ -238,20 +231,28 @@ is retained only while current HA metadata still identifies the same favorite;
 there is no title guessing or persistent optimistic last-station cache.
 Unavailable players use `colors.unavailable` (gray by default).
 
-Identification requires exact `media_content_id` equality to a configured favorite
-and exactly one matching cache entry. HA Sonos normally reports the current track
-**URI**, which may differ from the favorite ID. If existing external cache metadata
-also supplies `uri` on that favorite's item, an exact unique URI match is accepted.
-The shipped cache recipe is unchanged and does not add this optional metadata.
-Without a reliable mapping, the launcher safely keeps its standard Sonos
-icon/colors; matching titles/channels alone never selects artwork. Duplicate IDs
-or URI mappings are rejected. A confirmed reciprocal group uses its coordinator's
-playback identity, not an unrelated follower's stale title/ID.
+Matching first uses an exact favorite ID or a unique cached `uri`/`playback_uri`.
+For Sonos radio transports (`x-sonosapi-hls:`, `x-sonosapi-radio:`,
+`x-sonosapi-stream:` or `x-rincon-mp3radio:`), beta.2 also accepts a strictly unique
+exact correspondence between `media_channel`, the canonical favorite name, and
+that favorite's cache `title` with `media_content_type: favorite_item_id`.
+Whitespace/NFC normalization is allowed; substrings, case guesses, track titles
+and arbitrary HTTP track channels never qualify. Duplicate names/IDs/URIs or a
+missing/invalid thumbnail fail safely. A reciprocal group uses its coordinator's
+playback identity. This repairs FV-ID versus stream-URI data without replacing
+working playback IDs or requiring existing cache sensors to be reconfigured.
+
+The reusable cache exports optional `uri` when Browse Media actually supplies it;
+it does not fabricate stream mappings or promise HA always supplies one. Original
+four-field cache records remain valid. Browser-native cache retrieval was reviewed
+and deliberately left external: it cannot refresh while dashboards are closed,
+persist across clients or guarantee backend media availability. No helper
+integration (#93) or per-launcher browsing/polling is introduced.
 
 Precedence:
 
-1. Explicit `colors.inner_border`/`colors.center` win while playing, then an explicit
-   `active_color`, then the recognized station accent, then normal Sonos defaults.
+1. Explicit `colors.inner_border`/`colors.center` win while playing, then the recognized
+   station accent, then legacy `active_color` as a fallback, then Sonos defaults.
 2. Pause/stop overrides the playing center with `off.center_color`; choose a neutral
    gray shade for this setting. Unavailable state overrides station context.
 3. Custom `custom_fields` content or a `styles.card` background image wins over automatic artwork.
@@ -266,5 +267,12 @@ accessibility in HA before approving merge or a stable v1.7.1 release.
 
 HA implementation reference reviewed for matching: [current track URI exposed as
 media_content_id](https://github.com/home-assistant/core/blob/e6fd4fe6cbd4d3e7d6923ef9a73d9c5f45153592/homeassistant/components/sonos/media_player.py#L273).
-This differs from the favorite-item ID used by `play_media`; arbitrary channel
-or track title equality is not proof of identity.
+This differs from the favorite-item ID used by `play_media`. Beta.2's restricted
+radio-channel/cache/favorite correspondence is separately tested; arbitrary track
+or channel text is not used as an identifier.
+
+Frontend interfaces reviewed at commit `a321b07bba901b64790e654d7539ee2bfe20b6d6`:
+[registry](https://github.com/home-assistant/frontend/blob/a321b07bba901b64790e654d7539ee2bfe20b6d6/src/data/entity/entity_registry.ts),
+[media browser route](https://github.com/home-assistant/frontend/blob/a321b07bba901b64790e654d7539ee2bfe20b6d6/src/panels/media-browser/ha-panel-media-browser.ts).
+Native feature constants reviewed in HA core `1d6681b0a21e92ca776e9bffcd1dd74daffe5391`.
+Actual HA/Sonos installation remains the owner's beta verification gate.

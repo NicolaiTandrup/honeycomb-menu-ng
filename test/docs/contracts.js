@@ -67,7 +67,7 @@ assert.deepEqual(visibility.map(v=>v.evaluate(hass)),[true,false,false,true]);
 let allocation=allocateHubSlots(dynamic.items.map((i,index)=>({id:String(index),mode:i.slot_mode,slot:i.slot||0,visible:index<3})));
 assert.deepEqual([...allocation.placements],[['0',0],['1',2],['2',1]]);
 const sonos=buildCubeConfig(input.examples['sonos.yaml'].items[0],hass).menu;
-assert.equal(sonos.buttons[2].tap_action.honeycomb_nested_menu.buttons[0].tap_action.script,'script.player_a_toggle_member');
+assert.equal(sonos.buttons[2].tap_action.sonos_item.toggle_member_script,'script.player_a_toggle_member');
 assert.equal(sonos.buttons[0].tap_action.honeycomb_nested_menu.buttons[0].tap_action.data.media_content_type,'favorite_item_id');
 assert.equal(buildCubeConfig(input.examples['onoff-light.yaml'],hass).menu,null);
 console.log(`Documentation contracts: verified 19-cell diagram, 8 rings, ${compiled} module descriptors, dynamic bounds/placement and external action wiring`);

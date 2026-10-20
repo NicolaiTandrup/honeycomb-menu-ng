@@ -28,7 +28,7 @@ function accentTemplate(sensor, index)
 }
 function settings(item)
 {
-    return {favorites:item.favorites_sensor || 'sensor.sonos_favorites',cache:item.favorites_cache_sensor || 'sensor.sonos_favorites_cache',activeOverride:(item.persistent || {}).active_color || item.active_color || item.color || null};
+    return {favorites:item.favorites_sensor || 'sensor.sonos_favorites',cache:item.favorites_cache_sensor || 'sensor.sonos_favorites_cache',activeFallback:(item.persistent || {}).active_color || item.active_color || item.color || null};
 }
 function validThumbnail(value)
 {
@@ -54,8 +54,20 @@ function recognizedFavorite(hass, config)
     const favorites=(states[options.favorites] && states[options.favorites].attributes || {}).items;
     const cache=(states[options.cache] && states[options.cache].attributes || {}).items;
     if (!favorites || Array.isArray(favorites) || typeof favorites!=='object' || !Array.isArray(cache)) return null;
-    const candidates=cache.filter(entry=>entry && Object.prototype.hasOwnProperty.call(favorites,entry.media_content_id) &&
-        (entry.media_content_id===id || (typeof entry.uri==='string' && entry.uri===id)));
+    const configured=cache.filter(entry=>entry && Object.prototype.hasOwnProperty.call(favorites,entry.media_content_id));
+    let candidates=configured.filter(entry=>entry.media_content_id===id ||
+        [entry.uri,entry.playback_uri].some(uri=>typeof uri==='string' && uri===id));
+    // Sonos radio channel metadata is distinct from arbitrary track titles.
+    // Require a radio transport, an exact unique favorite name AND matching
+    // favorite_item_id cache title. Never guess from media_title or substrings.
+    if (!candidates.length && /^(x-sonosapi-(?:hls|radio|stream):|x-rincon-mp3radio:)/i.test(id)) {
+        const channel=(effective.attributes || {}).media_channel;
+        const clean=value=>typeof value==='string' ? value.normalize('NFC').trim() : '';
+        const name=clean(channel);
+        const ids=Object.keys(favorites).filter(key=>name && clean(favorites[key])===name);
+        if (ids.length===1) candidates=configured.filter(entry=>entry.media_content_id===ids[0] &&
+            entry.media_content_type==='favorite_item_id' && clean(entry.title)===name);
+    }
     // Duplicate IDs/URI mappings are ambiguous. Do not pick the first thumbnail.
     if (candidates.length!==1 || !validThumbnail(candidates[0].thumbnail)) return null;
     const favorite=candidates[0];
@@ -78,7 +90,7 @@ function resolve({config,state,hass,runtime={}})
     if (unavailable) return {...base,forceColors:{center:(config.colors || {}).unavailable || '#555b63',inner:(config.colors || {}).unavailable || '#555b63',outer:(config.colors || {}).unavailable || '#555b63'}};
     const favorite=recognizedFavorite(hass,config);
     const usable=favorite && favorite.key!==runtime.failedArtworkKey;
-    const active=(config._sonos || {}).activeOverride || (usable && favorite.color);
+    const active=usable ? favorite.color : (config._sonos || {}).activeFallback;
     const forceColors=state.state!=='playing' || (usable && !favorite.playing)
         ? {center:(config.off || {}).center_color || '#202224'} : undefined;
     const colors={...base.colors};
@@ -89,7 +101,7 @@ function resolve({config,state,hass,runtime={}})
     const customImage=((config.styles || {}).card || []).some(rule=>Object.prototype.hasOwnProperty.call(rule,'background-image'));
     const artwork=usable && !config.custom_fields && config.show_icon!==false && config.icon!==false && config.icon!=='mdi:arrow-left' && !customImage
         ? {url:favorite.url,key:favorite.key} : null;
-    const foreground=usable && !forceColors && !(config._sonos || {}).activeOverride && (!config.colors || !config.colors.center || config.colors.center==='auto') ? stationForeground(favorite.color) : undefined;
+    const foreground=usable && !forceColors && (!config.colors || !config.colors.center || config.colors.center==='auto') ? stationForeground(favorite.color) : undefined;
     return {...base,colors,forceColors,artwork,foreground};
 }
 module.exports={PALETTE,accentColor,accentTemplate,settings,validThumbnail,recognizedFavorite,stationForeground,resolve};

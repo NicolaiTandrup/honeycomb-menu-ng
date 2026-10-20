@@ -150,18 +150,22 @@ def links():
 def external_recipes():
     cache=load((ROOT/'examples/sonos-favorites-cache.yaml').read_text())
     recipe=cache['template'][0]
-    assert [t['trigger'] for t in recipe['triggers']]==['event','state','time_pattern']
+    assert [t['trigger'] for t in recipe['triggers']]==['event','state','time_pattern','homeassistant']
     assert recipe['triggers'][0]['event_type']=='sonos_favorites_refresh'
     assert recipe['triggers'][1]['entity_id']=='sensor.favorites_a'
     assert recipe['triggers'][2]['minutes']=='/15'
-    action=recipe['actions'][0]
+    assert recipe['triggers'][3]=={'trigger':'homeassistant','event':'start'}
+    action=recipe['actions'][3]
     assert action['action']=='media_player.browse_media'
-    assert action['target']['entity_id']=='media_player.player_a'
+    assert action['target']['entity_id']=='{{ cache_player }}'
     assert action['data']=={'media_content_type':'favorites_folder','media_content_id':'object.item.audioItem.audioBroadcast'}
     env=NativeEnvironment()
-    context={'sonos_radio_favorites':{'media_player.player_a':{'children':[
+    context={'cache_player':'media_player.player_a','sonos_radio_favorites':{'media_player.player_a':{'children':[
         {'title':'Station A','media_content_id':'favorite_a','media_content_type':'favorite_item_id','thumbnail':''},
         {'title':'Station B','media_content_id':'favorite_b','media_content_type':'favorite_item_id'}]}}}
+    selector=env.from_string(recipe['actions'][1]['variables']['cache_player'])
+    assert selector.render(cache_players=['media_player.player_a','media_player.player_b'],has_value=lambda e:e.endswith('b')).strip()=='media_player.player_b'
+    assert selector.render(cache_players=['media_player.player_a'],has_value=lambda e:False).strip()==''
     sensor=recipe['sensor'][0]
     def native(template, **values):
         result=env.from_string(template).render(**values)

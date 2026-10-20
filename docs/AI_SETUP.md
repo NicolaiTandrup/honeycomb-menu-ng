@@ -233,13 +233,12 @@ cache falls back to icon/title. Playback always uses the **base favorites ID**
 with `media_player.play_media`, type `favorite_item_id`; cache alone cannot populate
 Radio or supply playback IDs.
 
-Recipe refresh triggers: favorites state **or attributes** change; every 15 minutes;
-or an HA event `sonos_favorites_refresh`. Both reference player and base sensor must
-have a value or refresh is skipped. There is no startup trigger; after installation,
-fire that event in Developer Tools or wait for a trigger. The sensor state counts
-browse children; `attributes.items` caches the first 12. Honeycomb reads this cache,
-it does not poll Browse Media. Reopen Radio after favorite **count/list** changes
-because submenu `show` is opening-time; current artwork/presentation updates with HA.
+Beta.2's optional cache recipe configures eligible `cache_players` once, in order;
+they must share a favorites library. It chooses the first available player on
+refresh, including HA start, favorites changes, the manual refresh event and the
+15-minute fallback. No source/base value means skip; `source_player` and
+`cache_version` provide diagnostics. Existing four-field templates stay supported.
+Radio count/list changes require reopening; current artwork/state updates live.
 
 Install the complete recipe under `template:` in `configuration.yaml`. If already
 using `template: !include templates.yaml`, copy only the `- triggers:` list item
@@ -250,40 +249,32 @@ and below into that include. Merge lists; do not duplicate top-level `template:`
 Native volume reads `group_members` and targets current members (solo: selected
 player). Do **not** generate volume scripts unless the user requests a custom override.
 
-Join requires both `members` and `toggle_member_script`. Adapt the external
-[Join recipe](../examples/sonos-toggle-member.yaml), replacing the coordinator
-`media_player.player_a` with the Hub/Control's selected player. It creates
-`script.player_a_toggle_member` with required field `member`; the menu passes the
-selected candidate's entity ID. Already grouped → `media_player.unjoin` targeting
-that member; otherwise `media_player.join` targets the coordinator with
-`group_members: [member]`. This depends on the real integration's supported actions.
+As of **v1.7.1-beta.2**, absent `members` means discover actual Sonos registry
+platform entries on Join open (frontend `hass.entities` or HA display-registry WS).
+Do not guess players from names/areas/domains. An explicit list, including `[]`,
+overrides discovery. Candidate order is stable; automatic order is entity-ID order;
+selected player, coordinator and duplicates are excluded. Existing outer ring has
+12 candidates. No polling or structural candidate movement while open.
 
-Install under `script:` in configuration.yaml, or copy only
-`player_a_toggle_member:` and below into `scripts.yaml` when using
-`script: !include scripts.yaml`. Reload scripts and confirm the entity ID.
-Use at most 12 candidate entries; exclude the coordinator itself. Browse is HA
-more-info, not a custom library browser. [Sonos details](SONOS_MODULE.md).
+Native grouping requires GROUPING (524288) on selected coordinator and candidate,
+and available `media_player.join`/`unjoin` services. Join targets coordinator with
+`group_members: [candidate]`; unjoin targets candidate. A selected follower uses
+its reciprocally confirmed leader. Other groups, unavailable players and unknown
+group state are read-only. Live HA membership is authoritative; failures notify.
+A configured `toggle_member_script` remains an optional authoritative override
+with its existing `member`-only data contract and selected-coordinator restriction.
+The [external script recipe](../examples/sonos-toggle-member.yaml) remains valid.
 
-**Issue #90 development patch, target v1.7.1 (not yet released):** Sonos inner
-slots are 1 Radio, 2 Play/Pause, 3 Solo/Join, 4 Browse, 5 Volume Down, 6 Volume Up.
-Center 0 and Radio outer slots 7–18 retain their behavior. Generic `module: media`
-keeps its own layout; Hub `type: sonos`, legacy `type: media` and Control
-`module: sonos` use the corrected Sonos layout.
+Empty/setup labels distinguish missing registry metadata, no other Sonos, invalid
+manual entries, unsupported grouping, unavailable native services and script errors.
+Do not silently insert scripts, fake success or regroup unrelated players.
 
-Join always opens an outer ring. Configure explicit Sonos `members` and a loaded,
-available `script.*` entity/service for `toggle_member_script`, still accepting
-only `member`. No candidates → `No rooms` / `Configure members`; invalid/self-only
-candidates → `Check members`; no script → `Configure script`; missing/unsupported
-script → `Script unavailable`. Candidate order is configured order, deduplicated
-and excluding the selected player. Missing names use HA friendly names/entity IDs.
-Membership labels/fills follow actual `group_members`; a request does not invent
-success. Failed requests show a HA notification; the ring remains open.
-
-Use the selected group leader with its matching script. Unknown group state,
-unavailable rooms, a selected follower or a candidate in another group are
-read-only; use HA to ungroup the other room before adding it. Do not discover
-Sonos by domain alone, fabricate room entities, insert backend scripts silently,
-or modify the existing Radio cache/order/artwork/playback recipe.
+Sonos inner slots: 1 Radio, 2 Play/Pause, 3 Solo/Join, 4 Browse Media, 5 Volume Down,
+6 Volume Up. Hub legacy `type: media` still selects Sonos; explicit `module: media`
+keeps generic Media behavior. Browse uses HA's selected-player Media panel route
+`/media-browser/media_player.player_a`, not more-info or a private dialog API.
+The HA Media panel/player browse capability must be available. See
+[Sonos details](SONOS_MODULE.md).
 
 ## Canonical complete cards
 
@@ -515,23 +506,24 @@ but never move that center. [Architecture](../ARCHITECTURE.md),
 [Phase 1](V1_7_PHASE1.md), [Issue #78](ISSUE_78.md), [Phase 2](V1_7_PHASE2.md),
 [documentation validation commands](DOCUMENTATION.md).
 
-## v1.7.1-beta.1 development additions (PR #91)
+## v1.7.1-beta.2 development additions (PR #91)
 
 The corrected Sonos inner slots/Join behavior above remain. Radio outer slots
 7–18 add only deterministic Light-wheel inner accents. Preserve favorite order,
-IDs, cache recipe, artwork and actions. Up to 12 IDs have distinct colors stable
+IDs, existing cache compatibility, artwork and actions. Up to 12 IDs have distinct colors stable
 under reordering; larger sets can share hues.
 
-The launcher recognizes an exact HA `media_content_id` → favorite ID, or an exact,
-unique `uri` in existing cache metadata linked by `media_content_id` to a configured
-favorite. The default cache recipe does not supply playback URIs. Do not infer an
-ID from a title/channel, fabricate URI mappings, or silently change HA automation.
-No reliable match or valid cached thumbnail means normal Sonos presentation.
+The launcher first matches exact favorite IDs or unique optional cached playback
+URIs. For validated Sonos radio URI schemes, it may instead match a unique exact
+`media_channel` = canonical favorite name = cached `title`, requiring cache type
+`favorite_item_id`. This is not fuzzy title matching. Reject ambiguous or partial
+names, arbitrary HTTP track channels and `media_title` matching. A valid thumbnail
+is still required. Existing four-field cache entries work without adding URIs.
 Groups require reciprocal membership and use coordinator playback identity.
 
 Known logo/accent may remain on pause/stop only while metadata still matches;
 center fill becomes neutral `off.center_color`, default `#202224`. Explicit playing
-colors beat `active_color`, station accent and defaults; unavailable state stays
+colors beat station accent, legacy `active_color` fallback and defaults; unavailable state stays
 unavailable. Custom background image and `show_icon: false` win over automatic
 artwork. See [Sonos precedence](SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
 

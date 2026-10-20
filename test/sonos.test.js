@@ -23,8 +23,8 @@ test('Hub Sonos, legacy media and standalone Sonos compile identical slots and h
         assert.equal(menu.buttons[0].name,'Radio');
         assert.equal(menu.buttons[0].tap_action.action,'honeycomb-open-nested');
         assert.equal(menu.buttons[1].tap_action.perform_action,'media_player.media_play_pause');
-        assert.equal(menu.buttons[2].tap_action.honeycomb_nested_menu.buttons[0].tap_action.script,script);
-        assert.deepEqual(menu.buttons[3].tap_action,{action:'more-info'});
+        assert.equal(menu.buttons[2].tap_action.sonos_item.toggle_member_script,script);
+        assert.deepEqual(menu.buttons[3].tap_action,{action:'navigate',navigation_path:'/media-browser/media_player.player_a'});
         assert.equal(menu.buttons[4].tap_action.direction,'down');
         assert.equal(menu.buttons[5].tap_action.direction,'up');
         assert.equal(menu.promoted_center.mode,'sonos');
@@ -61,7 +61,7 @@ test('Join always opens with a useful setup state, including solo/self-only/inva
         assert.equal(join.buttons[0].name,'No rooms');
         assert.equal(join.buttons[0].interactive,false);
         const menu=buildCubeConfig({type:'sonos',entity:player,members},fixture()).menu;
-        assert.equal(menu.buttons[2].tap_action.action,'honeycomb-open-nested');
+        assert.equal(menu.buttons[2].tap_action.action,'honeycomb-sonos-open-join');
     }
 });
 test('candidate order is stable, selected player and duplicates excluded, twelve physical choices retained',()=>{
@@ -165,6 +165,50 @@ test('repeat pending taps are suppressed across HA snapshots and rechecked after
 const station=require('../src/modules/sonos/station');
 const {presentationDependencies,presentationSnapshot}=require('../src/core/presentation-dependencies');
 const LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==';
+const {discoverSonos}=require('../src/modules/sonos/discovery');
+const {openJoin}=require('../src/modules/sonos/grouping');
+test('legacy active_color is a fallback; real-shaped radio channel uniquely bridges FV IDs and stream URIs',()=>{
+    const hass=fixture();hass.states[player]={state:'playing',attributes:{media_content_id:'x-sonosapi-hls:stream-a?sid=1',media_channel:'Station A',media_title:'Track A'}};
+    hass.states['sensor.favorites_a']={state:'2',attributes:{items:{'FV:2/57':'Station A','FV:2/58':'Station B'}}};
+    hass.states['sensor.favorites_cache_a']={state:'2',attributes:{items:[{media_content_id:'FV:2/57',media_content_type:'favorite_item_id',title:'Station A',thumbnail:LOGO}]}};
+    const config=buildCubeConfig({type:'media',entity:player,active_color:'#00bcd4',favorites_sensor:'sensor.favorites_a',favorites_cache_sensor:'sensor.favorites_cache_a'},hass);
+    assert.equal(station.recognizedFavorite(hass,config).id,'FV:2/57');
+    const result=station.resolve({hass,config,state:hass.states[player]});assert.equal(result.artwork.url,LOGO);assert.notEqual(result.colors.center,'#00bcd4');
+    hass.states[player].state='paused';assert.equal(station.resolve({hass,config,state:hass.states[player]}).forceColors.center,'#202224');
+    hass.states[player].attributes.media_channel='Station A live';assert.equal(station.recognizedFavorite(hass,config),null);
+    hass.states[player].attributes.media_channel='Station A';hass.states['sensor.favorites_a'].attributes.items['FV:2/58']='Station A';
+    assert.equal(station.recognizedFavorite(hass,config),null,'Duplicate names are ambiguous');
+    delete hass.states['sensor.favorites_a'].attributes.items['FV:2/58'];hass.states[player].attributes.media_content_id='https://example.invalid/track.mp3';
+    assert.equal(station.recognizedFavorite(hass,config),null,'Arbitrary HTTP music titles/channels do not qualify');
+});
+test('discovery uses actual Sonos platform metadata, filters unrelated/hidden entities and fails closed',async()=>{
+    const hass={entities:{a:{entity_id:player,platform:'sonos'},b:{entity_id:member,platform:'sonos'},c:{entity_id:'media_player.other',platform:'cast'},d:{entity_id:'media_player.hidden',platform:'sonos',hidden:true}}};
+    assert.deepEqual((await discoverSonos(hass)).players,[player,member]);
+    let requests=0;const callWS=async request=>{requests++;assert.equal(request.type,'config/entity_registry/list_for_display');return {entities:[{ei:player,pl:'sonos'},{ei:member,pl:'sonos'},{ei:'media_player.other',pl:'cast'}]};};
+    assert.deepEqual((await discoverSonos({callWS})).players,[player,member]);assert.equal(requests,1);
+    assert.equal((await discoverSonos({callWS:async()=>{throw Error('forbidden')}})).status,'unavailable');
+    assert.equal((await discoverSonos({callWS:async()=>({entities:[{}]})})).status,'unavailable');
+});
+test('Join without members/script discovers native candidates; native join/unjoin uses actual live membership',async()=>{
+    const hass=fixture();hass.entities={[player]:{entity_id:player,platform:'sonos'},[member]:{entity_id:member,platform:'sonos'}};
+    for(const entity of [player,member])hass.states[entity].attributes.supported_features=524288;
+    hass.services.media_player={join:{},unjoin:{}};let menu;
+    await openJoin({hass,actionConfig:{sonos_item:{entity:player}},openNested:config=>menu=config});
+    const action=menu.buttons[0].tap_action,calls=[];hass.callService=async(...args)=>calls.push(args);
+    assert.equal(action.member,member);assert.equal(evaluate(menu.buttons[0].label,hass),'Not joined');
+    await toggleMember({hass,actionConfig:action});assert.deepEqual(calls.pop(),['media_player','join',{group_members:[member]},{entity_id:player}]);
+    hass.states[player].attributes.group_members=[player,member];hass.states[member].attributes.group_members=[player,member];
+    await toggleMember({hass,actionConfig:action});assert.deepEqual(calls.pop(),['media_player','unjoin',{}, {entity_id:member}]);
+    hass.states[member].attributes.supported_features=0;assert.equal(memberState(hass,player,member,'',true).label,'Grouping unsupported');
+});
+test('native follower resolves verified coordinator and stale async discovery cannot reopen a closed menu',async()=>{
+    const hass=fixture();const third='media_player.player_c';hass.states[third]=state([third]);
+    hass.states[player].attributes.group_members=[member,player];hass.states[member].attributes.group_members=[member,player];
+    hass.entities=Object.fromEntries([player,member,third].map(id=>[id,{entity_id:id,platform:'sonos'}]));let menu;
+    await openJoin({hass,actionConfig:{sonos_item:{entity:player}},openNested:config=>menu=config});
+    assert.equal(menu.buttons[0].tap_action.coordinator,member);assert.equal(menu.buttons[0].entity,third);
+    await openJoin({hass,actionConfig:{sonos_item:{entity:player}},isCurrent:()=>false,openNested:()=>assert.fail('Stale menu')});
+});
 function stationFixture(){
     const hass=fixture();
     hass.states[player].state='playing';hass.states[player].attributes.media_content_id='favorite_a';

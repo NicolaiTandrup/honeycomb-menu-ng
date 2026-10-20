@@ -783,7 +783,10 @@ class CubeElement extends LitElement
         }
         if (actionName === 'honeycomb-close') { window.honeycomb_menu_context_close(context); return; }
         if (customActionRegistry.has(actionName)) {
+            const sourceConfig=this.config;
             customActionRegistry.handle(actionName,{hass:this.hass,actionConfig:action,
+                openNested:config=>this._openHoneycombMenu(config),getHass:()=>this.hass,
+                isCurrent:()=>this.isConnected && this.config===sourceConfig,
                 entity:this.config.entity,itemConfig:this.config,menuConfig:(this.getRootNode().host || {}).config});
             return;
         }

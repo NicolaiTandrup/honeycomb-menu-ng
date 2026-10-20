@@ -1,8 +1,9 @@
 const { sonosButtonStyles } = require('./presentation.js');
+const { discoverSonos } = require('./discovery.js');
 
 // Self-contained because the same decision is embedded in live presentation
 // templates and rechecked against fresh HA state immediately before an action.
-function memberState(hass, coordinator, member, script)
+function memberState(hass, coordinator, member, script, nativeAllowed = false)
 {
     const states = hass.states || {};
     const player = states[coordinator];
@@ -25,8 +26,16 @@ function memberState(hass, coordinator, member, script)
     if (!joined && (!Array.isArray(otherGroup) || !otherGroup.includes(member)))
         return result('Group unknown', false);
     if (!joined && otherGroup.includes(coordinator)) return result('Updating group', false);
+    if (!script && nativeAllowed) {
+        if (!(Number(player.attributes.supported_features) & 524288) || !(Number(candidate.attributes.supported_features) & 524288))
+            return result('Grouping unsupported',false,'Both players must expose Home Assistant grouping support.');
+        const services=hass.services && hass.services.media_player;
+        if (typeof hass.callService!=='function' || !services || !services.join || !services.unjoin)
+            return result('Grouping unavailable',false,'Home Assistant media_player.join and unjoin services are required.');
+        return result(joined ? 'Joined' : 'Not joined',true);
+    }
     if (typeof script !== 'string' || !/^script\.[a-z0-9_]+$/.test(script))
-        return result('Configure script', false, 'Configure toggle_member_script with the selected player\'s Join toggle script.');
+        return result('Configure script', false, 'Configure toggle_member_script, or enable native grouping on verified Sonos players.');
     const scriptState = states[script];
     const service = script.slice(7);
     if (typeof hass.callService !== 'function' || unavailable(scriptState) || !hass.services || !hass.services.script || !hass.services.script[service])
@@ -34,17 +43,20 @@ function memberState(hass, coordinator, member, script)
     return result(joined ? 'Joined' : 'Not joined', true);
 }
 
-function memberTemplate(item, member, expression)
+function memberTemplate(item, member, expression, nativeAllowed)
 {
-    return `[[[ const status = (${memberState.toString()})(hass, ${JSON.stringify(item.entity)}, ${JSON.stringify(member.entity)}, ${JSON.stringify(item.toggle_member_script || '')}); return ${expression}; ]]]`;
+    return `[[[ const status = (${memberState.toString()})(hass, ${JSON.stringify(item.entity)}, ${JSON.stringify(member.entity)}, ${JSON.stringify(item.toggle_member_script || '')}, ${!!nativeAllowed}); return ${expression}; ]]]`;
 }
 
-function buildJoinMenu(item)
+function buildJoinMenu(item, discovery = null)
 {
-    // Explicit candidates are the source of truth. A media_player domain or an
-    // area name alone is insufficient evidence that a player supports Sonos.
-    const configured = Array.isArray(item.members) ? item.members : [];
-    const seen = new Set([item.entity]);
+    // Explicit candidates override discovery. Domain/area names alone never
+    // establish platform identity; native automatic choices come from registry.
+    const manual = Array.isArray(item.members);
+    const unverified=!manual && discovery && discovery.status==='available' && !discovery.players.includes(item.entity);
+    const configured = manual ? item.members : discovery && !unverified ? discovery.players.map(entity=>({entity})) : [];
+    const nativeAllowed = manual || !!(discovery && discovery.players.includes(item.entity));
+    const seen = new Set([item.entity,item._selected_entity]);
     const members = configured.filter(member => {
         if (!member || typeof member.entity !== 'string' ||
             !/^media_player\.[a-z0-9_]+$/.test(member.entity) || seen.has(member.entity)) return false;
@@ -64,16 +76,17 @@ function buildJoinMenu(item)
             entity: member.entity,
             icon: member.icon || (member.entity.includes('tv') ? 'mdi:television-speaker' : 'mdi:speaker'),
             name: member.name || `[[[ return entity?.attributes?.friendly_name || ${JSON.stringify(member.entity)}; ]]]`,
-            label: memberTemplate(item, member, 'status.label'),
+            label: memberTemplate(item, member, 'status.label', nativeAllowed),
             show_name: true,
             show_label: true,
             autoclose: false,
             styles: sonosButtonStyles({background: memberTemplate(item, member,
-                "status.joined ? 'rgba(45, 105, 116, 0.96)' : !status.enabled ? 'rgba(70, 74, 80, 0.92)' : 'rgba(52, 66, 78, 0.92)'")}),
+                "status.joined ? 'rgba(45, 105, 116, 0.96)' : !status.enabled ? 'rgba(70, 74, 80, 0.92)' : 'rgba(52, 66, 78, 0.92)'", nativeAllowed)}),
             tap_action: {
                 action: 'honeycomb-sonos-toggle-member',
                 coordinator: item.entity,
                 member: member.entity,
+                native_allowed: nativeAllowed,
                 script: item.toggle_member_script || ''
             }
         })) : [{
@@ -81,7 +94,7 @@ function buildJoinMenu(item)
             slot_mode: 'hard',
             icon: 'mdi:information-outline',
             name: 'No rooms',
-            label: configured.length ? 'Check members' : 'Configure members',
+            label: manual ? 'Check members' : !discovery ? 'Configure members' : discovery.status!=='available' ? 'Metadata unavailable' : unverified ? 'Selected not Sonos' : 'No other Sonos',
             show_name: true,
             show_label: true,
             interactive: false,
@@ -102,8 +115,8 @@ function notifyUser(message)
 const pending = new WeakMap();
 async function toggleMember({ hass, actionConfig, notify = notifyUser })
 {
-    const { coordinator, member, script } = actionConfig;
-    const status = memberState(hass, coordinator, member, script);
+    const { coordinator, member, script, native_allowed } = actionConfig;
+    const status = memberState(hass, coordinator, member, script, native_allowed);
     if (!status.enabled) { notify(status.reason); return false; }
     // Suppress repeat taps while this request is outstanding. Membership itself
     // is never optimistic: only HA group_members updates change the cube.
@@ -114,20 +127,44 @@ async function toggleMember({ hass, actionConfig, notify = notifyUser })
     if (requests.has(key)) return false;
     requests.add(key);
     try {
-        await hass.callService('script', script.slice(7), { member }, {});
+        if (script) await hass.callService('script', script.slice(7), { member }, {});
+        else if (status.joined) await hass.callService('media_player','unjoin',{}, {entity_id:member});
+        else await hass.callService('media_player','join',{group_members:[member]}, {entity_id:coordinator});
         return true;
     } catch (_) {
-        notify('Could not update Sonos group. Check the configured toggle script in Home Assistant.');
+        notify('Could not update Sonos group. Check Home Assistant permissions, grouping support or the configured toggle script.');
         return false;
     } finally { requests.delete(key); }
 }
 
 function registerActions(registry)
 {
+    registry.register('honeycomb-sonos-open-join', context => { void openJoin(context); return true; });
     registry.register('honeycomb-sonos-toggle-member', context => {
         void toggleMember(context);
         return true;
     });
 }
 
-module.exports = { buildJoinMenu, memberState, toggleMember, registerActions };
+async function openJoin({hass,actionConfig,openNested,isCurrent=()=>true,getHass=()=>hass})
+{
+    const original=actionConfig.sonos_item;
+    const discovery=Array.isArray(original.members) ? null : await discoverSonos(hass);
+    if (!isCurrent()) return false;
+    const live=getHass(),item={...original};
+    // Native grouping follows a reciprocally confirmed leader; external scripts
+    // keep their existing selected-coordinator contract.
+    if (!item.toggle_member_script) {
+        const state=(live.states || {})[item.entity],group=state && state.attributes.group_members;
+        const leader=Array.isArray(group) && group[0],leaderState=(live.states || {})[leader];
+        if (leader && leader!==item.entity && leaderState && Array.isArray(leaderState.attributes.group_members) &&
+            leaderState.attributes.group_members[0]===leader && leaderState.attributes.group_members.includes(item.entity) &&
+            (Array.isArray(original.members) || discovery && discovery.players.includes(leader))) {
+            item._selected_entity=item.entity;item.entity=leader;
+        }
+    }
+    openNested(buildJoinMenu(item,discovery));
+    return true;
+}
+
+module.exports = { buildJoinMenu, memberState, toggleMember, openJoin, registerActions };
