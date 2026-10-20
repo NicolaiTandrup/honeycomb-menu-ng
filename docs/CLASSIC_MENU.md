@@ -1,6 +1,12 @@
 # Classic Honeycomb popup reference
 
-This document preserves the detailed configuration reference for the original popup-style Honeycomb engine. It remains supported in Honeycomb Menu NG v1.5.
+This document preserves the detailed configuration reference for the original popup-style Honeycomb engine. It remains supported in Honeycomb Menu NG v1.7.
+
+For current standalone Control YAML use the [versioned guide](AI_SETUP.md).
+Classic ring slots start at 1; `center_button` is separate. Legacy `position: 0`
+means the first ring cell, not Hub center. Classic `size: 225` describes scene
+extent, unlike Hub/Control `size: 82` cell width.
+Dynamic Hub `visibility` and priority allocation do not apply to classic buttons.
 
 For new room/device dashboards, start with the persistent Hub in the main [README](../README.md). Use this document when you need `fire-dom-event` popups, explicit slot control, XY Pad, templates, or legacy YAML compatibility.
 
@@ -10,7 +16,9 @@ From v1.0.10, the root Honeycomb `entity` is inherited throughout the menu tree.
 
 ```yaml
 type: custom:honeycomb-persistent-control
-entity: light.hue_kontor
+module: light
+entity: light.zone_a
+size: 82
 
 menu:
   buttons:
@@ -23,51 +31,14 @@ menu:
           brightness_pct: 100
 ```
 
-The button above automatically uses `light.hue_kontor` as both its entity and action target. Nested Honeycomb menus inherit the same entity unless they explicitly set another one.
+The button above automatically uses `light.zone_a` as both its entity and action target. Nested Honeycomb menus inherit the same entity unless they explicitly set another one.
 
-## Persistent center control (v1.0)
+## Standalone Control
 
-v1.0 adds an opt-in persistent Honeycomb center that can stay visible on a dashboard or floorplan while the surrounding menu remains hidden until a hold gesture.
-
-The persistent control reuses the existing Honeycomb center geometry and the existing menu engine. Existing popup/menu configurations remain unchanged.
-
-Basic example:
-
-```yaml
-type: custom:honeycomb-persistent-control
-entity: light.hue_kontor
-icon: mdi:lightbulb
-size: 72
-
-tap_action:
-  action: toggle
-
-menu:
-  size: 225
-  empty_slots: hidden
-  buttons:
-    - slot: 1
-      slot_mode: hard
-      entity: light.hue_kontor
-      icon: mdi:brightness-7
-      tap_action:
-        action: perform-action
-        perform_action: light.turn_on
-        target:
-          entity_id: light.hue_kontor
-        data:
-          brightness_pct: 100
-```
-
-Initial v1.0 persistent behavior:
-
-- the center stays visible while idle
-- tap executes the configured primary action
-- hold opens the configured Honeycomb menu
-- closing the menu returns to the persistent center
-- Home Assistant state updates are passed live to the center card
-
-Dynamic light colors, double borders and brightness text build on this persistent-center foundation.
+The current Control uses the same full-cell renderer as Hub. Hold opens its module;
+tap performs its primary action. Earlier v1.0 inset controls are historical and may
+need migration; use the [current complete example](../examples/v1.7/control-light.yaml)
+and [migration guide](AI_SETUP.md#migration-and-limits).
 
 ## Layout envelope for nested expansion
 
@@ -118,7 +89,7 @@ By default it:
 
 ```yaml
 honeycomb_menu:
-  entity: light.kitchen
+  entity: light.zone_a
   center_button:
     icon: mdi:lightbulb-group
     tap_action:
@@ -163,7 +134,7 @@ Use `button_defaults` to apply common configuration to all ring buttons without 
 
 ```yaml
 honeycomb_menu:
-  entity: light.kitchen
+  entity: light.zone_a
   button_defaults:
     styles:
       card:
@@ -179,7 +150,7 @@ honeycomb_menu:
         action: call-service
         service: light.turn_off
         service_data:
-          entity_id: light.kitchen
+          entity_id: light.zone_a
 ```
 
 A button can override any default locally:
@@ -262,21 +233,21 @@ buttons:
     tap_action:
       action: fire-dom-event
       honeycomb_menu:
-        entity: light.kitchen
+        entity: light.zone_a
         buttons:
           - icon: mdi:lightbulb-on-outline
             tap_action:
               action: call-service
               service: light.turn_on
               service_data:
-                entity_id: light.kitchen
+                entity_id: light.zone_a
 
           - icon: mdi:lightbulb-off-outline
             tap_action:
               action: call-service
               service: light.turn_off
               service_data:
-                entity_id: light.kitchen
+                entity_id: light.zone_a
 ```
 
 The currently open Honeycomb menu is closed when the nested menu opens.
@@ -291,7 +262,7 @@ image:
 
 elements:
   - type: state-icon
-    entity: light.kitchen
+    entity: light.zone_a
     style:
       left: 20%
       top: 20%
@@ -300,7 +271,7 @@ elements:
     hold_action:
       action: fire-dom-event
       honeycomb_menu:
-        entity: light.kitchen
+        entity: light.zone_a
         autoclose: true
         active: true
         empty_slots: hidden
@@ -323,7 +294,7 @@ elements:
               action: call-service
               service: light.turn_on
               service_data:
-                entity_id: light.kitchen
+                entity_id: light.zone_a
 
           - slot: 3
             icon: mdi:lightbulb-off-outline
@@ -331,7 +302,7 @@ elements:
               action: call-service
               service: light.turn_off
               service_data:
-                entity_id: light.kitchen
+                entity_id: light.zone_a
 
           - icon: mdi:dots-horizontal
             tap_action:
@@ -392,7 +363,7 @@ Typical uses include:
 
 ```yaml
 honeycomb_menu:
-  entity: light.kitchen
+  entity: light.zone_a
   xy_pad:
     repeat: 500
     y:
@@ -488,9 +459,9 @@ hold_action:
   action: fire-dom-event
   honeycomb_menu:
     template: light
-    entity: light.kitchen
+    entity: light.zone_a
     variables:
-      motion: automation.kitchen_motion
+      motion: automation.motion_a
 ```
 
 ## Theme variables

@@ -1,0 +1,40 @@
+type: custom:honeycomb-persistent-hub
+name: Dynamic Hub A
+size: 82
+logo: false
+items:
+  - type: light
+    entity: light.zone_a
+    slot: 0
+    slot_mode: hard
+  - type: generic
+    entity: person.person_a
+    name: Person A
+    slot: 2
+    slot_mode: priority
+    visibility:
+      - condition: state
+        entity: person.person_a
+        state: home
+    tap_action:
+      action: more-info
+  - type: generic
+    entity: light.zone_b
+    name: Bright light B
+    slot_mode: soft
+    visibility:
+      - condition: numeric_state
+        entity: light.zone_b
+        attribute: brightness
+        above: 127
+        below: 256
+    tap_action:
+      action: more-info
+  - type: media
+    module: media
+    entity: media_player.player_b
+    slot_mode: soft
+    visibility:
+      condition: state
+      entity: person.person_a
+      state: not_home

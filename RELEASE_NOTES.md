@@ -1,3 +1,40 @@
+# v1.7.0 — stable release draft (unreleased)
+
+This is a review draft, not a published release. Phase 1 PR #77 and Phase 2 PR #81
+are merged into `restart/v1.5.1`; the documentation PR still requires owner review.
+Package/release metadata remains `1.7.0-beta.3`. Historical beta notes below describe
+their publication-time branch status, not today's merge state.
+
+Planned stable scope:
+- Shared Hub/Control full-cell renderer based on v1.5.1 Hub, default 82 px, consistent
+  icons/labels/fill/rings/actions, preserved Light/Media/Sonos, presets and favorites.
+- Canonical standalone `module:` configuration and migration guidance; older Control
+  schemas may need adaptation. `logo: false` frees center slot 0 for ordinary items.
+- Live HA-state visibility with state/numeric/AND/OR/NOT conditions and dependency-aware
+  updates. Hard reservations, priority reclaim and stable soft slots with deterministic
+  collisions and overflow diagnostics. Structural changes defer through menus/gestures.
+- Issue #78 Light launcher/preset visibility fix, unchanged six-action Light slot mapping,
+  fixed centers through nested palettes and preserved drag-select.
+- Restored verified layout diagram; onboarding/reference and versioned AI guide;
+  synthetic examples, external Light values and Sonos cache/grouping prerequisites.
+
+Known limits: 217 physical positions (configured dependencies are not truncated);
+no paging or automatic shrinking; anchored layouts may clip at viewport edges;
+visibility only supports the documented subset and intentionally defers structure
+while interacting; arbitrary JS templates update conservatively; Radio/Join have
+12 outer choices. Car/Charger modules and charging automation are not implemented.
+Automated validation uses Chromium with synthetic HA; actual integrations require
+HA configuration checks/device validation. Owner has validated beta.3 visibility
+and deferred placement in real HA, as recorded in Issue #82.
+
+Publication gate **after documentation approval**: merge docs to restart, open a
+separate restart→master promotion PR, pass full unit/browser/docs/build/lint checks,
+verify clean version metadata and production bundle, then tag the exact tested master
+commit and validate release assets/checksums before publishing stable v1.7.0. Never
+force-update an existing tag. This documentation PR does not authorize publication.
+
+---
+
 # Honeycomb NG v1.7.0-beta.3 — Dynamic Hub visibility and stable slots
 
 Phase 2 of #76 / #79 starts from merged PR #77 on restart/v1.5.1 at

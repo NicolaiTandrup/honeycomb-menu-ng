@@ -1,406 +1,313 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/NicolaiTandrup/honeycomb-menu-ng/master/assets/honeycomb-menu-ng-logo.png"
-       width="220"
-       alt="Honeycomb Menu NG">
+  <img src="assets/honeycomb-menu-ng-logo.png" width="220" alt="Honeycomb Menu NG">
 </p>
 
 # Honeycomb Menu NG for Home Assistant
 
-Honeycomb Menu NG is a modular Home Assistant dashboard interaction system built around compact hexagonal controls. It is designed especially for floorplans, wall tablets and dashboards where a single visible control should open richer Light, Sonos or media controls without taking permanent screen space.
+Compact hexagonal controls for dashboards, floorplans and wall tablets. A persistent
+**Hub** groups devices; a standalone **Control** exposes one device. Tap for the
+primary action and hold for Light, Media or Sonos controls. Both use the same
+full-cell renderer, with **82 CSS px cube width** by default.
 
-The project **originated as a fork** of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu) by Sian Croser. Honeycomb Menu NG still contains portions of that GPLv3 codebase and keeps full attribution, but NG has evolved into a substantially larger modular implementation with persistent Hubs, native Light/Media/Sonos modules, locked-center navigation, state-aware controls and automated regression tests.
+NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu)
+and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
+by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-## v1.7.0-beta.3: dynamic Hub items
+> **v1.7.0 documentation / stable release pending.** Phase 1 PR #77 and Phase 2
+> PR #81 are merged into `restart/v1.5.1`. The latest tested beta is
+> [v1.7.0-beta.3](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.0-beta.3);
+> latest stable remains v1.5.1. These examples require the v1.7 code. This docs
+> update does not merge to master or publish a release. See the
+> [release notes and stable draft](RELEASE_NOTES.md).
 
-Hub items can now appear and disappear live from Home Assistant state. Use
-`visibility` with HA-style state/numeric/logical conditions and choose `slot_mode`:
-`hard` reserves its slot even when hidden, `priority` reclaims its preferred slot,
-and `soft` uses free positions while keeping unaffected cubes stable.
-`logo: false` leaves center slot 0 available for ordinary cubes.
+## What you can build
 
-Changes wait until the related module/descendant menu closes and active gestures
-or delayed taps finish. Entity presentation stays live. Hub and Control keep the
-shared 82 px renderer, Light/Media/Sonos features and the Issue #78 Light fix.
+- Persistent Hubs and individual Controls with consistent icons, labels and rings.
+- Light brightness, Color/White palettes and reusable numeric presets.
+- Media/Sonos play/pause, group-aware volume, favorites artwork and optional Join.
+- Live Hub item visibility, reserved/preferred/free slots and stable placement.
+- Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Start with the [complete Phase 2 example, truth tables and migration guide](docs/V1_7_PHASE2.md).
-Existing static Hub layouts retain their placement. Declarative dynamic placement
-is supported on Hub items; classic submenu buttons keep their existing show behavior.
+Car/Charger modules and charging automation are not implemented. Honeycomb calls
+configured HA actions; device automation belongs in Home Assistant.
 
-This prerelease is developed from updated `restart/v1.5.1` containing merged PR #77.
-The Phase 2 PR remains **unmerged**; master and latest stable v1.5.1 are unchanged.
-No v1.6 code or Car/Charger modules are included. The renderer supports 216 ring
-slots plus center; additional configured items remain tracked and report overflow.
+## Install and update
 
-## What Honeycomb Menu NG gives you
+You need current Home Assistant, [custom:button-card](https://github.com/custom-cards/button-card)
+and the entities you want to control. Install button-card and its JavaScript module
+resource first. Sonos features use HA's official Sonos integration.
 
-- persistent Honeycomb Hubs for floorplans and compact dashboards
-- short-tap primary actions and long-press detailed controls
-- Light controls with brightness, smart Color/White palettes and reusable presets
-- Sonos controls with play/pause, group-aware volume, Join, Radio favorites and Browse
-- generic media controls for non-Sonos players
-- fixed physical module center: nested menus may expand from 7 to 19 cubes without moving slot 0
-- state-aware launcher colors, brightness/volume labels and explicit `Unavailable` status
-- established inner/outer layouts plus expandable rings for larger Hub configurations
-- live Hub visibility and hard/priority/soft placement, with classic popup compatibility
-- nested menus, templates and XY Pad
-- modular core with isolated domain modules and regression tests
-- one shared Honeycomb bee brand across Home Assistant and GitHub
+**HACS:** add `https://github.com/NicolaiTandrup/honeycomb-menu-ng` under Custom
+repositories, category **Dashboard**, then install. Select the intended version;
+a beta requires showing prereleases. The normal module resource is
+`/hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js`. Check Dashboard resources for
+one entry, type **JavaScript module**; avoid loading HACS and manual copies together.
 
-## Requirements
+**Manual:** download the bundle from the intended
+[GitHub release](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases), place it
+at `/config/www/honeycomb-menu-ng/honeycomb-menu-ng.js`, then register this resource
+(in the Dashboard resources UI, or under `lovelace:` in YAML-managed configuration):
 
-- current Home Assistant
-- [custom:button-card](https://github.com/custom-cards/button-card)
-- Honeycomb Menu NG installed as a Lovelace JavaScript module
-- the Home Assistant entities you want to control
-
-For Sonos features, use Home Assistant's official Sonos integration.
-
-## Installation
-
-### HACS
-
-1. Open HACS.
-2. Open **Custom repositories**.
-3. Add:
-
-~~~text
-https://github.com/NicolaiTandrup/honeycomb-menu-ng
-~~~
-
-4. Select **Dashboard**.
-5. Install **Honeycomb Menu NG**.
-6. Reload the browser after installation/update.
-
-The resource is normally:
-
-~~~text
-/hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js
-~~~
-
-with resource type **JavaScript module**.
-
-### Manual
-
-Place `honeycomb-menu-ng.js` below `/config/www/` and add it as a Lovelace module:
-
-~~~yaml
+```yaml
 resources:
   - url: /local/honeycomb-menu-ng/honeycomb-menu-ng.js
     type: module
-~~~
+```
 
-## Recommended start: Persistent Hub
+After updating, reload the browser/app and hard-refresh if cached JavaScript persists.
+Check the installed release and resource URL before changing YAML. Installing a stable
+release does not make newer beta-only options available.
 
-~~~yaml
+## Start in 60 seconds
+
+Add a Manual card and paste this complete [Hub example](examples/v1.7/hub.yaml).
+Replace the synthetic IDs with entities from HA Developer Tools → States.
+
+```yaml
 type: custom:honeycomb-persistent-hub
-name: Living room
+name: Hub A
 size: 82
 logo: auto
-
 items:
   - type: light
-    entity: light.living_room
-    name: Living room
-    icon: mdi:lightbulb
-
+    entity: light.zone_a
+    name: Light A
   - type: sonos
-    entity: media_player.living_room
-    name: Sonos
-    icon: mdi:speaker
-    active_color: "#00bcd4"
-~~~
+    entity: media_player.player_a
+    name: Player A
+```
 
-### Interaction model
+Tap Light to toggle; tap Player to play/pause. Hold either to open its module.
+A dimmable Light has brightness and a capability-aware palette. A Light explicitly
+reporting `supported_color_modes: [onoff]` toggles and shows On/Off without a detail
+menu. Missing attributes during unavailability do not establish on/off-only capability.
 
-On the Hub base:
+## Layout model
 
-- **short tap Light** → toggle the light
-- **short tap Sonos** → play/pause
-- **long press** → enter that item's detailed module
-- selecting a base cube may establish a new physical center
-- after entering a module, the physical center is locked to **slot 0**
-- nested menus may add an outer ring, but slot 0 does not move
-- Back returns through the local module path to the base
-- multiple Hubs can coexist independently
+These are **physical slots**, viewed face-on. The figure is checked against the
+current coordinate tables, not inferred from button order.
 
-When `logo: auto` is enabled, the Honeycomb bee occupies slot 0 when the automatic layout has a free center. Set `logo: false` to allow a real Hub item to occupy slot 0.
+<!-- layout-diagram:start -->
+```text
+        [ 9]    [10]    [11]
+    [ 8]    [ 2]    [ 3]    [12]
+[ 7]    [ 1]    [ 0]    [ 4]    [13]
+    [18]    [ 6]    [ 5]    [14]
+        [17]    [16]    [15]
+```
+<!-- layout-diagram:end -->
 
-## Built-in modules
-
-| New configuration | Module | Main behavior |
+| Area | Physical slots | Meaning |
 |---|---|---|
-| `type: light` | Light | toggle + brightness + palette + presets |
-| `type: sonos` | Sonos | play/pause + group volume + Join + Radio + Browse |
-| `type: media` + `module: media` | Generic media | play/pause + volume + more-info |
-| `type: media` without `module` | Sonos compatibility | retained for older NG configs |
-
-For **new configurations**, prefer explicit `type: sonos` for Sonos players. Legacy `type: media` continues to resolve to the Sonos-oriented module.
-
-## Light module
-
-Minimal:
-
-~~~yaml
-- type: light
-  entity: light.living_room
-  name: Living room
-~~~
-
-The detailed Light menu contains:
-
-| Slot | Function |
-|---:|---|
-| 1 | 100% brightness |
-| 2 | normal brightness preset |
-| 3 | smart Color/White palette |
-| 4 | standard color/Kelvin preset |
-| 5 | -5% brightness |
-| 6 | +5% brightness |
-
-The palette is capability-aware:
-- RGB/HS/XY lights receive a 12-color outer ring.
-- color-temperature-only lights receive a 12-step warm-to-cool white outer ring.
-- pure on/off lights show `On` / `Off` and do not open a detail level.
-- dimmable lights show brightness while on and `Off` while off.
-- palette expansion does **not** move the physical module center.
-
-### Optional Light preset values
-
-Preset values can live in writable numeric Home Assistant entities:
-
-~~~yaml
-- type: light
-  entity: light.living_room
-  name: Living room
-  presets:
-    brightness:
-      entity: number.wall_switch_normal_brightness
-    kelvin:
-      entity: number.wall_switch_standard_kelvin
-    color:
-      hue_entity: number.wall_switch_standard_hue
-      saturation_entity: number.wall_switch_standard_saturation
-~~~
-
-Supported writable helper domains in v1.5:
-- `number.*` — including device-owned values such as writable numbers exposed by a Shelly relay/script
-- `input_number.*` — Home Assistant helpers
-
-The values therefore do **not** have to live inside Honeycomb. A physical wall switch/Shelly and Honeycomb can share the same normal brightness, Kelvin and color values.
-
-Helper-backed presets:
-- **tap** → apply stored value
-- **hold** → store the light's current value
-
-Without helpers NG uses apply-only defaults:
-- brightness: **60%**
-- standard white: **2700 K**
-
-Full Light documentation: [docs/LIGHT_MODULE.md](docs/LIGHT_MODULE.md)
-
-## Sonos module
-
-Minimal:
-
-~~~yaml
-- type: sonos
-  entity: media_player.living_room
-  name: Sonos
-  icon: mdi:speaker
-  active_color: "#00bcd4"
-~~~
-
-The detailed Sonos menu contains:
-
-| Slot | Function |
-|---:|---|
-| 1 | group-aware volume down |
-| 2 | play/pause |
-| 3 | Join |
-| 4 | group-aware volume up |
-| 5 | Radio favorites |
-| 6 | Browse / more-info |
-
-### Volume
-
-No scripts are required for normal group volume. NG reads `group_members`:
-- solo → selected player
-- grouped → current group members
-
-Legacy `group_volume_down_script` / `group_volume_up_script` overrides remain supported but normally should not be used in new configs.
-
-### Radio favorites
-
-The official Sonos integration provides `sensor.sonos_favorites` with favorite names and IDs. That entity is disabled by default in Home Assistant, so enable it on the Sonos integration before using Radio.
-
-Basic Radio works with that sensor alone. If no artwork cache exists, NG shows radio icon + station name.
-
-For logos/artwork add the optional **Sonos Favorites Cache**:
-- [Sonos documentation](docs/SONOS_MODULE.md#optional-favorites-artwork-cache)
-- [ready-to-copy cache YAML](examples/sonos-favorites-cache.yaml)
-
-### Join
-
-Join is optional and requires candidate members plus a toggle script:
-
-~~~yaml
-- type: sonos
-  entity: media_player.living_room
-  toggle_member_script: script.sonos_living_room_toggle_member
-
-  members:
-    - entity: media_player.kitchen
-      name: Kitchen
-    - entity: media_player.bathroom
-      name: Bathroom
-~~~
-
-Ready-to-copy script: [examples/sonos-toggle-member.yaml](examples/sonos-toggle-member.yaml)
-
-Full Sonos documentation: [docs/SONOS_MODULE.md](docs/SONOS_MODULE.md)
-
-## Generic media
-
-~~~yaml
-- type: media
-  module: media
-  entity: media_player.office
-  name: Office
-~~~
-
-Generic media gives play/pause, volume down/up and more-info without Sonos-specific Join/Radio behavior.
-
-## Unavailable entities
-
-If a Light or Media/Sonos entity disappears, for example because a remote Home Assistant connection or device is down, the native cube:
-- becomes unavailable gray
-- keeps its icon
-- displays **Unavailable**
-- automatically returns to live presentation when the entity comes back
-
-## Hub slots
-
-For beta.3, see the [Phase 2 slot contract](docs/V1_7_PHASE2.md#slots-stability-and-migration).
-Without a slot_mode, old configurations keep hard automatic positions. Dynamic
-items can use priority preferred slots or soft free positions. Hidden hard slots
-stay reserved; priority claims run before fallbacks; unaffected soft cells retain
-free positions. Do not put new dynamic visibility keys on classic submenu buttons.
-
-
-### Base without logo
-
-| Items | Slots |
-|---:|---|
-| 1 | `0` |
-| 2 | `2,3` |
-| 3 | `2,3,0` |
-| 4 | `1,2,0,3` |
-| 5 | `1,2,0,3,4` |
-| 6 | `1,2,3,4,5,6` |
-| 7 | `0,1,2,3,4,5,6` |
-
-### Base with logo
-
-| Items | Slots |
-|---:|---|
-| 1 | `2` |
-| 2 | `2,3` |
-| 3 | `2,4,6` |
-| 4 | `2,3,1,4` |
-| 5 | `1,2,3,4,5` |
-| 6 | `1,2,3,4,5,6` |
-| 7 | logo hidden; real items use `0–6` |
-
-Detailed modules use:
-- slot `0`: physical center
-- slots `1–6`: inner ring
-- slots `7–18`: second ring; beta.3 supports further rings through slot `216`
-
-## AI-assisted setup
-
-For ChatGPT, Codex or another AI system building a configuration for someone who does not know Honeycomb syntax, use:
-
-**[docs/AI_SETUP.md](docs/AI_SETUP.md)**
-
-It is written as a deterministic implementation brief and defines:
-- what to ask the user for
-- which module type to choose
-- canonical YAML shapes
-- Light helper rules
-- Sonos favorites/cache/grouping requirements
-- defaults that must not be invented
-- validation steps
-
-## Classic popup menus
-
-The original popup-style Honeycomb remains supported for existing and advanced dashboards using `fire-dom-event`.
-
-~~~yaml
-type: button
-entity: light.kitchen
-name: Kitchen
-hold_action:
-  action: fire-dom-event
-  honeycomb_menu:
-    entity: light.kitchen
-    buttons:
-      - icon: mdi:lightbulb-on-outline
-        tap_action:
-          action: perform-action
-          perform_action: light.turn_on
-
-      - icon: mdi:lightbulb-off-outline
-        tap_action:
-          action: perform-action
-          perform_action: light.turn_off
-~~~
-
-Full classic reference, including center buttons, soft/hard slots, nested menus, XY Pad and templates:
-
-**[docs/CLASSIC_MENU.md](docs/CLASSIC_MENU.md)**
-
-## Documentation map
-
-- [Light module](docs/LIGHT_MODULE.md)
-- [Sonos module](docs/SONOS_MODULE.md)
-- [AI setup specification](docs/AI_SETUP.md)
-- [Classic popup reference](docs/CLASSIC_MENU.md)
-- [Architecture / module contract](ARCHITECTURE.md)
-- [Persistent Hub example](examples/persistent-hub.yaml)
-- [Light presets example](examples/light-presets.yaml)
-- [Sonos favorites cache example](examples/sonos-favorites-cache.yaml)
-- [Sonos Join toggle script](examples/sonos-toggle-member.yaml)
-- [GitHub Releases](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases)
-
-## Updating
-
-After HACS update:
-1. reload the dashboard/browser
-2. hard-refresh if old JavaScript is cached
-3. confirm the installed version
-
-## Development and architecture
-
-Honeycomb Menu NG is a **modular monolith**:
-- core owns navigation, geometry and anchor state
-- renderers display declarative configs
-- domain modules own Light/Media/Sonos behavior
-- modules may expand rings but may not move the locked module center
-
-Non-negotiable rule:
-
-> Only selecting a module from the persistent Hub base may establish a new module center. Once inside that module, slot 0 never moves until navigation returns to the base.
-
-See [ARCHITECTURE.md](ARCHITECTURE.md).
-
-## Origins, credits and license
-
-Honeycomb Menu NG originated as a fork of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu), created by **Sian Croser**.
-
-The NG codebase has expanded substantially, but portions of the original implementation remain. The project therefore retains the original attribution and GPLv3 license rather than treating the original project as idea-only inspiration.
-
-Current NG development/maintenance: **Nicolai Tandrup**.
-
-License: **GPLv3**. See [LICENSE](LICENSE).
-
-Original author support link: [Buy Me A Coffee — Sian Lee](https://www.buymeacoffee.com/SianLee)
+| Center | `0` | Hub item or bee; selected module's locked center |
+| Inner ring | `1–6` | Six immediate neighbors |
+| Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
+| Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
+
+The current Hub renderer supports **217 physical positions including center**.
+Configured items are not capped at 7 or 18: items beyond physical capacity remain
+tracked and report overflow. Large layouts may clip near viewport edges; there is
+no paging or automatic shrinking.
+
+**Classic popups:** their ring `slot` numbers also start at 1, but their center is
+configured separately with `center_button`, not `slot: 0`. Legacy `position: 0`
+means the first ring position. Classic `size` defaults to **225** and describes
+the scene extent; it is not the Hub/Control 82 px cell width. Classic automatic
+layouts use the inner ring for 1–6 buttons, outer for 7–12, and both for 13–18;
+hard targets can activate additional rings. See the [classic reference](docs/CLASSIC_MENU.md).
+
+### Automatic Hub layouts and branding
+
+Without explicit dynamic placement, these established layouts remain unchanged.
+Columns list slots in configuration order; count means configured non-null items,
+including currently hidden items.
+
+<!-- auto-slots:start -->
+| Items | Without logo | With logo |
+|---:|---|---|
+| 1 | `0` | `2` |
+| 2 | `2,3` | `2,3` |
+| 3 | `2,3,0` | `2,4,6` |
+| 4 | `1,2,0,3` | `2,3,1,4` |
+| 5 | `1,2,0,3,4` | `1,2,3,4,5` |
+| 6 | `1,2,3,4,5,6` | `1,2,3,4,5,6` |
+| 7 | `0,1,2,3,4,5,6` | logo suppressed; same slots |
+<!-- auto-slots:end -->
+
+`logo: auto` shows the bee for **2–6 configured items**, leaving one item at
+center and suppressing branding for 7+. `logo: true` also shows it for one item.
+An explicit center-slot request takes precedence over branding. `logo: false`
+removes the bee and makes slot 0 available to ordinary items; it does not force
+every automatic layout to fill the center. Beyond seven, automatic items use
+`0,1,2,…`.
+
+### Placement and live visibility
+
+| Mode | Visible | Hidden | Collision rule |
+|---|---|---|---|
+| `hard` (default) | Exact slot, explicit or established automatic position | Slot stays reserved | First configured hard item wins |
+| `priority` | Preferred explicit slot; fallback when occupied | Releases slot | Hard wins; all priority preferred claims precede fallback placement |
+| `soft` | Free slot; keeps its current free position | Releases slot | Runs after priority; no needless compaction |
+
+Equal claims use configuration order. Priority reclaims its preferred slot when
+it becomes visible. Unaffected free positions remain stable. Structural changes
+wait while the Hub's module/nested menus, pointer/touch/drag or delayed tap are
+active; the latest state is applied together after returning to base/finishing the
+gesture. Labels and entity presentation continue updating. Multiple Hubs are independent.
+
+This complete [dynamic example](examples/v1.7/dynamic-hub.yaml) keeps a Light at
+center, prefers slot 2 for Person A when home, and uses free slots for other items:
+
+```yaml
+type: custom:honeycomb-persistent-hub
+name: Dynamic Hub A
+size: 82
+logo: false
+items:
+  - type: light
+    entity: light.zone_a
+    slot: 0
+    slot_mode: hard
+  - type: generic
+    entity: person.person_a
+    name: Person A
+    slot: 2
+    slot_mode: priority
+    visibility:
+      - condition: state
+        entity: person.person_a
+        state: home
+    tap_action:
+      action: more-info
+  - type: generic
+    entity: light.zone_b
+    name: Bright light B
+    slot_mode: soft
+    visibility:
+      - condition: numeric_state
+        entity: light.zone_b
+        attribute: brightness
+        above: 127
+        below: 256
+    tap_action:
+      action: more-info
+  - type: media
+    module: media
+    entity: media_player.player_b
+    slot_mode: soft
+    visibility:
+      condition: state
+      entity: person.person_a
+      state: not_home
+```
+
+HA Light `brightness` is **0–255**, not percent; numeric bounds are exclusive.
+`not_home` is HA's literal away state; named zones have their own states.
+Visibility supports state/attribute equality or exclusion, numeric thresholds,
+AND, OR and NOT. A top-level list is AND; omitted/empty visibility is true.
+Only a final true result shows an item. Missing/indeterminate values hide unless
+another logical branch determines the result; unknown/unavailable state strings
+can be explicitly matched. Legacy `show` is an additional AND gate.
+These keys belong to **Hub items**, not standalone Control or submenu buttons.
+[Exact conditions, truth tables and collision rules](docs/V1_7_PHASE2.md).
+
+## Choose a module or Control
+
+| Hub item | Standalone Control | Features |
+|---|---|---|
+| `type: light` | `module: light` | Toggle, brightness, Color/White, presets |
+| `type: sonos` | `module: sonos` | Play/pause, group volume, Join, Radio, Browse |
+| `type: media` + `module: media` | `module: media` | Generic media without Sonos menus |
+| `type: generic` | `module: generic` | Custom entity/actions, no domain menu by default |
+
+Bare Hub `type: media` retains its older **Sonos** meaning. Use explicit selection
+for new configurations. Core owns rendering, geometry and navigation; modules
+provide behavior. There is no separate Control visual engine.
+
+For a single device, use this [Control example with presets](examples/v1.7/control-light.yaml):
+
+```yaml
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.zone_a
+name: Light A
+size: 82
+presets:
+  brightness:
+    entity: number.relay_a_brightness
+  kelvin:
+    entity: number.relay_a_kelvin
+  color:
+    hue_entity: input_number.preset_a_hue
+    saturation_entity: input_number.preset_a_saturation
+```
+
+**Control migration:** use `module` and the shared appearance/action keys. Replace
+older standalone examples using inset sizing or `menu_size`; `size: 82` now means
+cell width. Control has no Hub `items` list or item-level dynamic allocation.
+[Detailed migration and supported keys](docs/AI_SETUP.md#migration-and-limits).
+
+### Light presets
+
+Light detail slots are: **1** 100%, **2** brightness preset, **3** Color/White
+(or passive Light for brightness-only), **4** standard color/Kelvin,
+**5** −5%, **6** +5%. Color or white palettes add slots 7–18 without moving center.
+
+Preset values may be writable `number.*` entities on **another relay/device or
+integration**, or `input_number.*` helpers. They need not belong to the Light.
+Brightness is 0–100%, hue 0–360, saturation 0–100, Kelvin must suit the Light.
+Tap applies; hold stores the current value. With no helpers the apply-only
+fallbacks are 60% and 2700 K. On a color-capable Light, configured hue+saturation
+take precedence over Kelvin for slot 4. [Light reference](docs/LIGHT_MODULE.md).
+
+### Sonos and external HA setup
+
+Group volume works natively using `group_members`; no volume scripts are required.
+Radio needs the official Sonos favorites entity enabled in HA (often disabled by
+default). Supply its actual ID via `favorites_sensor`. An optional external
+[cache sensor](examples/sonos-favorites-cache.yaml) adds artwork; it does not supply
+playback IDs. Join needs both `members` and an external
+[toggle script](examples/sonos-toggle-member.yaml). Browse opens HA more-info.
+The [complete Sonos example](examples/v1.7/sonos.yaml) and
+[AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)
+explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_MODULE.md).
+
+## Actions, appearance and navigation
+
+- Tap, hold and optional double tap use HA action objects (`toggle`, `more-info`,
+  `perform-action`, `navigate`, `url`, `fire-dom-event`, `none`). Configured action
+  overrides replace the module's action. Default hold enters its menu.
+- Drag-select and nested back navigation are preserved. Selecting a base item may
+  establish a module center; after entry its physical slot 0 stays fixed until base.
+- Missing/unavailable devices retain their icon and show gray **Unavailable**;
+  recovery updates presentation. Visibility can separately hide them.
+- `colors.center`, `colors.inner_border`, `colors.outer_border` control fill and
+  ring colors; `border.inner_width` / `outer_width` control ring widths. Use shared
+  ring keys rather than rectangular CSS borders. Modules provide live active color.
+- `styles`, labels and templates support advanced customization. See the
+  [AI key reference](docs/AI_SETUP.md#configuration-contract) and
+  [classic popup/template/XY Pad reference](docs/CLASSIC_MENU.md).
+
+## Help, reference and development
+
+If nothing renders, check both module resources, version/cache, browser errors and
+entity IDs. For missing favorites check the official sensor; for missing artwork
+check cache data/refresh and browser access to thumbnail URLs. Join needs its
+script and candidate list. A hidden hard item intentionally leaves a hole.
+
+- [Versioned AI setup guide and six tested YAML examples](docs/AI_SETUP.md)
+- [Light](docs/LIGHT_MODULE.md) · [Sonos](docs/SONOS_MODULE.md) · [Classic popups](docs/CLASSIC_MENU.md)
+- [Phase 1 / Issue #78](docs/V1_7_PHASE1.md) · [Phase 2 conditions and allocation](docs/V1_7_PHASE2.md)
+- [Architecture and invariants](ARCHITECTURE.md) · [Release notes](RELEASE_NOTES.md)
+- [Documentation audit and validation commands](docs/DOCUMENTATION.md)
+
+For local development: `npm ci`, `npm test`, then
+`NODE_OPTIONS=--openssl-legacy-provider npm run build` (webpack 4).
+Browser and docs checks run in CI with pinned test dependencies. Configuration
+examples are checked in synthetic HA on desktop/mobile; real devices still need
+installation-time validation.
+
+After owner review, merge the documentation into `restart/v1.5.1`, then prepare a
+separate promotion PR to `master`. Stable v1.7.0 must come from the exact tested
+master commit, with matching source, tag, bundle and release assets. Beta builds
+remain prereleases; no release is created by this documentation update.

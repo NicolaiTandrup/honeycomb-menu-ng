@@ -70,6 +70,9 @@ jobs:
       - name: Verify shared cubes and module interactions
         run: python test/browser/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence"
 
+      - name: Validate documentation and complete YAML examples
+        run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
+
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,224 +1,483 @@
-> **Current contract: v1.7.0-beta.3 Phase 2.** Read
-> [V1_7_PHASE2.md](V1_7_PHASE2.md) for exact truth tables, YAML and migration.
-> Hub item `visibility` supports state/numeric_state/and/or/not; a top-level list
-> is AND. Missing/indeterminate results hide; invalid conditions throw. `show` is
-> an additional AND gate. Hard reserves even hidden; all priority preferred claims
-> precede fallbacks, then stable soft placement. Physical slots are 0–216; no cap
-> on configured identities/dependencies. logo:false allows ordinary slot 0.
-> Both public components retain the shared 82 px renderer and Light/Media/Sonos.
-> Do not add dynamic keys to standalone Control/root/submenu buttons, and do not
-> generate Car/Charger modules or charging automations. Real entities/actions are
-> user-configurable; use synthetic names/IDs in public examples.
-> Phase 1 PR #77 is merged in restart/v1.5.1; the Phase 2 PR is not merged.
-> This prerelease does not authorize merges, master changes or stable publication.
+# AI configuration guide
 
-# AI setup specification
+**SUPPORTED AS OF v1.7.0.** Contract verified against v1.7.0-beta.3 and the
+`restart/v1.5.1` baseline containing merged PR #77 and PR #81 (`179ea68`). Stable
+v1.7.0 is **not yet published**. Use this contract only with that code or its
+subsequent v1.7 release, not stable v1.5.1 or the abandoned v1.6 implementation.
+The package remains `1.7.0-beta.3` until the separate stable release process.
 
-This file is written for ChatGPT, Codex and other AI systems that need to create Honeycomb Menu NG configuration for a user who may not know Home Assistant YAML.
+This is a configuration contract for an assistant helping an HA user. Examples
+are synthetic test fixtures, **not discovered entities**. Never silently substitute
+invented entities, integrations, scripts, helpers or URLs into a user's installation.
+Ask for actual IDs or omit optional features. Public examples must remain synthetic.
 
-Treat it as an implementation contract.
+## Decision procedure
 
-## Goal
+1. Confirm the installed Honeycomb version and both JavaScript module resources
+   (Honeycomb and custom:button-card). Ask for entity IDs from HA States, not names
+   guessed from areas. Inspect relevant state attributes/capabilities.
+2. Choose **Hub** for several items, **Control** for one standalone device, or
+   **classic popup** when requested by an existing dashboard's `fire-dom-event` action.
+3. Choose Light for `light.*`; Sonos for official Sonos `media_player.*`; explicit
+   Media for other players; Generic for custom entity/action behavior. Do not infer
+   Sonos merely from a `media_player` domain. Hub bare `type: media` is a legacy Sonos
+   alias; use `type: media` with `module: media` for generic media.
+4. Request optional IDs only when needed: writable numeric preset values for Light;
+   enabled favorites sensor for Radio; cache sensor for artwork; Join script and
+   candidate players for grouping. Native group volume needs no scripts.
+5. For a Hub, choose branding and placement. Prefer established automatic hard
+   positions for static layouts. Use explicit hard slots for reservations, priority
+   with an explicit preferred slot, or soft for available positions.
+6. Add supported visibility conditions only to Hub items. Inspect dependency states
+   and numeric units. Configure explicit HA action objects where defaults do not fit.
+7. Emit one complete card, then list **external HA prerequisites** separately. Validate
+   it using the checklist below; do not claim optional HA configuration already exists.
 
-Build the smallest working configuration from real Home Assistant entity IDs. Do not invent entity IDs, scripts or helpers.
+## Configuration contract
 
-## Assumptions
+The table is the recommended public surface, not a schema for arbitrary button-card
+keys. Unknown YAML fields may be ignored by runtime code: acceptance by `setConfig`
+is not proof that a feature exists. Do not invent keys such as `visible_when`,
+`placement`, `center_slot`, `menu_size`, `chargers` or `onoff`.
 
-- Home Assistant is current.
-- `custom:button-card` is installed.
-- Honeycomb Menu NG v1.5+ is installed.
-- Prefer the persistent Hub unless the user explicitly asks for classic popup Honeycomb.
-- Short tap performs primary action; long press opens details.
-- Module navigation must preserve locked slot 0 after entering a module.
+| Boundary | Keys and types |
+|---|---|
+| Hub root | `type: custom:honeycomb-persistent-hub`; `name` string; `size` number (default 82 CSS px); `logo: auto/true/false` (default auto); `items` list; `auto_open` boolean (default true). Optional `menu.button_defaults` supplies menu button defaults. |
+| Hub item | `type: light/sonos/media/generic` (legacy `hue` supported); optional explicit `module: light/media/sonos/generic`; `entity` literal ID; shared keys below; domain options below; `slot` integer 0–216; `slot_mode: hard/priority/soft`; `visibility` condition object/list; legacy `show` value/template. |
+| Control root | `type: custom:honeycomb-persistent-control`; explicit `module`; `entity`; `size` (default 82); shared keys and domain options. No Hub `items`, `logo`, `visibility` or placement contract. |
+| Shared presentation | `name`, `label`, `icon` strings/templates; `show_name`, `show_label`, `show_icon` booleans/templates; `background`, `foreground`; `colors`; `border`; `styles`; `variables`; `custom_fields`; `interactive`; `off`; `active_color`; `show_brightness`, `show_volume`. |
+| Shared interaction | `tap_action`, `hold_action`, `double_tap_action` action objects; `hold_time` ms (default 500, minimum 250); `autoclose`; `audio`. Optional `menu` overrides the module menu; advanced Hub `persistent` overrides its compiled launcher. |
+| Light options | `presets.brightness: {entity, default?}`; `presets.kelvin: {entity, default?}`; `presets.color: {hue_entity, saturation_entity}`. See units and capability precedence below. |
+| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
 
-## Information to collect
+Presentation keys pass through the shared engine; `styles` uses button-card-style
+lists under `card`, `icon`, `name`, `label`, `grid`. Domain defaults can hide names
+or labels: set `show_name` / `show_label` when adding them. `colors` accepts
+`center`, `inner_border`, `outer_border`, `unavailable`; `'auto'` uses module state.
+`border.inner_width` / `outer_width` are numeric ring widths (default 3).
+`off.center_color` / `preview_color` affect Light off presentation. The ring geometry
+is shared; rectangular CSS borders do not define its inner/outer rings.
+`show_brightness: when_on` and `show_volume: when_playing` are module defaults;
+`never` suppresses those indicators.
 
-Required:
-1. Hub name.
-2. Hub size if not 82.
-3. Bee logo preference: `logo: auto` or `logo: false`.
-4. Real entities for each item.
+Use HA actions: `none`, `toggle`, `more-info`, `perform-action` with
+`perform_action`, `data`, `target`; `navigate` with `navigation_path`; `url` with
+`url_path`; `fire-dom-event` with `honeycomb_menu` for classic/nested configurations.
+Legacy `call-service` with `service`, `service_data`/`data`, `target` is retained.
+An explicit action replaces the default action object. Default tap is Light toggle,
+Media/Sonos play/pause, Generic toggle (provide a suitable entity or override).
+Default hold opens an available module; generic without a menu uses more-info.
+Double tap is optional (300 ms recognition window). Preserve drag-select and avoid
+replacing a held launcher's action while navigation is active.
 
-For each Light:
-- `light.*` entity
-- optional name/icon
-- optional numeric preset helpers
+Implementation references: [shared compilation](../src/core/cube-config.js),
+[renderer/actions](../src/cube-element.js), [module registry](../src/modules/index.js),
+[Hub](../src/honeycomb-persistent-hub.js). For advanced classic keys use the
+[classic reference](CLASSIC_MENU.md), not guesses from other cards.
 
-For each Sonos:
-- `media_player.*` entity
-- optional active color
-- whether Radio favorites are desired
-- whether artwork/logos are desired
-- whether Join is desired
-- candidate speakers if Join is desired
+## Geometry, allocation and live updates
 
-Never fabricate missing IDs. Ask for them or omit the optional feature.
+Use the verified [physical slot diagram and automatic tables](../README.md#layout-model).
+Center is Hub slot 0, inner 1–6, outer 7–18; further rings end at 216. The current
+renderer has 217 physical positions. There is no 7/18-item configuration limit:
+overflowing configured identities/dependencies are retained with diagnostics.
 
-## Canonical Hub
+`logo: auto` brands 2–6 configured non-null items, not the currently visible count.
+One item uses center; seven or more suppress branding. `logo: true` also brands
+one item. Any explicit slot 0 request wins over branding. `logo: false` frees
+center for ordinary items; it need not appear in every automatic layout.
+Three automatic items remain `2,3,0` without logo, `2,4,6` with logo.
 
-~~~yaml
+Allocation order is **hard > priority > soft**:
+
+1. Hard reserves its exact slot even hidden; first configured hard claimant wins.
+2. Visible priorities claim all available preferred slots before **any** fallback.
+   Configuration order breaks ties; blocked priorities retain a free previous
+   fallback or take a free cell. Hidden priority releases its claim.
+3. Soft retains free previous positions, then fills free cells. No automatic
+   compaction. Higher-ranked fallback prefers holes over moving unaffected soft cells.
+
+Omitted `slot_mode` means hard. Omitted hard `slot` uses the established automatic
+layout, not a densely packed dynamic layout. Priority requires an explicit preferred
+slot; soft without one starts from the lowest allowed free cell. Invalid modes and missing priority slots are configuration errors.
+Non-integer/negative/out-of-range slots, collisions and physical overflow report
+diagnostics; losing hard items do not silently
+wrap or move. Do not use duplicate hard slots to implement alternatives.
+
+Structural changes wait while that Hub's module or descendant menu is open, while
+pointer/touch/drag is active, and during a delayed tap. Return to base/close/finish
+interaction commits the latest desired structure atomically at an on-demand frame.
+The original gesture target remains the action target. State labels/colors still
+update. Other Hubs are independent. Dependencies use scalar snapshots (including
+attributes and numeric threshold entities), so in-place HA state mutations work.
+Unchanged unrelated states do not require condition reevaluation or reallocation;
+arbitrary JS presentation/`show` templates update conservatively on HA delivery.
+No plugin polling timer is needed for declarative visibility.
+
+## Visibility condition subset
+
+`visibility` belongs **only on Hub items**. Omitted or `[]` is true; a top-level
+list is AND. A single condition object is accepted. Unsupported operators/fields
+or malformed structures throw an error with a configuration path.
+
+| Condition | Required fields | Optional fields |
+|---|---|---|
+| `state` | `condition: state`, one literal `entity` or `entity_id`, exactly one `state` or `state_not` | `attribute` nonempty string |
+| `numeric_state` | `condition: numeric_state`, one literal `entity` or `entity_id`, `above` and/or `below` | `attribute` nonempty string |
+| `and`, `or`, `not` | `condition`, `conditions` nonempty list of supported conditions | None |
+
+`state` / `state_not` takes a string or nonempty string list. Quote HA values such
+as `"on"` and `"off"`. Numeric bounds are finite numbers, numeric strings, or literal
+threshold entity IDs whose current states must be numeric. Bounds are **exclusive**.
+A Light's HA brightness attribute is **0–255**; its preset helper is **0–100%**.
+
+Evaluation is three-valued: true, false, indeterminate. Only final true is visible.
+AND: false dominates; otherwise indeterminate propagates. OR: true dominates;
+otherwise indeterminate propagates. NOT negates the **AND of its child list**,
+not the OR; NOT indeterminate stays indeterminate. Missing entities/attributes,
+empty/non-numeric numbers, or unknown/unavailable parent state for attribute/numeric
+reads are indeterminate. A primary unknown/unavailable state string resolves only
+when explicitly present in `state` / `state_not`; otherwise it is indeterminate.
+For example `state_not: [unknown, unavailable]` explicitly excludes both.
+
+Legacy `show` is an **additional AND gate**, with item `show` taking precedence
+over `persistent.show`. False-like strings (`false`, `0`, empty, `undefined`) hide.
+A failing template hides and reports `show-error`. Classic submenu `show` retains
+opening-time behavior; it is not this live declarative contract. Do not put
+`visibility` or priority allocation on Control roots or classic/nested buttons.
+See [truth tables and migration](V1_7_PHASE2.md).
+
+## External Home Assistant prerequisites
+
+These are HA entities/configuration outside Honeycomb, not extra dashboard keys.
+Run HA's configuration check and reload the relevant integration/template/script
+(or restart as required) after adapting the recipes. The automated docs tests parse
+and exercise synthetic data; they do not run an HA server or discover actual devices.
+
+### Light preset values on another device
+
+For `control-light.yaml` below, provide these writable values first:
+
+| Synthetic ID | Unit/range | Purpose |
+|---|---|---|
+| `number.relay_a_brightness` | 0–100 percent | Normal brightness |
+| `number.relay_a_kelvin` | Kelvin within Light's capability range | Standard white |
+| `input_number.preset_a_hue` | 0–360 degrees | Standard hue |
+| `input_number.preset_a_saturation` | 0–100 percent | Standard saturation |
+
+All four accept either writable `number.*` (including a separate relay/device or
+integration) **or** `input_number.*`. Helpers need not share the Light's integration.
+If creating HA numeric helpers, use these units/ranges, then collect their actual
+entity IDs. Honeycomb does not create helpers or integration-owned numbers.
+Tap a preset to apply; hold to store the Light's current value using that helper
+domain's `set_value`. Storing brightness converts HA 0–255 into rounded percent.
+
+No helpers are needed for normal operation: apply-only defaults are 60% and 2700 K.
+The standard slot chooses HS when color-capable with both hue/saturation values,
+otherwise a supported Kelvin preset, otherwise 2700 K. It does not show separate
+HS and Kelvin preset buttons simultaneously. Palette is 12 hues for color-capable
+Lights or 12 Kelvin steps for temperature-only Lights. Brightness-only keeps a
+passive slot 3; explicitly `[onoff]` has no detail menu. Never infer `[onoff]` just
+from missing attributes on an unavailable entity. [Light details](LIGHT_MODULE.md).
+
+### Sonos Radio and artwork cache
+
+1. Install/configure official HA Sonos. Enable its favorites entity (usually
+   disabled by default); collect its **actual** ID for `favorites_sensor`.
+   Default compatibility IDs are `sensor.sonos_favorites` and
+   `sensor.sonos_favorites_cache`, but examples use explicit synthetic IDs.
+2. Base favorites **must** expose `attributes.items` as a map of favorite ID to
+   title. Order is the map's key order; at most 12 entries are displayed.
+3. For artwork only, adapt [the HA cache recipe](../examples/sonos-favorites-cache.yaml):
+   replace every `media_player.player_a` with one real reference Sonos player and
+   `sensor.favorites_a` with the enabled favorites entity. The recipe calls the
+   existing HA `media_player.browse_media` action, with `favorites_folder` /
+   `object.item.audioItem.audioBroadcast`, capturing its response. This is external
+   HA Browse Media functionality; verify the action/response on the actual player.
+4. The trigger-based template creates **Favorites Cache A**. Confirm its registered
+   entity ID; `sensor.favorites_cache_a` in the example is not a promise of registry
+   naming. Set `favorites_cache_sensor` to the actual ID.
+
+Data contract (illustrative JSON **state attributes**, not card YAML):
+
+```json
+{
+  "sensor.favorites_a": {
+    "items": {"favorite_a": "Station A", "favorite_b": "Station B"}
+  },
+  "sensor.favorites_cache_a": {
+    "items": [{"title": "Station A", "media_content_id": "favorite_a",
+      "media_content_type": "favorite_item_id", "thumbnail": ""}]
+  }
+}
+```
+
+The cache's `items` is a **list of dictionaries**. Artwork matches by exact
+`media_content_id`, never by display title. A nonempty `thumbnail` replaces the
+radio icon/text with artwork. Use the real thumbnail returned by HA, accessible
+to the dashboard browser; do not invent an artwork service/URL. Empty/missing
+cache falls back to icon/title. Playback always uses the **base favorites ID**
+with `media_player.play_media`, type `favorite_item_id`; cache alone cannot populate
+Radio or supply playback IDs.
+
+Recipe refresh triggers: favorites state **or attributes** change; every 15 minutes;
+or an HA event `sonos_favorites_refresh`. Both reference player and base sensor must
+have a value or refresh is skipped. There is no startup trigger; after installation,
+fire that event in Developer Tools or wait for a trigger. The sensor state counts
+browse children; `attributes.items` caches the first 12. Honeycomb reads this cache,
+it does not poll Browse Media. Reopen Radio after favorite **count/list** changes
+because submenu `show` is opening-time; current artwork/presentation updates with HA.
+
+Install the complete recipe under `template:` in `configuration.yaml`. If already
+using `template: !include templates.yaml`, copy only the `- triggers:` list item
+and below into that include. Merge lists; do not duplicate top-level `template:` keys.
+
+### Sonos Join and native volume
+
+Native volume reads `group_members` and targets current members (solo: selected
+player). Do **not** generate volume scripts unless the user requests a custom override.
+
+Join requires both `members` and `toggle_member_script`. Adapt the external
+[Join recipe](../examples/sonos-toggle-member.yaml), replacing the coordinator
+`media_player.player_a` with the Hub/Control's selected player. It creates
+`script.player_a_toggle_member` with required field `member`; the menu passes the
+selected candidate's entity ID. Already grouped → `media_player.unjoin` targeting
+that member; otherwise `media_player.join` targets the coordinator with
+`group_members: [member]`. This depends on the real integration's supported actions.
+
+Install under `script:` in configuration.yaml, or copy only
+`player_a_toggle_member:` and below into `scripts.yaml` when using
+`script: !include scripts.yaml`. Reload scripts and confirm the entity ID.
+Use at most 12 candidate entries; exclude the coordinator itself. Without both
+script and candidates, Join opens more-info. Browse is also HA more-info, not a
+custom library browser. [Sonos details](SONOS_MODULE.md).
+
+## Canonical complete cards
+
+All IDs and names below are synthetic. Every YAML block is parsed and loaded in
+the production bundle with synthetic HA state on desktop/mobile. The linked files
+are the same examples; external device/service behavior still requires HA validation.
+
+### Basic Hub
+
+[examples/v1.7/hub.yaml](../examples/v1.7/hub.yaml)
+
+<!-- example:hub.yaml -->
+
+```yaml
 type: custom:honeycomb-persistent-hub
-name: ROOM NAME
+name: Hub A
 size: 82
 logo: auto
-
 items:
   - type: light
-    entity: light.REAL_ENTITY
-    name: Light
-
+    entity: light.zone_a
+    name: Light A
   - type: sonos
-    entity: media_player.REAL_ENTITY
-    name: Sonos
-    active_color: "#00bcd4"
-~~~
+    entity: media_player.player_a
+    name: Player A
+```
 
-## Module selection
+### Dynamic Hub
 
-Use `type: light` for Light.
+[examples/v1.7/dynamic-hub.yaml](../examples/v1.7/dynamic-hub.yaml)
 
-Use `type: sonos` for Sonos in new configs.
+<!-- example:dynamic-hub.yaml -->
 
-Use:
+```yaml
+type: custom:honeycomb-persistent-hub
+name: Dynamic Hub A
+size: 82
+logo: false
+items:
+  - type: light
+    entity: light.zone_a
+    slot: 0
+    slot_mode: hard
+  - type: generic
+    entity: person.person_a
+    name: Person A
+    slot: 2
+    slot_mode: priority
+    visibility:
+      - condition: state
+        entity: person.person_a
+        state: home
+    tap_action:
+      action: more-info
+  - type: generic
+    entity: light.zone_b
+    name: Bright light B
+    slot_mode: soft
+    visibility:
+      - condition: numeric_state
+        entity: light.zone_b
+        attribute: brightness
+        above: 127
+        below: 256
+    tap_action:
+      action: more-info
+  - type: media
+    module: media
+    entity: media_player.player_b
+    slot_mode: soft
+    visibility:
+      condition: state
+      entity: person.person_a
+      state: not_home
+```
 
-~~~yaml
-type: media
-module: media
-~~~
+### Standalone Control Light
 
-for generic/non-Sonos media.
+[examples/v1.7/control-light.yaml](../examples/v1.7/control-light.yaml)
 
-Do not use bare `type: media` in a new config unless compatibility is specifically required; bare media intentionally maps to Sonos behavior.
+<!-- example:control-light.yaml -->
 
-## Light rules
-
-Minimal:
-
-~~~yaml
-- type: light
-  entity: light.REAL_ENTITY
-~~~
-
-Do not create helpers unless the user wants persistent normal/standard values.
-
-Defaults without helpers:
-- brightness = 60%
-- Kelvin = 2700 K
-
-Optional:
-
-~~~yaml
+```yaml
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.zone_a
+name: Light A
+size: 82
 presets:
   brightness:
-    entity: number.OR_input_number_ENTITY
+    entity: number.relay_a_brightness
   kelvin:
-    entity: number.OR_input_number_ENTITY
+    entity: number.relay_a_kelvin
   color:
-    hue_entity: number.OR_input_number_ENTITY
-    saturation_entity: number.OR_input_number_ENTITY
-~~~
+    hue_entity: input_number.preset_a_hue
+    saturation_entity: input_number.preset_a_saturation
+```
 
-Supported writable domains:
-- `number.*`
-- `input_number.*`
+### Sonos with external prerequisites
 
-Ranges:
-- brightness 0–100
-- hue 0–360
-- saturation 0–100
-- Kelvin appropriate for target light
+[examples/v1.7/sonos.yaml](../examples/v1.7/sonos.yaml)
 
-Helpers may be device-owned values, for example Shelly `number.*` entities. Do not assume they must be Home Assistant-created helpers.
+<!-- example:sonos.yaml -->
 
-If the Light entity explicitly reports `supported_color_modes: [onoff]`:
-- do not add or expect a Light detail level
-- short tap toggles the light
-- expect `On` / `Off` status instead of brightness percentage
+```yaml
+type: custom:honeycomb-persistent-hub
+name: Audio Hub A
+size: 82
+logo: false
+items:
+  - type: sonos
+    entity: media_player.player_a
+    name: Player A
+    active_color: "#00bcd4"
+    favorites_sensor: sensor.favorites_a
+    favorites_cache_sensor: sensor.favorites_cache_a
+    toggle_member_script: script.player_a_toggle_member
+    members:
+      - entity: media_player.player_b
+        name: Player B
+      - entity: media_player.player_c
+        name: Player C
+```
 
-Do not infer on/off-only behavior merely because capability attributes are missing while an entity is unavailable.
+### Non-dimmable Light
 
-## Sonos rules
+[examples/v1.7/onoff-light.yaml](../examples/v1.7/onoff-light.yaml)
 
-Minimal:
+<!-- example:onoff-light.yaml -->
 
-~~~yaml
-- type: sonos
-  entity: media_player.REAL_SONOS
-  active_color: "#00bcd4"
-~~~
+```yaml
+# Prerequisite: the real HA entity explicitly reports supported_color_modes: [onoff].
+# This is an HA state attribute, not a Honeycomb configuration key.
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.switch_a
+name: Switch A
+size: 82
+```
 
-Do not generate group-volume scripts. Native group-aware volume is default.
+### Classic popup
 
-### Radio
+[examples/v1.7/classic-popup.yaml](../examples/v1.7/classic-popup.yaml)
 
-If Radio is required:
-1. ensure official `sensor.sonos_favorites` is enabled
-2. add:
+<!-- example:classic-popup.yaml -->
 
-~~~yaml
-favorites_sensor: sensor.sonos_favorites
-~~~
+```yaml
+type: button
+entity: light.zone_a
+name: Light A
+hold_action:
+  action: fire-dom-event
+  honeycomb_menu:
+    entity: light.zone_a
+    size: 225
+    empty_slots: hidden
+    center_button:
+      icon: mdi:lightbulb
+      tap_action:
+        action: more-info
+    buttons:
+      - slot: 1
+        slot_mode: hard
+        icon: mdi:lightbulb-on
+        tap_action:
+          action: perform-action
+          perform_action: light.turn_on
+          target:
+            entity_id: light.zone_a
+      - slot: 4
+        slot_mode: hard
+        icon: mdi:lightbulb-off
+        tap_action:
+          action: perform-action
+          perform_action: light.turn_off
+          target:
+            entity_id: light.zone_a
+```
 
-Artwork is optional.
+For the non-dimmable example, HA must report `supported_color_modes: [onoff]` on
+`light.switch_a`; that attribute is not part of the emitted card YAML. The Sonos
+example requires the separately installed sensor/cache/script above. Omit optional
+cache/Join keys and external configuration when the user does not need them.
 
-If artwork is desired:
-1. install `examples/sonos-favorites-cache.yaml`
-2. replace example reference player with a real Sonos entity
-3. add:
+## Migration and limits
 
-~~~yaml
-favorites_cache_sensor: sensor.sonos_favorites_cache
-~~~
+- Old static Hub YAML retains hard automatic layout, legacy media→Sonos selection,
+  nested navigation and Light presets. No v1.6 implementation is used.
+- Rewrite older standalone Control configuration to the explicit `module` form
+  above. Remove `items`/Hub placement fields and obsolete `menu_size` advice;
+  use shared presentation/action keys. `size: 82` is full cell width, so older inset
+  sizing can look different. Legacy mode aliases are internal compatibility paths,
+  not the recommended schema for new configuration.
+- Classic `size` is scene extent (default 225); its center is `center_button`.
+  Classic `slot: 1` / legacy `position: 0` are first **ring** cell, not Hub center.
+  Classic soft placement is ring-relative legacy behavior, not live Hub allocation.
+- Current limitations: only the documented condition subset (no Jinja, time,
+  template, device or HA automation-condition engine in `visibility`); physical
+  capacity 217; no automatic shrinking/paging; large anchored menus can clip near
+  viewport edges; structural visibility intentionally defers during interaction.
+  Arbitrary JS templates are conservative; Radio/Join each have 12 outer choices.
+- Future Car/Charger modules are not implemented. Do not emit their configuration,
+  charging sessions, unplug rules or optimization. Those automations are external.
 
-Do not claim the cache is required for playback; it only adds thumbnails.
+## Validation and troubleshooting checklist
 
-### Join
+1. Confirm installed version/resources; refresh browser cache. Check browser console
+   and HA logs. Unknown custom element usually means missing/stale module resources.
+2. Verify every real entity ID, capability, numeric helper domain/range and optional
+   script/sensor in HA States. Validate/reload external HA configuration first.
+3. Tap Light/Media/Sonos; hold to detail; back through palette/Radio/Join to base.
+   Center remains fixed inside a module. Returned Light launcher stays visible.
+4. Apply/store presets (both numeric domains); test color and temperature-only
+   Lights and explicit on/off-only On/Off behavior. Unavailable stays gray and
+   recovers; no missing capability should be mistaken for on/off-only.
+5. Test solo/group volume, favorites playback, cache thumbnail matching and Join
+   data. Empty Radio means check base favorites; no artwork means inspect cache
+   refresh, exact IDs and browser URL access. Reopen Radio after list changes.
+6. Test home/away, attribute and threshold changes; exact numeric bounds hide.
+   Unknown/missing dependencies hide unless a logical branch decides otherwise.
+   Hidden hard holes are expected. Check diagnostics for collisions/overflow.
+7. During a menu, touch/drag or delayed tap, change HA state: presentation stays
+   live, structural placement waits, and release does not trigger a replacement item.
+   Check multiple Hubs, edit mode and narrow viewports in the user's actual dashboard.
 
-If Join is required:
-1. collect candidate members
-2. install/adapt `examples/sonos-toggle-member.yaml`
-3. configure:
-
-~~~yaml
-toggle_member_script: script.sonos_ROOM_toggle_member
-members:
-  - entity: media_player.REAL_MEMBER_1
-    name: Room 1
-  - entity: media_player.REAL_MEMBER_2
-    name: Room 2
-~~~
-
-Do not include the coordinator itself in `members`.
-
-## Validation checklist
-
-Verify:
-- every entity ID exists
-- `custom:button-card` is installed
-- Hub renders without errors
-- Light short tap toggles
-- dimmable Light hold opens detail
-- explicit on/off-only Light hold does not open a detail level
-- dimmable Light shows brightness while on and `Off` while off
-- on/off-only Light shows `On` / `Off`
-- Light Color/White expansion does not move slot 0
-- helper-backed Light preset tap applies and hold stores
-- Sonos short tap play/pauses
-- Sonos hold opens detail
-- Sonos volume +/- works solo and grouped
-- `sensor.sonos_favorites` is enabled before expecting Radio entries
-- artwork cache is optional
-- Join submenu is only expected with both `members` and `toggle_member_script`
-- unavailable entities show gray + `Unavailable`
-- Lovelace edit mode does not duplicate base cubes
-
-## Architecture invariants
-
-1. Core owns navigation.
-2. Domain modules do not move anchors.
-3. Base → module may establish the module center.
-4. Nested module levels do not move it.
-5. Slot 0 is module center.
-6. A module may expand from 7 to 19 cubes without moving slot 0.
-
-For code changes also read [../ARCHITECTURE.md](../ARCHITECTURE.md).
+Core owns geometry/navigation/interaction. Modules provide menus and state models.
+Hub base selection may establish a module center; deeper menus may expand rings
+but never move that center. [Architecture](../ARCHITECTURE.md),
+[Phase 1](V1_7_PHASE1.md), [Issue #78](ISSUE_78.md), [Phase 2](V1_7_PHASE2.md),
+[documentation validation commands](DOCUMENTATION.md).

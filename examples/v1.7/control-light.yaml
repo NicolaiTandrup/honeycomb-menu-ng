@@ -1,0 +1,13 @@
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.zone_a
+name: Light A
+size: 82
+presets:
+  brightness:
+    entity: number.relay_a_brightness
+  kelvin:
+    entity: number.relay_a_kelvin
+  color:
+    hue_entity: input_number.preset_a_hue
+    saturation_entity: input_number.preset_a_saturation
