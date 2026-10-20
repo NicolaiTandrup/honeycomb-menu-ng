@@ -20,7 +20,8 @@ window.hass={states:{
 user:{name:'Test'},callService:(...args)=>{calls.push(args);return Promise.resolve()}};
 const root=document.querySelector('home-assistant'); root.hass=hass;
 const clients=new Set(); root.provideHass=element=>{clients.add(element);element.hass=hass};
-window.pushState=(entity,state,attributes)=>{hass.states[entity]={entity_id:entity,state,attributes:attributes||{}};for(const client of clients)if(client.isConnected)client.hass=hass};
+window.pushStates=updates=>{for(const [entity,state,attributes] of updates)hass.states[entity]={entity_id:entity,state,attributes:attributes||{}};for(const client of clients)if(client.isConnected)client.hass=hass};
+window.pushState=(entity,state,attributes)=>pushStates([[entity,state,attributes]]);
 window.providedClients=clients;
 function shadow(parent,tag){const el=document.createElement(tag);parent.append(el);return el.attachShadow({mode:'open'})}
 const main=shadow(root.attachShadow({mode:'open'}),'home-assistant-main');

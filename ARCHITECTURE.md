@@ -110,3 +110,26 @@ owned once, including palette backgrounds and favorite artwork.
 See [Phase 1 migration and known limitations](docs/V1_7_PHASE1.md). The release is
 an explicitly published, unmerged feature beta; PRs target restart/v1.5.1 and do
 not merge into master as part of Phase 1.
+
+
+## v1.7.0 Phase 2 from merged PR #77
+
+`core/visibility.js` compiles the HA-style condition subset and indexes literal
+entity/attribute dependencies using scalar snapshots. `core/hub-allocation.js`
+is a pure allocator: hidden hard reservations, all priority preferred claims,
+priority fallbacks, then stable soft positions. It reports collisions/overflow
+without truncating configured identities. Logical IDs are configuration paths.
+
+Hub owns desired visibility and last committed placement. Each navigation context
+tracks held pointers and pending tap actions; structural commits wait for a base
+menu and an idle interaction context. One on-demand frame coalesces the latest
+mask and runs after native capture/target release callbacks. Returning through
+nested/back or full close uses the same boundary; presentation can still update.
+No polling or perpetual frame loop is introduced. Menu updates reuse the original
+configuration preparation pipeline and shared renderer, preserving Issue #78.
+
+Static faces snapshot entity state/attributes and skip unchanged config/model
+updates; arbitrary JS presentation/show/custom content is conservatively updated.
+Current physical capacity is eight rings plus center; configured population is
+uncapped. See [Phase 2](docs/V1_7_PHASE2.md) for exact semantics, truth tables,
+capacity/diagnostic policy, examples and benchmark limitations.

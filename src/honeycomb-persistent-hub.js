@@ -1,11 +1,13 @@
 import CubeElement from "./cube-element.js";
-import { provideHass } from "./helpers.js";
-const { buildCubeConfig, validatePhaseOne } = require('./core/cube-config.js');
+import { provideHass, getTemplateOrValue, stringToBool } from "./helpers.js";
+const { buildCubeConfig, validateCubeConfig } = require('./core/cube-config.js');
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const { toCenterDescriptor } = require('./core/hub-launcher.js');
+const { VisibilityIndex } = require('./core/visibility.js');
+const { allocateHubSlots } = require('./core/hub-allocation.js');
 
 class HoneycombPersistentHub extends CubeElement
 {
@@ -26,12 +28,19 @@ class HoneycombPersistentHub extends CubeElement
         this._menuContext = null;
         this._hubBaseFaceMode = 'cell';
         this._hubCenterDescriptor = null;
+        this._hubMetrics = {allocations:0, commits:0};
+        this._placements = new Map();
+        this._diagnosticKeys = new Set();
     }
 
     _ensureMenuContext()
     {
         if( ! this._menuContext && typeof window.honeycomb_menu_create_context === 'function' )
+        {
             this._menuContext = window.honeycomb_menu_create_context();
+            this._menuContext.owner = this;
+            this._menuContext.onIdle = () => this._scheduleStructure();
+        }
 
         return this._menuContext;
     }
@@ -56,6 +65,10 @@ class HoneycombPersistentHub extends CubeElement
         if( this.config && this.config.auto_open !== false )
             this.style.visibility = 'hidden';
 
+        if (this._visibilityIndex) {
+            this.hass = this.hass;
+            this._flushStructure();
+        }
         this._scheduleHubOpen();
     }
 
@@ -72,6 +85,8 @@ class HoneycombPersistentHub extends CubeElement
     disconnectedCallback()
     {
         if (this._anchorCleanup) { this._anchorCleanup(); this._anchorCleanup=null; }
+        if (this._structureRaf) cancelAnimationFrame(this._structureRaf);
+        this._structureRaf = null; this._structureScheduled = false;
         if( this._anchorWatchRaf )
         {
             cancelAnimationFrame(this._anchorWatchRaf);
@@ -98,7 +113,7 @@ class HoneycombPersistentHub extends CubeElement
         this._lastAnchorX = null;
         this._lastAnchorY = null;
         this._menuContext = null;
-        this._hubCenterDescriptor = null;
+        this._pendingStructure = false;
     }
 
     _watchAnchor()
@@ -177,6 +192,7 @@ class HoneycombPersistentHub extends CubeElement
                 this._trackHubMenu(current);
             } else {
                 this._hubMenu=null;
+                this._flushStructure();
                 if (this.config.auto_open !== false) this._scheduleHubOpen();
             }
         }),{once:true});
@@ -209,7 +225,7 @@ class HoneycombPersistentHub extends CubeElement
 
     _shouldShowLogo()
     {
-        if ((this.config && this.config.items || []).some(item=>item.slot === 0)) return false;
+        if ((this.config && this.config.items || []).some(item=>item && Number(item.slot) === 0)) return false;
         const logo = this.config ? this.config.logo : 'auto';
         const count = this.config && Array.isArray(this.config.items)
             ? this.config.items.filter(Boolean).length
@@ -246,7 +262,7 @@ class HoneycombPersistentHub extends CubeElement
         // animation because they do not inherit this flag.
         menu.animate = false;
 
-        const showLogo = this._shouldShowLogo();
+        const showLogo = this._hubShowLogo;
 
         if( showLogo )
         {
@@ -299,12 +315,126 @@ class HoneycombPersistentHub extends CubeElement
         return buildCubeConfig(item, this.hass, index, slot);
     }
 
+    get hass() { return super.hass; }
+    set hass(value)
+    {
+        super.hass = value;
+        if (!this._visibilityIndex) return;
+        const changed = this._visibilityIndex.update(value);
+        const showChanged = this._refreshLegacyShow();
+        if (this._visibilityIndex.statusChanged || showChanged) this._publishDiagnostics();
+        if (changed || showChanged) {
+            this._pendingStructure = true;
+            this._scheduleStructure();
+        }
+    }
+
+    _refreshLegacyShow(initial = false)
+    {
+        let changed = false;
+        for (const entry of this._legacyShowEntries || []) {
+            if (!initial && !entry.liveShow) continue;
+            let value = true;
+            if (entry.show !== undefined) {
+                try {
+                    value = !!stringToBool(getTemplateOrValue(this.hass || {states:{}},
+                        (this.hass && this.hass.states || {})[entry.item.entity], entry.item.variables || {}, entry.show));
+                    this._showErrors.delete(entry.id);
+                } catch (_) { value = false; this._showErrors.add(entry.id); }
+            }
+            if (this._showValues.get(entry.id) !== value) changed = true;
+            this._showValues.set(entry.id, value);
+        }
+        return changed;
+    }
+
+    _structureBusy()
+    {
+        const context = this._menuContext;
+        return !!(context && (context.stack.length || context.pointers.size || context.pendingActions.size ||
+            (context.currentConfig && !context.currentConfig._persistent_hub_root))) ||
+            !!(this._hubMenu && this._hubMenu.closing);
+    }
+
+    _scheduleStructure()
+    {
+        if (!this._pendingStructure || this._structureScheduled) return;
+        this._structureScheduled = true;
+        // Native events may run a microtask checkpoint between capture and
+        // target listeners. A frame boundary guarantees the complete release
+        // action (and any delayed double-tap token) has established ownership.
+        this._structureRaf = requestAnimationFrame(() => {
+            this._structureRaf = null;
+            this._structureScheduled = false;
+            if (this.isConnected) this._flushStructure();
+        });
+    }
+
+    _flushStructure()
+    {
+        if (!this._pendingStructure || this._structureBusy()) return;
+        this._pendingStructure = false;
+        const mask = this._visibilityMask();
+        if (mask === this._committedVisibility && !this._needsBaseRefresh) return;
+        const changed = this._applyAllocation(this.config);
+        if (!changed && !this._needsBaseRefresh) return;
+        this._needsBaseRefresh = false;
+        const context = this._menuContext;
+        if (context && context.honeycomb) {
+            const menu = this._persistentMenuConfig();
+            menu.anchor_x = context.honeycomb._anchorX;
+            menu.anchor_y = context.honeycomb._anchorY;
+            window.honeycomb_menu_context_update_base(context, menu);
+        }
+    }
+
+    _publishDiagnostics()
+    {
+        this.diagnostics = (this._slotDiagnostics || []).concat(this._hubEntries
+            .filter(entry => this._visibilityIndex.values.get(entry.id) === null)
+            .map(entry => ({code:'visibility-indeterminate', id:entry.id})),
+            [...(this._showErrors || [])].map(id => ({code:'show-error', id})));
+        const keys = new Set(this.diagnostics.map(diagnostic => JSON.stringify(diagnostic)));
+        for (const key of keys) if (!this._diagnosticKeys.has(key)) console.warn(`[Honeycomb Menu NG] ${key}`);
+        this._diagnosticKeys = keys;
+    }
+
+    _visibilityMask()
+    {
+        return this._hubEntries.map(entry => this._visibilityIndex.values.get(entry.id) === true &&
+            this._showValues.get(entry.id) !== false ? '1' : '0').join('');
+    }
+
+    _applyAllocation(config)
+    {
+        this._hubMetrics.allocations++;
+        this._committedVisibility = this._visibilityMask();
+        const entries = this._hubEntries.map(entry => ({...entry,
+            visible:this._visibilityIndex.values.get(entry.id) === true && this._showValues.get(entry.id) !== false}));
+        const result = allocateHubSlots(entries, {previous:this._placements, centerReserved:this._hubShowLogo});
+        this._slotDiagnostics = result.diagnostics;
+        this._publishDiagnostics();
+        const signature = JSON.stringify([...result.placements].sort((a,b) => a[0].localeCompare(b[0])));
+        if (signature === this._allocationSignature) return false;
+        this._allocationSignature = signature;
+        this._placements = result.placements;
+        this._hubMetrics.commits++;
+        const visible = entries.filter(entry => this._placements.has(entry.id)).map(entry => ({...entry,
+            launcher:{...entry.launcher, slot:this._placements.get(entry.id), slot_mode:'hard'}}));
+        const center = visible.find(entry => entry.launcher.slot === 0);
+        this._hubCenterButton = center ? center.launcher : null;
+        this._hubCenterDescriptor = center ? toCenterDescriptor(center.module, center.launcher) : null;
+        config.menu = merge({}, this._baseMenuOptions, {empty_slots:'hidden', idle_timeout:0});
+        config.menu.buttons = visible.filter(entry => entry.launcher.slot !== 0).map(entry => entry.launcher);
+        return true;
+    }
+
     setConfig(config)
     {
         if( ! config || typeof config !== 'object' )
             throw new Error('Honeycomb Persistent Hub requires a configuration.');
 
-        validatePhaseOne(config);
+        validateCubeConfig(config, {hubItems:true});
         if (!this._hasHassProvider) { this._hasHassProvider=true; provideHass(this); }
         const next = merge({}, config);
 
@@ -335,47 +465,50 @@ class HoneycombPersistentHub extends CubeElement
         next.restore_on_close = next.auto_open === false;
         this.style.visibility = next.auto_open === false ? '' : 'hidden';
 
-        const items = (next.items || []).filter(Boolean);
-        const showLogo = this._shouldShowLogo.call({ config: next }) && !items.some(item=>item.slot === 0);
+        if (!Array.isArray(next.items)) throw new Error('Hub items must be a list.');
+        const items = next.items.map((item,index) => ({item,index})).filter(entry => entry.item);
+        const showLogo = this._shouldShowLogo.call({config:next});
         const slots = this._hubSlots(items.length, showLogo);
-
-        const resolved = items.map((item, index) => {
-            const targetSlot = item.slot !== undefined ? Number(item.slot) : slots[index];
-            const slot = Number.isInteger(targetSlot) ? targetSlot : slots[index];
+        const entries = items.map(({item,index}, order) => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error(`items[${index}]: expected an item object.`);
+            const mode = item.slot_mode === undefined ? 'hard' : item.slot_mode;
+            if (!['hard','soft','priority'].includes(mode)) throw new Error(`items[${index}]: invalid slot_mode.`);
+            if (mode === 'priority' && item.slot === undefined) throw new Error(`items[${index}]: priority requires a preferred slot.`);
+            const id = `items[${index}]`;
+            const requested = typeof item.slot === 'string' && /^\d+$/.test(item.slot) ? Number(item.slot) : item.slot;
+            const slot = requested !== undefined ? requested : mode === 'soft' ? 0 : slots[order];
             const module = moduleRegistry.resolve(item, this.hass);
             const launcher = this._launcherButton(item, index, slot, module);
-
-            return {
-                item,
-                index,
-                slot,
-                module,
-                launcher
-            };
+            launcher._hub_item_id = id;
+            // The controller owns Hub show/visibility; classic allocation must
+            // never reevaluate and mutate that gate while a gesture is active.
+            delete launcher.show;
+            const show = item.show !== undefined ? item.show : (item.persistent || {}).show;
+            return {id, index, item, module, launcher, slot, mode, visibility:item.visibility, show,
+                liveShow:typeof show === 'string' && /\[\[\[|HCJS:|\$\{/.test(show)};
         });
-
-        const centerEntry = ! showLogo
-            ? resolved.find(entry => entry.slot === 0)
-            : null;
-
-        this._hubCenterButton = centerEntry
-            ? centerEntry.launcher
-            : null;
-        this._hubCenterDescriptor = centerEntry
-            ? toCenterDescriptor(centerEntry.module, centerEntry.launcher)
-            : null;
-
-        const ringButtons = resolved
-            .filter(entry => entry.slot !== 0)
-            .map(entry => entry.launcher);
-
-        next.menu = merge({}, next.menu || {}, {
-            empty_slots: 'hidden',
-            idle_timeout: 0,
-            buttons: ringButtons
-        });
-
+        const visibilityIndex = new VisibilityIndex(entries, this.hass);
+        this._hubEntries = entries;
+        this._hubShowLogo = showLogo;
+        this._visibilityIndex = visibilityIndex;
+        this._legacyShowEntries = entries.filter(entry => entry.show !== undefined);
+        this._showValues = new Map();
+        this._showErrors = new Set();
+        this._refreshLegacyShow(true);
+        this._allocationSignature = null;
+        this._baseMenuOptions = merge({}, next.menu || {});
+        this._applyAllocation(next);
+        this._pendingStructure = false;
+        this._ensureMenuContext();
+        // Hub updates its compiled menu in place; a repeated YAML configuration
+        // must replace that data even if it matches an earlier input signature.
+        this._configInputSignature = undefined;
         super.setConfig(next);
+        if (this._hubMenu) {
+            this._needsBaseRefresh = true;
+            this._pendingStructure = true;
+            this._scheduleStructure();
+        }
     }
 }
 

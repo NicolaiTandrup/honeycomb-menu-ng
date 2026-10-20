@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
-          git merge-base --is-ancestor c1d9507ee48e65b951f6302c668dadf17043c195 HEAD
+          git merge-base --is-ancestor 697dec5846fc6b73199fb39562eef5a733ba49c5 HEAD
           git merge-base --is-ancestor HEAD "origin/$GITHUB_REF_NAME"
           TAG="v$(node -p "require('./package.json').version")"
           [[ "$TAG" =~ ^v1\.7\.0-beta\.[0-9]+$ ]]

@@ -29,6 +29,9 @@ const manager = new function() {
     this.honeycomb = null;
     this.stack = [];
     this.currentConfig = null;
+    this.pointers = new Set();
+    this.pendingActions = new Set();
+    this.pointerOwners = new Map();
     this.pointerDown = false;
     this.pointerId = null;
     this.position = {
@@ -45,9 +48,26 @@ const manager = new function() {
         this.pointerId = e.pointerId;
         this.position.x = e.clientX;
         this.position.y = e.clientY;
+        const path = e.composedPath();
+        const owner = path.find(node => node && node._menuContext);
+        const context = owner ? owner._menuContext : this;
+        this.pointerContext = context;
+        this.pointerOwners.set(e.pointerId, context);
+        context.pointers.add(e.pointerId);
+        if (context.honeycomb) {
+            context.honeycomb._dragPointerId = e.pointerId;
+            context.honeycomb._dragStartX = e.clientX;
+            context.honeycomb._dragStartY = e.clientY;
+        }
     }.bind(this);
 
     this.handlePointerUp = function(e) {
+        const context = this.pointerOwners.get(e.pointerId);
+        if (context) {
+            context.pointers.delete(e.pointerId);
+            this.pointerOwners.delete(e.pointerId);
+            notifyContext(context);
+        }
         if( this.pointerId === null || e.pointerId === this.pointerId )
         {
             this.pointerDown = false;
@@ -56,15 +76,25 @@ const manager = new function() {
     }.bind(this);
 };
 
-function openHoneycombMenu(context, config)
+function notifyContext(context)
 {
-    var honeycombConfig = traverseConfigs( config );
+    // The Hub schedules a frame boundary before committing structure; this
+    // notification alone does not imply the native event dispatch has ended.
+    if (context && context.onIdle) queueMicrotask(() => { if (context.onIdle) context.onIdle(); });
+}
 
-    if( honeycombConfig.entity_id && ! honeycombConfig.entity )
-        honeycombConfig.entity = honeycombConfig.entity_id;
-
+function prepareMenuConfig(config)
+{
+    const honeycombConfig = traverseConfigs(config);
+    if (honeycombConfig.entity_id && !honeycombConfig.entity) honeycombConfig.entity = honeycombConfig.entity_id;
     applyPresetControls(honeycombConfig, honeycombConfig.presets || {}, honeycombConfig.entity);
     applyEntityInheritance(honeycombConfig, honeycombConfig.entity);
+    return honeycombConfig;
+}
+
+function openHoneycombMenu(context, config)
+{
+    const honeycombConfig = prepareMenuConfig(config);
 
     // If a menu is already open, treat a newly opened menu as a nested menu.
     // nested_expand keeps the current Honeycomb element alive and only updates
@@ -213,6 +243,32 @@ document.addEventListener('mousedown', manager.handleXYPosition, false);
 document.addEventListener('pointerdown', manager.handlePointerDown, true);
 document.addEventListener('pointerup', manager.handlePointerUp, true);
 document.addEventListener('pointercancel', manager.handlePointerUp, true);
+window.addEventListener('blur', () => {
+    const contexts = new Set([manager, ...manager.pointerOwners.values()]);
+    let view = null;
+    // Honeycomb can remain loaded after navigation away from Lovelace.
+    try { view = lovelace_view(); } catch (_) { /* No active dashboard. */ }
+    if (view) view.querySelectorAll('honeycomb-menu').forEach(menu => contexts.add(menu._menuContext || manager));
+    for (const context of contexts) {
+        context.pointers.clear();
+        for (const item of [...context.pendingActions]) item._cancelGesture();
+        if (context.honeycomb) {
+            context.honeycomb._dragPointerActive = false;
+            context.honeycomb._dragPointerId = null;
+            context.honeycomb.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control').forEach(item => item._cancelGesture());
+        }
+        notifyContext(context);
+    }
+    manager.pointerOwners.clear(); manager.pointerDown = false; manager.pointerId = null;
+});
+
+window.honeycomb_menu_context_update_base = (context, config) => {
+    if (!context || !context.honeycomb || context.honeycomb.closing || context.stack.length || !navigationCore.isHubRoot(context.currentConfig)) return false;
+    const prepared = prepareMenuConfig(config);
+    context.currentConfig = merge({}, prepared);
+    context.honeycomb.replaceConfig(prepared);
+    return true;
+};
 
 document.body.addEventListener("ll-custom", e => {
     if(e.detail.honeycomb_menu)
@@ -315,6 +371,7 @@ function honeycombBack(context = manager)
             );
         }
 
+        notifyContext(context);
         return true;
     }
 
@@ -322,7 +379,9 @@ function honeycombBack(context = manager)
         ? previous.config
         : previous;
 
+    navigationCore.prepareBack(context, previousConfig);
     showHoneycombMenu(previousConfig, { nested: false, context });
+    notifyContext(context);
     return true;
 }
 
@@ -334,6 +393,7 @@ function honeycombClose(context = manager)
 
     if( context.honeycomb )
         context.honeycomb.close();
+    notifyContext(context);
 }
 
 function honeycombDispose(context = manager)
@@ -343,6 +403,9 @@ function honeycombDispose(context = manager)
     context.stack = [];
     context.currentConfig = null;
     context.honeycomb = null;
+    context.pointers.clear(); context.pendingActions.clear();
+    context.onIdle = null; context.owner = null;
+    for (const [id,owner] of manager.pointerOwners) if (owner === context) manager.pointerOwners.delete(id);
     navigationCore.resetNavigation(context);
 
     if( ! menu )
@@ -638,6 +701,7 @@ class HoneycombMenu extends LitElement
                 ${this.config.persistent_center ? html`
                     <honeycomb-persistent-control
                         class="center-item persistent-center-item"
+                        data-honeycomb-id=${this.config.persistent_center._hub_item_id || ''}
                         style="
                             left: calc(var(--item-size) * ${centerPos.x});
                             top: calc(var(--item-size) * ${centerPos.y});
@@ -651,6 +715,7 @@ class HoneycombMenu extends LitElement
                     <honeycomb-menu-item
                         class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''} ${this._dragHoverSlot === -2 ? 'drag-hover' : ''}"
                         data-honeycomb-slot="center"
+                        data-honeycomb-id=${centerConfig._hub_item_id || ''}
                         @pointerenter=${() => this._setDragHoverSlot(-2)}
                         @pointerleave=${() => this._clearDragHoverSlot(-2)}
                         style="
@@ -678,6 +743,7 @@ class HoneycombMenu extends LitElement
                         <honeycomb-menu-item
                             class="${this._dragHoverSlot === i ? 'drag-hover' : ''}"
                             data-honeycomb-slot="${i}"
+                            data-honeycomb-id=${v._hub_item_id || ''}
                             @pointerenter=${() => this._setDragHoverSlot(i)}
                             @pointerleave=${() => this._clearDragHoverSlot(i)}
                             style="
@@ -789,7 +855,7 @@ class HoneycombMenu extends LitElement
         // If the menu was opened from button-card press_action, the pointer is
         // still physically held down. Adopt that pointer so the same gesture
         // can continue directly into drag-select.
-        if( this.config.drag_select && manager.pointerDown )
+        if( this.config.drag_select && manager.pointerDown && manager.pointerContext === this._menuContext )
         {
             this._dragPointerId = manager.pointerId;
             this._dragStartX = manager.position.x;
@@ -1321,6 +1387,8 @@ class HoneycombMenu extends LitElement
     {
         if( ! this.config.drag_select )
             return;
+        const context = this._menuContext || manager;
+        if (!context.pointers.has(e.pointerId) && this._dragPointerId !== e.pointerId) return;
 
         // Only drag-select while the pointer is physically held down.
         if( e.buttons === 0 && e.pointerType === 'mouse' )
@@ -1393,7 +1461,7 @@ class HoneycombMenu extends LitElement
         this._dragStartY = null;
         this._dragHoverSlot = -1;
 
-        if( item )
+        if( item && e.type !== 'pointercancel' )
         {
             e.preventDefault();
             e.stopPropagation();

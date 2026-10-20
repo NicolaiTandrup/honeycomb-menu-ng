@@ -10,19 +10,26 @@ Honeycomb Menu NG is a modular Home Assistant dashboard interaction system built
 
 The project **originated as a fork** of [Sian-Lee-SA/honeycomb-menu](https://github.com/Sian-Lee-SA/honeycomb-menu) by Sian Croser. Honeycomb Menu NG still contains portions of that GPLv3 codebase and keeps full attribution, but NG has evolved into a substantially larger modular implementation with persistent Hubs, native Light/Media/Sonos modules, locked-center navigation, state-aware controls and automated regression tests.
 
-## v1.7.0-beta.2: Phase 1 preview
+## v1.7.0-beta.3: dynamic Hub items
 
-Hub and Control share the v1.5.1 Hub full-cell renderer and default to 82 px.
-Control can select the same Light/Media/Sonos modules with `module`; Hub retains
-`logo: auto`, and `logo: false` removes branding while allowing an ordinary center
-item. Large Hub configurations are no longer truncated at seven items.
-Beta.2 fixes disappearing Light launchers and hidden preset cells after nested
-navigation; Light actions and slot assignments remain unchanged from v1.5.1.
+Hub items can now appear and disappear live from Home Assistant state. Use
+`visibility` with HA-style state/numeric/logical conditions and choose `slot_mode`:
+`hard` reserves its slot even when hidden, `priority` reclaims its preferred slot,
+and `soft` uses free positions while keeping unaffected cubes stable.
+`logo: false` leaves center slot 0 available for ordinary cubes.
 
-This pre-release comes from a tested feature branch based on `restart/v1.5.1` and
-is **not yet merged** into that branch. Dynamic visibility, priority placement and
-Car/Charger modules are not implemented. See the [Phase 1 configuration, migration
-and limitations](docs/V1_7_PHASE1.md) before trying it. Latest stable is v1.5.1.
+Changes wait until the related module/descendant menu closes and active gestures
+or delayed taps finish. Entity presentation stays live. Hub and Control keep the
+shared 82 px renderer, Light/Media/Sonos features and the Issue #78 Light fix.
+
+Start with the [complete Phase 2 example, truth tables and migration guide](docs/V1_7_PHASE2.md).
+Existing static Hub layouts retain their placement. Declarative dynamic placement
+is supported on Hub items; classic submenu buttons keep their existing show behavior.
+
+This prerelease is developed from updated `restart/v1.5.1` containing merged PR #77.
+The Phase 2 PR remains **unmerged**; master and latest stable v1.5.1 are unchanged.
+No v1.6 code or Car/Charger modules are included. The renderer supports 216 ring
+slots plus center; additional configured items remain tracked and report overflow.
 
 ## What Honeycomb Menu NG gives you
 
@@ -34,7 +41,7 @@ and limitations](docs/V1_7_PHASE1.md) before trying it. Latest stable is v1.5.1.
 - fixed physical module center: nested menus may expand from 7 to 19 cubes without moving slot 0
 - state-aware launcher colors, brightness/volume labels and explicit `Unavailable` status
 - established inner/outer layouts plus expandable rings for larger Hub configurations
-- soft/hard slot placement and classic popup compatibility
+- live Hub visibility and hard/priority/soft placement, with classic popup compatibility
 - nested menus, templates and XY Pad
 - modular core with isolated domain modules and regression tests
 - one shared Honeycomb bee brand across Home Assistant and GitHub
@@ -273,6 +280,13 @@ If a Light or Media/Sonos entity disappears, for example because a remote Home A
 
 ## Hub slots
 
+For beta.3, see the [Phase 2 slot contract](docs/V1_7_PHASE2.md#slots-stability-and-migration).
+Without a slot_mode, old configurations keep hard automatic positions. Dynamic
+items can use priority preferred slots or soft free positions. Hidden hard slots
+stay reserved; priority claims run before fallbacks; unaffected soft cells retain
+free positions. Do not put new dynamic visibility keys on classic submenu buttons.
+
+
 ### Base without logo
 
 | Items | Slots |
@@ -300,7 +314,7 @@ If a Light or Media/Sonos entity disappears, for example because a remote Home A
 Detailed modules use:
 - slot `0`: physical center
 - slots `1–6`: inner ring
-- slots `7–18`: outer ring
+- slots `7–18`: second ring; beta.3 supports further rings through slot `216`
 
 ## AI-assisted setup
 
