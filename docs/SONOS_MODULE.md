@@ -221,3 +221,50 @@ v1.7 therefore documents and ships the cache recipe instead of moving that backg
 Official references:
 - https://www.home-assistant.io/integrations/sonos/
 - https://www.home-assistant.io/integrations/media_player/
+
+## v1.7.1 beta: station accents and launcher artwork
+
+Radio's outer slots 7–18 now add an inner accent ring from the existing Light
+hue wheel. Favorite IDs determine colors, independently of list order. Up to
+12 configured IDs receive distinct colors; changing the set can reassign a
+collision. Larger lists use identity hashing and may share colors. Ordering,
+playback actions, station thumbnails, cache recipe and navigation stay unchanged.
+
+The ordinary Sonos launcher and selected main-menu center use a recognized
+favorite's cached logo, inner accent and playing center fill. Volume remains
+visible below the logo. Paused/stopped players use `off.center_color` (neutral
+`#202224` by default), even with a configured playing `colors.center`. A logo/ring
+is retained only while current HA metadata still identifies the same favorite;
+there is no title guessing or persistent optimistic last-station cache.
+Unavailable players use `colors.unavailable` (gray by default).
+
+Identification requires exact `media_content_id` equality to a configured favorite
+and exactly one matching cache entry. HA Sonos normally reports the current track
+**URI**, which may differ from the favorite ID. If existing external cache metadata
+also supplies `uri` on that favorite's item, an exact unique URI match is accepted.
+The shipped cache recipe is unchanged and does not add this optional metadata.
+Without a reliable mapping, the launcher safely keeps its standard Sonos
+icon/colors; matching titles/channels alone never selects artwork. Duplicate IDs
+or URI mappings are rejected. A confirmed reciprocal group uses its coordinator's
+playback identity, not an unrelated follower's stale title/ID.
+
+Precedence:
+
+1. Explicit `colors.inner_border`/`colors.center` win while playing, then an explicit
+   `active_color`, then the recognized station accent, then normal Sonos defaults.
+2. Pause/stop overrides the playing center with `off.center_color`; choose a neutral
+   gray shade for this setting. Unavailable state overrides station context.
+3. Custom `custom_fields` content or a `styles.card` background image wins over automatic artwork.
+   `show_icon: false` disables automatic logo/icon display. Nested center/back
+   arrows remain visible. Other explicit styles, labels and actions remain intact.
+4. Missing/invalid/unreachable artwork restores the normal Sonos icon/colors.
+   HTTP(S), HA-relative paths and base64 PNG/JPEG/GIF/WebP images are supported.
+   A failed URL retries when the cache metadata changes; no polling is added.
+
+The beta is not stable approval. Test actual Sonos playback/URI metadata and image
+accessibility in HA before approving merge or a stable v1.7.1 release.
+
+HA implementation reference reviewed for matching: [current track URI exposed as
+media_content_id](https://github.com/home-assistant/core/blob/e6fd4fe6cbd4d3e7d6923ef9a73d9c5f45153592/homeassistant/components/sonos/media_player.py#L273).
+This differs from the favorite-item ID used by `play_media`; arbitrary channel
+or track title equality is not proof of identity.

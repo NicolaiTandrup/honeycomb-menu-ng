@@ -41,6 +41,22 @@ def capture_reference(cubes, handler, button, evidence):
                     case.activate(case.sonos_slot(3).locator('.interaction-surface'));case.capture('issue90-empty')
                     assert case.page.evaluate('moreInfo')==['media_player.player_a']
                 finally:case.tearDown()
+            # Additional before evidence preserves the already-approved PR #91 work.
+            expanded=evidence/'before-expanded';expanded.mkdir(parents=True,exist_ok=True)
+            previous='630aeb4c47878ef8bd67e368eec3dce11b7ca391'
+            previous_bundle=subprocess.check_output(['git','show',f'{previous}:honeycomb-menu-ng.js'])
+            assert hashlib.sha256(previous_bundle).hexdigest()=='e8a59256d97e3cc425a270933910b0f0506e894f577e95e8329919f2e6f3f681'
+            file.write_bytes(previous_bundle);cubes.evidence=expanded
+            for width,height in [(1100,900),(390,844)]:
+                cubes.viewport={'width':width,'height':height}
+                case=cubes();case.setUp()
+                try:
+                    case.station_hub();case.capture('issue90-station-playing')
+                    case.hold_input(case.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                    case.activate(case.sonos_slot(1).locator('.interaction-surface'))
+                    case.capture('issue90-station-radio-accents')
+                finally:case.tearDown()
+            (expanded/'provenance.json').write_text(json.dumps({'commit':previous,'sha256':hashlib.sha256(previous_bundle).hexdigest(),'entities':'synthetic'},indent=2)+'\n')
             (before/'provenance.json').write_text(json.dumps({'tag':'v1.7.0','commit':commit,'sha256':hashlib.sha256(bundle).hexdigest(),'viewports':[[1100,900],[390,844]],'entities':'synthetic','missing_join_setup':'more-info fallback; no outer candidates'},indent=2)+'\n')
         finally:
             cubes.url,cubes.evidence=original_url,original_evidence

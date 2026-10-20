@@ -7,7 +7,21 @@ const {compileVisibility}=require('../../src/core/visibility');
 const {allocateHubSlots}=require('../../src/core/hub-allocation');
 const input=JSON.parse(fs.readFileSync(process.argv[2]));
 const readme=fs.readFileSync('README.md','utf8');
-const diagram=readme.split('<!-- layout-diagram:start -->')[1].split('<!-- layout-diagram:end -->')[0];
+const visual=readme.split('<!-- layout-diagram:start -->')[1].split('<!-- layout-diagram:end -->')[0];
+assert.ok(visual.includes('](docs/assets/layout-slots.svg)') && !visual.includes('```'));
+const svg=fs.readFileSync('docs/assets/layout-slots.svg','utf8');
+assert.match(svg,/viewBox="0 0 520 490"/);assert.match(svg,/aria-labelledby="title description"/);
+const svgCells=[...svg.matchAll(/data-slot="(\d+)" data-x="([\d.]+)" data-y="([\d.]+)"/g)];
+assert.deepEqual(svgCells.map(match=>Number(match[1])),Array.from({length:19},(_,i)=>i));
+for(const [,slot,x,y] of svgCells){
+    const actual=Number(slot)===0?layout.sceneCenter(2):layout.buttonPosition(Number(slot)-1,{inner:true,outer:true,radius:2});
+    assert.equal(Number(x),actual.x);assert.equal(Number(y),actual.y);
+    const group=svg.split(`data-slot="${slot}"`)[1].split('</g>')[0];
+    assert.ok(group.includes(`<text x="${actual.x*100+60}" y="${actual.y*100+70}">${slot}</text>`));
+    assert.ok(group.includes(`points="${actual.x*100+60},${actual.y*100+15}`));
+}
+const guide=fs.readFileSync('docs/AI_SETUP.md','utf8');
+const diagram=guide.split('<!-- physical-slot-map:start -->')[1].split('<!-- physical-slot-map:end -->')[0];
 const cells=[];
 for(const [row,line] of diagram.split('\n').filter(l=>l.includes('[')).entries())
     for(const match of line.matchAll(/\[\s*(\d+)\]/g)) cells.push({slot:Number(match[1]),x:match.index,y:row});

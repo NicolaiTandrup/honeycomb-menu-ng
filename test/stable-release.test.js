@@ -50,6 +50,9 @@ test('retention verification rejects missing/edited releases or their assets',()
     }
 });
 function fixture(t,hook=()=>{}){
+    // Stable transport fixtures stay independent of this branch's active beta notes.
+    const read=fs.readFileSync.bind(fs);
+    t.mock.method(fs,'readFileSync',(file,...args)=>file==='RELEASE_NOTES.md'?'# v1.7.0 — Stable\nSynthetic stable fixture.\n':read(file,...args));
     const output=fs.mkdtempSync(path.join(os.tmpdir(),'stable-publisher-test-'));t.after(()=>fs.rmSync(output,{recursive:true,force:true}));
     const oldEnv={ref:process.env.GITHUB_REF,retention:process.env.RELEASE_RETENTION_ENABLED};
     process.env.GITHUB_REF='refs/heads/master';process.env.RELEASE_RETENTION_ENABLED='false';
@@ -131,8 +134,11 @@ test('CLI prepares deterministic assets and refuses a changed provenance before 
     const {spawnSync}=require('node:child_process');
     const dir=fs.mkdtempSync(path.join(os.tmpdir(),'stable-cli-assets-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
     const script=path.resolve('scripts/stable-release.js');
+    const fixture=path.join(dir,'fixture');fs.mkdirSync(fixture);
+    for(const [name,value] of Object.entries({'package.json':PKG,'release.json':RELEASE,'hacs.json':HACS}))fs.writeFileSync(path.join(fixture,name),JSON.stringify(value));
+    fs.writeFileSync(path.join(fixture,'honeycomb-menu-ng.js'),BUNDLE);
     const childEnv={...process.env,PUBLICATION_MODE:'prepare',EXPECTED_COMMIT:COMMIT,RELEASE_OUTPUT:dir};
-    const prepared=spawnSync(process.execPath,[script],{env:childEnv,encoding:'utf8'});
+    const prepared=spawnSync(process.execPath,[script],{cwd:fixture,env:childEnv,encoding:'utf8'});
     assert.equal(prepared.status,0,prepared.stderr);
     const provenance=JSON.parse(fs.readFileSync(path.join(dir,'release-provenance.json')));
     assert.equal(provenance.version,'1.7.0');assert.equal(provenance.commit,COMMIT);
@@ -140,7 +146,14 @@ test('CLI prepares deterministic assets and refuses a changed provenance before 
     fs.writeFileSync(path.join(dir,'release-provenance.json'),JSON.stringify({...provenance,commit:'b'.repeat(40)}));
     const bin=path.join(dir,'bin'),sentinel=path.join(dir,'unexpected-gh');fs.mkdirSync(bin);
     fs.writeFileSync(path.join(bin,'gh'),'#!/bin/sh\ntouch "$STABLE_TEST_GH_SENTINEL"\nexit 99\n',{mode:0o755});
-    const refused=spawnSync(process.execPath,[script],{env:{...childEnv,PUBLICATION_MODE:'publish',PATH:bin+path.delimiter+process.env.PATH,
+    const refused=spawnSync(process.execPath,[script],{cwd:fixture,env:{...childEnv,PUBLICATION_MODE:'publish',PATH:bin+path.delimiter+process.env.PATH,
         GITHUB_REPOSITORY:'example/honeycomb',GITHUB_REF:'refs/heads/master',RELEASE_RETENTION_ENABLED:'false',STABLE_TEST_GH_SENTINEL:sentinel},encoding:'utf8'});
     assert.equal(refused.status,1);assert.match(refused.stderr,/Verified artifact release-provenance.json changed/);assert.equal(fs.existsSync(sentinel),false);
+});
+test('v1.7.1 beta metadata validates locally but stable and original publisher guards remain enforced',()=>{
+    const pkg={version:'1.7.1-beta.1'},release={title:'Honeycomb NG v1.7.1-beta.1 — Sonos owner test',prerelease:true};
+    assert.doesNotThrow(()=>validateArtifact(pkg,release,HACS,BUNDLE));
+    assert.throws(()=>validateArtifact(pkg,release,HACS,BUNDLE,{stable:true}),/stable metadata/);
+    assert.match(fs.readFileSync('.github/workflows/release.yml','utf8'),/refs\/heads\/feature\//);
+    assert.match(fs.readFileSync('scripts/check-beta.js','utf8'),/1\\\.7\\\.0/);
 });

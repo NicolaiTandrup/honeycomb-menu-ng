@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 function validateArtifact(pkg, release, hacs, bytes, {stable = false} = {}) {
-    assert.match(pkg.version, /^1\.7\.0(?:-beta\.[1-9]\d*)?$/, 'Unsupported release version');
+    assert.match(pkg.version, /^1\.7\.(?:0(?:-beta\.[1-9]\d*)?|1-beta\.[1-9]\d*)$/, 'Unsupported release version');
     const prerelease = pkg.version.includes('-');
     if (stable) assert.equal(prerelease, false, 'Stable publication requires stable metadata');
     assert.equal(release.prerelease, prerelease, 'Release flag/version conflict');

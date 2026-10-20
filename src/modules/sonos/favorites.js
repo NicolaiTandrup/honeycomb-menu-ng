@@ -1,3 +1,5 @@
+const { accentTemplate } = require('./station.js');
+
 function buildRadioMenu(item)
 {
     const favorites = item.favorites_sensor || 'sensor.sonos_favorites';
@@ -12,6 +14,7 @@ function buildRadioMenu(item)
         buttons: Array.from({ length: 12 }, (_, index) => ({
             slot: index + 7,
             slot_mode: 'hard',
+            colors: { inner_border: accentTemplate(favorites, index) },
             entity: favorites,
             show: `[[[
                 const items = states['${favorites}']?.attributes?.items || {};

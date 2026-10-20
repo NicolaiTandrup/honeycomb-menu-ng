@@ -88,13 +88,7 @@ These are **physical slots**, viewed face-on. The figure is checked against the
 current coordinate tables, not inferred from button order.
 
 <!-- layout-diagram:start -->
-```text
-        [ 9]    [10]    [11]
-    [ 8]    [ 2]    [ 3]    [12]
-[ 7]    [ 1]    [ 0]    [ 4]    [13]
-    [18]    [ 6]    [ 5]    [14]
-        [17]    [16]    [15]
-```
+![Honeycomb physical slots: center 0; inner 1 left, 2 upper-left, 3 upper-right, 4 right, 5 lower-right, 6 lower-left; outer 7–18 as verified in the AI slot map](docs/assets/layout-slots.svg)
 <!-- layout-diagram:end -->
 
 | Area | Physical slots | Meaning |
@@ -275,7 +269,9 @@ explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_M
 Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
 2 Play/Pause, 3 Solo/Join, 4 Browse, 5 Volume Down, 6 Volume Up**. Join shows live
 room membership or an explicit setup/availability state. Radio's outer submenu
-retains its ordering, artwork and playback.
+retains its ordering, artwork and playback, with new stable favorite accent rings.
+A reliably identified favorite can provide cached launcher artwork and playing
+color; pause/stop remains neutral. See [matching limits and styling precedence](docs/SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
 
 ## Actions, appearance and navigation
 

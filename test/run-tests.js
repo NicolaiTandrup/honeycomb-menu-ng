@@ -473,7 +473,7 @@ function testSonosSlotZeroUsesPersistentContract()
 
     assert.strictEqual(sonos.launcherKind, 'persistent');
     assert.strictEqual(center.kind, 'persistent');
-    assert.strictEqual(center.config.mode, 'media');
+    assert.strictEqual(center.config.mode, 'sonos');
     assert.strictEqual(center.config.entity, 'media_player.player_a');
     assert.strictEqual(center.config.interactive, true);
     assert.strictEqual(center.config.active_color, '#00bcd4');

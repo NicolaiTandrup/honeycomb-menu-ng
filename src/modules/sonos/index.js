@@ -1,4 +1,5 @@
 const media = require('../media/index.js');
+const station = require('./station.js');
 const { buildJoinMenu, registerActions } = require('./grouping.js');
 const { sonosButtonStyles } = require('./presentation.js');
 const { buildRadioMenu } = require('./favorites.js');
@@ -56,14 +57,17 @@ function buildMenu({ item })
         promoted_center: {
             entity: item.entity,
             icon: item.icon || 'mdi:speaker',
-            mode: 'media',
+            mode: 'sonos',
+            _sonos: station.settings(item),
+            off: {...item.off,...(item.persistent || {}).off},
+            show_icon: (item.persistent || {}).show_icon !== undefined ? item.persistent.show_icon : item.show_icon,
             show_brightness: 'never',
             show_volume: 'when_playing',
             active_color: item.active_color || item.color || '#00bcd4',
             colors: {
-                center: 'auto',
-                inner_border: 'auto',
-                outer_border: '#34383d'
+                center: ((item.persistent || {}).colors || {}).center || (item.colors || {}).center || 'auto',
+                inner_border: ((item.persistent || {}).colors || {}).inner_border || (item.colors || {}).inner_border || 'auto',
+                outer_border: ((item.persistent || {}).colors || {}).outer_border || (item.colors || {}).outer_border || '#34383d'
             }
         },
         empty_slots: 'hidden',
@@ -182,6 +186,8 @@ module.exports = {
     aliases: ['media-sonos'],
     priority: 400,
     launcherKind: 'persistent',
+    persistentModes: ['sonos'],
+    presentation: station,
 
     // Backwards compatible: existing type: media continues to mean the
     // Sonos-oriented module unless the user explicitly selects module: media.
@@ -202,6 +208,6 @@ module.exports = {
 
     buildLauncher(context)
     {
-        return media.buildLauncher(context);
+        return {...media.buildLauncher(context),mode:'sonos',_sonos:station.settings(context.item)};
     }
 };

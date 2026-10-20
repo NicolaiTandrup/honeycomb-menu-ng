@@ -1,3 +1,29 @@
+# v1.7.1-beta.1 — Sonos owner test (publication pending)
+
+PR #91 remains unmerged. This is beta metadata, not stable v1.7.1 approval.
+
+- Preserve Light-aligned Sonos controls, corrected inner slots, actionable Join
+  candidates, accurate HA membership/setup/error states and external script contract.
+- Add deterministic Light-wheel Radio accent rings without changing order,
+  favorite playback, thumbnails, cache recipe, geometry or navigation.
+- Use cached artwork and station accents on reliably identified Sonos launchers
+  and main selected centers. Pause/stop restores neutral fill; unknown/invalid or
+  inaccessible artwork falls back. Explicit styling precedence is documented.
+- Replace README ASCII layout with a checked-in accessible responsive SVG matching
+  physical slots 0–18. Retain machine-readable AI mapping and semantic tables.
+
+Known limits: real HA Sonos usually exposes a playback URI rather than a favorite
+ID. Exact matching needs an ID or a unique explicit URI in existing external cache
+metadata; the shipped recipe is unchanged. No title guessing. Twelve hues can be
+shared in larger lists. Chromium/synthetic HA tests do not replace owner hardware
+validation. Car, Climate and recursive Color Zoom remain out of scope.
+
+Publication is blocked by existing beta workflow branch/version guards until a
+narrow supported flow is approved. No tag/release has been created. See
+[beta test and publication gate](docs/V1_7_1_BETA.md).
+
+---
+
 # v1.7.0 — Stable
 
 Honeycomb Menu NG v1.7.0 promotes the tested restart/v1.5.1 line: Phase 1 PR #77,

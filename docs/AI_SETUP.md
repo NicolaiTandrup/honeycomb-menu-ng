@@ -79,6 +79,17 @@ Implementation references: [shared compilation](../src/core/cube-config.js),
 
 ## Geometry, allocation and live updates
 
+Machine-readable face-on slot map (rows from top to bottom; no rotation):
+<!-- physical-slot-map:start -->
+```text
+        [ 9]    [10]    [11]
+    [ 8]    [ 2]    [ 3]    [12]
+[ 7]    [ 1]    [ 0]    [ 4]    [13]
+    [18]    [ 6]    [ 5]    [14]
+        [17]    [16]    [15]
+```
+<!-- physical-slot-map:end -->
+
 Use the verified [physical slot diagram and automatic tables](../README.md#layout-model).
 Center is Hub slot 0, inner 1–6, outer 7–18; further rings end at 216. The current
 renderer has 217 physical positions. There is no 7/18-item configuration limit:
@@ -503,3 +514,26 @@ Hub base selection may establish a module center; deeper menus may expand rings
 but never move that center. [Architecture](../ARCHITECTURE.md),
 [Phase 1](V1_7_PHASE1.md), [Issue #78](ISSUE_78.md), [Phase 2](V1_7_PHASE2.md),
 [documentation validation commands](DOCUMENTATION.md).
+
+## v1.7.1-beta.1 development additions (PR #91)
+
+The corrected Sonos inner slots/Join behavior above remain. Radio outer slots
+7–18 add only deterministic Light-wheel inner accents. Preserve favorite order,
+IDs, cache recipe, artwork and actions. Up to 12 IDs have distinct colors stable
+under reordering; larger sets can share hues.
+
+The launcher recognizes an exact HA `media_content_id` → favorite ID, or an exact,
+unique `uri` in existing cache metadata linked by `media_content_id` to a configured
+favorite. The default cache recipe does not supply playback URIs. Do not infer an
+ID from a title/channel, fabricate URI mappings, or silently change HA automation.
+No reliable match or valid cached thumbnail means normal Sonos presentation.
+Groups require reciprocal membership and use coordinator playback identity.
+
+Known logo/accent may remain on pause/stop only while metadata still matches;
+center fill becomes neutral `off.center_color`, default `#202224`. Explicit playing
+colors beat `active_color`, station accent and defaults; unavailable state stays
+unavailable. Custom background image and `show_icon: false` win over automatic
+artwork. See [Sonos precedence](SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
+
+PR #91 stays unmerged. Beta installation requires an actual GitHub prerelease
+and owner real-HA testing; synthetic CI is insufficient approval for stable.

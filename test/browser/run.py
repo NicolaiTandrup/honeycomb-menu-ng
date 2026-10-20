@@ -19,13 +19,13 @@ BUTTON_SHA = '5d6e9c6afca01e8014653fa56bb5d6aa9248d832c34fb944a7f2c36329bc22d1'
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        paths = {'/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button}
+        paths = {'/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button, '/layout.svg': ROOT/'docs/assets/layout-slots.svg', '/station-a.svg': ROOT/'test/browser/assets/station-a.svg', '/station-c.svg': ROOT/'test/browser/assets/station-c.svg'}
         if self.path == '/favicon.ico':
             self.send_response(204); self.end_headers(); return
         if self.path not in paths:
             self.send_error(404); return
         self.send_response(200)
-        self.send_header('Content-Type', 'text/html' if self.path == '/' else 'text/javascript')
+        self.send_header('Content-Type', 'text/html' if self.path == '/' else 'image/svg+xml' if self.path.endswith('.svg') else 'text/javascript')
         self.end_headers(); self.wfile.write(paths[self.path].read_bytes())
     def log_message(self, *args): pass
 
@@ -687,7 +687,12 @@ class Cubes(unittest.TestCase):
         snapshot=self.sonos_radio_state()
         if self.evidence:
             reference=json.loads((self.evidence/'before'/f'{self.viewport["width"]}-radio-state.json').read_text())
-            self.assertEqual(snapshot,reference,'Radio outer descriptors, rendered models/geometry/artwork and center remain unchanged')
+            for scene in [snapshot,reference]:
+                scene['center'].pop('artwork',None)
+                for cell in scene['outer']:
+                    cell['model'].pop('artwork',None)
+                    cell['model']['colors'].pop('inner',None)
+            self.assertEqual(snapshot,reference,'Only Radio inner accent rings may differ from stable')
         self.assertEqual([x['model']['name'] for x in snapshot['outer']],[f'Station {i:02d}' for i in range(1,13)])
         self.assertEqual([x['index'] for x in snapshot['outer']],list(range(6,18)))
         self.capture('issue90-radio')
@@ -719,6 +724,106 @@ class Cubes(unittest.TestCase):
             self.activate(self.sonos_slot(7).locator('.interaction-surface'))
             self.assertEqual(self.page.evaluate('calls.at(-1)[2].member'),'media_player.player_b')
             if adapter=='legacy':self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+
+    def station_hub(self, overrides=None):
+        self.sonos_setup()
+        self.page.evaluate('''()=>{
+            pushStates([
+                ['sensor.favorites','3',{items:{favorite_a:'Station A',favorite_b:'Station B',favorite_c:'Station C'}}],
+                ['sensor.favorites_cache','3',{items:[{media_content_id:'favorite_a',thumbnail:'/station-a.svg'},{media_content_id:'favorite_c',thumbnail:'/station-c.svg'}]}]
+            ]);
+            window.stationUpdate=(state,attrs={})=>pushState('media_player.player_a',state,{...hass.states['media_player.player_a'].attributes,...attrs});
+            stationUpdate('playing',{media_content_id:'favorite_a'});
+        }''')
+        item=self.sonos_item();item.update(overrides or {})
+        self.hub({'logo':False,'items':[item]});self.settle()
+    def test_issue90_station_launcher_transitions_and_cache_updates(self):
+        self.station_hub()
+        cube=self.page.locator('honeycomb-menu .center-item')
+        image=cube.locator('.station-artwork')
+        image.wait_for(state='visible')
+        self.assertEqual(image.get_attribute('src'),'/station-a.svg')
+        self.assertEqual(cube.locator('ha-icon').count(),0)
+        color=cube.locator('.hex-inner').get_attribute('fill')
+        self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),color)
+        self.assertEqual(cube.locator('.secondary').inner_text(),'42%')
+        bounds=cube.bounding_box();label=cube.locator('.secondary').bounding_box();logo=image.bounding_box()
+        self.assertLessEqual(logo['y']+logo['height'],label['y'])
+        self.assertLessEqual(label['y']+label['height']-bounds['y'],bounds['height']*.82)
+        self.capture('issue90-station-playing')
+        for state in ['paused','idle']:
+            self.page.evaluate('(state)=>stationUpdate(state)',state)
+            self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.colors.center==="#202224"')
+            self.assertEqual(image.get_attribute('src'),'/station-a.svg')
+            self.assertEqual(cube.locator('.hex-inner').get_attribute('fill'),color)
+        self.capture('issue90-station-paused')
+        self.page.evaluate("stationUpdate('playing',{media_content_id:'favorite_c'})")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork?.url==="/station-c.svg"')
+        self.assertNotEqual(cube.locator('.hex-inner').get_attribute('fill'),color)
+        self.page.evaluate("stationUpdate('playing',{media_content_id:'unknown_uri',media_title:'Station A',media_channel:'Station A'})")
+        self.page.wait_for_function('!hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork')
+        self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#00bcd4')
+        self.assertEqual(cube.locator('ha-icon').count(),1)
+        self.page.evaluate("stationUpdate('playing',{media_content_id:'favorite_a'});pushState('sensor.favorites_cache','0',{items:[]})")
+        self.settle();self.assertEqual(image.count(),0)
+        self.page.evaluate("pushState('sensor.favorites_cache','1',{items:[{media_content_id:'favorite_a',thumbnail:'/station-c.svg'}]})")
+        image.wait_for(state='visible');self.assertEqual(image.get_attribute('src'),'/station-c.svg')
+        self.page.evaluate("stationUpdate('unavailable')")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.colors.center==="#555b63"')
+        self.assertEqual(image.count(),0)
+    def test_issue90_station_group_override_selected_center_and_standalone(self):
+        self.station_hub({'colors':{'center':'#112233','inner_border':'#445566'},'off':{'center_color':'#303030'}})
+        cube=self.page.locator('honeycomb-menu .center-item')
+        self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#112233')
+        self.assertEqual(cube.locator('.hex-inner').get_attribute('fill'),'#445566')
+        self.hold_input(cube.locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.assertTrue(cube.locator('.station-artwork').is_visible())
+        self.assertEqual(cube.locator('.hex-inner').get_attribute('fill'),'#445566')
+        self.page.evaluate("stationUpdate('paused')")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.colors.center==="#303030"')
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.assertEqual(cube.locator('.station-artwork').count(),0,'Nested back arrow remains visible')
+        self.page.evaluate("stationUpdate('playing',{group_members:['media_player.player_b','media_player.player_a'],media_content_id:'favorite_a'});pushState('media_player.player_b','playing',{group_members:['media_player.player_b','media_player.player_a'],media_content_id:'favorite_c'})")
+        self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork?.url==="/station-c.svg"')
+        self.page.evaluate("pushState('media_player.player_b','playing',{group_members:['media_player.player_b'],media_content_id:'favorite_c'})")
+        self.page.wait_for_function('!hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork')
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.page.evaluate("stationUpdate('playing',{group_members:['media_player.player_a'],media_content_id:'favorite_a'});makeControl({module:'sonos',entity:'media_player.player_a',favorites_sensor:'sensor.favorites',favorites_cache_sensor:'sensor.favorites_cache'})")
+        self.page.locator('body > honeycomb-persistent-control .station-artwork').wait_for(state='visible')
+    def test_issue90_station_failed_image_and_unrelated_update(self):
+        self.station_hub()
+        self.page.evaluate('''()=>{window.stationRenders=0;const el=hub._hubMenu.shadowRoot.querySelector('.center-item');const original=el.render;el.render=function(){stationRenders++;return original.call(this)}}''')
+        self.page.evaluate("pushState('sensor.unrelated','updated')")
+        self.page.wait_for_timeout(100);self.assertEqual(self.page.evaluate('stationRenders'),0)
+        self.page.evaluate("pushState('sensor.favorites_cache','1',{items:[{media_content_id:'favorite_a',thumbnail:'/missing-station.png'}]})")
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._failedArtworkKey && !hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork')
+        self.assertEqual(self.page.locator('honeycomb-menu .center-item .hex-fill').get_attribute('fill'),'#00bcd4')
+        self.assertTrue(all('404' in error and 'Failed to load resource' in error for error in self.errors),self.errors)
+        self.errors.clear() # Only the deliberately failing thumbnail resource was expected.
+        self.page.evaluate("pushState('sensor.favorites_cache','1',{items:[{media_content_id:'favorite_a',thumbnail:'/station-a.svg'}]})")
+        self.page.locator('honeycomb-menu .center-item .station-artwork').wait_for(state='visible')
+    def test_issue90_station_radio_accents_survive_reorder(self):
+        self.station_hub();self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.activate(self.sonos_slot(1).locator('.interaction-surface'));self.settle()
+        colors=[self.sonos_slot(i).locator('.hex-inner').get_attribute('fill') for i in [7,8,9]]
+        self.assertEqual(len(set(colors)),3)
+        self.capture('issue90-station-radio-accents')
+        self.page.evaluate("pushState('sensor.favorites','3',{items:{favorite_c:'Station C',favorite_b:'Station B',favorite_a:'Station A'}})")
+        self.back();self.activate(self.sonos_slot(1).locator('.interaction-surface'));self.settle()
+        self.assertEqual([self.sonos_slot(i).locator('.hex-inner').get_attribute('fill') for i in [7,8,9]],list(reversed(colors)))
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls.at(-1)[2].media_content_id'),'favorite_c')
+    def test_issue90_readme_diagram_responsive_light_dark(self):
+        for theme,background in [('light','#ffffff'),('dark','#0d1117')]:
+            self.page.evaluate('''([theme,background])=>{document.title='Honeycomb layout model preview';document.body.innerHTML='<main><h1>Layout model</h1><img alt="Honeycomb physical slots 0–18: center, inner and outer rings" src="/layout.svg"></main>';document.body.style.cssText='margin:0;background:'+background+';color:'+(theme==='dark'?'white':'#14202b');const main=document.querySelector('main');main.style.cssText='padding:16px;max-width:1012px;margin:auto';document.querySelector('img').style.cssText='max-width:100%;height:auto;display:block'}''',[theme,background])
+            self.page.wait_for_function('document.querySelector("img").complete && document.querySelector("img").naturalWidth===520')
+            image=self.page.locator('img');bounds=image.bounding_box()
+            self.assertLessEqual(bounds['width'],self.viewport['width']-32)
+            self.assertGreaterEqual(25*bounds['width']/520,14,'Slot numbers remain readable on mobile')
+            self.assertEqual(self.page.title(),'Honeycomb layout model preview')
+            self.capture('issue90-layout-'+theme)
 
     def test_sonos_favorites_cache_volume_and_grouping(self):
         self.sonos_setup()

@@ -80,6 +80,8 @@ class CubeElement extends LitElement
 
             .artwork { position:absolute;inset:0;pointer-events:none;
                 clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
+            .content.has-artwork { justify-content:flex-end;padding-bottom:22%;box-sizing:border-box; }
+            .station-artwork { position:absolute;left:22%;top:22%;width:56%;height:56%;object-fit:contain;pointer-events:none;z-index:1; }
             .external-content { position:absolute;inset:8%;overflow:hidden; }
             .external-content > * { height:100%; }
             .primary { font-size:calc(var(--honeycomb-persistent-size,82px)*.16);font-weight:650;line-height:1.1; }
@@ -231,12 +233,13 @@ class CubeElement extends LitElement
         if (this.config.mode === 'generic') {
             colors.center = card.background || card['background-color'] || this._value(this.config.background, colors.center);
         }
+        if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
         const secondary = this.config.label !== undefined && this.config.show_label !== false
             ? this._value(this.config.label) : presentation.secondary;
-        const model = {colors, secondary,
+        const model = {colors, secondary, artwork:presentation.artwork || null,
             name:this.config.show_name ? this._value(this.config.name) : '',
-            icon:this.config.show_icon === false ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
-            foreground:this._value(this.config.foreground, this._foregroundForBackground(colors.center)),
+            icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
+            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(colors.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
@@ -380,12 +383,14 @@ class CubeElement extends LitElement
         if( module && module.presentation && typeof module.presentation.resolve === 'function' )
         {
             const runtime = {
-                lastKnownColor: this._lastKnownColor
+                lastKnownColor: this._lastKnownColor,
+                failedArtworkKey: this._failedArtworkKey
             };
 
             const presentation = module.presentation.resolve({
                 config: this.config || {},
                 state: this._entityState(),
+                hass: this.hass,
                 runtime
             });
 
@@ -894,8 +899,11 @@ class CubeElement extends LitElement
                 </g>
             </svg>
             <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}></div>
+            ${m.artwork ? html`<img class="station-artwork" src=${m.artwork.url} alt="" aria-hidden="true"
+                style=${styleMap({top:m.secondary || m.name ? '12%' : '22%',height:m.secondary && m.name ? '35%' : m.secondary || m.name ? '44%' : '56%'})}
+                @error=${()=>{if(this._model.artwork && this._model.artwork.key===m.artwork.key){this._failedArtworkKey=m.artwork.key;this._updatePresentation();}}}>` : ''}
             ${external ? html`<div class="external-content"></div>` : html`
-            <div class="content ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''}"
+            <div class="content ${m.artwork ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
                 ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
