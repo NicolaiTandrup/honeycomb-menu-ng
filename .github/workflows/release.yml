@@ -63,11 +63,12 @@ jobs:
           NODE_OPTIONS: --openssl-legacy-provider
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          trap 'echo "::error title=Artifact reproduction::Failed command: $BASH_COMMAND"' ERR
           npm ci
           npm test
           npm run build
-          ARTIFACT=$(rg --files "$RUNNER_TEMP/validated" | rg '/honeycomb-menu-ng.js$')
+          ARTIFACT=$(find "$RUNNER_TEMP/validated" -type f -name honeycomb-menu-ng.js -print -quit)
           test -n "$ARTIFACT"
           cmp honeycomb-menu-ng.js "$ARTIFACT"
           node scripts/check-beta.js > "$RUNNER_TEMP/SHA256SUMS.txt"
@@ -81,7 +82,7 @@ jobs:
           set -euo pipefail
           TAG=v1.7.0-beta.1
           gh api "repos/$GH_REPO/releases" --paginate --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags.txt"
-          if rg --fixed-strings --line-regexp "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
+          if grep -Fxq "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
             echo 'Release already exists; refusing to replace published assets.'
             exit 1
           fi
