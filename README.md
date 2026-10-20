@@ -13,12 +13,12 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.7.0 documentation / stable release pending.** Phase 1 PR #77 and Phase 2
-> PR #81 are merged into `restart/v1.5.1`. The latest tested beta is
-> [v1.7.0-beta.3](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.0-beta.3);
-> latest stable remains v1.5.1. These examples require the v1.7 code. This docs
-> update does not merge to master or publish a release. See the
-> [release notes and stable draft](RELEASE_NOTES.md).
+> **v1.7.0 Stable.** The shared Hub/Control engine, dynamic visibility, stable
+> slot allocation, Light navigation fixes and refreshed configuration guides are
+> promoted from `restart/v1.5.1`, including PRs #77, #81, #84 and #88.
+> [Download v1.7.0](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.0)
+> or read the [release notes](RELEASE_NOTES.md). No v1.6 implementation or unfinished
+> recursive palette, Car or Climate/Thermostat features (#85–#87) are included.
 
 ## What you can build
 
@@ -307,7 +307,11 @@ Browser and docs checks run in CI with pinned test dependencies. Configuration
 examples are checked in synthetic HA on desktop/mobile; real devices still need
 installation-time validation.
 
-After owner review, merge the documentation into `restart/v1.5.1`, then prepare a
-separate promotion PR to `master`. Stable v1.7.0 must come from the exact tested
-master commit, with matching source, tag, bundle and release assets. Beta builds
-remain prereleases; no release is created by this documentation update.
+Stable releases use the exact tested master commit, matching metadata, tag, bundle,
+checksums and HACS asset. See the [publication and verification guide](docs/RELEASING.md).
+Release retention is **disabled for v1.7.0**: the owner verified
+`RELEASE_RETENTION_ENABLED=false`, and this publication's retention report is forced
+read-only. All v0/v1 stable releases and v1.7 prereleases are retained. Before any
+future activation, review a fresh [retention dry-run](docs/RELEASE_RETENTION.md).
+Deleting a Release record removes its uploaded assets; its Git tag and tagged
+source remain. Tags, branches and source history are never cleanup targets.

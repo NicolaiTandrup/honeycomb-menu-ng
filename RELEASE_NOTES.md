@@ -1,37 +1,53 @@
-# v1.7.0 — stable release draft (unreleased)
+# v1.7.0 — Stable
 
-This is a review draft, not a published release. Phase 1 PR #77 and Phase 2 PR #81
-are merged into `restart/v1.5.1`; the documentation PR still requires owner review.
-Package/release metadata remains `1.7.0-beta.3`. Historical beta notes below describe
-their publication-time branch status, not today's merge state.
+Honeycomb Menu NG v1.7.0 promotes the tested restart/v1.5.1 line: Phase 1 PR #77,
+Phase 2 PR #81, documentation PR #84 and retention PR #88. No v1.6 implementation
+is imported. The versioned JS asset remains `honeycomb-menu-ng.js` for HACS.
 
-Planned stable scope:
-- Shared Hub/Control full-cell renderer based on v1.5.1 Hub, default 82 px, consistent
-  icons/labels/fill/rings/actions, preserved Light/Media/Sonos, presets and favorites.
-- Canonical standalone `module:` configuration and migration guidance; older Control
-  schemas may need adaptation. `logo: false` frees center slot 0 for ordinary items.
-- Live HA-state visibility with state/numeric/AND/OR/NOT conditions and dependency-aware
-  updates. Hard reservations, priority reclaim and stable soft slots with deterministic
-  collisions and overflow diagnostics. Structural changes defer through menus/gestures.
-- Issue #78 Light launcher/preset visibility fix, unchanged six-action Light slot mapping,
-  fixed centers through nested palettes and preserved drag-select.
-- Restored verified layout diagram; onboarding/reference and versioned AI guide;
-  synthetic examples, external Light values and Sonos cache/grouping prerequisites.
+- Shared full-cell Hub/Control renderer, default 82 CSS px, consistent icons,
+  labels, center fill, rings, colors, actions and anchored nested navigation.
+- Preserved Light brightness, capability-aware Color/White palettes, numeric presets
+  on separate devices/helpers, explicit on/off-only behavior, Media/Sonos group
+  volume, favorites/artwork, Join, Browse and drag-select.
+- Issue #78 fixes the disappearing Light launcher/preset after nested navigation;
+  the six-action Light layout and working Color action remain unchanged.
+- Dynamic HA-state/attribute/numeric AND/OR/NOT visibility on Hub items. Hard
+  reservations, priority reclaim and stable soft placement; `logo: false` frees
+  slot 0. Structural changes defer during menus, gestures and delayed actions.
+- Restored verified Layout model, human onboarding, versioned AI guide and complete
+  synthetic examples, including external HA Sonos cache/grouping prerequisites.
+- Release retention based on latest stable: stable current/previous MAJOR,
+  prerelease current/previous MINOR, future prerelease trains and all drafts kept.
+  **Retention remains disabled for this release** (`RELEASE_RETENTION_ENABLED=false`,
+  owner-verified); publication forces a fresh read-only report, with no deletion.
+- Exact-master stable publisher verifies CI, committed/rebuilt artifact checksums,
+  new tag, draft assets, stable/latest flags, HACS filename and retained versions.
 
-Known limits: 217 physical positions (configured dependencies are not truncated);
-no paging or automatic shrinking; anchored layouts may clip at viewport edges;
-visibility only supports the documented subset and intentionally defers structure
-while interacting; arbitrary JS templates update conservatively; Radio/Join have
-12 outer choices. Car/Charger modules and charging automation are not implemented.
-Automated validation uses Chromium with synthetic HA; actual integrations require
-HA configuration checks/device validation. Owner has validated beta.3 visibility
-and deferred placement in real HA, as recorded in Issue #82.
+Control migration: use explicit `module:` and shared keys; `size: 82` is full-cell
+width. Older inset/Menu-size Control YAML may require adaptation. Static Hub layout,
+legacy media→Sonos alias and classic popup center/slot semantics remain supported.
 
-Publication gate **after documentation approval**: merge docs to restart, open a
-separate restart→master promotion PR, pass full unit/browser/docs/build/lint checks,
-verify clean version metadata and production bundle, then tag the exact tested master
-commit and validate release assets/checksums before publishing stable v1.7.0. Never
-force-update an existing tag. This documentation PR does not authorize publication.
+Known limits: 217 physical positions (additional configured dependencies are tracked
+with overflow diagnostics); no paging/auto-shrink; anchored layouts can clip at
+viewport edges; only the documented condition subset; intentional structural deferral;
+conservative JS templates; 12 Radio/Join outer choices. Automated browser tests use
+Chromium and synthetic HA; actual HA integration setup still requires configuration
+checks and device validation. Owner has validated beta.3 visibility/deferred placement
+in real HA. Future recursive palette (#85), native Car (#86), Climate/Thermostat (#87)
+and Charger modules are not implemented. Charging automation remains external.
+
+Validation suite: **127 unit tests** (including 79 retention and 29 publisher cases),
+13 core contract groups, **54 desktop/mobile regressions + 12 documentation
+interactions**, 54 YAML blocks, 22 complete cards + 14 contextual fragments and
+75 local links. All workflow lint and production/checksum gates are required.
+
+Verification: all unit/contract, desktop/mobile, docs/YAML/link, production-build,
+workflow-lint and checksum gates must pass on the exact tagged master commit.
+Published `SHA256SUMS.txt` and `release-provenance.json` record bundle checksum,
+byte size and source commit. Deleting a Release record in a future approved cleanup
+also removes its uploaded assets; Git tags, branches, commits and tagged source
+remain permanently. See [publication](docs/RELEASING.md) and
+[retention](docs/RELEASE_RETENTION.md) guides.
 
 ---
 

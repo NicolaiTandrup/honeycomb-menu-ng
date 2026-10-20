@@ -73,15 +73,18 @@ Use `CHROMIUM_PATH` if your Chromium is not found automatically. The harness che
 the pinned button-card SHA before serving it. CI uploads screenshots and JSON evidence
 with the existing browser artifacts. Run actionlint on workflow edits and
 `git diff --check` before submitting. Production bundle verification uses
-`node scripts/check-beta.js`; documentation edits must not change the bundle hash.
+`node scripts/check-release.js`; stable publication additionally uses `--stable`.
+The v1.7 runtime bundle remains byte-identical to the approved beta.3 implementation.
 
-## Owner review and later stable promotion
+## Approved stable promotion
 
-Review README onboarding, diagram, examples, AI prerequisites and the
-[unreleased stable notes](../RELEASE_NOTES.md). This PR targets restart only and
-must remain unmerged until owner approval. It does not change master, tags or releases.
+Documentation PR #84 and retention PR #88 are merged into restart. The owner has
+approved the stable promotion and manually verified the retention variable is
+explicitly false; inaccessible Variables API permissions are not bypassed.
+The [stable publisher](RELEASING.md) requires that false value in its workflow
+context, exact tested master source and matching artifact checksums, and forces
+this release's post-publication retention call to remain read-only.
 
-After approval: merge docs into restart, open a separate promotion PR to master,
-rerun all gates, then align stable metadata and bundle at the exact tested master
-commit. Verify tag/commit, checksums and release assets before stable v1.7.0.
-Do not force existing tags or assume PR CI alone proves release artifact identity.
+The promotion preserves prior master ancestry and all Git history while selecting
+the approved restart source tree. It excludes unfinished #85/#86/#87. Tagging and
+publication occur only after the master checks pass; existing tags are never forced.

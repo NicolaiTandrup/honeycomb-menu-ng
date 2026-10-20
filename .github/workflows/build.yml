@@ -42,16 +42,16 @@ jobs:
 
       - name: Verify build output
         run: |
-          node scripts/check-beta.js | tee "$RUNNER_TEMP/SHA256SUMS.txt"
-          echo "::notice title=Bundle checksum::$(node scripts/check-beta.js)"
+          mkdir -p "$RUNNER_TEMP/build-artifact"
+          node scripts/check-release.js | tee "$RUNNER_TEMP/build-artifact/SHA256SUMS.txt"
+          cp honeycomb-menu-ng.js "$RUNNER_TEMP/build-artifact/honeycomb-menu-ng.js"
+          echo "::notice title=Bundle checksum::$(node scripts/check-release.js)"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: honeycomb-menu-ng
-          path: |
-            honeycomb-menu-ng.js
-            ${{ runner.temp }}/SHA256SUMS.txt
+          path: ${{ runner.temp }}/build-artifact
 
       - name: Set up browser validation
         uses: actions/setup-python@v5
@@ -80,3 +80,20 @@ jobs:
           name: shared-cube-evidence
           path: ${{ runner.temp }}/cube-evidence
           if-no-files-found: ignore
+
+  workflow-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Lint every workflow using pinned, checksum-verified actionlint
+        shell: bash
+        env:
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck="" -pyflakes=""

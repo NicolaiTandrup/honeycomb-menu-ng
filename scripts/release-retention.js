@@ -191,6 +191,7 @@ async function inventory(api) {
     return {releases, latest};
 }
 function assertEnabled(env) {
+    if (env.RETENTION_DRY_RUN_ONLY === 'true') throw new Error('This publication is explicitly dry-run only; deletion is forbidden.');
     if (env.GITHUB_ACTIONS !== 'true' || env.RELEASE_RETENTION_ENABLED !== 'true') throw new Error('Deletion disabled. Owner must first review the dry-run and explicitly enable RELEASE_RETENTION_ENABLED.');
 }
 function authorizeApply(env, event, latest, repository, publisher = null) {

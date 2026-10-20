@@ -1,9 +1,10 @@
 # GitHub Release retention — maintainer guide
 
-Policy for Issue #83. **Deletion ships disabled.** Review the
+Policy for Issue #83. **Deletion remains disabled for v1.7.0 Stable.** Review the
 [read-only inventory](RELEASE_RETENTION_DRY_RUN.md) and synthetic policy tests before
-approving activation. This PR does not merge, publish a release, set an enable
-variable or delete any release record.
+approving future activation. The owner has manually confirmed the repository
+variable is explicitly `false`. The v1.7.0 publisher forces its retention call to
+remain read-only and does not change the variable or delete any release record.
 
 ## Retention rules
 
@@ -74,8 +75,9 @@ The cleanup job only becomes eligible when the owner explicitly sets repository
 Actions variable **`RELEASE_RETENTION_ENABLED` to the exact string `true`**, after
 reviewing a dry-run. Missing/false/other values keep deletion disabled. This PR
 does not set that variable. Its existing value could not be inspected with the
-current token (Variables API returned 403); the owner must check it in repository
-settings before installation. Manual dry-run stays read-only even when enabled.
+integration (Variables API returned 403); the owner has since verified `false`
+directly in repository settings. The v1.7.0 publisher requires the workflow
+variable context to expose that exact false value, without calling the Variables API. Manual dry-run stays read-only even when enabled.
 The script independently enforces the gate and publication proof; workflow conditions
 alone do not authorize writes. Cleanup has `contents: write`; `actions: read` is
 used only to verify a reusable caller's running workflow metadata. No PAT, paid
@@ -109,6 +111,19 @@ already-running job may have taken its environment snapshot, so this is not an
 atomic stop switch. Inspect/cancel an active run deliberately and review its
 progress/results before doing anything else.
 
+### After v1.7.0: owner activation instructions
+
+1. Keep `RELEASE_RETENTION_ENABLED=false` throughout stable v1.7.0 publication.
+2. Review its fresh post-publication report: expected 28 kept (25 stable + 3
+   v1.7 prereleases), zero eligible, zero deleted, assuming no unrelated releases.
+3. To authorize **future** cleanup, open GitHub Settings → Secrets and variables →
+   Actions → Repository variables, edit `RELEASE_RETENTION_ENABLED` to exact `true`
+   and save. Automation does not attempt this change through inaccessible APIs.
+4. A variable change alone never deletes releases. Manual dispatch remains dry-run;
+   only a subsequent approved stable publication can apply eligible deletion.
+   Review the future publisher's release-specific guards before using it for a new
+   version. Never bypass the v1.7.0 read-only override or force a deletion.
+
 ### GITHUB_TOKEN publishing and reusable integration
 
 GitHub suppresses most downstream workflow events caused by `GITHUB_TOKEN`,
@@ -128,7 +143,9 @@ retention:
     published_release_id: ${{ needs.publish-stable.outputs.release_id }}
 ```
 
-The ID must refer to current latest stable. Runtime fetches the current Actions
+The stable publisher is now implemented in `stable-release.yml`. For v1.7.0 it
+passes `dry_run_only: true`; both the workflow and script reject apply in that
+mode even if the owner gate changes externally. The ID must refer to current latest stable. Runtime fetches the current Actions
 run and requires the same repository/run ID, an active non-PR publisher on the
 default branch with a default-branch workflow ref, and publication time no earlier
 than the current run attempt's start (the run ID and attempt must match). It rechecks proof during cleanup. An old release ID, beta ID,

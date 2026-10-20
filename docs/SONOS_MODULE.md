@@ -1,6 +1,6 @@
 # Sonos module
 
-**Supported as of v1.7.0** (validated on beta.3; stable publication pending).
+**Supported as of v1.7.0** Stable (validated on beta.3 and the stable candidate).
 See [the complete card](../examples/v1.7/sonos.yaml) and the
 [external HA setup contract](AI_SETUP.md#external-home-assistant-prerequisites).
 

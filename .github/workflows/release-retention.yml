@@ -14,6 +14,11 @@ on:
         required: true
         type: string
 
+      dry_run_only:
+        description: Force this publication to remain read-only even if the owner gate changes
+        type: boolean
+        default: false
+
 permissions:
   contents: read
 
@@ -60,7 +65,7 @@ jobs:
     needs: inventory
     # Owner must first review the dry-run and explicitly set this repository variable.
     # Direct dispatch has no publication-ID input and cannot enter this job.
-    if: vars.RELEASE_RETENTION_ENABLED == 'true' && (inputs.published_release_id != '' || (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false))
+    if: inputs.dry_run_only != true && vars.RELEASE_RETENTION_ENABLED == 'true' && (inputs.published_release_id != '' || (github.event_name == 'release' && github.event.release.draft == false && github.event.release.prerelease == false))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -70,6 +75,7 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
       RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
       RETENTION_PUBLISHED_RELEASE_ID: ${{ inputs.published_release_id }}
+      RETENTION_DRY_RUN_ONLY: ${{ inputs.dry_run_only }}
     steps:
       - name: Check out the same trusted policy commit used by inventory
         uses: actions/checkout@v4

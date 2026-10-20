@@ -1,10 +1,11 @@
 # AI configuration guide
 
-**SUPPORTED AS OF v1.7.0.** Contract verified against v1.7.0-beta.3 and the
-`restart/v1.5.1` baseline containing merged PR #77 and PR #81 (`179ea68`). Stable
-v1.7.0 is **not yet published**. Use this contract only with that code or its
-subsequent v1.7 release, not stable v1.5.1 or the abandoned v1.6 implementation.
-The package remains `1.7.0-beta.3` until the separate stable release process.
+**SUPPORTED AS OF v1.7.0 Stable.** This contract covers the approved
+`restart/v1.5.1` implementations from PR #77/#81, Issue #78 fixes, documentation
+PR #84 and release-retention PR #88. Use it with v1.7.0 code, not stable v1.5.1 or
+the abandoned v1.6 implementation. Package/release metadata is `1.7.0`, stable.
+Unfinished recursive palette, native Car and Climate/Thermostat features (#85–#87)
+are excluded. Existing Light/Media/Sonos behavior and all examples below are unchanged.
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute

@@ -5,8 +5,8 @@ This phase starts from `restart/v1.5.1` at merged PR #77,
 No v1.6 code is used. Hub, Control and module menus retain the shared full-cell
 82 px renderer, Light/Media/Sonos features, presets, favorites and navigation.
 Phase 2 PR #81 is now merged into `restart/v1.5.1` at `179ea68`.
-Master and latest stable v1.5.1 are unchanged; stable v1.7.0 awaits documentation
-review and final promotion. See the [current configuration guide](AI_SETUP.md). Car/Charger modules are not implemented.
+This Phase 2 implementation is included in v1.7.0 Stable after documentation
+PR #84 and retention PR #88. See the [current configuration guide](AI_SETUP.md). Car/Charger modules are not implemented.
 
 ## A complete example
 

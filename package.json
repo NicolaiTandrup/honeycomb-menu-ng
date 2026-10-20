@@ -1,12 +1,12 @@
 {
   "name": "honeycomb-menu-ng",
   "private": true,
-  "version": "1.7.0-beta.3",
+  "version": "1.7.0",
   "description": "Modular Honeycomb controls for Home Assistant with persistent hubs, Light, Sonos and media modules.",
   "scripts": {
     "build": "webpack",
     "watch": "webpack --watch --mode=development",
-    "test": "node test/run-tests.js && node --test test/shared-engine.test.js test/hub-state.test.js test/release-retention.test.js",
+    "test": "node test/run-tests.js && node --test test/shared-engine.test.js test/hub-state.test.js test/release-retention.test.js test/stable-release.test.js",
     "prepare:brand": "node scripts/generate-bee-asset.js",
     "pretest": "npm run prepare:brand",
     "prebuild": "npm run prepare:brand",

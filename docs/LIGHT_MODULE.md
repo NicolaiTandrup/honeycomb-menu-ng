@@ -1,6 +1,6 @@
 # Light module
 
-**Supported as of v1.7.0** (validated on beta.3; stable publication pending).
+**Supported as of v1.7.0** Stable (validated on beta.3 and the stable candidate).
 For complete tested cards and setup decisions see [AI_SETUP.md](AI_SETUP.md).
 
 The Light module is selected with:
