@@ -424,3 +424,12 @@ test('failure on a later inventory page never yields a partial deletion plan',as
     const fake=fakeGitHub(records,'missing',(_,c)=>c.suffix.endsWith('page=2')?response(503,{}):undefined);
     await assert.rejects(inventory(fake.api),/HTTP 503/);assert.equal(mutations(fake).length,0);
 });
+
+test('PR preview can run before default-branch installation with no mutation permission or apply input',()=>{
+    const preview=fs.readFileSync('.github/workflows/release-retention-preview.yml','utf8');
+    assert.match(preview,/pull_request:/);assert.match(preview,/contents: read/);
+    assert.ok(!preview.includes('contents: write'));assert.ok(!preview.includes('--apply'));
+    assert.match(preview,/node scripts\/release-retention.js --dry-run/);
+    assert.ok(!preview.includes('RELEASE_RETENTION_ENABLED'));
+    assert.match(preview,/GITHUB_TOKEN: \$\{\{ github.token \}\}/);
+});

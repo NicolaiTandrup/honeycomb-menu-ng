@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// GitHub Release records only. No Git commands, refs/tags APIs, or external services.
+// Mutations target GitHub Release records only. No Git commands, refs/tags APIs, or external services.
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -333,7 +333,7 @@ async function main(argv = process.argv.slice(2), env = process.env) {
     const summary = markdown(report);
     fs.writeFileSync(path.join(output, 'summary.md'), summary);
     if (env.GITHUB_STEP_SUMMARY) {
-        const bounded = Buffer.byteLength(summary) <= 900000 ? summary : summary.split('| Release ID |')[0] + '\nFull exact-tag inventory exceeds the Actions summary limit. Download summary.md and plan.json from this run\'s retention artifact.\n';
+        const bounded = Buffer.byteLength(summary) <= 900000 ? summary : summary.split('| Release ID |')[0] + (report.failed ? `\n**Stopped:** ${escape(report.failed)}\n` : '') + '\nFull exact-tag inventory exceeds the Actions summary limit. Download summary.md and plan.json from this run\'s retention artifact.\n';
         fs.appendFileSync(env.GITHUB_STEP_SUMMARY, bounded);
     }
     console.log(`Retention ${report.mode}: ${report.failed ? 'BLOCKED/FAILED' : 'OK'}; keep=${report.plan?.counts.keep ?? '?'}, eligible=${report.plan?.counts.delete ?? '?'}, skipped=${report.plan?.counts.skipped ?? '?'}, confirmed-deleted=${report.deleted.length}. Report: ${output}`);

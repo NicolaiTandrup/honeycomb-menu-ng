@@ -93,9 +93,13 @@ gh workflow run release-retention.yml
 No apply input exists. Review the job summary and artifacts: latest stable basis,
 previous train/evidence, exact IDs/tags and reasons, skipped records, blocked reasons,
 and eligible count. `delete` in a dry-run means **eligible**, not actually removed.
-For the initial PR, the checked-in snapshot was produced with a read-only GitHub
-inventory and the repository script's offline mode; no default-branch workflow
-was installed or destructive Action run.
+The separate `release-retention-preview.yml` runs for retention-related PR/push
+changes with **contents: read only**, using `GITHUB_TOKEN` and a fixed `--dry-run`
+command. It supplies a live Actions summary/artifact for owner review before the
+cleanup workflow is installed on the default branch. It cannot enable cleanup or
+authorize deletion. The checked-in initial snapshot was also reproduced from
+read-only inventory in offline mode; no default-branch workflow or destructive
+Action was installed/run.
 
 After owner approval, merge/install the workflow through normal review, obtain a
 fresh dry-run, and only then enable the variable if desired. The next valid stable
