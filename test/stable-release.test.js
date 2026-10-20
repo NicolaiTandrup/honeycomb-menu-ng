@@ -150,10 +150,9 @@ test('CLI prepares deterministic assets and refuses a changed provenance before 
         GITHUB_REPOSITORY:'example/honeycomb',GITHUB_REF:'refs/heads/master',RELEASE_RETENTION_ENABLED:'false',STABLE_TEST_GH_SENTINEL:sentinel},encoding:'utf8'});
     assert.equal(refused.status,1);assert.match(refused.stderr,/Verified artifact release-provenance.json changed/);assert.equal(fs.existsSync(sentinel),false);
 });
-test('v1.7.1 beta metadata validates locally but stable and original publisher guards remain enforced',()=>{
+test('v1.7.1 beta metadata validates locally while stable publication remains forbidden',()=>{
     const pkg={version:'1.7.1-beta.1'},release={title:'Honeycomb NG v1.7.1-beta.1 — Sonos owner test',prerelease:true};
     assert.doesNotThrow(()=>validateArtifact(pkg,release,HACS,BUNDLE));
     assert.throws(()=>validateArtifact(pkg,release,HACS,BUNDLE,{stable:true}),/stable metadata/);
-    assert.match(fs.readFileSync('.github/workflows/release.yml','utf8'),/refs\/heads\/feature\//);
-    assert.match(fs.readFileSync('scripts/check-beta.js','utf8'),/1\\\.7\\\.0/);
+    assert.match(fs.readFileSync('scripts/check-beta.js','utf8'),/isBetaVersion/);
 });

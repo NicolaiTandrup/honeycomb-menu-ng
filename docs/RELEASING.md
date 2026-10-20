@@ -3,7 +3,7 @@
 **Owner gate for every future version:** publish a HACS-installable beta first,
 then wait for explicit owner approval after real Home Assistant testing before
 merge/promotion or stable publication. Green synthetic CI alone is insufficient.
-PR #91 stays unmerged; its v1.7.1 beta flow is [pending publisher approval](V1_7_1_BETA.md).
+PR #91 stays unmerged; its v1.7.1 beta follows the [manually authorized beta workflow](BETA_RELEASES.md).
 The v1.7.0 procedure below records the already-completed stable promotion.
 
 v1.7.0 is promoted from `restart/v1.5.1` after PR #88 merge

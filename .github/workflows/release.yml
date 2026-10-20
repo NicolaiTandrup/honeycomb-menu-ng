@@ -1,96 +1,128 @@
-name: Publish manually approved feature beta
+name: Publish manually authorized beta
 
 on:
   workflow_dispatch:
     inputs:
-      tagged_commit:
-        description: Exact tested commit already targeted by the beta tag
+      expected_commit:
+        description: Exact tested branch-head SHA (40 lowercase hex characters)
+        required: true
+        type: string
+      expected_tag:
+        description: New SemVer beta tag matching package.json, e.g. v1.8.0-beta.1
         required: true
         type: string
       release_notes:
-        description: Approved release notes including tests and unmerged status
+        description: Authorized beta notes, tests, limitations and merge status
         required: true
         type: string
+      publish:
+        description: Explicitly authorize publication; false only verifies/prepares
+        default: false
+        type: boolean
 
 permissions:
-  contents: write
+  contents: read
   actions: read
+  pull-requests: read
 
 concurrency:
-  group: manually-approved-feature-beta
+  group: beta-publication-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    if: startsWith(github.ref, 'refs/heads/feature/')
+  verify:
+    if: startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      commit: ${{ steps.gates.outputs.commit }}
+      tag: ${{ steps.gates.outputs.tag }}
     env:
       GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      RELEASE_COMMIT: ${{ inputs.tagged_commit }}
-      APPROVED_NOTES: ${{ inputs.release_notes }}
+      EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+      EXPECTED_TAG: ${{ inputs.expected_tag }}
     steps:
-      - name: Checkout exact tested source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tagged_commit }}
+          ref: ${{ inputs.expected_commit }}
           fetch-depth: 0
-
-      - name: Verify feature ancestry, tag and successful CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
-          git merge-base --is-ancestor 697dec5846fc6b73199fb39562eef5a733ba49c5 HEAD
-          git merge-base --is-ancestor HEAD "origin/$GITHUB_REF_NAME"
-          TAG="v$(node -p "require('./package.json').version")"
-          [[ "$TAG" =~ ^v1\.7\.0-beta\.[0-9]+$ ]]
-          test "$(git rev-parse "$TAG^{commit}")" = "$RELEASE_COMMIT"
-          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
-          git cat-file -e "$RELEASE_COMMIT:src/cube-element.js"
-          RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event push --status success --json databaseId --jq '.[0].databaseId // empty')
-          PR_RUN_ID=$(gh run list --workflow build.yml --commit "$RELEASE_COMMIT" --event pull_request --status success --json databaseId --jq '.[0].databaseId // empty')
-          test -n "$RUN_ID"
-          test -n "$PR_RUN_ID"
-          gh run download "$RUN_ID" --name honeycomb-menu-ng --dir "$RUNNER_TEMP/validated"
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
-      - name: Reproduce the validated artifact
+      - name: Verify manual branch head, beta metadata, immutable tag and green matching CI
+        id: gates
+        env:
+          PUBLICATION_MODE: prepare
+          RELEASE_OUTPUT: ${{ runner.temp }}/beta-assets
+        run: node scripts/beta-release.js
+      - uses: actions/download-artifact@v4
+        with:
+          name: honeycomb-menu-ng
+          path: ${{ runner.temp }}/validated-beta
+          run-id: ${{ steps.gates.outputs.ci_run }}
+          github-token: ${{ github.token }}
+      - name: Reproduce tested, committed and staged HACS bundle and checksums
         env:
           NODE_OPTIONS: --openssl-legacy-provider
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          trap 'echo "::error title=Artifact reproduction::Failed command: $BASH_COMMAND"' ERR
-          npm ci
-          npm test
-          npm run build
-          ARTIFACT=$(find "$RUNNER_TEMP/validated" -type f -name honeycomb-menu-ng.js -print -quit)
-          test -n "$ARTIFACT"
-          cmp honeycomb-menu-ng.js "$ARTIFACT"
-          node scripts/check-beta.js > "$RUNNER_TEMP/SHA256SUMS.txt"
-          test "v$(node -p "require('./package.json').version")" = "$RELEASE_TAG"
-          test "$(node -p "require('./release.json').prerelease")" = 'true'
-          printf '%s\n' "$APPROVED_NOTES" > "$RUNNER_TEMP/approved-release-notes.md"
-
-      - name: Publish beta assets without changing latest stable
+          RELEASE_OUTPUT: ${{ runner.temp }}/beta-assets
         shell: bash
         run: |
           set -euo pipefail
-          TAG="$RELEASE_TAG"
-          gh api "repos/$GH_REPO/releases" --paginate --jq '.[].tag_name' > "$RUNNER_TEMP/release-tags.txt"
-          if grep -Fxq "$TAG" "$RUNNER_TEMP/release-tags.txt"; then
-            echo 'Release already exists; refusing to replace published assets.'
-            exit 1
-          fi
-          TITLE=$(node -p "require('./release.json').title")
-          gh release create "$TAG" --verify-tag --target "$RELEASE_COMMIT" \
-            --prerelease --latest=false --title "$TITLE" \
-            --notes-file "$RUNNER_TEMP/approved-release-notes.md" \
-            honeycomb-menu-ng.js "$RUNNER_TEMP/SHA256SUMS.txt"
+          npm ci
+          npm test
+          npm run build
+          git diff --exit-code -- honeycomb-menu-ng.js
+          node scripts/check-beta.js > "$RUNNER_TEMP/reproduced-SHA256SUMS.txt"
+          cmp honeycomb-menu-ng.js "$RUNNER_TEMP/validated-beta/honeycomb-menu-ng.js"
+          cmp honeycomb-menu-ng.js "$RELEASE_OUTPUT/honeycomb-menu-ng.js"
+          cmp "$RUNNER_TEMP/reproduced-SHA256SUMS.txt" "$RUNNER_TEMP/validated-beta/SHA256SUMS.txt"
+          cmp "$RUNNER_TEMP/reproduced-SHA256SUMS.txt" "$RELEASE_OUTPUT/SHA256SUMS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-beta-${{ inputs.expected_commit }}
+          path: ${{ runner.temp }}/beta-assets
+          if-no-files-found: error
+
+  publish:
+    needs: verify
+    if: inputs.publish && startsWith(github.ref, 'refs/heads/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_COMMIT: ${{ needs.verify.outputs.commit }}
+      EXPECTED_TAG: ${{ needs.verify.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-beta-${{ inputs.expected_commit }}
+          path: ${{ runner.temp }}/beta-assets
+      - name: Recheck source and CI, create immutable tag, verify draft assets, publish prerelease
+        id: publish
+        env:
+          PUBLICATION_MODE: publish
+          RELEASE_OUTPUT: ${{ runner.temp }}/beta-assets
+          BETA_PUBLICATION_AUTHORIZED: ${{ inputs.publish }}
+          APPROVED_NOTES: ${{ inputs.release_notes }}
+        run: node scripts/beta-release.js
+      - name: Preserve beta publication evidence including partial failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta-publication-${{ inputs.expected_commit }}
+          path: ${{ runner.temp }}/beta-assets
+          if-no-files-found: error

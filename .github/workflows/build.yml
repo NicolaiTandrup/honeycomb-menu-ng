@@ -3,10 +3,7 @@ name: Build Honeycomb Menu NG
 on:
   push:
     branches:
-      - master
-      - feature/**
-    paths-ignore:
-      - honeycomb-menu-ng.js
+      - '**'
 
   pull_request:
 

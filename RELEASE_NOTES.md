@@ -1,4 +1,4 @@
-# v1.7.1-beta.1 — Sonos owner test (publication pending)
+# v1.7.1-beta.1 — Sonos owner test
 
 PR #91 remains unmerged. This is beta metadata, not stable v1.7.1 approval.
 
@@ -18,9 +18,11 @@ metadata; the shipped recipe is unchanged. No title guessing. Twelve hues can be
 shared in larger lists. Chromium/synthetic HA tests do not replace owner hardware
 validation. Car, Climate and recursive Color Zoom remain out of scope.
 
-Publication is blocked by existing beta workflow branch/version guards until a
-narrow supported flow is approved. No tag/release has been created. See
-[beta test and publication gate](docs/V1_7_1_BETA.md).
+Beta publication supports any branch and SemVer beta train, with explicit manual
+authorization, exact branch-head and green CI gates, immutable tags/releases,
+reproducible HACS assets and verified draft uploads. Stable publication remains
+forbidden in that workflow. See [beta publishing](docs/BETA_RELEASES.md) and
+[HACS test instructions](docs/V1_7_1_BETA.md).
 
 ---
 

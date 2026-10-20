@@ -3,12 +3,13 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
+const {isBetaVersion} = require('./beta-version');
 function validateArtifact(pkg, release, hacs, bytes, {stable = false} = {}) {
-    assert.match(pkg.version, /^1\.7\.(?:0(?:-beta\.[1-9]\d*)?|1-beta\.[1-9]\d*)$/, 'Unsupported release version');
+    assert.ok(pkg.version === '1.7.0' || isBetaVersion(pkg.version), 'Unsupported release version');
     const prerelease = pkg.version.includes('-');
     if (stable) assert.equal(prerelease, false, 'Stable publication requires stable metadata');
     assert.equal(release.prerelease, prerelease, 'Release flag/version conflict');
-    assert.ok(typeof release.title === 'string' && release.title.includes(`v${pkg.version}`), 'Release title/version mismatch');
+    assert.ok(typeof release.title === 'string' && release.title.split(/\s+/).includes(`v${pkg.version}`), 'Release title/version mismatch');
     if (!prerelease) assert.equal(release.title, `Honeycomb NG v${pkg.version} — Stable`);
     assert.equal(hacs.filename, 'honeycomb-menu-ng.js', 'HACS bundle filename mismatch');
     assert.equal(hacs.content_in_root, true);
