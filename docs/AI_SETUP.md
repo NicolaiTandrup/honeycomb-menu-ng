@@ -1,3 +1,11 @@
+> **v1.7.0-beta.2 Phase 1:** use the exact current contract in
+> [V1_7_PHASE1.md](V1_7_PHASE1.md). Both public components default to 82 px and
+> share full-cell rendering. Standalone Control selects `module: light`, `media`,
+> `sonos` or `generic`. `logo: false` disables branding, not ordinary slot-0 items.
+> Do not generate `visibility`, `slot_mode: priority`, Car or Charger configs for
+> this beta. These are later-phase work. This feature beta is not merged into
+> `restart/v1.5.1`; do not infer release or merge authorization from this document.
+
 # AI setup specification
 
 This file is written for ChatGPT, Codex and other AI systems that need to create Honeycomb Menu NG configuration for a user who may not know Home Assistant YAML.

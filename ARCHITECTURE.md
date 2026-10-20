@@ -86,3 +86,27 @@ Public v1.5 documentation is split by responsibility:
 - `docs/CLASSIC_MENU.md` — classic popup/XY-pad/template compatibility reference
 
 When changing a public module schema, update both the human module document and the AI setup contract in the same pull request.
+
+## v1.7.0 Phase 1 extraction from restart/v1.5.1
+
+`cube-element.js` extracts the v1.5.1 native renderer into the shared Lit engine.
+Both public adapters and `honeycomb-menu-item` consume it. Modules still return
+data through the existing registry; `core/cube-config.js` compiles the same item
+for standalone Control and Hub. One action handler owns native and generic input.
+The existing navigation core keeps local context/anchor ownership.
+
+`core/layout.js` retains the first two ring coordinates and generates subsequent
+axial rings. Configured population is not truncated to a viewport capacity.
+Visibility/priority are deliberately absent in this phase; the future allocator
+will operate on stable identities and an extensible physical slot pool, in order
+hard reservations > visible priority claims > soft items. Domain adapters must
+not acquire geometry or navigation responsibilities when that work lands.
+
+State is forwarded by the owning menu, with model-signature checks per cube.
+There is no periodic refresh timer or continuous Hub RAF. Root logo colors do
+not become module item defaults. Full-cell drawing and its content metrics are
+owned once, including palette backgrounds and favorite artwork.
+
+See [Phase 1 migration and known limitations](docs/V1_7_PHASE1.md). The release is
+an explicitly published, unmerged feature beta; PRs target restart/v1.5.1 and do
+not merge into master as part of Phase 1.

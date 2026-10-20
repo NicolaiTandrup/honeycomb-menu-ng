@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Honeycomb shared cube test</title>
+<style>
+body{margin:0;background:#18212b;color:#f6f7f9;font:16px Arial;--primary-text-color:#f6f7f9;--ha-card-background:#34424e;--card-background-color:#34424e}
+h1{font-size:18px;margin:18px} #anchor{position:absolute;left:160px;top:260px}
+</style>
+<h1>Honeycomb shared cube test</h1><home-assistant></home-assistant>
+<script>
+window.calls=[]; window.moreInfo=[];
+window.hass={states:{
+ 'light.zone_a':{entity_id:'light.zone_a',state:'on',attributes:{brightness:128,rgb_color:[255,128,0],color_temp_kelvin:2700,supported_color_modes:['hs','color_temp']}},
+ 'media_player.player_a':{entity_id:'media_player.player_a',state:'playing',attributes:{volume_level:.42,group_members:['media_player.player_a','media_player.player_b']}},
+ 'media_player.player_b':{entity_id:'media_player.player_b',state:'idle',attributes:{volume_level:.2}},
+ 'sensor.favorites':{entity_id:'sensor.favorites',state:'1',attributes:{items:{favorite_a:'Station A'}}},
+ 'sensor.favorites_cache':{entity_id:'sensor.favorites_cache',state:'1',attributes:{items:[]}},
+ 'input_number.brightness_a':{entity_id:'input_number.brightness_a',state:'60',attributes:{}},
+ 'sensor.value_a':{entity_id:'sensor.value_a',state:'24',attributes:{}}
+},locale:{language:'en',number_format:'language',time_format:'language'},localize:key=>key,formatEntityState:e=>e.state,
+user:{name:'Test'},callService:(...args)=>{calls.push(args);return Promise.resolve()}};
+const root=document.querySelector('home-assistant'); root.hass=hass;
+const clients=new Set(); root.provideHass=element=>{clients.add(element);element.hass=hass};
+window.pushState=(entity,state,attributes)=>{hass.states[entity]={entity_id:entity,state,attributes:attributes||{}};for(const client of clients)if(client.isConnected)client.hass=hass};
+window.providedClients=clients;
+function shadow(parent,tag){const el=document.createElement(tag);parent.append(el);return el.attachShadow({mode:'open'})}
+const main=shadow(root.attachShadow({mode:'open'}),'home-assistant-main');
+const drawer=document.createElement('ha-drawer');main.append(drawer);
+const resolver=shadow(drawer,'partial-panel-resolver');const panel=shadow(resolver,'ha-panel-lovelace');
+const hui=document.createElement('hui-root');panel.append(hui);hui.lovelace={config:{}};
+const container=document.createElement('div');container.id='view';hui.attachShadow({mode:'open'}).append(container);
+window.view=document.createElement('hui-view');view.style.cssText='display:block;min-height:100vh';container.append(view);
+customElements.define('ha-card',class extends HTMLElement{constructor(){super();this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:block;position:relative;box-sizing:border-box;height:100%;background:var(--ha-card-background);color:var(--primary-text-color)}</style><slot></slot>'}});
+customElements.define('ha-icon',class extends HTMLElement{constructor(){super();this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:inline-block}svg{width:100%;height:100%;fill:currentColor}</style><svg viewBox="0 0 24 24"><path d="M9 2h6v7h7v6h-7v7H9v-7H2V9h7z"/></svg>'}});
+customElements.define('hui-error-card',class extends HTMLElement{setConfig(c){this.textContent=c.error}});
+document.addEventListener('hass-more-info',e=>moreInfo.push(e.detail.entityId));
+document.body.addEventListener('hass-action',e=>{const source=e.composedPath().find(n=>n.tagName==='BUTTON-CARD');const c=e.detail.config;const a=c[e.detail.action+'_action']||c.tap_action;if(!source||!a)return;if(a.action==='fire-dom-event')source.dispatchEvent(new CustomEvent('ll-custom',{detail:a,bubbles:true,composed:true}));else if(a.action==='perform-action'){const [d,s]=a.perform_action.split('.');hass.callService(d,s,a.data||{},a.target||{})}});
+window.makeHub=(config={})=>{const el=document.createElement('honeycomb-persistent-hub');el.id='anchor';el.style.position='absolute';el.setConfig(config);el.style.left=(innerWidth/2-41)+'px';document.body.append(el);return window.hub=el};
+window.makeControl=(config={})=>{const el=document.createElement('honeycomb-persistent-control');el.id='anchor';el.style.position='absolute';el.setConfig(config);el.style.left=(innerWidth/2-41)+'px';document.body.append(el);return window.control=el};
+</script>
+<script type="module">
+await import('/button-card.js');await customElements.whenDefined('button-card');await import('/bundle.js');window.ready=true;
+</script></html>

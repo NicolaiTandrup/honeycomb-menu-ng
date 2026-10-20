@@ -11,7 +11,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -41,26 +41,36 @@ jobs:
         run: npm run build
 
       - name: Verify build output
-        run: test -f honeycomb-menu-ng.js
+        run: |
+          node scripts/check-beta.js | tee "$RUNNER_TEMP/SHA256SUMS.txt"
+          echo "::notice title=Bundle checksum::$(node scripts/check-beta.js)"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: honeycomb-menu-ng
-          path: honeycomb-menu-ng.js
+          path: |
+            honeycomb-menu-ng.js
+            ${{ runner.temp }}/SHA256SUMS.txt
 
-      - name: Commit compiled build
-        if: github.event_name == 'push'
+      - name: Set up browser validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned browser dependencies
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python -m pip install -r test/browser/requirements.txt
+          python -m playwright install --with-deps chromium
+          curl --fail --location --retry 2 https://github.com/custom-cards/button-card/releases/download/v7.0.1/button-card.js --output "$RUNNER_TEMP/button-card.js"
 
-          git add honeycomb-menu-ng.js
+      - name: Verify shared cubes and module interactions
+        run: python test/browser/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence"
 
-          if git diff --cached --quiet; then
-            echo "Compiled file is already up to date."
-            exit 0
-          fi
-
-          git commit -m "Update compiled build [skip ci]"
-          git push origin HEAD:"${GITHUB_REF_NAME}"
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-cube-evidence
+          path: ${{ runner.temp }}/cube-evidence
+          if-no-files-found: ignore

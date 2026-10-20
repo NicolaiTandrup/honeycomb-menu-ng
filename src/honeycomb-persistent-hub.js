@@ -1,11 +1,13 @@
-import HoneycombPersistentControl from "./honeycomb-persistent-control.js";
+import CubeElement from "./cube-element.js";
+import { provideHass } from "./helpers.js";
+const { buildCubeConfig, validatePhaseOne } = require('./core/cube-config.js');
 
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const { toCenterDescriptor } = require('./core/hub-launcher.js');
 
-class HoneycombPersistentHub extends HoneycombPersistentControl
+class HoneycombPersistentHub extends CubeElement
 {
     static get is()
     {
@@ -69,6 +71,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
     disconnectedCallback()
     {
+        if (this._anchorCleanup) { this._anchorCleanup(); this._anchorCleanup=null; }
         if( this._anchorWatchRaf )
         {
             cancelAnimationFrame(this._anchorWatchRaf);
@@ -100,41 +103,35 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
     _watchAnchor()
     {
-        if( this._anchorWatchRaf )
-            cancelAnimationFrame(this._anchorWatchRaf);
-
-        const tick = () => {
-            this._anchorWatchRaf = null;
-
-            if( ! this.isConnected || ! this._hubMenu )
-                return;
-
+        if (this._anchorCleanup) this._anchorCleanup();
+        let frame = null;
+        const measure = () => {
+            frame = null;
+            if (!this.isConnected || !(this._menuContext || {}).honeycomb) return;
             const rect = this.getBoundingClientRect();
-
-            if( rect.width > 0 && rect.height > 0 )
-            {
-                const x = rect.left + (rect.width / 2);
-                const y = rect.top + (rect.height / 2);
-
-                if(
-                    this._lastAnchorX === null ||
-                    this._lastAnchorY === null ||
-                    Math.abs(x - this._lastAnchorX) > 0.5 ||
-                    Math.abs(y - this._lastAnchorY) > 0.5
-                )
-                {
-                    this._lastAnchorX = x;
-                    this._lastAnchorY = y;
-
-                    if( typeof this._hubMenu.reanchor === 'function' )
-                        this._hubMenu.reanchor(x, y);
-                }
+            if (!rect.width || !rect.height) return;
+            const x=rect.left+rect.width/2, y=rect.top+rect.height/2;
+            this._lastAnchorX=x; this._lastAnchorY=y;
+            // Only the base follows the dashboard anchor; module centers remain locked.
+            if (this._menuContext.navigation.phase === 'base') this._menuContext.honeycomb.reanchor(x,y);
+            else if (this._menuContext.stack[0]) {
+                const base=this._menuContext.stack[0].config || this._menuContext.stack[0];
+                base.anchor_x=x; base.anchor_y=y;
             }
-
-            this._anchorWatchRaf = requestAnimationFrame(tick);
         };
-
-        this._anchorWatchRaf = requestAnimationFrame(tick);
+        const schedule = () => { if (frame === null) frame=requestAnimationFrame(measure); };
+        const resize = new ResizeObserver(schedule); resize.observe(this);
+        const ancestors = new MutationObserver(schedule);
+        for (let node=this;node && node !== document.body;node=node.parentElement || node.getRootNode().host)
+            ancestors.observe(node,{attributes:true,attributeFilter:['style','class']});
+        window.addEventListener('resize',schedule);
+        document.addEventListener('scroll',schedule,true);
+        this._anchorCleanup=()=>{
+            if (frame !== null) cancelAnimationFrame(frame);
+            resize.disconnect(); ancestors.disconnect();
+            window.removeEventListener('resize',schedule); document.removeEventListener('scroll',schedule,true);
+        };
+        schedule();
     }
 
     _scheduleHubOpen()
@@ -165,22 +162,24 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                 this._lastAnchorY = null;
                 this._watchAnchor();
 
-                opened.addEventListener('closed', () => {
-                    if( this._anchorWatchRaf )
-                    {
-                        cancelAnimationFrame(this._anchorWatchRaf);
-                        this._anchorWatchRaf = null;
-                    }
-
-                    this._hubMenu = null;
-                    this._lastAnchorX = null;
-                    this._lastAnchorY = null;
-
-                    if( this.isConnected && this.config && this.config.auto_open !== false )
-                        setTimeout(() => this._scheduleHubOpen(), 0);
-                }, { once: true });
+                this._trackHubMenu(opened);
             }
         });
+    }
+
+    _trackHubMenu(opened)
+    {
+        opened.addEventListener('closed',()=>queueMicrotask(()=>{
+            if (!this.isConnected) return;
+            const current=this._menuContext && this._menuContext.honeycomb;
+            if (current && current !== opened) {
+                this._hubMenu=current;
+                this._trackHubMenu(current);
+            } else {
+                this._hubMenu=null;
+                if (this.config.auto_open !== false) this._scheduleHubOpen();
+            }
+        }),{once:true});
     }
 
     _hubSlots(count, showLogo)
@@ -204,22 +203,19 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
             6: [1, 2, 3, 4, 5, 6]
         };
 
-        const safeCount = Math.max(1, Math.min(7, count));
-
-        if( showLogo && safeCount <= 6 )
-            return logoLayouts[safeCount] || [];
-
-        return noLogoLayouts[safeCount] || [];
+        if (count <= 7) return (showLogo ? logoLayouts[count] : noLogoLayouts[count]) || [];
+        return Array.from({length:count},(_,index)=>showLogo ? index+1 : index);
     }
 
     _shouldShowLogo()
     {
+        if ((this.config && this.config.items || []).some(item=>item.slot === 0)) return false;
         const logo = this.config ? this.config.logo : 'auto';
         const count = this.config && Array.isArray(this.config.items)
             ? this.config.items.filter(Boolean).length
             : 0;
 
-        // Seven real items always consume center slot 0 + ring slots 1-6.
+        // Branding yields the center to real items at seven or more items.
         if( count >= 7 )
             return false;
 
@@ -240,6 +236,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         if( ! menu )
             return menu;
 
+        menu.button_defaults=merge({}, (this.config.menu || {}).button_defaults || {});
         menu.idle_timeout = 0;
         menu._persistent_hub_root = true;
 
@@ -278,7 +275,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
                     // Physical slot 0 uses the same native control contract as
                     // the exact same module would use on the ring. Sonos/light
                     // therefore keep native live state + hold-to-open behavior.
-                    menu.persistent_center = merge({}, center.config);
+                    menu.persistent_center = merge({}, menu.button_defaults, center.config);
                     menu.center_button = null;
                 }
                 else
@@ -299,40 +296,7 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
 
     _launcherButton(item, index, slot, resolvedModule = null)
     {
-        const module = resolvedModule || moduleRegistry.resolve(item, this.hass);
-
-        if( ! module )
-            throw new Error(`No Honeycomb module could handle item type "${item && item.type}".`);
-
-        const submenu = item.menu
-            ? merge({}, item.menu)
-            : (
-                typeof module.buildMenu === 'function'
-                    ? module.buildMenu({
-                        item,
-                        hass: this.hass
-                    })
-                    : null
-            );
-
-        if( typeof module.buildLauncher !== 'function' )
-            throw new Error(`Honeycomb module "${module.id}" does not provide buildLauncher().`);
-
-        const launcher = module.buildLauncher({
-            item,
-            index,
-            slot,
-            submenu,
-            hass: this.hass
-        });
-
-        // Only the persistent Hub base uses the full physical hex cell.
-        // Detail/promoted centers keep the normal inset face, so this does not
-        // change the geometry that is already correct inside Light/Sonos menus.
-        if( launcher && launcher.face_mode === undefined )
-            launcher.face_mode = this._hubBaseFaceMode || 'cell';
-
-        return launcher;
+        return buildCubeConfig(item, this.hass, index, slot);
     }
 
     setConfig(config)
@@ -340,6 +304,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         if( ! config || typeof config !== 'object' )
             throw new Error('Honeycomb Persistent Hub requires a configuration.');
 
+        validatePhaseOne(config);
+        if (!this._hasHassProvider) { this._hasHassProvider=true; provideHass(this); }
         const next = merge({}, config);
 
         _defaults(next, {
@@ -369,8 +335,8 @@ class HoneycombPersistentHub extends HoneycombPersistentControl
         next.restore_on_close = next.auto_open === false;
         this.style.visibility = next.auto_open === false ? '' : 'hidden';
 
-        const items = (next.items || []).filter(Boolean).slice(0, 7);
-        const showLogo = this._shouldShowLogo.call({ config: next });
+        const items = (next.items || []).filter(Boolean);
+        const showLogo = this._shouldShowLogo.call({ config: next }) && !items.some(item=>item.slot === 0);
         const slots = this._hubSlots(items.length, showLogo);
 
         const resolved = items.map((item, index) => {

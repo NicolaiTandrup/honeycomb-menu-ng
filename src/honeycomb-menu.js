@@ -78,6 +78,12 @@ function openHoneycombMenu(context, config)
         // Core owns the only legal anchor transition:
         // Hub base -> selected module. Every deeper level reuses that anchor.
         navigationCore.enterNested(context, current, honeycombConfig);
+        honeycombConfig.size=current.size;
+        if (honeycombConfig.layout_envelope === undefined) honeycombConfig.layout_envelope=current.layout_envelope;
+        if (!navigationCore.isHubRoot(current)) {
+            honeycombConfig.anchor_x=context.honeycomb._anchorX;
+            honeycombConfig.anchor_y=context.honeycomb._anchorY;
+        }
 
         context.stack.push({
             __honeycomb_stack_entry: true,
@@ -91,7 +97,7 @@ function openHoneycombMenu(context, config)
         // override any of the inherited buttons explicitly.
         if( honeycombConfig.inherit_inner === true && context.honeycomb )
         {
-            const combined = new Array(18);
+            const combined = [];
             const currentButtons = context.honeycomb.buttons || [];
 
             for( let i = 0; i < 6; i++ )
@@ -100,12 +106,12 @@ function openHoneycombMenu(context, config)
 
                 if( button && ! isEmpty(button) )
                 {
-                    combined[i] = [
-                        merge({}, button, {
-                            slot: i + 1,
-                            slot_mode: 'hard'
-                        })
-                    ];
+                    // Capture the actual parent appearance before replacing
+                    // the scene; independent child menus retain their own defaults.
+                    const inherited=context.honeycomb._computeItemConfig(button);
+                    inherited.slot=i+1;
+                    inherited.slot_mode='hard';
+                    combined[i]=[inherited];
                 }
             }
 
@@ -117,8 +123,6 @@ function openHoneycombMenu(context, config)
 
                 let target = 6 + index;
 
-                if( target > 17 )
-                    return;
 
                 combined[target] = Array.isArray(stack)
                     ? stack.map(button => merge({}, button))
@@ -132,7 +136,7 @@ function openHoneycombMenu(context, config)
         // Persistent menus expand in-place around a real dashboard/floorplan
         // anchor. Preserve that context through nested menus so the screen does
         // not jump and the center keeps the same physical size and styling.
-        if( current.persistent_center )
+        if( current.persistent_center || honeycombConfig.persistent_center )
         {
             honeycombConfig.position_mode = current.position_mode || 'anchored';
             honeycombConfig.size = current.size;
@@ -143,9 +147,6 @@ function openHoneycombMenu(context, config)
             if( honeycombConfig.idle_timeout === undefined && current.idle_timeout !== undefined )
                 honeycombConfig.idle_timeout = current.idle_timeout;
 
-            if( honeycombConfig.button_defaults === undefined && current.button_defaults !== undefined )
-                honeycombConfig.button_defaults = merge({}, current.button_defaults);
-
             if( honeycombConfig.promote_to_center === true && honeycombConfig.promoted_center )
             {
                 honeycombConfig.persistent_center = merge(
@@ -154,7 +155,7 @@ function openHoneycombMenu(context, config)
                     {
                         interactive: true,
                         tap_action: { action: 'honeycomb-back' },
-                        size: current.persistent_center.size || honeycombConfig.promoted_center.size
+                        size: (current.persistent_center || {}).size || honeycombConfig.promoted_center.size
                     }
                 );
             }
@@ -162,7 +163,7 @@ function openHoneycombMenu(context, config)
             {
                 honeycombConfig.persistent_center = merge(
                     {},
-                    current.persistent_center,
+                    honeycombConfig.persistent_center || current.persistent_center,
                     {
                         interactive: true,
                         icon: 'mdi:arrow-left',
@@ -381,7 +382,7 @@ function traverseConfigs( _config, _buttons )
                 else
                     storageIndex = i;
 
-                if( ! Number.isInteger(storageIndex) || storageIndex < 0 || storageIndex > 17 )
+                if( ! Number.isInteger(storageIndex) || storageIndex < 0 )
                     return;
 
                 if( ! _buttons[storageIndex] )
@@ -549,7 +550,6 @@ class HoneycombMenu extends LitElement
             }
             .honeycombs {
                 --filter-color: rgba(0, 0, 0, 0.76);
-                filter: drop-shadow(2px 4px 3px var(--filter-color) );
                 width: var(--container-width);
                 height: var(--container-height);
                 pointer-events: none;
@@ -559,7 +559,7 @@ class HoneycombMenu extends LitElement
                 pointer-events: all;
                 box-sizing: border-box;
                 width: var(--item-size);
-                padding: var(--spacing);
+                padding: 0;
             }
             honeycomb-menu-item.center-item,
             honeycomb-persistent-control.center-item {
@@ -649,16 +649,17 @@ class HoneycombMenu extends LitElement
                     </honeycomb-persistent-control>
                 ` : (centerConfig ? html`
                     <honeycomb-menu-item
-                        class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''} ${this._dragHoverSlot === 18 ? 'drag-hover' : ''}"
+                        class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''} ${this._dragHoverSlot === -2 ? 'drag-hover' : ''}"
                         data-honeycomb-slot="center"
-                        @pointerenter=${() => this._setDragHoverSlot(18)}
-                        @pointerleave=${() => this._clearDragHoverSlot(18)}
+                        @pointerenter=${() => this._setDragHoverSlot(-2)}
+                        @pointerleave=${() => this._clearDragHoverSlot(-2)}
                         style="
                             animation-delay: ${this._computeAnimateDelay(0)};
                             left: calc(var(--item-size) * ${centerPos.x});
                             top: calc(var(--item-size) * ${centerPos.y});
                         "
                         .hass=${this.hass}
+                        .size=${this.sizes.item}
                         .config=${centerConfig}
                         @action=${this._handleItemAction}>
                     </honeycomb-menu-item>
@@ -673,27 +674,6 @@ class HoneycombMenu extends LitElement
                     if( ! pos )
                         return '';
 
-                    if( v && v._persistent_launcher === true )
-                    {
-                        const persistentConfig = this._computeItemConfig(v);
-
-                        return html`
-                            <honeycomb-persistent-control
-                                class="ring-item"
-                                data-honeycomb-slot="${i}"
-                                style="
-                                    animation-delay: ${this._computeButtonAnimateDelay(i)};
-                                    left: calc(var(--item-size) * ${pos.x});
-                                    top: calc(var(--item-size) * ${pos.y});
-                                    --honeycomb-persistent-size: var(--item-size);
-                                "
-                                .hass=${this.hass}
-                                .config=${persistentConfig}
-                                .size=${this.sizes.item}>
-                            </honeycomb-persistent-control>
-                        `;
-                    }
-
                     return html`
                         <honeycomb-menu-item
                             class="${this._dragHoverSlot === i ? 'drag-hover' : ''}"
@@ -706,6 +686,7 @@ class HoneycombMenu extends LitElement
                                 top: calc(var(--item-size) * ${pos.y});
                             "
                             .hass=${this.hass}
+                            .size=${this.sizes.item}
                             .config=${this._computeItemConfig(v)}
                             @action=${this._handleItemAction}>
                         </honeycomb-menu-item>
@@ -714,9 +695,17 @@ class HoneycombMenu extends LitElement
             </div>`;
     }
 
+    set hass(value)
+    {
+        this._hass=value;
+        if (this.shadowRoot) this.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control,xy-pad')
+            .forEach(item=>{item.hass=value;});
+    }
+    get hass() { return this._hass; }
+
     setConfig( config )
     {
-        provideHass(this);
+        if (!this._hasHassProvider) { this._hasHassProvider=true; provideHass(this); }
 
         _defaults(config, {
             action: 'hold',
@@ -759,8 +748,8 @@ class HoneycombMenu extends LitElement
 
         this.sizes = {
             item: itemSize,
-            containerWidth: itemSize * (outerRing ? 5 : 3),
-            containerHeight: itemSize * (outerRing ? 4.63 : 2.9)
+            containerWidth: itemSize * (2*this._sceneRadius()+1),
+            containerHeight: itemSize * (this._sceneRadius() > 2 ? (1.1547+1.73*this._sceneRadius()) : (outerRing ? 4.63 : 2.9))
         };
 
         if( this.config.xy_pad )
@@ -873,7 +862,8 @@ class HoneycombMenu extends LitElement
         document.removeEventListener('pointerup', this._boundPointerUp, true);
         document.removeEventListener('pointercancel', this._boundPointerUp, true);
 
-        const items = this.shadowRoot.querySelectorAll('honeycomb-menu-item');
+        if (this.config.animate === false) { fireEvent(this,'closing',{item:_item}); this.dispose(); fireEvent(this,'closed',{item:_item}); return; }
+        const items = this.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control');
         let ele = _item || items[items.length - 1];
 
         if( _item )
@@ -951,7 +941,7 @@ class HoneycombMenu extends LitElement
                 resolved.push({ button: merge({}, button), sourceIndex: i });
         }
 
-        const assigned = new Array(18);
+        const assigned = [];
         const hard = [];
         const soft = [];
         const automatic = [];
@@ -964,7 +954,7 @@ class HoneycombMenu extends LitElement
             {
                 const target = Number(button.position);
 
-                if( Number.isInteger(target) && target >= 0 && target <= 17 )
+                if( Number.isSafeInteger(target) && target >= 0 )
                     hard.push({ ...entry, target, legacy: true });
 
                 return;
@@ -974,7 +964,7 @@ class HoneycombMenu extends LitElement
             {
                 const requestedSlot = Number(button.slot);
 
-                if( Number.isInteger(requestedSlot) && requestedSlot >= 1 && requestedSlot <= 18 )
+                if( Number.isSafeInteger(requestedSlot) && requestedSlot >= 1 )
                 {
                     if( button.slot_mode === 'hard' )
                         hard.push({ ...entry, target: requestedSlot - 1 });
@@ -1081,26 +1071,8 @@ class HoneycombMenu extends LitElement
 
         const showEmptySlots = this.config.empty_slots !== 'hidden';
 
-        if( showEmptySlots )
-        {
-            if( this._rings.inner )
-            {
-                for( let i = 0; i < 6; i++ )
-                {
-                    if( assigned[i] === undefined )
-                        assigned[i] = {};
-                }
-            }
-
-            if( this._rings.outer )
-            {
-                for( let i = 6; i < 18; i++ )
-                {
-                    if( assigned[i] === undefined )
-                        assigned[i] = {};
-                }
-            }
-        }
+        if (showEmptySlots) for (const index of activePool)
+            if (assigned[index] === undefined) assigned[index] = {};
 
         this.buttons = assigned;
     }
@@ -1113,6 +1085,8 @@ class HoneycombMenu extends LitElement
         if( ! Number.isFinite(x) || ! Number.isFinite(y) )
             return;
 
+        this._anchorX=x;
+        this._anchorY=y;
         if( this.config )
         {
             this.config.anchor_x = x;
@@ -1334,7 +1308,7 @@ class HoneycombMenu extends LitElement
 
         while( element && element !== this.shadowRoot )
         {
-            if( element.tagName && element.tagName.toLowerCase() === 'honeycomb-menu-item' )
+            if( element.tagName && ['honeycomb-menu-item','honeycomb-persistent-control'].includes(element.tagName.toLowerCase()) )
                 return element;
 
             element = element.parentElement;
@@ -1387,8 +1361,8 @@ class HoneycombMenu extends LitElement
             return;
         }
 
-        const slot = item.dataset.honeycombSlot === 'center'
-            ? 18
+        const slot = item.classList.contains('center-item')
+            ? -2
             : Number(item.dataset.honeycombSlot);
 
         this._dragHoverSlot = Number.isFinite(slot) ? slot : -1;
@@ -1429,89 +1403,13 @@ class HoneycombMenu extends LitElement
 
     _triggerMenuItemTap(item)
     {
-        // honeycomb-menu-item is a wrapper around a Lovelace card (normally
-        // custom:button-card). Clicking the wrapper itself does not execute the
-        // wrapped card action. Trigger a normal tap on the actual action-handler
-        // element inside the wrapped card instead.
-        const wrappedCard = item.shadowRoot
-            ? item.shadowRoot.querySelector('#item > *')
-            : null;
-
-        if( ! wrappedCard )
-        {
-            console.warn('[Honeycomb Menu NG] Unable to find wrapped card for drag-select.');
-            return;
-        }
-
-        let actionTarget = wrappedCard;
-
-        // custom:button-card attaches the Home Assistant action-handler to its
-        // rendered card element. Prefer that element when it can be located.
-        if( wrappedCard.shadowRoot )
-        {
-            const candidate =
-                wrappedCard.shadowRoot.querySelector('ha-card') ||
-                wrappedCard.shadowRoot.querySelector('[role="button"]');
-
-            if( candidate )
-                actionTarget = candidate;
-        }
-
-        // The HA/button-card action-handler reacts to an `action` event with
-        // action: tap. This follows the same path as a normal tap and therefore
-        // preserves toggle, call-service, fire-dom-event, navigation, etc.
-        actionTarget.dispatchEvent(new CustomEvent('action', {
-            bubbles: true,
-            composed: true,
-            detail: { action: 'tap' }
-        }));
+        if (!item || (item.config || {}).disabled) return;
+        item._cancelGesture();
+        item._executeAction(item.config.tap_action || {action:'toggle'});
     }
 
-    _startStateRefresh()
-    {
-        this._stopStateRefresh();
-
-        this._stateRefreshTimer = setInterval(() => {
-            if( this.closing )
-                return;
-
-            const homeAssistant = document.querySelector('home-assistant');
-            const latestHass = homeAssistant ? homeAssistant.hass : null;
-
-            if( ! latestHass )
-                return;
-
-            // Home Assistant does not guarantee a brand-new hass object for
-            // every state change. Relying only on object identity means live
-            // button-card templates can freeze while a Honeycomb menu is open
-            // (for example Sonos volume percentage after volume_up/down).
-            //
-            // Always push the current hass object directly into rendered menu
-            // children. honeycomb-menu-item forwards it to the wrapped
-            // custom:button-card, forcing its JS templates to re-evaluate.
-            this.hass = latestHass;
-
-            if( this.shadowRoot )
-            {
-                this.shadowRoot
-                    .querySelectorAll('honeycomb-menu-item, honeycomb-persistent-control, xy-pad')
-                    .forEach(item => {
-                        item.hass = latestHass;
-                    });
-            }
-
-            this.requestUpdate();
-        }, 200);
-    }
-
-    _stopStateRefresh()
-    {
-        if( this._stateRefreshTimer )
-        {
-            clearInterval(this._stateRefreshTimer);
-            this._stateRefreshTimer = null;
-        }
-    }
+    _startStateRefresh() { /* HA provides event-driven state through the owning menu. */ }
+    _stopStateRefresh() { }
 
     _clearIdleTimeout()
     {
@@ -1631,7 +1529,9 @@ class HoneycombMenu extends LitElement
         return omit(
             merge(
                 {},
-                this.config,
+                this.config._persistent_hub_root
+                    ? {entity:this.config.entity,variables:this.config.variables}
+                    : this.config,
                 this.config.button_defaults || {},
                 item
             ),
@@ -1747,6 +1647,7 @@ class HoneycombMenu extends LitElement
 
     _applyCenterBrightness( config )
     {
+        if (this.config._persistent_hub_root) return true;
         if( this._centerHasExplicitBackground() )
             return false;
 
@@ -1879,7 +1780,7 @@ class HoneycombMenu extends LitElement
             if( button.slot_mode === 'hard' && button.slot !== undefined )
             {
                 const slot = Number(button.slot);
-                if( Number.isInteger(slot) && slot >= 7 && slot <= 18 )
+                if( Number.isInteger(slot) && slot >= 7 )
                     return true;
             }
 
@@ -1931,9 +1832,10 @@ class HoneycombMenu extends LitElement
         return !!(this._rings && this._rings.outer) || this._configHasExpandableOuter(config);
     }
 
+    _sceneRadius() { return Math.max((this._rings || {}).radius || 1,this._layoutEnvelopeOuter?2:1); }
     _computeCenterPosition()
     {
-        return layoutCore.centerPosition(this._hasOuterRing());
+        return layoutCore.sceneCenter(this._sceneRadius());
     }
 
     _hasInnerRing()
@@ -1953,7 +1855,8 @@ class HoneycombMenu extends LitElement
     {
         return layoutCore.buttonPosition(slot, {
             inner: this._hasInnerRing(),
-            outer: this._hasOuterRing()
+            outer: this._hasOuterRing(),
+            radius: this._sceneRadius()
         });
     }
 
