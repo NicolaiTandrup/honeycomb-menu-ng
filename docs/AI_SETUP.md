@@ -642,3 +642,29 @@ values or promise infinite precision. See [exact rules and limitations](LIGHT_MO
 #90/#97/#99 remain open until owner HA validation is documented. Stable/master
 promotion needs explicit owner approval after real HA tests. #83/#92/#93/#87/#86
 are excluded. Never alter existing beta tags/assets or the unpublished beta.5 draft.
+
+
+## v1.7.1-beta.8 — Sonos sibling navigation and idle-close
+
+Cumulative source baseline: published beta.7 commit
+`737a13c8f1a1020db18e14325a40240708dc2706`; all beta.7 behavior above is retained.
+Radio (slot 1), Join (slot 3) and Sleep (slot 4) are siblings, not successive depths.
+Opening or reopening any sibling replaces the active sibling; Back once returns to
+Sonos main. A real child menu still pushes one meaningful level. Hue/Kelvin zoom
+history and selected physical slots remain unchanged. Internal navigation markers
+are implementation details, not new user configuration keys.
+
+The three submenus inherit the main module's `idle_timeout` (8000 ms default).
+Use the existing `persistent.menu.idle_timeout` override for a different positive
+duration, or explicit `0` to disable. Do not inject `idle_timeout: 0` into generated
+Sonos submenus. Idle returns a persistent Hub to its base; a standalone Control
+closes its overlay. Only user interaction resets this timer; HA state updates,
+async discovery, Sleep estimates/acknowledgements and rerenders do not.
+
+Do not confuse UI idle-close with native Sonos Sleep Timer: closing the menu does
+not cancel the device timer. No helper/script setup is added. Preserve Radio
+order/cache/recognition, Join discovery/grouping, both Light palettes, presets,
+dynamic Hub allocation and the 82 CSS-px geometry. Existing beta tags/assets and
+the unpublished beta.5 draft remain immutable; no stable/master merge without
+explicit owner approval after real HA validation. #90/#97/#99 remain open pending
+that validation; #83/#92/#93/#87/#86 are excluded.

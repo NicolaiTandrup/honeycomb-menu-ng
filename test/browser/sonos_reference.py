@@ -161,6 +161,28 @@ def capture_reference(cubes, handler, button, evidence):
                             case.page.evaluate("state=>pushState('media_player.player_a',state,{...hass.states['media_player.player_a'].attributes,volume_level:1})",state)
                             case.capture(f'beta7-full-bleed-{ "promoted" if promoted else "module" }-{state}-before')
                 finally:case.tearDown()
+            beta7='737a13c8f1a1020db18e14325a40240708dc2706'
+            beta7_bundle=subprocess.check_output(['git','show',f'{beta7}:honeycomb-menu-ng.js'])
+            assert hashlib.sha256(beta7_bundle).hexdigest()=='e60d3ac17bbd6f12cd2abd33d549f1d78d46ee43b8eafb1fdf40d0dc2dc787f5'
+            file.write_bytes(beta7_bundle)
+            before_beta8=evidence/'before-beta8';before_beta8.mkdir(parents=True,exist_ok=True);cubes.evidence=before_beta8
+            navigation=[]
+            for width,height in [(1100,900),(390,844)]:
+                cubes.viewport={'width':width,'height':height}
+                case=cubes();case.setUp()
+                try:
+                    case.page.clock.install();case.sonos_open();case.sonos_radio_data()
+                    for slot in [3,1,4]:case.activate(case.sonos_slot(slot).locator('.interaction-surface'))
+                    depth=case.page.evaluate('hub._menuContext.stack.length');assert depth==4
+                    case.capture('beta8-siblings-stacked-before')
+                    case.activate(case.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                    after_back=case.page.evaluate('hub._menuContext.stack.length');assert after_back==3
+                    case.page.clock.fast_forward(10000)
+                    after_idle=case.page.evaluate('hub._menuContext.stack.length');assert after_idle==3
+                    case.capture('beta8-back-and-idle-still-radio-before')
+                    navigation.append({'viewport':width,'join_radio_sleep_depth':depth,'after_one_back':after_back,'after_10s_idle':after_idle})
+                finally:case.tearDown()
+            (before_beta8/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.7','commit':beta7,'sha256':hashlib.sha256(beta7_bundle).hexdigest(),'navigation':navigation,'entities':'synthetic','video':'Owner written real-HA observations; these are reproducible browser fixtures, not owner video frames'},indent=2)+'\n')
             (before_beta7/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.6','commit':beta6,'sha256':hashlib.sha256(beta6_bundle).hexdigest(),'entities':'synthetic','icon_fixture':'HA-shaped fixed SVG size with pinned MDI paths; not a real HA backend'},indent=2)+'\n')
             (before_beta5/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.4','commit':beta4,'sha256':hashlib.sha256(beta4_bundle).hexdigest(),'entities':'synthetic','navigation':depths},indent=2)+'\n')
             (before_beta4/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.3','commit':beta3,'sha256':hashlib.sha256(beta3_bundle).hexdigest(),'entities':'synthetic','video':'owner written findings only; no video frames claimed'},indent=2)+'\n')

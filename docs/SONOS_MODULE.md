@@ -369,3 +369,28 @@ paused/idle artwork stays at 62% of usable cube fill with aspect ratio preserved
 visible neutral gray fill and the recognized station's inner border color. This
 supersedes beta.5's enlarged paused artwork. Radio favorite order, cache, artwork
 sizing and playback remain unchanged. Native Sleep and Join Back stay as in beta.6.
+
+
+## beta.8 sibling navigation and idle-close
+
+Based on exact published beta.7 (`737a13c8f1a1020db18e14325a40240708dc2706`).
+Radio, Join and Sleep are sibling submenus, including a repeated selection of the
+same function. Join → Radio → Sleep occupies one submenu level; **Back once returns
+to Sonos main**, then another Back returns to the Hub. Switching does not replay
+any favorite, change grouping or send a Sleep command. Real child menus still add
+one history level; recursive Light Hue/Kelvin palettes retain exact Back snapshots.
+
+All three inherit the Sonos main menu's `idle_timeout`, **8000 milliseconds by
+default**. The existing `persistent.menu.idle_timeout` override can set a positive
+custom duration, or deliberately use `0` to disable idle-close. There is no new
+navigation YAML option. A persistent Hub returns to its base on idle; a standalone
+Control dismisses the overlay and restores its launcher. Idle-close never stops
+playback or cancels a device-owned Sleep timer.
+
+Actual pointer/touch actions, keyboard actions and Back reset the deadline. Passive
+HA playback/group changes, asynchronous room discovery and configuration refreshes
+do not. Discovery has a bounded wait and uses the latest HA state, but completing
+it cannot extend the last interaction's deadline or resurrect a submenu after
+switching, Back, idle-close or disposal. A stale request cannot suppress a fresh
+request after navigation. No geometry, station matching, favorites/cache, native
+Sonos service, artwork or layout changes are part of this navigation fix.

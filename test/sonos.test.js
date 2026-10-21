@@ -43,6 +43,19 @@ test('volume script overrides move with their cubes; explicit generic media slot
     assert.equal(generic.buttons[0].tap_action.direction,'down');
     assert.equal(generic.buttons[2].tap_action.direction,'up');
 });
+test('Sonos siblings inherit default or deliberately configured idle timeout without changing handlers',()=>{
+    const sleep=require('../src/modules/sonos/sleep');
+    for (const timeout of [undefined,0,2400]) {
+        const item={...options,type:'sonos',...(timeout===undefined ? {} : {persistent:{menu:{idle_timeout:timeout}}})};
+        const menu=buildCubeConfig(item,fixture()).menu;
+        assert.equal(menu.idle_timeout,timeout===undefined ? 8000 : timeout);
+        for (const [id,child] of [['radio',buildRadioMenu(options)],['join',buildJoinMenu(options)],['sleep',sleep.buildMenu(options)]]) {
+            assert.equal(child.idle_timeout,undefined);
+            assert.deepEqual(child._navigation_sibling,{group:`sonos:${player}`,id});
+        }
+    }
+    assert.equal(buildJoinMenu({...options,entity:member,_selected_entity:player})._navigation_sibling.group,`sonos:${player}`);
+});
 test('Sonos functions inherit ordinary Light cube typography without a forced preset grid',()=>{
     assert.deepEqual(sonosButtonStyles(),{});
     assert.deepEqual(sonosButtonStyles({background:'#34424e'}),{card:[{background:'#34424e'}]});
@@ -52,15 +65,19 @@ test('Sonos functions inherit ordinary Light cube typography without a forced pr
 });
 test('Radio descriptor golden preserves all twelve slots, order, artwork/cache and playback',()=>{
     const radio=buildRadioMenu(options);
+    // Compare historical Radio rendering/playback, excluding the deliberately
+    // corrected idle/navigation metadata (covered independently below).
     for(const button of radio.buttons)delete button.colors;
-    assert.equal(crypto.createHash('sha256').update(JSON.stringify(radio)).digest('hex'),'f3228985cc370b69681e4fc1688d7631ce59726cbf3aab67b7f6a46e91958a07');
+    const historical={entity:radio.entity,nested_expand:radio.nested_expand,inherit_inner:radio.inherit_inner,
+        empty_slots:radio.empty_slots,idle_timeout:0,buttons:radio.buttons};
+    assert.equal(crypto.createHash('sha256').update(JSON.stringify(historical)).digest('hex'),'f3228985cc370b69681e4fc1688d7631ce59726cbf3aab67b7f6a46e91958a07');
     assert.deepEqual(radio.buttons.map(b=>b.slot),Array.from({length:12},(_,i)=>i+7));
 });
 test('Join always opens with a useful setup state, including solo/self-only/invalid candidates',()=>{
     for (const members of [undefined,[],[{entity:player}],[null,{entity:'light.zone_a'},{name:'Room B'}]]) {
         const join=buildJoinMenu({entity:player,members});
         assert.equal(join.inherit_inner,true);
-        assert.equal(join.idle_timeout,0);
+        assert.equal(join.idle_timeout,undefined);
         assert.equal(join.buttons.length,1);
         assert.equal(join.buttons[0].name,'No rooms');
         assert.equal(join.buttons[0].interactive,false);

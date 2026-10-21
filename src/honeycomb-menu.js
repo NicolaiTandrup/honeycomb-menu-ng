@@ -115,11 +115,17 @@ function openHoneycombMenu(context, config)
             honeycombConfig.anchor_y=context.honeycomb._anchorY;
         }
 
-        context.stack.push({
-            __honeycomb_stack_entry: true,
-            config: merge({}, current),
-            inPlace: true
-        });
+        if (!navigationCore.areSiblings(current, honeycombConfig))
+            context.stack.push({
+                __honeycomb_stack_entry: true,
+                config: merge({}, current),
+                inPlace: true
+            });
+
+        // Inherit explicit zero as well as positive idle settings. Completing
+        // asynchronous navigation is not itself a new user interaction.
+        if (honeycombConfig.idle_timeout === undefined && current.idle_timeout !== undefined)
+            honeycombConfig.idle_timeout = current.idle_timeout;
 
         // Optional expansion mode used by palettes and similar controls:
         // keep the currently visible inner ring and add the nested menu to the
@@ -173,9 +179,6 @@ function openHoneycombMenu(context, config)
 
             if( honeycombConfig.spacing === undefined && current.spacing !== undefined )
                 honeycombConfig.spacing = current.spacing;
-
-            if( honeycombConfig.idle_timeout === undefined && current.idle_timeout !== undefined )
-                honeycombConfig.idle_timeout = current.idle_timeout;
 
             if( honeycombConfig.promote_to_center === true && honeycombConfig.promoted_center )
             {
@@ -345,7 +348,7 @@ function showHoneycombMenu( _config, options = {} )
     return menu;
 }
 
-function honeycombBack(context = manager)
+function honeycombBack(context = manager, { interaction = true } = {})
 {
     if( !context.honeycomb || context.honeycomb.closing || context.stack.length === 0 )
         return false;
@@ -358,6 +361,7 @@ function honeycombBack(context = manager)
 
         context.currentConfig = merge({}, previous.config);
         context.honeycomb.replaceConfig(previous.config);
+        if (interaction) context.honeycomb._resetIdleTimeout();
 
         if(
             Number.isFinite(Number(previous.config && previous.config.anchor_x)) &&
@@ -883,7 +887,7 @@ class HoneycombMenu extends LitElement
         if( this._anchorX !== null && this._anchorY !== null )
             this._setPosition(this._anchorX, this._anchorY);
 
-        this._resetIdleTimeout();
+        this._scheduleIdleTimeout();
         this.requestUpdate();
     }
 
@@ -1490,6 +1494,12 @@ class HoneycombMenu extends LitElement
 
     _resetIdleTimeout()
     {
+        this._lastInteractionAt = Date.now();
+        this._scheduleIdleTimeout();
+    }
+
+    _scheduleIdleTimeout()
+    {
         this._clearIdleTimeout();
 
         const timeout = Number(this.config && this.config.idle_timeout);
@@ -1512,7 +1522,7 @@ class HoneycombMenu extends LitElement
                 // Honeycomb and briefly exposing the hidden bootstrap card.
                 while( context.stack.length > 0 )
                 {
-                    if( ! honeycombBack(context) )
+                    if( ! honeycombBack(context, { interaction: false }) )
                         break;
                 }
 
@@ -1522,7 +1532,7 @@ class HoneycombMenu extends LitElement
             context.stack = [];
             context.currentConfig = null;
             this.close();
-        }, timeout);
+        }, Math.max(0, (Number.isFinite(this._lastInteractionAt) ? this._lastInteractionAt : Date.now()) + timeout - Date.now()));
     }
 
     _playButtonSound( _item )

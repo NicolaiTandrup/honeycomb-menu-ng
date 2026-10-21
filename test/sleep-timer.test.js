@@ -109,7 +109,7 @@ test('Sleep dependency tracking uses group/platform and native service availabil
     hass.states[player].attributes.group_members='invalid';assert.doesNotThrow(()=>presentationSnapshot(hass,deps));
     const menu=sleep.buildMenu({entity:player,sleep_timer:{player:member,script:'script.obsolete'}});
     assert.deepEqual(menu.buttons.map(b=>b.slot),[7,8,9,10,11,12]);
-    assert.equal(menu.inherit_inner,true);assert.equal(menu.idle_timeout,0);
+    assert.equal(menu.inherit_inner,true);assert.equal(menu.idle_timeout,undefined);
     assert.deepEqual(sleep.settings({entity:player,sleep_timer:{player:member}}),{player});
 });
 

@@ -59,7 +59,8 @@ function status(hass,options,now=Date.now()) {
 }
 function buildMenu(item) {
     const options=settings(item);
-    return {entity:item.entity,nested_expand:true,inherit_inner:true,empty_slots:'hidden',idle_timeout:0,
+    return {entity:item.entity,nested_expand:true,inherit_inner:true,empty_slots:'hidden',
+        _navigation_sibling:{group:`sonos:${item.entity}`,id:'sleep'},
         buttons:[...MINUTES,0].map((minutes,index)=>({slot:index+7,slot_mode:'hard',entity:item.entity,
             mode:'sonos-sleep',_sleep:{...options,minutes},name:minutes ? `${minutes} min` : 'Cancel',
             icon:minutes ? 'mdi:timer-outline' : 'mdi:timer-off-outline',show_name:true,show_label:true,autoclose:false,

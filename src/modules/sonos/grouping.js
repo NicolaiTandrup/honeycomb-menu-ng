@@ -70,7 +70,7 @@ function buildJoinMenu(item, discovery = null)
         nested_expand: true,
         inherit_inner: true,
         empty_slots: 'hidden',
-        idle_timeout: 0,
+        _navigation_sibling: {group: `sonos:${item._selected_entity || item.entity}`, id: 'join'},
         buttons: members.length ? members.map((member, index) => ({
             slot: index + 7,
             slot_mode: 'hard',

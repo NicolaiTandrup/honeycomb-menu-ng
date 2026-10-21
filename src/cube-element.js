@@ -597,6 +597,9 @@ class CubeElement extends LitElement
         if( e.button !== undefined && e.button !== 0 )
             return;
 
+        const owner = this.getRootNode().host;
+        if (owner && owner._resetIdleTimeout) owner._resetIdleTimeout();
+
         this._clearHoldTimer();
         this._pointerId = e.pointerId;
         this._pointerStartX = e.clientX;
@@ -813,10 +816,17 @@ class CubeElement extends LitElement
         if (actionName === 'honeycomb-close') { window.honeycomb_menu_context_close(context); return; }
         if (customActionRegistry.has(actionName)) {
             const sourceConfig=this.config, sourceMenu=context && context.currentConfig;
+            const sourceHost=this.getRootNode().host;
+            // Menu identity changes on navigation, not on passive HA renders.
+            // Guard the completion as well as discovery's own checks so a late
+            // async action cannot resurrect an abandoned submenu.
+            const isCurrent=()=>context ? context.currentConfig===sourceMenu &&
+                context.honeycomb===sourceHost && sourceHost.isConnected && !sourceHost.closing :
+                this.isConnected && this.config===sourceConfig;
             customActionRegistry.handle(actionName,{hass:this.hass,actionConfig:action,
-                openNested:config=>this._openHoneycombMenu(config),getHass:()=>this.hass,
-                isCurrent:()=>this.isConnected && this.config===sourceConfig && (!context ||
-                    (context.currentConfig===sourceMenu && context.honeycomb===this.getRootNode().host && !context.honeycomb.closing)),
+                openNested:config=>isCurrent() ? this._openHoneycombMenu(config) : null,
+                getHass:()=>context && context.honeycomb ? context.honeycomb.hass : this.hass,
+                isCurrent,
                 requestScope:context || this,
                 entity:this.config.entity,itemConfig:this.config,menuConfig:(this.getRootNode().host || {}).config});
             return;

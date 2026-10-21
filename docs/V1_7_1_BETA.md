@@ -1,45 +1,53 @@
 # v1.7.1 beta testing
 
-Cumulative **v1.7.1-beta.7** targets the exact published beta.6 source, retaining
-native Sonos device Sleep without helpers, Radio/cache, Join Back and Light Color
-Zoom. PRs remain unmerged; real HA owner approval is required before stable or
-master promotion. [Manual beta publisher guards](BETA_RELEASES.md) apply.
+Cumulative **v1.7.1-beta.8** is based on exact published beta.7 source
+`737a13c8f1a1020db18e14325a40240708dc2706`. All Sonos visuals, native no-helper
+Sleep, Radio recognition/cache, Join grouping, Light Hue/Kelvin zoom, presets,
+dynamic slots and 82 CSS-px geometry remain. PRs remain unmerged; explicit real HA
+owner approval is required before stable/master promotion.
+[Manual beta publisher guards](BETA_RELEASES.md) apply.
 
-## Cumulative beta.7 scope and release gate
+## Cumulative beta.8 scope and release gate
 
-- Sonos functions use ordinary Light's icon/text layout. Playing station artwork
-  sits slightly lower with clear volume text; paused/idle artwork stays compact
-  with visible gray fill and station-colored inner border. Same 82 px geometry.
-- White's twelve outer-menu swatches are clean Kelvin-color fills without dots
-  or visible numbers. Accessible names keep exact values. Tap applies once; hold
-  refines using a bounded integer linear Kelvin grid, never circular Hue logic.
-  Anchor slot/value, exact Back, close/reset and existing Color zoom are preserved.
-- Native Kelvin bounds are required. Minimum client precision is 1 K; hardware may
-  quantize. Too-narrow original ranges retain twelve legal samples with repetitions
-  and no zoom; further refinement never creates duplicates or out-of-range data.
+Radio, Join and Sleep replace each other as sibling views, including repeat opens.
+One Back returns to Sonos main. The three inherit `idle_timeout` (8000 ms default),
+including deliberately configured zero. Passive HA updates/discovery cannot renew
+the deadline or resurrect an abandoned submenu. Actual nested menus retain history.
 
-Publication must use a NEW unused beta.7 tag at the exact tested branch head after
-all matching push/PR CI, metadata, reproducibility and SHA256 checks pass. Existing
-beta.5 tag/private draft/assets and all published beta tags/assets stay immutable.
-No master merge, stable publication or retention operation. Beta.6 remains the
-published installation baseline until beta.7's guarded publication succeeds.
+Publication requires a NEW unused beta.8 tag at the exact tested branch head after
+all matching push/PR CI, metadata, reproducibility and SHA256 checks pass. Preserve
+all earlier tags/assets, especially beta.5's unpublished private draft. No master
+merge, stable publication or retention operation.
 
-## Real HA checklist for beta.7
+## HACS installation
 
-1. Compare Sonos Pause/Join/Radio/Sleep/volume icons and text with Light. Check long
-   text, volume 0/2/42/100%, slightly lower playing artwork, compact paused/idle
-   artwork, visible gray fill and station-colored inner border on both surfaces.
-2. On a temperature-only Light, open White: twelve filled hexagons, no visible
-   dot/code/text. Verify native min/max, exact short-tap temperatures, keyboard and
-   touch holds with no HA call, anchored endpoints/middle slots and repeated zoom.
-3. Back restores each exact palette; full close/reopen resets to current bounds.
-   Check the 1 K zoom limit, narrow/fixed/missing range behavior and real device
-   quantization. Do not expect infinite distinct temperatures or display colors.
-4. Confirm Color zoom and presets, Radio identity/cache/artwork/playback, Join/Back,
-   native Sleep leader/follower/Cancel/expiry/HA restart expectations and dynamic
-   Hub placement. Follow the [native timer checklist](SONOS_SLEEP_TIMER.md).
-5. Report only synthetic entity/station names publicly. #90/#97/#99 stay open
-   until owner validation is documented. #83/#92/#93/#87/#86 are excluded.
+Open Honeycomb Menu NG in HACS → Redownload → enable **Show beta versions** → choose
+**v1.7.1-beta.8**. Keep the existing `honeycomb-menu-ng.js` JavaScript module resource,
+then hard-refresh each desktop/mobile dashboard. The existing official HA Sonos
+integration/services remain required; no new helpers, scripts or automations.
+
+## Real HA checklist for beta.8
+
+1. Test all Radio/Join/Sleep switch directions, rapid taps and repeated same-view
+   opens on desktop and touch. Back once must return to Sonos main; another Back
+   returns to the Hub. Standalone Control must close cleanly and restore its launcher.
+2. Leave each sibling idle for 8 seconds. Hub returns to its base; Control dismisses
+   its overlay. Playback/group updates and room discovery must not extend this.
+   Interact shortly before expiry to confirm a fresh deadline; check custom positive
+   `persistent.menu.idle_timeout` and intentional zero if used.
+3. Open Join during slow registry discovery, then switch, Back, close or leave idle.
+   A late response must never reopen a stale view, create extra history or leave an
+   overlay behind. Reopen Join and verify fresh rooms and working join/unjoin.
+4. Set/cancel native Sleep on the selected coordinator/follower group, switch menus
+   and let the UI close. The device timer must remain independent; remaining time
+   is only a local estimate. Use the [native timer checklist](SONOS_SLEEP_TIMER.md)
+   for physical expiry, browser closure and HA restart checks.
+5. Recheck Radio playback/order/artwork/cache and playing/paused volume spacing.
+   Exercise recursive Hue and Kelvin zoom, endpoint/middle holds without service
+   calls, exact Back, full close/reset, Light presets and dynamic Hub placement.
+6. Report only synthetic entities/names publicly. #90/#97/#99 stay open until owner
+   validation is documented; #83/#92/#93/#87/#86 remain out of scope. Stable v1.7.1
+   still requires explicit owner approval after successful real HA beta testing.
 
 ## Preserved beta.4 station recognition checklist
 

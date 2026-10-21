@@ -42,6 +42,17 @@ function isHubRoot(config)
     return !!(config && config[HUB_ROOT_FLAG] === true);
 }
 
+// Internal descriptors opt direct siblings into replacement. Unmarked child
+// menus (including recursive palettes) always retain their meaningful depth.
+function areSiblings(current, incoming)
+{
+    const from = current && current._navigation_sibling;
+    const to = incoming && incoming._navigation_sibling;
+    return !!(from && to && typeof from.group === 'string' && from.group &&
+        from.group === to.group && typeof from.id === 'string' && from.id &&
+        typeof to.id === 'string' && to.id);
+}
+
 function createMenuContext(options = {})
 {
     const local = options.local === true;
@@ -91,6 +102,9 @@ function enterNested(context, currentConfig, incomingConfig)
 
     if( context.moduleAnchor )
         applyAnchor(incomingConfig, context.moduleAnchor);
+
+    if (areSiblings(currentConfig, incomingConfig))
+        return { fromBase: false, anchor: context.moduleAnchor };
 
     const currentDepth =
         context.navigation && Number.isFinite(Number(context.navigation.depth))
@@ -169,6 +183,7 @@ module.exports = {
     HUB_ROOT_FLAG,
     createMenuContext,
     isHubRoot,
+    areSiblings,
     readAnchor,
     applyAnchor,
     enterNested,

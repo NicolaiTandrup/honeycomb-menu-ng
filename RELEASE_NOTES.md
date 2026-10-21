@@ -1,5 +1,27 @@
 # v1.7.1-beta.7 — cumulative Sonos visuals and Kelvin zoom
 
+## v1.7.1-beta.8 — cumulative Sonos navigation and idle-close
+
+Based on exact published beta.7 `737a13c8f1a1020db18e14325a40240708dc2706`.
+Radio, Join and Sleep are sibling views: direct switches and repeated opens replace
+rather than push; Back once returns to Sonos main. All inherit the configured
+module idle timeout (8 seconds default, intentional zero preserved). Passive HA
+updates and asynchronous discovery do not renew the deadline. Late responses are
+scoped to their originating view and cannot resurrect abandoned menus. Genuine
+children and recursive Light Hue/Kelvin zoom keep their exact Back history.
+
+Preserves all beta.7 features and visuals, native Sonos Sleep services without
+helpers, Join discovery/grouping, Radio recognition/cache, 82 CSS-px geometry,
+Light presets and dynamic placement. Clock-controlled desktop/mobile regressions
+cover sibling permutations, deadlines/interaction, pending discovery, native Sleep
+selection/cancel and overlay cleanup. See [HA checklist](docs/V1_7_1_BETA.md).
+
+One cumulative HACS prerelease only after full matching CI and normal manual
+publisher gates. Real HA/device confirmation remains required; no stable/master
+merge or issue closure. Prior beta tags/assets and beta.5's unpublished private
+draft stay immutable; retention settings and excluded issues are untouched.
+
+
 Based on exact published beta.6 `214443460f827c05f977a8aaeefe48f71a7216b6`.
 Sonos/Light work is isolated in reviewable commits; no PR or master merge.
 

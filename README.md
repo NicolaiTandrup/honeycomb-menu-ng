@@ -25,12 +25,13 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > both modules; v1.7.0 remains latest stable. [HA beta test guide](docs/V1_7_1_BETA.md)
 > and [Color Zoom slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
 
-> **v1.7.1-beta.7 target:** cumulative Sonos visual polish and clean White/Kelvin
-> swatches with recursive bounded Kelvin zoom, based on published beta.6. Keeps
-> native Sonos Sleep without helpers and the owner-tested Color zoom. Temperature
-> values stay in accessible labels rather than on the swatch faces.
-> [Light rules and limits](docs/LIGHT_MODULE.md#recursive-white--kelvin-zoom--issue-99-beta7)
-> · [HA beta guide](docs/V1_7_1_BETA.md). Existing beta tags/assets and beta.5's private
+> **v1.7.1-beta.8 — cumulative owner-test beta:** based on published beta.7.
+> Sonos Radio, Join and Sleep are sibling submenus: switching replaces the active
+> sibling; one Back returns to Sonos main. They inherit the module's idle-close
+> timeout (8 seconds by default); passive HA updates and discovery do not extend it.
+> Keeps native no-helper Sleep, Sonos visual polish and both recursive Light palettes.
+> [Navigation and timeout rules](docs/SONOS_MODULE.md#beta8-sibling-navigation-and-idle-close)
+> · [HA beta guide](docs/V1_7_1_BETA.md). All previous tags/assets and beta.5's private
 > draft remain immutable. No master/stable promotion without owner HA approval.
 
 ## What you can build

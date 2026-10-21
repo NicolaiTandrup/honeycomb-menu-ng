@@ -84,6 +84,11 @@ assert.ok(!fs.existsSync('examples/packages/sonos-sleep-a.yaml'));
 const sleep=sonos.buttons[3];assert.equal(sleep.slot,4);
 assert.deepEqual(sleep._sleep,{player:input.examples['sonos.yaml'].items[0].entity});
 assert.deepEqual(sleep.tap_action.honeycomb_nested_menu.buttons.map(b=>b.tap_action.minutes),[15,30,45,60,90,0]);
+const navigationGuide=fs.readFileSync('docs/SONOS_MODULE.md','utf8');
+for(const text of ['sibling submenus','Back once','8000','persistent.menu.idle_timeout','asynchronous room discovery','standalone'])
+    assert.ok(navigationGuide.includes(text),`Sonos navigation guide: ${text}`);
+for(const menu of [sonos.buttons[0].tap_action.honeycomb_nested_menu,sleep.tap_action.honeycomb_nested_menu])
+    assert.equal(menu.idle_timeout,undefined,'Sonos siblings inherit the configured timeout');
 
 const kelvinGuide=fs.readFileSync('docs/LIGHT_MODULE.md','utf8');
 for(const text of ['min_color_temp_kelvin','max_color_temp_kelvin','Shift+Enter','1 K','physical slot','screen-reader','No black','never silently clamped'])

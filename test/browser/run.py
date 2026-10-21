@@ -1068,8 +1068,9 @@ class Cubes(unittest.TestCase):
             pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]));
         }""",backend.states)
         return backend
-    def sleep_hub(self,player='a'):
+    def sleep_hub(self,player='a',idle_timeout=None):
         self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_'+player,
+            **({'persistent':{'menu':{'idle_timeout':idle_timeout}}} if idle_timeout is not None else {}),
             'favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
         self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
         self.page.wait_for_function('hub._menuContext.stack.length===1');self.settle()
@@ -1127,7 +1128,9 @@ class Cubes(unittest.TestCase):
         finally:other.tearDown()
     def test_beta6_estimate_only_clock_disconnect_and_device_errors(self):
         from datetime import datetime,timezone
-        backend=self.sleep_backend_setup();self.page.clock.install(time=datetime.fromtimestamp(backend.time,timezone.utc));self.sleep_hub()
+        # Explicitly disable UI idle-close for this device-estimate/error test.
+        # Default/custom UI timeout behavior has its own clock-controlled tests.
+        backend=self.sleep_backend_setup();self.page.clock.install(time=datetime.fromtimestamp(backend.time,timezone.utc));self.sleep_hub(idle_timeout=0)
         self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Est. 15 min')
         count=self.page.evaluate('calls.length');self.page.clock.fast_forward(61000);self.sleep_label('Est. 14 min')
         self.page.clock.fast_forward(14*60000);self.sleep_label('Check device')
@@ -1189,6 +1192,170 @@ class Cubes(unittest.TestCase):
         self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Metadata unavailable')
         self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
         self.page.wait_for_function('hub._menuContext.stack.length===1')
+    def navigation_id(self):
+        return self.page.evaluate('hub._menuContext.currentConfig?._navigation_sibling?.id || "main"')
+    def idle_before(self,remaining):
+        delta=self.page.evaluate('remaining=>Math.max(0,hub._hubMenu._lastInteractionAt+Number(hub._hubMenu.config.idle_timeout)-Date.now()-remaining)',remaining)
+        self.page.clock.fast_forward(delta)
+    def test_beta8_all_sibling_permutations_same_view_reentry_and_one_back(self):
+        self.page.clock.install();self.sonos_open();self.sonos_radio_data()
+        origin=self.page.evaluate('[hub._hubMenu._anchorX,hub._hubMenu._anchorY,hub._hubMenu.sizes.item]')
+        slots={'radio':1,'join':3,'sleep':4}
+        for first in slots:
+            for second in slots:
+                for name in [first,second,second]:
+                    self.activate(self.sonos_slot(slots[name]).locator('.interaction-surface'))
+                    self.page.wait_for_function('name=>hub._menuContext.currentConfig?._navigation_sibling?.id===name',arg=name)
+                    self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+                    self.assertEqual(self.page.evaluate('hub._menuContext.navigation.depth'),2)
+                    self.assertEqual(self.page.evaluate('[hub._hubMenu._anchorX,hub._hubMenu._anchorY,hub._hubMenu.sizes.item]'),origin)
+                    self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+                self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.assertEqual(self.navigation_id(),'main');self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),1)
+                self.assertEqual(self.page.evaluate('hub._hubMenu.buttons.filter(Boolean).length'),6)
+        self.capture('beta8-siblings-one-back-main')
+        self.back();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0)
+        self.assertEqual(self.page.evaluate('calls.length'),0,'Sibling/Back controls never call playback or grouping')
+    def test_beta8_default_idle_closes_all_siblings_despite_passive_state_and_config_updates(self):
+        self.page.clock.install();self.sonos_open();self.sonos_radio_data()
+        for name,slot in [('radio',1),('join',3),('sleep',4)]:
+            self.activate(self.sonos_slot(slot).locator('.interaction-surface'))
+            self.page.wait_for_function('name=>hub._menuContext.currentConfig?._navigation_sibling?.id===name',arg=name)
+            self.assertEqual(self.page.evaluate('hub._hubMenu.config.idle_timeout'),8000)
+            self.idle_before(1000)
+            stamp=self.page.evaluate('hub._hubMenu._lastInteractionAt')
+            self.page.evaluate("pushState('media_player.player_a','paused',{volume_level:.21,group_members:['media_player.player_a']});pushStates([]);hub._hubMenu.replaceConfig(hub._hubMenu.config)")
+            self.assertEqual(self.page.evaluate('hub._hubMenu._lastInteractionAt'),stamp)
+            self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+            self.idle_before(250);self.capture('beta8-'+name+'-before-idle')
+            self.page.clock.fast_forward(400)
+            self.page.wait_for_function('hub._menuContext.stack.length===0 && hub._menuContext.currentConfig._persistent_hub_root')
+            self.assertEqual(self.page.locator('honeycomb-menu').count(),1);self.assertEqual(self.page.evaluate('calls.length'),0)
+            self.capture('beta8-'+name+'-idle-returned-hub')
+            if name!='sleep':
+                self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.page.wait_for_function('hub._menuContext.stack.length===1')
+    def test_beta8_idle_configured_zero_and_custom_timeout_are_inherited(self):
+        self.page.clock.install()
+        for timeout in [0,2500]:
+            item=self.sonos_item();item['persistent']={'menu':{'idle_timeout':timeout}}
+            self.sonos_open(item)
+            for name,slot in [('radio',1),('join',3),('sleep',4)]:
+                self.activate(self.sonos_slot(slot).locator('.interaction-surface'))
+                self.page.wait_for_function('name=>hub._menuContext.currentConfig?._navigation_sibling?.id===name',arg=name)
+                self.assertEqual(self.page.evaluate('hub._hubMenu.config.idle_timeout'),timeout)
+            self.page.clock.fast_forward(3000 if timeout else 60000)
+            self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0 if timeout else 2)
+            self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+            self.capture('beta8-idle-config-'+str(timeout))
+            self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+    def test_beta8_only_real_interaction_resets_idle_native_sleep_command_and_group_updates(self):
+        self.page.clock.install();self.sleep_backend_setup();self.sleep_hub()
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
+        self.idle_before(1000)
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Est. 15 min')
+        self.assertEqual(self.page.evaluate('calls.at(-1)'),['sonos','set_sleep_timer',{'sleep_time':900},{'entity_id':'media_player.player_a'}])
+        self.page.clock.fast_forward(6500)
+        self.page.evaluate("pushState('media_player.player_a','playing',{...hass.states['media_player.player_a'].attributes,volume_level:.66});pushStates([])")
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        # Keyboard action is also a real interaction, including Cancel/OFF.
+        self.sonos_slot(12).locator('.interaction-surface').press('Enter');self.sleep_label('Cancel sent')
+        self.page.clock.fast_forward(6500);self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        self.idle_before(1);self.page.clock.fast_forward(100)
+        self.page.wait_for_function('hub._menuContext.stack.length===0')
+        self.assertEqual(self.page.evaluate('calls.length'),2)
+        self.capture('beta8-sleep-cancel-idle-no-ghost')
+    def test_beta8_async_join_keeps_deadline_and_survives_passive_renders(self):
+        self.page.clock.install();self.sonos_open({'type':'sonos','entity':'media_player.player_a'})
+        self.page.evaluate('()=>{window.discovery=[];hass.callWS=()=>new Promise(resolve=>discovery.push(resolve))}')
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.page.clock.fast_forward(3000)
+        self.page.evaluate("pushState('media_player.player_a','playing',{volume_level:.7,group_members:['media_player.player_a']})")
+        self.settle();stamp=self.page.evaluate('hub._hubMenu._lastInteractionAt')
+        self.page.evaluate("discovery[0]({entities:[{ei:'media_player.player_a',pl:'sonos'},{ei:'media_player.player_b',pl:'sonos'}]})")
+        self.page.wait_for_function('hub._menuContext.currentConfig?._navigation_sibling?.id==="join"')
+        self.assertEqual(self.page.evaluate('hub._hubMenu._lastInteractionAt'),stamp,'Discovery is not interaction')
+        self.assertEqual(self.page.evaluate('hub._hubMenu.config.idle_timeout'),8000)
+        self.idle_before(100);self.capture('beta8-discovered-join-original-deadline')
+        self.page.clock.fast_forward(250);self.page.wait_for_function('hub._menuContext.stack.length===0')
+    def test_beta8_pending_join_fast_switch_back_close_and_reopen_never_resurrects(self):
+        self.page.clock.install();self.sonos_open({'type':'sonos','entity':'media_player.player_a'});self.sonos_radio_data()
+        self.page.evaluate('()=>{window.discovery=[];hass.callWS=()=>new Promise(resolve=>discovery.push(resolve))}')
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('discovery.length'),1)
+        self.activate(self.sonos_slot(1).locator('.interaction-surface'))
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),1)
+        self.page.evaluate("discovery[0]({entities:[{ei:'media_player.player_a',pl:'sonos'},{ei:'media_player.player_b',pl:'sonos'}]})")
+        self.settle();self.assertEqual(self.navigation_id(),'main');self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),1)
+        # A fresh request supersedes an invalidated in-flight request, even
+        # when the same physical cube is reused after returning to the module.
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('discovery.length'),3)
+        self.page.evaluate("discovery[1]({entities:[{ei:'media_player.player_a',pl:'sonos'}]})")
+        self.settle();self.assertEqual(self.navigation_id(),'sleep')
+        self.page.evaluate("discovery[2]({entities:[{ei:'media_player.player_a',pl:'sonos'},{ei:'media_player.player_b',pl:'sonos'}]})")
+        self.page.wait_for_function('hub._menuContext.currentConfig?._navigation_sibling?.id==="join"')
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        self.back();self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.idle_before(1);self.page.clock.fast_forward(100)
+        self.page.wait_for_function('hub._menuContext.stack.length===0')
+        self.page.evaluate("discovery[3]({entities:[{ei:'media_player.player_a',pl:'sonos'},{ei:'media_player.player_b',pl:'sonos'}]})")
+        self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0)
+        self.assertEqual(self.page.locator('honeycomb-menu').count(),1);self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.capture('beta8-late-discovery-no-ghost')
+    def test_beta8_standalone_siblings_back_idle_and_late_discovery_restore_launcher(self):
+        self.page.clock.install();self.sonos_setup()
+        self.page.evaluate("()=>makeControl({module:'sonos',entity:'media_player.player_a',members:[{entity:'media_player.player_b'}]})")
+        self.hold_input(self.page.locator('body > honeycomb-persistent-control .interaction-surface'))
+        self.page.evaluate('window.sonosContext=view.querySelector("honeycomb-menu")._menuContext')
+        for slot in [3,1,4,3,4,1]:
+            self.activate(self.sonos_slot(slot).locator('.interaction-surface'))
+            self.page.wait_for_function('sonosContext.stack.length===1')
+            self.assertEqual(self.page.locator('honeycomb-menu').count(),1)
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.assertEqual(self.page.evaluate('sonosContext.stack.length'),0)
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
+        self.page.clock.fast_forward(8200);self.page.clock.run_for(200)
+        self.page.wait_for_function('view.querySelectorAll("honeycomb-menu").length===0')
+        self.assertEqual(self.page.locator('body > honeycomb-persistent-control').evaluate('el=>getComputedStyle(el).visibility'),'visible')
+        self.page.evaluate("()=>{control.setConfig({module:'sonos',entity:'media_player.player_a'});window.discovery=[];hass.callWS=()=>new Promise(resolve=>discovery.push(resolve))}")
+        self.hold_input(self.page.locator('body > honeycomb-persistent-control .interaction-surface'))
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.page.clock.fast_forward(8200);self.page.clock.run_for(200)
+        self.page.evaluate("discovery[0]({entities:[{ei:'media_player.player_a',pl:'sonos'}]})")
+        self.settle();self.assertEqual(self.page.locator('honeycomb-menu').count(),0)
+        self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.capture('beta8-standalone-idle-launcher-restored')
+    def test_beta8_real_children_and_recursive_hue_kelvin_keep_exact_back_levels(self):
+        self.page.clock.install();self.sonos_open()
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.page.evaluate("honeycomb_menu_in_context(hub._menuContext,{nested_expand:true,inherit_inner:true,buttons:[{slot:7,name:'Child action',tap_action:{action:'none'}}]})")
+        self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),3)
+        self.back();self.assertEqual(self.navigation_id(),'join');self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        self.back();self.assertEqual(self.navigation_id(),'main')
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        for mode in ['hs','color_temp']:
+            self.page.evaluate("mode=>pushState('light.zoom_a','on',{brightness:128,supported_color_modes:[mode],min_color_temp_kelvin:1800,max_color_temp_kelvin:6535})",mode)
+            self.hub({'logo':False,'items':[{'type':'light','entity':'light.zoom_a'}]})
+            self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+            self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+            snapshot="()=>hub._hubMenu.buttons.slice(6).map(stack=>JSON.stringify(stack))"
+            palettes=[self.page.evaluate(snapshot)]
+            for depth in [3,4,5]:
+                self.hold_input(self.sonos_slot(12).locator('.interaction-surface'))
+                self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),depth)
+                palettes.append(self.page.evaluate(snapshot))
+            for previous in reversed(palettes[:-1]):
+                self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+                self.assertEqual(self.page.evaluate(snapshot),previous)
+            self.assertEqual(self.page.evaluate('calls.length'),0)
+            self.capture('beta8-'+mode+'-exact-back-history')
+            self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
     def test_beta5_named_light_center_keeps_visible_label_and_accessible_back(self):
         self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','menu':{
             'entity':'light.zone_a','nested_expand':True,'promote_to_center':True,

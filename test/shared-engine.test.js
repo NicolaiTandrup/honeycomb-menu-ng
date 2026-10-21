@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('fs');
 const crypto=require('crypto');
 const layout=require('../src/core/layout');
+const navigation=require('../src/core/navigation-context');
 const {buildCubeConfig,validateCubeConfig}=require('../src/core/cube-config');
 
 test('expanding axial geometry keeps unique cells beyond two rings',()=>{
@@ -46,4 +47,27 @@ test('captured baseline provenance and PNG checksums are reproducible',()=>{
     assert.equal(manifest.commit,'c1d9507ee48e65b951f6302c668dadf17043c195');
     for (const [file,digest] of Object.entries(manifest.images))
         assert.equal(crypto.createHash('sha256').update(fs.readFileSync(`test/visual-baseline/v1.5.1/${file}`)).digest('hex'),digest);
+});
+
+test('direct siblings replace within their own module; genuine children and unrelated modules push',()=>{
+    const sibling=(group,id)=>({_navigation_sibling:{group,id}});
+    for (const from of ['radio','join','sleep']) for (const to of ['radio','join','sleep'])
+        assert.equal(navigation.areSiblings(sibling('sonos:media_player.player_a',from),sibling('sonos:media_player.player_a',to)),true);
+    for (const other of [{},sibling('sonos:media_player.player_b','join'),{_navigation_sibling:{group:'',id:'join'}},{_navigation_sibling:{group:'sonos:media_player.player_a'}}])
+        assert.equal(navigation.areSiblings(sibling('sonos:media_player.player_a','radio'),other),false);
+});
+test('sibling replacement retains module anchor and depth; recursive children still add one level',()=>{
+    const context=navigation.createMenuContext({local:true}),base={_persistent_hub_root:true};
+    const main={anchor_x:120,anchor_y:240},radio={_navigation_sibling:{group:'sonos:media_player.player_a',id:'radio'}};
+    navigation.enterNested(context,base,main);navigation.enterNested(context,main,radio);
+    for (const id of ['join','sleep','radio','radio']) {
+        const next={_navigation_sibling:{group:'sonos:media_player.player_a',id}};
+        navigation.enterNested(context,radio,next);
+        assert.deepEqual(context.navigation,{phase:'nested',depth:2});
+        assert.deepEqual(navigation.readAnchor(next),{x:120,y:240});
+    }
+    const child={},deeper={};navigation.enterNested(context,radio,child);navigation.enterNested(context,child,deeper);
+    assert.equal(context.navigation.depth,4);navigation.prepareBack(context,child);assert.equal(context.navigation.depth,3);
+    navigation.prepareBack(context,radio);assert.equal(context.navigation.depth,2);
+    navigation.prepareBack(context,main);assert.deepEqual(context.navigation,{phase:'module',depth:1});
 });
