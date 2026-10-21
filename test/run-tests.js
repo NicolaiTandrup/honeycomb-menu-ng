@@ -556,20 +556,13 @@ function testModuleMenusAreDeclarative()
         7
     );
 
-    // Sonos uses Light's three-row hierarchy, reserving the status line
-    // even when a control has no secondary label. Radio outer styles stay local.
-    assert.strictEqual(
-        sonosMenu.buttons[0].styles.grid[0]['grid-template-areas'],
-        '"i" "n" "l"'
-    );
-    assert.strictEqual(
-        sonosMenu.buttons[1].styles.grid[0]['grid-template-areas'],
-        '"i" "n" "l"'
-    );
-    assert.strictEqual(
-        sonosMenu.buttons[2].styles.grid[0]['grid-template-areas'],
-        '"i" "n" "l"'
-    );
+    // Ordinary Sonos function cubes inherit the canonical Light flex hierarchy;
+    // preset-specific reserved rows and typography must not leak into them.
+    for (const button of sonosMenu.buttons) {
+        assert.strictEqual(button.styles.grid,undefined);
+        assert.strictEqual(button.styles.icon,undefined);
+        assert.strictEqual(button.styles.name,undefined);
+    }
 
     const firstFavorite =
         sonosMenu.buttons[0]
