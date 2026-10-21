@@ -120,7 +120,7 @@ async function newDraft(io, expected) {
         catch(error) {
             const status=error.status || /HTTP\s+(\d{3})/.exec(String(error.stderr || error.message || ''))?.[1];
             if (Number(status)!==404) throw error;
-            if (attempt===3) throw new Error('New beta draft still unavailable by exact tag after 4 reads; preserve the tag/draft for inspection.');
+            if (attempt===3) assert.fail('New beta draft still unavailable by exact tag after 4 reads; preserve the tag/draft for inspection.');
             await (io.wait || (ms=>new Promise(resolve=>setTimeout(resolve,ms))))(1000*(attempt+1));
             continue;
         }
