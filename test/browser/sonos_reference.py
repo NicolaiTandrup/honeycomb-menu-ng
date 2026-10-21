@@ -115,6 +115,23 @@ def capture_reference(cubes, handler, button, evidence):
                     depths.append({'viewport':width,'duplicate_join_depth':duplicate,'after_one_back':after_back})
                     case.capture('beta5-join-duplicate-back')
                 finally:case.tearDown()
+            # Frozen unpublished beta.5: native services alone could not enable it.
+            beta5='74c3b166088242965c7e8270062d99511f70597f'
+            beta5_bundle=subprocess.check_output(['git','show',f'{beta5}:honeycomb-menu-ng.js'])
+            assert hashlib.sha256(beta5_bundle).hexdigest()=='25ec7a1d6490497285a8906c12575cf3507cd17a7e2c63018e81340d4544c901'
+            file.write_bytes(beta5_bundle)
+            before_beta6=evidence/'before-beta6';before_beta6.mkdir(parents=True,exist_ok=True);cubes.evidence=before_beta6
+            for width,height in [(1100,900),(390,844)]:
+                cubes.viewport={'width':width,'height':height}
+                case=cubes();case.setUp()
+                try:
+                    case.sleep_backend_setup();case.sleep_hub()
+                    case.activate(case.sonos_slot(4).locator('.interaction-surface'));case.settle()
+                    assert case.sonos_slot(7).locator('.secondary').inner_text()=='Setup required'
+                    assert case.sonos_slot(7).locator('.interaction-surface').get_attribute('aria-disabled')=='true'
+                    case.capture('beta6-before-helper-required')
+                finally:case.tearDown()
+            (before_beta6/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.5','commit':beta5,'sha256':hashlib.sha256(beta5_bundle).hexdigest(),'release':'unpublished immutable draft','entities':'synthetic'},indent=2)+'\n')
             (before_beta5/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.4','commit':beta4,'sha256':hashlib.sha256(beta4_bundle).hexdigest(),'entities':'synthetic','navigation':depths},indent=2)+'\n')
             (before_beta4/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.3','commit':beta3,'sha256':hashlib.sha256(beta3_bundle).hexdigest(),'entities':'synthetic','video':'owner written findings only; no video frames claimed'},indent=2)+'\n')
             (expanded/'provenance.json').write_text(json.dumps({'commit':previous,'sha256':hashlib.sha256(previous_bundle).hexdigest(),'entities':'synthetic'},indent=2)+'\n')

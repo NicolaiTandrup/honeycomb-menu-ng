@@ -1,6 +1,6 @@
 # Sonos module
 
-**Current development: v1.7.1-beta.5** (cumulative; real HA approval required).
+**Current development: v1.7.1-beta.6 candidate** (cumulative; real HA approval required).
 Stable v1.7.0 has the historical slot arrangement described below.
 See [the complete card](../examples/v1.7/sonos.yaml) and the
 [external HA setup contract](AI_SETUP.md#external-home-assistant-prerequisites).
@@ -29,7 +29,7 @@ Radio/Browse at 5/6. The Radio outer submenu is unchanged.
 | 1 | Radio favorites |
 | 2 | play/pause |
 | 3 | Join |
-| 4 | Sleep Timer — optional HA package |
+| 4 | Sleep Timer — native Sonos device actions |
 | 5 | group-aware volume down |
 | 6 | group-aware volume up |
 
@@ -169,11 +169,14 @@ repeated selections and center/back returns to the module.
 
 ## Sleep Timer / optional Browse compatibility
 
-From cumulative beta.5, slot 4 is **Sleep**, opening native 15/30/45/60/90-minute
-and Cancel/OFF choices. [Setup and exact group/restart rules](SONOS_SLEEP_TIMER.md):
-install the optional two-helper HA package plus queued script/automation; without
-it timer choices are disabled. Browser reloads do not cancel a job; HA restart,
-automation reload, state-helper reload or group changes cancel safely.
+The cumulative beta.6 candidate retains slot 4 **Sleep**, opening 15/30/45/60/90-minute
+and Cancel/OFF choices. [Native actions and group/restart rules](SONOS_SLEEP_TIMER.md):
+no helper, script, automation or package setup. Official `sonos.set_sleep_timer`
+and `sonos.clear_sleep_timer` target the live coordinator. The speaker owns the
+countdown. “Est.” labels are local estimates; reload/reconnect shows unknown.
+An HA restart should not stop a powered speaker's timer; real hardware verification
+is required. Group changes invalidate estimates and follow native Sonos semantics,
+without an extra Honeycomb cancellation or pause.
 
 HA Browse Media APIs remain available to custom configurations. The old default
 `/media-browser/<player>` navigation is removed from Sonos slot 4. If desired,

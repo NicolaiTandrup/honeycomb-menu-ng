@@ -75,3 +75,12 @@ assert.equal(sonos.buttons[2].tap_action.sonos_item.toggle_member_script,'script
 assert.equal(sonos.buttons[0].tap_action.honeycomb_nested_menu.buttons[0].tap_action.data.media_content_type,'favorite_item_id');
 assert.equal(buildCubeConfig(input.examples['onoff-light.yaml'],hass).menu,null);
 console.log(`Documentation contracts: verified 19-cell diagram, 8 rings, ${compiled} module descriptors, dynamic bounds/placement and external action wiring`);
+
+// Current timer contract must never regress to the rejected manual-setup recipe.
+const timerGuide=fs.readFileSync('docs/SONOS_SLEEP_TIMER.md','utf8');
+for(const text of ['sonos.set_sleep_timer','sonos.clear_sleep_timer','7200','Status unknown','Cancel sent','Est. 30 min','speaker owns','real HA','coordinator'])
+    assert.ok(timerGuide.toLowerCase().includes(text.toLowerCase()),`Native Sleep guide: ${text}`);
+assert.ok(!fs.existsSync('examples/packages/sonos-sleep-a.yaml'));
+const sleep=sonos.buttons[3];assert.equal(sleep.slot,4);
+assert.deepEqual(sleep._sleep,{player:input.examples['sonos.yaml'].items[0].entity});
+assert.deepEqual(sleep.tap_action.honeycomb_nested_menu.buttons.map(b=>b.tap_action.minutes),[15,30,45,60,90,0]);

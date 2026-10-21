@@ -28,6 +28,7 @@ function fixture(t,branch='fix/synthetic',withPR=true) {
     const read=fs.readFileSync.bind(fs);
     t.mock.method(fs,'readFileSync',(file,...args)=>file===ARTIFACT.filename?BUNDLE:file==='release.json'?JSON.stringify({title:`Honeycomb NG ${ARTIFACT.tag}`,prerelease:true}):read(file,...args));
     const io={
+        wait:async ms=>{calls.push(['wait',ms]);},
         git:args=>{calls.push(['git',...args]);return args[0]==='rev-parse'?SHA:'';},
         list:(route,selector)=>{
             calls.push(['list',route,selector]);state.hook('list',route);
@@ -45,6 +46,7 @@ function fixture(t,branch='fix/synthetic',withPR=true) {
             if(route==='releases/latest')return structuredClone(state.old[0]);
             if(route==='git/refs'&&method==='POST'){assert.equal(state.tag,null);state.tag=data.sha;return {object:{type:'commit',sha:state.tag}};}
             if(route.startsWith('git/ref/tags/'))return {ref:`refs/tags/${ARTIFACT.tag}`,object:{type:'commit',sha:state.tag}};
+            if(method==='GET' && (route===`releases/tags/${encodeURIComponent(ARTIFACT.tag)}` || route==='releases/2'))return structuredClone(state.release);
             if(route==='releases/2'&&method==='PATCH'){
                 assert.deepEqual(data,{draft:false,prerelease:true,make_latest:'false'});
                 state.release={...state.release,draft:false,published_at:'2026-10-20T00:00:00Z'};return structuredClone(state.release);
@@ -214,4 +216,41 @@ test('workflow is branch-independent, manually authorized, least-privilege and a
     assert.match(workflow,/actions\/download-artifact@v4/);assert.match(build,/- '\*\*'/);
     for(const forbidden of ['feature/','fix/','restart/','697dec','v1.7.0-beta','--force','--clobber','release delete','RELEASE_RETENTION_ENABLED'])assert.ok(!workflow.includes(forbidden));
     assert.ok(!build.includes('paths-ignore:'));
+});
+
+
+test('new draft lookup tolerates bounded exact-tag visibility lag without a release-list lookup or repeated mutation',async t=>{
+    const f=fixture(t);let reads=0;
+    f.state.hook=(op,route)=>{
+        if(op==='GET' && route===`releases/tags/${encodeURIComponent(ARTIFACT.tag)}` && ++reads<3)throw Object.assign(new Error('HTTP 404'),{status:404});
+    };
+    await publish(f.io,f.expected,f.output,f.env,ARTIFACT);
+    assert.equal(reads,3);assert.deepEqual(f.calls.filter(c=>c[0]==='wait').map(c=>c[1]),[1000,2000]);
+    assert.equal(f.calls.filter(c=>c[0]==='gh' && c[2]==='create').length,1);
+    assert.equal(f.calls.filter(c=>c[0]==='POST').length,1);
+    assert.equal(f.state.release.draft,false);
+});
+test('persistent draft invisibility preserves partial publication and rerun refuses reuse',async t=>{
+    const f=fixture(t);
+    f.state.hook=(op,route)=>{if(op==='GET' && route.startsWith('releases/tags/'))throw Object.assign(new Error('HTTP 404'),{status:404});};
+    await assert.rejects(publish(f.io,f.expected,f.output,f.env,ARTIFACT),/after 4 reads/);
+    assert.equal(f.state.tag,SHA);assert.equal(f.state.release.draft,true);
+    assert.equal(f.calls.filter(c=>c[0]==='wait').length,3);assert.ok(!f.calls.some(c=>c[0]==='PATCH'));
+    await assert.rejects(publish(f.io,f.expected,f.output,f.env,ARTIFACT),/Tag already exists/);
+    assert.equal(f.calls.filter(c=>c[0]==='gh' && c[2]==='create').length,1);
+});
+for(const status of [401,403,429,500])test(`draft lookup HTTP ${status} stops immediately without retries or publication`,async t=>{
+    const f=fixture(t);f.state.hook=(op,route)=>{if(op==='GET'&&route.startsWith('releases/tags/'))throw Object.assign(new Error(`HTTP ${status}`),{status});};
+    await assert.rejects(publish(f.io,f.expected,f.output,f.env,ARTIFACT),new RegExp(`HTTP ${status}`));
+    assert.ok(!f.calls.some(c=>['wait','PATCH'].includes(c[0])));assert.equal(f.state.release.draft,true);
+});
+test('wrong exact-tag response or changed draft metadata never becomes public',async t=>{
+    const f=fixture(t);f.state.hook=(op,route)=>{if(op==='GET'&&route.startsWith('releases/tags/'))f.state.release.target_commitish=OTHER;};
+    await assert.rejects(publish(f.io,f.expected,f.output,f.env,ARTIFACT),/target mismatch/);
+    assert.ok(!f.calls.some(c=>c[0]==='PATCH'));
+});
+test('draft is re-read by exact ID and revalidated immediately before public PATCH',async t=>{
+    const f=fixture(t);f.state.hook=(op,route)=>{if(op==='GET'&&route==='releases/2')f.state.release.assets.pop();};
+    await assert.rejects(publish(f.io,f.expected,f.output,f.env,ARTIFACT),/Unexpected\/missing beta assets/);
+    assert.equal(f.state.release.draft,true);assert.ok(!f.calls.some(c=>c[0]==='PATCH'));
 });

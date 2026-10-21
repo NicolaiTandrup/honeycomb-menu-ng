@@ -1,27 +1,34 @@
 # v1.7.1 beta testing
 
-PR #91 and Light PR #94 remain unmerged. Integration metadata targets **v1.7.1-beta.5** with
+PR #91 and Light PR #94 remain unmerged. Integration metadata targets **v1.7.1-beta.6** with
 `prerelease=true`. It is intended for real Home Assistant/HACS owner testing,
 not stable v1.7.1 approval. See [beta publishing](BETA_RELEASES.md) for the
 branch-independent, explicitly authorized publication workflow.
 
-## Cumulative beta.5 scope and setup
+## Cumulative beta.6 candidate and release gate
 
 Based on exact beta.4, retaining recognized station artwork/colors and owner-tested
 Light Zoom. Adds responsive playing/paused artwork, deterministic Join Back and
 slot-4 Sleep. Includes terminology PR #96 without a master merge.
 
-**Sleep requires manual installation of the optional HA package**: two helpers,
-one script and one automation per selected player. [Install instructions, group
-rules, limitations and HA test checklist](SONOS_SLEEP_TIMER.md). HACS alone does
-not install it. Browser reload/closure preserves the HA job. HA restart, automation
-reload, helper-state reload and group changes cancel it safely; it does not resume
-after HA restart. Without setup the choices clearly show disabled setup states.
+**Sleep now uses official Sonos set/clear actions with no manual HA setup.**
+The speaker owns the countdown. Remaining time is a local estimate, discarded on
+reload/reconnect; HA does not expose actual remaining seconds. [Native timer
+behavior and real HA checklist](SONOS_SLEEP_TIMER.md).
+
+**Beta.6 is a candidate, not a published release.** Existing beta.5 tag
+`74c3b166088242965c7e8270062d99511f70597f`, unpublished draft and uploaded assets
+remain frozen. Do not publish that helper-backed draft. Safe next path: review the
+separate native-timer PR, validate matching push/PR CI and reproducible HACS bundle,
+then obtain explicit owner approval to manually publish a new unused beta.6 tag
+from that exact branch head. No tag reuse, overwrite, master merge or retention
+operation. All publisher guards still apply. Latest public installable cumulative
+beta remains beta.4 until a new release is successfully published.
 
 ## Preserved beta.4 station recognition checklist
 
 PR #95 retains the published cumulative beta.4 station-recognition corrections
-and Light Color Zoom. Install the new cumulative beta.5 using the instructions
+and Light Color Zoom. After publication, install cumulative beta.6 using the instructions
 below; existing beta tags remain unchanged. The owner's sanitized station/programme tuple is now covered
 by unit and desktop/mobile regressions, without fuzzy station matching.
 Use [privacy-safe diagnostics](SONOS_MODULE.md#station-recognition-diagnostics)
@@ -42,7 +49,7 @@ for unsupported formats. Existing beta tags remain immutable.
 ## HACS installation after publication
 
 1. Back up dashboard YAML. In HACS, open Honeycomb Menu NG, choose **Redownload**
-   from its menu, enable **Show beta versions**, and select **v1.7.1-beta.5**.
+   from its menu, enable **Show beta versions**, and select **v1.7.1-beta.6**.
    If needed first add `NicolaiTandrup/honeycomb-menu-ng` as a Dashboard repository.
 2. Confirm that the selected version is the beta, download it, then hard-refresh
    dashboard clients/clear frontend cache. Keep the existing JavaScript module
@@ -67,7 +74,7 @@ Kelvin and presets remain unchanged. See [the exact grid](LIGHT_MODULE.md#recurs
 Beta.2 also recognizes unique exact radio-channel/favorite/cache-title correspondence
 for validated Sonos radio transports. Media titles and fuzzy matching are excluded.
 Join discovers real Sonos registry entries; native grouping needs supported
-features/services. Beta.5 replaces default Browse with Sleep; explicit custom
+features/services. Beta.6 replaces default Browse with native Sleep; explicit custom
 HA Media panel navigation remains possible. Color assignment is stable across reordering
 of the same favorite set; changing the set can reassign colliding palette entries.
 

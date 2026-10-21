@@ -111,6 +111,27 @@ function verifyTag(io, expected) {
     assert.equal(ref.object.type, 'commit');
     assert.equal(ref.object.sha, expected.commit, 'Tag differs from tested source');
 }
+// Only a NEW release created in this invocation may enter this lookup. A 404
+// can be transient; retry reads only. Authentication/other failures fail closed.
+async function newDraft(io, expected) {
+    for (let attempt=0;attempt<4;attempt++) {
+        let release;
+        try { release=io.api(`releases/tags/${encodeURIComponent(expected.tag)}`); }
+        catch(error) {
+            const status=error.status || /HTTP\s+(\d{3})/.exec(String(error.stderr || error.message || ''))?.[1];
+            if (Number(status)!==404) throw error;
+            if (attempt===3) throw new Error('New beta draft still unavailable by exact tag after 4 reads; preserve the tag/draft for inspection.');
+            await (io.wait || (ms=>new Promise(resolve=>setTimeout(resolve,ms))))(1000*(attempt+1));
+            continue;
+        }
+        assert.ok(Number.isSafeInteger(release.id) && release.id>0,'Invalid new beta draft ID');
+        assert.equal(release.tag_name,expected.tag,'New beta draft tag mismatch');
+        assert.equal(release.target_commitish,expected.commit,'New beta draft target mismatch');
+        assert.equal(release.draft,true,'New beta release is not a draft');
+        assert.equal(release.prerelease,true,'New beta draft is not a prerelease');
+        return release;
+    }
+}
 async function publish(io, expected, output, env, artifact) {
     assert.equal(env.BETA_PUBLICATION_AUTHORIZED, 'true', 'Explicit manual publish=true required');
     assert.ok(typeof env.APPROVED_NOTES === 'string' && env.APPROVED_NOTES.trim().length > 20, 'Approved release notes required');
@@ -130,8 +151,7 @@ async function publish(io, expected, output, env, artifact) {
     const notesFile = path.join(output,'release-notes.md');fs.writeFileSync(notesFile,notes);
     io.gh(['release','create',expected.tag,'--verify-tag','--target',expected.commit,'--draft','--prerelease','--latest=false',
         '--title',JSON.parse(fs.readFileSync('release.json')).title,'--notes-file',notesFile,...ASSETS.map(name=>path.join(output,name))]);
-    let release = io.list('releases?per_page=100').find(r => r.tag_name === expected.tag);
-    assert.ok(release && release.draft, 'New beta draft not found');
+    let release = await newDraft(io,expected);
     const downloaded = path.join(output,'downloaded');fs.mkdirSync(downloaded,{recursive:true});
     io.gh(['release','download',expected.tag,'--dir',downloaded]);
     const files = Object.fromEntries(ASSETS.map(name=>[name,fs.readFileSync(path.join(downloaded,name))]));
@@ -142,6 +162,9 @@ async function publish(io, expected, output, env, artifact) {
     verifyTag(io,expected);
     assert.equal(io.api('releases/latest').id,stable.id,'Latest stable changed during staging');
     inventoryUnchanged(before,io.list('releases?per_page=100'),release.id);
+    const fresh=io.api(`releases/${release.id}`);
+    assert.equal(fresh.id,release.id);assert.equal(fresh.draft,true,'Draft changed during staging');
+    assertAssets(fresh,expected,files);
     release = io.api(`releases/${release.id}`,'PATCH',{draft:false,prerelease:true,make_latest:'false'});
     assert.equal(release.draft,false);assertAssets(release,expected,files);
     verifyTag(io,expected);
@@ -173,7 +196,7 @@ async function main() {
     if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`url=${release.html_url}\n`);
     console.log(`Published prerelease ${release.html_url}; commit=${expected.commit}; SHA256=${expected.sha256}`);
 }
-module.exports = {context,assertRun,verify,assertUnused,inventoryUnchanged,filesFor,assertAssets,publish,backend,digest};
+module.exports = {context,assertRun,verify,assertUnused,inventoryUnchanged,filesFor,assertAssets,newDraft,publish,backend,digest};
 if(require.main===module)main().catch(error=>{
     const status=/HTTP\s+(\d{3})/.exec(String(error.stderr || ''));
     console.error(error.code==='ERR_ASSERTION' ? error.message : `Beta verification/publication failed${status?' HTTP '+status[1]:''}.`);

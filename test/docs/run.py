@@ -42,7 +42,7 @@ def blocks(text):
     return re.findall(r'^(?:```|~~~)yaml\s*\n(.*?)^(?:```|~~~)\s*$',text,re.M|re.S)
 
 SHARED=set('entity name label icon show_name show_label show_icon background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
-SONOS=set('favorites_sensor favorites_cache_sensor toggle_member_script members group_volume_down_script group_volume_up_script sleep_timer'.split())
+SONOS=set('favorites_sensor favorites_cache_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
 ITEM=SHARED|SONOS|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
     assert isinstance(value,dict),where
@@ -70,9 +70,6 @@ def item(value,where):
             known(preset,{'hue_entity','saturation_entity'} if key=='color' else {'entity','default'},where)
             for k,v in preset.items():
                 if k!='default': assert re.fullmatch(r'(number|input_number)\.\w+',v)
-    if 'sleep_timer' in value:
-        known(value['sleep_timer'],{'state','deadline','script'},where)
-        for key,domain in [('state','input_text'),('deadline','input_datetime'),('script','script')]:assert re.fullmatch(domain+r'\.\w+',value['sleep_timer'][key]),where
     if 'members' in value:
         for member in value['members']: known(member,{'entity','name','icon'},where)
     if 'colors' in value: known(value['colors'],{'center','inner_border','outer_border','unavailable'},where)

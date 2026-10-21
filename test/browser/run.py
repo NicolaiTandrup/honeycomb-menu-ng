@@ -836,7 +836,7 @@ class Cubes(unittest.TestCase):
         self.activate(self.sonos_slot(4).locator('.interaction-surface'))
         self.page.wait_for_function('hub._menuContext.stack.length===2')
         self.assertFalse('/media-browser/' in self.page.url)
-        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Setup required')
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Sonos unavailable')
         self.assertEqual(self.sonos_slot(7).locator('.interaction-surface').get_attribute('aria-disabled'),'true')
         self.assertEqual(self.page.evaluate('moreInfo'),[]);self.assertEqual(self.page.evaluate('browseEvents'),0)
         self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
@@ -945,30 +945,25 @@ class Cubes(unittest.TestCase):
     def sleep_backend_setup(self,backend=None):
         if backend is None:
             import importlib.util,time
-            spec=importlib.util.spec_from_file_location('sleep_package_contract',ROOT/'test/sleep_timer/run.py')
+            spec=importlib.util.spec_from_file_location('native_sleep_contract',ROOT/'test/sleep_timer/run.py')
             module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-            backend=module.HA(two=True);backend.time=int(time.time())
-            for entity,state in backend.states.items():
-                if entity.startswith('media_player.'):
-                    state['attributes'].update(volume_level=.02,supported_features=524289,media_content_id='favorite_a')
-            backend.states['sensor.favorites']={'state':'1','attributes':{'items':{'favorite_a':'Station A'}}}
-            backend.states['sensor.favorites_cache']={'state':'1','attributes':{'items':[{'media_content_id':'favorite_a','thumbnail':'/station-a.svg'}]}}
+            backend=module.HA();backend.time=int(time.time())
         self.sleep_backend=backend
         if not getattr(self,'_sleep_binding',False):
-            def command(service,data):
-                suffix=service.rsplit('_',1)[1]
-                backend.command(suffix,**data);backend.drain()
+            def command(service,data,target):
+                backend.service(service,data,target)
                 return backend.states
-            self.page.expose_function('serverSleepCommand',command);self._sleep_binding=True
+            self.page.expose_function('nativeSonosCommand',command);self._sleep_binding=True
         self.page.evaluate("""states=>{
             window.notifications=[];
             if(!window.sleepNotificationListener){window.sleepNotificationListener=true;document.querySelector('home-assistant').addEventListener('hass-notification',e=>notifications.push(e.detail.message));}
-            hass.services={script:{sonos_sleep_a:{},sonos_sleep_c:{}},media_player:{join:{},unjoin:{}}};
+            hass.connection=new EventTarget();
+            hass.services={sonos:{set_sleep_timer:{},clear_sleep_timer:{}},media_player:{join:{},unjoin:{}}};
             hass.entities=Object.fromEntries(Object.keys(states).filter(id=>id.startsWith('media_player.')).map(id=>[id,{entity_id:id,platform:'sonos'}]));
             hass.callService=async(...args)=>{
                 calls.push(args);
-                if(args[0]==='script' && ['sonos_sleep_a','sonos_sleep_c'].includes(args[1])){
-                    const states=await serverSleepCommand(args[1],args[2]);
+                if(args[0]==='sonos'){
+                    const states=await nativeSonosCommand(args[1],args[2],args[3]);
                     pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]));
                 }
             };
@@ -977,78 +972,95 @@ class Cubes(unittest.TestCase):
         return backend
     def sleep_hub(self,player='a'):
         self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_'+player,
-            'favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache',
-            'sleep_timer':{'state':'input_text.sonos_sleep_'+player,'deadline':'input_datetime.sonos_sleep_deadline_'+player,'script':'script.sonos_sleep_'+player}}]})
+            'favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
         self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
         self.page.wait_for_function('hub._menuContext.stack.length===1');self.settle()
     def sleep_sync(self):
         self.page.evaluate('states=>pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]))',self.sleep_backend.states)
-    def test_beta5_sleep_server_choices_cancel_reload_expiry_and_restart(self):
-        backend=self.sleep_backend_setup();self.sleep_hub()
+    def sleep_label(self,label):
+        self.page.wait_for_function('label=>hub._hubMenu.shadowRoot.querySelector("[data-honeycomb-slot=\\"3\\"]")._model.secondary===label',arg=label)
+    def test_beta6_native_choices_cancel_reload_and_ha_restart_expectation(self):
+        backend=self.sleep_backend_setup();self.sleep_hub('b')
+        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Status unknown')
         self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.settle()
         self.assertEqual([self.sonos_slot(i).locator('.primary').inner_text() for i in range(7,13)],['15 min','30 min','45 min','60 min','90 min','Cancel'])
         for physical,minutes in [(7,15),(8,30),(9,45),(10,60),(11,90)]:
-            self.activate(self.sonos_slot(physical).locator('.interaction-surface'))
-            self.page.wait_for_function('minutes=>JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).m===minutes',arg=minutes)
-            self.assertEqual(backend.record()['m'],minutes)
-            self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','sonos_sleep_a',{'player':'media_player.player_a','operation':'start','minutes':minutes},{}])
-        self.capture('beta5-sleep-running')
-        self.activate(self.sonos_slot(12).locator('.interaction-surface'))
-        self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="off"')
-        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
-        self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
-        end=backend.record()['e']
-        self.page.reload();self.page.wait_for_function('window.ready');self.sleep_backend_setup(backend);self.sleep_hub()
-        self.assertEqual(backend.record()['e'],end);self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'15 min')
-        # The actual YAML contract executes outside the browser while it is absent.
-        self.page.goto('about:blank');backend.tick(900)
-        self.assertEqual(len(backend.pauses()),1)
-        self.page.goto(self.url);self.page.wait_for_function('window.ready');self.sleep_backend_setup(backend);self.sleep_hub()
-        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Expired')
-        for entity in ['media_player.player_a','media_player.player_b']:backend.states[entity]['state']='playing'
-        backend.request('start',15);backend.restart();self.sleep_sync();self.settle()
-        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Restarted');self.capture('beta5-sleep-restart-cancelled')
-        backend.request('start',15);backend.fail_pause=True;backend.tick(900);self.sleep_sync();self.settle()
-        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Check HA');self.capture('beta5-sleep-expiry-error')
-    def test_beta5_sleep_two_tabs_instances_and_group_change(self):
-        backend=self.sleep_backend_setup();self.sleep_hub()
+            self.activate(self.sonos_slot(physical).locator('.interaction-surface'));self.sleep_label(f'Est. {minutes} min')
+            self.assertEqual(backend.timers['media_player.player_a'],backend.time+minutes*60)
+            self.assertEqual(self.page.evaluate('calls.at(-1)'),['sonos','set_sleep_timer',{'sleep_time':minutes*60},{'entity_id':'media_player.player_a'}])
+        self.capture('beta6-native-sleep-estimate')
+        self.activate(self.sonos_slot(12).locator('.interaction-surface'));self.sleep_label('Cancel sent')
+        self.assertEqual(backend.timers,{})
+        self.assertEqual(self.page.evaluate('calls.at(-1)'),['sonos','clear_sleep_timer',{}, {'entity_id':'media_player.player_a'}])
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Est. 15 min')
+        end=backend.timers['media_player.player_a'];count=len(backend.calls)
+        self.page.reload();self.page.wait_for_function('window.ready');self.sleep_backend_setup(backend);self.sleep_hub('b')
+        self.assertEqual(backend.timers['media_player.player_a'],end);self.assertEqual(len(backend.calls),count)
+        self.sleep_label('Status unknown');self.capture('beta6-native-sleep-reload-unknown')
+        # Device-boundary model continues while BOTH browser and HA are absent.
+        self.page.goto('about:blank');backend.online=False;backend.tick(120);backend.restart()
+        self.assertEqual(backend.timers['media_player.player_a'],end)
+        backend.online=False;backend.tick(780)
+        self.assertEqual(backend.states['media_player.player_a']['state'],'paused')
+        self.assertEqual(backend.states['media_player.player_b']['state'],'paused')
+        self.assertEqual(backend.states['media_player.player_c']['state'],'playing')
+        backend.restart();self.page.goto(self.url);self.page.wait_for_function('window.ready');self.sleep_backend_setup(backend);self.sleep_hub('b')
+        self.sleep_label('Status unknown');self.assertEqual(len(backend.calls),count)
+        self.assertEqual(self.page.evaluate('calls'),[]);self.capture('beta6-device-boundary-after-restart')
+    def test_beta6_native_two_clients_group_changes_and_cancel_target(self):
+        backend=self.sleep_backend_setup();self.sleep_hub('b')
         other=Cubes();other.setUp()
         try:
-            other.sleep_backend_setup(backend);other.sleep_hub()
-            self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.activate(self.sonos_slot(7).locator('.interaction-surface'))
-            self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
-            other.sleep_sync();other.settle();self.assertEqual(other.sonos_slot(4).locator('.secondary').inner_text(),'15 min')
-            backend.request('start',30,suffix='c');record=backend.record('c').copy()
-            self.activate(self.sonos_slot(12).locator('.interaction-surface'))
-            self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="off"')
-            self.assertEqual(backend.record('c'),record)
-            self.activate(self.sonos_slot(7).locator('.interaction-surface'))
-            self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
-            backend.change('media_player.player_b','playing',{'group_members':['media_player.player_b'],'supported_features':524289});backend.drain()
-            self.sleep_sync();other.sleep_sync();self.settle();other.settle()
-            self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Group changed')
-            self.assertEqual(other.sonos_slot(4).locator('.secondary').inner_text(),'Group changed')
-            self.assertEqual(self.sonos_slot(7).locator('.interaction-surface').get_attribute('aria-disabled'),'true')
-            center=self.page.locator('honeycomb-menu .center-item .interaction-surface');self.activate(center)
-            self.page.wait_for_function('hub._menuContext.stack.length===1');self.capture('beta5-sleep-group-changed-back')
+            other.sleep_backend_setup(backend);other.sleep_hub('b')
+            self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Est. 15 min')
+            other.sleep_sync();other.settle();other.sleep_label('Status unknown')
+            backend.service('set_sleep_timer',{'sleep_time':5400},{'entity_id':'media_player.player_c'})
+            end_c=backend.timers['media_player.player_c']
+            # Selected follower B moves to C; current group is resolved again on cancel.
+            for suffix,group in [('a',['a']),('b',['c','b','d']),('c',['c','b','d']),('d',['c','b','d'])]:
+                backend.states['media_player.player_'+suffix]['attributes']['group_members']=['media_player.player_'+s for s in group]
+            self.sleep_sync();other.sleep_sync();self.sleep_label('Status unknown');other.sleep_label('Status unknown')
+            self.assertEqual(backend.timers['media_player.player_c'],end_c)
+            self.assertEqual(len(backend.calls),2,'Group updates cannot send automatic actions')
+            self.activate(self.sonos_slot(12).locator('.interaction-surface'));self.sleep_label('Cancel sent')
+            self.assertNotIn('media_player.player_c',backend.timers);self.assertIn('media_player.player_a',backend.timers)
+            self.assertEqual(self.page.evaluate('calls.at(-1)'),['sonos','clear_sleep_timer',{}, {'entity_id':'media_player.player_c'}])
+            self.back();self.page.wait_for_function('hub._menuContext.stack.length===1');self.capture('beta6-group-change-safe-back')
         finally:other.tearDown()
-    def test_beta5_sleep_clock_is_display_only_and_errors_are_recoverable(self):
+    def test_beta6_estimate_only_clock_disconnect_and_device_errors(self):
         from datetime import datetime,timezone
         backend=self.sleep_backend_setup();self.page.clock.install(time=datetime.fromtimestamp(backend.time,timezone.utc));self.sleep_hub()
-        self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.activate(self.sonos_slot(7).locator('.interaction-surface'))
-        self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
-        count=self.page.evaluate('calls.length');self.page.clock.fast_forward(61000)
-        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'14 min')
-        self.assertEqual(self.page.evaluate('calls.length'),count);self.assertEqual(backend.pauses(),[])
-        self.page.clock.fast_forward(14*60000)
-        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Due');self.assertEqual(backend.pauses(),[])
-        self.page.evaluate("()=>{hass.callService=async()=>{throw new Error('synthetic request failure')}}")
-        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Est. 15 min')
+        count=self.page.evaluate('calls.length');self.page.clock.fast_forward(61000);self.sleep_label('Est. 14 min')
+        self.page.clock.fast_forward(14*60000);self.sleep_label('Check device')
+        self.assertEqual(self.page.evaluate('calls.length'),count);self.assertEqual(backend.states['media_player.player_a']['state'],'playing')
+        self.assertIn('media_player.player_a',backend.timers,'Frontend clock cannot expire a device timer')
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Est. 15 min')
+        self.page.evaluate("hass.connection.dispatchEvent(new Event('disconnected'))");self.sleep_label('HA offline')
+        self.page.evaluate("hass.connection.dispatchEvent(new Event('ready'))");self.sleep_label('Status unknown')
+        backend.fail=True
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Check device')
         self.page.wait_for_function('notifications.some(x=>x.includes("Sleep Timer request failed"))')
         self.page.evaluate('()=>{hass.callService=()=>new Promise(()=>{})}')
-        self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.page.clock.fast_forward(31000)
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.sleep_label('Sending…')
+        self.assertEqual(self.sonos_slot(12).locator('.interaction-surface').get_attribute('aria-disabled'),'true')
+        self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.page.wait_for_function('hub._menuContext.stack.length===2')
+        self.sleep_label('Sending…')
+        self.page.clock.fast_forward(31000);self.sleep_label('Check device')
         self.page.wait_for_function('notifications.filter(x=>x.includes("Sleep Timer request failed")).length===2')
-        self.capture('beta5-sleep-request-error')
+        self.capture('beta6-native-sleep-device-error')
+    def test_beta6_service_availability_and_malformed_group_fail_closed(self):
+        self.sleep_backend_setup();self.sleep_hub()
+        self.page.evaluate('delete hass.services.sonos.set_sleep_timer;pushStates([])')
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'))
+        self.assertEqual(self.sonos_slot(7).locator('.interaction-surface').get_attribute('aria-disabled'),'true')
+        self.assertEqual(self.sonos_slot(12).locator('.interaction-surface').get_attribute('aria-disabled'),'false')
+        self.activate(self.sonos_slot(12).locator('.interaction-surface'));self.sleep_label('Cancel sent')
+        self.page.evaluate("pushState('media_player.player_b','playing',{group_members:['media_player.player_b']})")
+        self.sleep_label('Group unknown')
+        self.assertEqual(self.sonos_slot(12).locator('.interaction-surface').get_attribute('aria-disabled'),'true')
+        self.back();self.page.wait_for_function('hub._menuContext.stack.length===1');self.capture('beta6-native-sleep-unsupported')
     def test_beta5_join_back_reentry_and_late_discovery(self):
         self.sonos_open()
         for iteration in range(4):

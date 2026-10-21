@@ -25,11 +25,12 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > both modules; v1.7.0 remains latest stable. [HA beta test guide](docs/V1_7_1_BETA.md)
 > and [Color Zoom slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
 
-> **v1.7.1-beta.5 target:** cumulative Sonos artwork/Join Back fixes, native
-> Sleep submenu in slot 4, and owner-tested Light Zoom. Sleep needs an optional
-> [HA package and setup](docs/SONOS_SLEEP_TIMER.md); it survives browser closure
-> but deliberately cancels on HA restart or group changes. Terminology from PR #96
-> is included below. No master/stable promotion without owner approval.
+> **v1.7.1-beta.6 candidate:** cumulative artwork/Join Back fixes, owner-tested
+> Light Zoom and slot-4 Sleep using official Sonos device timers, with **no manual
+> HA setup**. Remaining time is explicitly a local estimate; reload shows unknown.
+> [Native timer behavior and HA checklist](docs/SONOS_SLEEP_TIMER.md).
+> Beta.5's immutable tag and unpublished historical draft remain untouched.
+> Beta.6 publication and later master/stable promotion require owner approval.
 
 ## What you can build
 
@@ -249,7 +250,7 @@ These keys belong to **Hub items**, not standalone Control or submenu buttons.
 | Hub item | Standalone Control | Features |
 |---|---|---|
 | `type: light` | `module: light` | Toggle, brightness, Color/White, presets |
-| `type: sonos` | `module: sonos` | Play/pause, group volume, Join, Radio, Sleep (beta.5) |
+| `type: sonos` | `module: sonos` | Play/pause, group volume, Join, Radio, Sleep (beta.6 candidate) |
 | `type: media` + `module: media` | `module: media` | Generic media without Sonos menus |
 | `type: generic` | `module: generic` | Custom entity/actions, no domain menu by default |
 
@@ -301,8 +302,8 @@ default). Supply its actual ID via `favorites_sensor`. An optional external
 [cache sensor](examples/sonos-favorites-cache.yaml) adds artwork; it does not supply
 playback IDs. The current beta discovers Sonos rooms and groups natively;
 `members` and an external [toggle script](examples/sonos-toggle-member.yaml) remain
-optional overrides. Slot 4 opens native Sleep choices, requiring the optional
-[HA package](docs/SONOS_SLEEP_TIMER.md). Browse is an explicit custom navigation
+optional overrides. Slot 4 opens native Sleep choices using official
+[Sonos device actions](docs/SONOS_SLEEP_TIMER.md), with no helper/script setup. Browse is an explicit custom navigation
 choice rather than a default Sonos control.
 The [complete Sonos example](examples/v1.7/sonos.yaml) and
 [AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)

@@ -9,6 +9,7 @@ const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
+const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
 
 class CubeElement extends LitElement
@@ -217,6 +218,12 @@ class CubeElement extends LitElement
     _updatePresentation()
     {
         if (!this.config) return;
+        const key=this.isConnected && this.config._sleep ? presentationUpdates.connectionKey(this.hass) : null;
+        if (key!==this._localPresentationKey) {
+            if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
+            this._localPresentationKey=key;
+            this._localPresentationUnsubscribe=key ? presentationUpdates.subscribe(this.hass,()=>this._updatePresentation()) : null;
+        }
         const presentation = this._resolvePresentation();
         const style = key => Object.assign({}, ...(this._value((this.config.styles || {})[key], []) || []));
         const card = style('card');
@@ -243,7 +250,7 @@ class CubeElement extends LitElement
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
-        // Display refresh only. HA owns deadlines/expiry; this never calls HA.
+        // Display refresh only. The backend/device owns expiry; this never calls HA.
         const refreshAt=presentation.refreshAt || null;
         if (refreshAt!==this._presentationRefreshAt || !this.isConnected) {
             clearTimeout(this._presentationTimer);this._presentationTimer=null;
@@ -348,6 +355,8 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
+        this._localPresentationUnsubscribe=null;this._localPresentationKey=null;
         clearTimeout(this._presentationTimer);this._presentationTimer=null;this._presentationRefreshAt=null;
         this._cancelGesture();
 

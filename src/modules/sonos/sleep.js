@@ -1,37 +1,61 @@
 const { sonosButtonStyles } = require('./presentation.js');
-const MINUTES=[15,30,45,60,90];
-const PHASES=['running','off','expired','restart_cancelled','group_changed','action_failed'];
-function settings(item) {
-    return {...(item.sleep_timer || {}),player:item.entity};
+const {connectionKey,invalidate}=require('../../core/presentation-updates.js');
+const MINUTES=Object.freeze([15,30,45,60,90]);
+const MAX_SECONDS=7200;
+// Memory only: acknowledgements and estimates are NEVER device timer readback.
+// Nothing is restored from storage, HA attributes or another browser's commands.
+const sessions=new WeakMap();
+function session(hass) {
+    const key=connectionKey(hass);
+    if (!key || !['object','function'].includes(typeof key)) return null;
+    if (!sessions.has(key)) {
+        const value={records:new Map(),pending:new Set(),epoch:0,online:true};
+        sessions.set(key,value);
+        if (typeof key.addEventListener==='function') {
+            key.addEventListener('disconnected',()=>{
+                value.records.clear();value.epoch++;value.online=false;invalidate({connection:key});
+            });
+            key.addEventListener('ready',()=>{value.online=true;invalidate({connection:key});});
+        }
+    }
+    return sessions.get(key);
 }
-function status(hass, options, now=Date.now()) {
-    const states=hass && hass.states || {}, unavailable=state=>!state || ['unknown','unavailable'].includes(state.state);
-    const valid=(key,domain)=>typeof options[key]==='string' && new RegExp(`^${domain}\\.[a-z0-9_]+$`).test(options[key]);
-    if (!valid('state','input_text') || !valid('deadline','input_datetime') || !valid('script','script'))
-        return {ready:false,label:'Setup required',reason:'setup_required',running:false};
-    const helper=states[options.state],deadline=states[options.deadline],script=states[options.script];
-    if (typeof hass.callService!=='function' || unavailable(helper) || unavailable(deadline) || unavailable(script) ||
-        !hass.services || !hass.services.script || !hass.services.script[options.script.slice(7)])
-        return {ready:false,label:'Setup unavailable',reason:'setup_unavailable',running:false};
-    let record;
-    try { record=helper.state.startsWith('hc1:') ? JSON.parse(helper.state.slice(4)) : null; } catch (_) { record=null; }
-    if (!deadline.attributes || deadline.attributes.has_date!==true || deadline.attributes.has_time!==true || !record || record.v!==1 || record.p!==options.player || !PHASES.includes(record.s) ||
-        (record.s==='running' && (!Number.isFinite(record.e) || record.e<=0 || !MINUTES.includes(record.m) || !/^[a-f0-9]{64}$/.test(record.g))))
-        return {ready:false,label:'Check setup',reason:'setup_invalid',running:false};
-    const player=states[options.player],group=player && player.attributes && player.attributes.group_members;
-    const leader=Array.isArray(group) && states[group[0]];
-    const playable=!unavailable(player) && !unavailable(leader) && group.includes(options.player) &&
-        new Set(group).size===group.length && group.every(id=>{
-            const member=states[id],other=member && member.attributes && member.attributes.group_members;
-            return !unavailable(member) && Array.isArray(other) && other[0]===group[0] &&
-                other.length===group.length && [...other].sort().join('|')===[...group].sort().join('|');
-        }) && leader.state==='playing' && !!(Number(leader.attributes.supported_features)&1);
-    const running=record.s==='running';
-    const remaining=running ? Math.max(0,Math.ceil((record.e*1000-now)/60000)) : 0;
-    const label=running ? remaining ? `${remaining} min` : 'Due' :
-        ({off:'Off',expired:'Expired',restart_cancelled:'Restarted',group_changed:'Group changed',action_failed:'Check HA'})[record.s];
-    return {ready:true,running,record,playable,remaining,label,reason:record.s,
-        refreshAt:running && remaining>0 ? Math.min(now+60000,record.e*1000+10) : null};
+function settings(item) { return {player:item.entity}; }
+function groupFor(hass,player) {
+    const states=hass && hass.states || {},selected=states[player];
+    const available=state=>state && !['unknown','unavailable'].includes(state.state);
+    const reported=selected && selected.attributes && selected.attributes.group_members;
+    if (!/^media_player\.[a-z0-9_]+$/.test(player || '') || !available(selected) ||
+        !Array.isArray(reported) || !reported.length || !reported.includes(player) || new Set(reported).size!==reported.length) return null;
+    const signature=[...reported].sort().join('|'),coordinator=reported[0];
+    if (!reported.every(id=>{
+        const member=states[id],group=member && member.attributes && member.attributes.group_members;
+        const entry=hass.entities && hass.entities[id];
+        return /^media_player\.[a-z0-9_]+$/.test(id) && available(member) && (!entry || !entry.platform || entry.platform==='sonos') &&
+            Array.isArray(group) && group[0]===coordinator && group.length===reported.length && [...group].sort().join('|')===signature;
+    })) return null;
+    return {coordinator,signature,playing:states[coordinator].state==='playing'};
+}
+function status(hass,options,now=Date.now()) {
+    const value=session(hass),group=groupFor(hass,options.player),services=hass && hass.services && hass.services.sonos || {};
+    const connected=value && value.online && typeof hass.callService==='function';
+    const setReady=!!(connected && group && services.set_sleep_timer),clearReady=!!(connected && group && services.clear_sleep_timer);
+    if (value) for (const [coordinator,record] of value.records) {
+        const current=groupFor(hass,coordinator);
+        if (!current || current.coordinator!==coordinator || current.signature!==record.signature) value.records.delete(coordinator);
+    }
+    const record=group && value && value.records.get(group.coordinator);
+    // A changed topology invalidates the local estimate permanently. It does NOT
+    // cancel/re-arm a hardware timer or assert what a regrouped device will do.
+    if (record && record.signature!==group.signature) value.records.delete(group.coordinator);
+    const known=record && record.signature===group.signature ? record : null;
+    const busy=!!(group && value && value.pending.has(group.coordinator));
+    const remaining=known && known.phase==='set' ? Math.max(0,Math.ceil((known.deadline-now)/60000)) : null;
+    const label=!connected ? 'HA offline' : !group ? 'Group unknown' : !setReady && !clearReady ? 'Sonos unavailable' : busy ? 'Sending…' :
+        !known ? 'Status unknown' : known.phase==='failed' ? 'Check device' : known.phase==='cleared' ? 'Cancel sent' : remaining ? `Est. ${remaining} min` : 'Check device';
+    return {ready:setReady || clearReady,setReady,clearReady,group,record:known,busy,remaining,label,
+        running:!!(remaining>0),playable:!!(group && group.playing),
+        refreshAt:remaining>0 && !busy ? Math.min(now+60000,known.deadline+10) : null};
 }
 function buildMenu(item) {
     const options=settings(item);
@@ -47,12 +71,12 @@ function buildButton(item) {
         tap_action:{action:'honeycomb-open-nested',honeycomb_nested_menu:buildMenu(item)}};
 }
 function resolve({hass,config}) {
-    const options=config._sleep || {}, value=status(hass,options), choice=options.minutes!==undefined;
-    const disabled=choice && (!value.ready || (options.minutes!==0 && !value.playable));
-    const selected=value.running && (!choice || options.minutes===value.record.m);
+    const options=config._sleep || {},value=status(hass,options),choice=options.minutes!==undefined,cancel=options.minutes===0;
+    const disabled=choice && (value.busy || (cancel ? !value.clearReady : !value.setReady || !value.playable));
+    const selected=value.running && (!choice || options.minutes===value.record.minutes);
     return {colors:{center:disabled ? '#464a50' : '#34424e',inner:selected ? '#d6a932' : '#34383d',outer:'#34383d'},
-        secondary:choice ? !value.ready ? value.label : options.minutes===0 ? value.running ? 'Cancel timer' : 'Off' : !value.playable ? 'No playback' :
-            value.running && value.record.m===options.minutes ? 'Restart' : 'Start' : value.label,
+        secondary:!choice ? value.label : value.busy ? 'Sending…' : !(cancel ? value.clearReady : value.setReady) ? !value.group || value.label==='HA offline' ? value.label : 'Sonos unavailable' :
+            cancel ? 'OFF' : !value.playable ? 'No playback' : selected ? 'Reset' : 'Set',
         disabled,refreshAt:value.refreshAt};
 }
 function notifyUser(message) {
@@ -60,29 +84,32 @@ function notifyUser(message) {
     const root=document.querySelector('home-assistant');
     if (root) root.dispatchEvent(new CustomEvent('hass-notification',{detail:{message},bubbles:true,composed:true}));
 }
-const pending=new WeakMap();
-async function command({hass,actionConfig,notify=notifyUser}) {
-    const options=actionConfig.sleep || {},minutes=actionConfig.minutes,value=status(hass,options);
-    if (!value.ready || ![0,...MINUTES].includes(minutes) || (minutes && !value.playable)) {
-        notify(!value.ready ? 'Sleep Timer requires the documented Home Assistant package and matching helper/script configuration.' : 'Sleep Timer needs an available, playing Sonos group.');
+async function command({hass,actionConfig,getHass=()=>hass,notify=notifyUser}) {
+    const options=actionConfig.sleep || {},minutes=actionConfig.minutes,value=status(hass,options),cancel=minutes===0;
+    if (![0,...MINUTES].includes(minutes) || minutes*60>MAX_SECONDS || (cancel ? !value.clearReady : !value.setReady || !value.playable)) {
+        notify('Sleep Timer needs the official HA Sonos services and an available, consistent Sonos group; setting a timer also needs playback. No helpers or scripts are required.');
         return false;
     }
-    const connection=hass.connection || hass.callService;
-    if (!pending.has(connection)) pending.set(connection,new Set());
-    const requests=pending.get(connection),key=options.script;
-    if (requests.has(key)) return false;
-    requests.add(key);let timeout;
+    const state=session(hass),group=value.group,key=group.coordinator,epoch=state.epoch;
+    if (state.pending.has(key)) return false;
+    state.pending.add(key);invalidate(hass);let timeout;
+    const sentAt=Date.now();
     try {
-        await Promise.race([hass.callService('script',options.script.slice(7),{
-            player:options.player,operation:minutes===0 ? 'cancel' : 'start',minutes},{}),
+        await Promise.race([hass.callService('sonos',cancel ? 'clear_sleep_timer' : 'set_sleep_timer',
+            cancel ? {} : {sleep_time:minutes*60},{entity_id:key}),
             new Promise((_,reject)=>{timeout=setTimeout(()=>reject(new Error('request_timeout')),30000);})]);
+        const current=groupFor(getHass(),options.player);
+        if (state.epoch===epoch && current && current.coordinator===key && current.signature===group.signature)
+            state.records.set(key,{signature:group.signature,phase:cancel ? 'cleared' : 'set',minutes,deadline:sentAt+minutes*60000});
+        notify(cancel ? 'Sonos cancel command sent. Device timer status is not exposed by HA.' : 'Sonos timer sent to this group. Remaining time is a local estimate, not device status.');
         return true;
     } catch (_) {
-        notify('Sleep Timer request failed or timed out. Check the live HA timer state, package setup and script trace before retrying.');
+        if (state.epoch===epoch) state.records.set(key,{signature:group.signature,phase:'failed'});
+        notify('Sleep Timer request failed or timed out; the device may have received it. Check Sonos before retrying or use Cancel. No playback action will be retried automatically.');
         return false;
-    } finally {clearTimeout(timeout);requests.delete(key);}
+    } finally {clearTimeout(timeout);state.pending.delete(key);invalidate(hass);}
 }
 function registerActions(registry) {
     registry.register('honeycomb-sonos-sleep',context=>{void command(context);return true;});
 }
-module.exports={MINUTES,settings,status,buildMenu,buildButton,resolve,command,registerActions};
+module.exports={MINUTES,MAX_SECONDS,settings,groupFor,status,buildMenu,buildButton,resolve,command,registerActions};

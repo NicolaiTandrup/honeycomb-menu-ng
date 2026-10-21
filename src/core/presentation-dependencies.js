@@ -14,11 +14,11 @@ function presentationDependencies(config) {
 function presentationSnapshot(hass, dependency) {
     const entity = (hass && hass.states || {})[dependency.entity];
     if (dependency.sleep) {
-        const states=hass && hass.states || {},options=dependency.sleep;
+        const states=hass && hass.states || {};
         const reported=entity && entity.attributes && entity.attributes.group_members;
         const group=Array.isArray(reported) ? reported : [];
-        return JSON.stringify([entity,states[options.state],states[options.deadline],states[options.script],
-            group.map(id=>states[id]),hass && hass.services && hass.services.script]);
+        return JSON.stringify([entity,group.map(id=>[states[id],hass && hass.entities && hass.entities[id]]),
+            hass && hass.services && hass.services.sonos]);
     }
     if (dependency.sonos) {
         const states=hass && hass.states || {};

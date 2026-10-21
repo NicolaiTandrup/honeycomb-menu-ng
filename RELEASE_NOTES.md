@@ -1,3 +1,31 @@
+# v1.7.1-beta.6 candidate — native Sonos device Sleep Timer
+
+Unpublished candidate from cumulative beta.5 source, preserving beta.4 recognition
+and Light Zoom, beta.5 artwork scaling/Join Back and PR #96 terminology. Replaces
+the rejected helper/script/automation timer with official `sonos.set_sleep_timer`
+(seconds, maximum 7200) / `sonos.clear_sleep_timer`. No manual HA setup. All five
+choices and Cancel/OFF target the freshly validated current coordinator.
+
+Speaker owns expiry; browser/HA restart should not stop a powered speaker's timer.
+Real HA/Sonos confirmation is still required. Remaining-time display is explicitly
+a local estimate, not device readback; reload/reconnect/group changes show unknown.
+Failures/timeouts never claim OFF or retry playback. Native group changes follow
+Sonos semantics, without extra Honeycomb cancellation. See
+[native API/limitations and checklist](docs/SONOS_SLEEP_TIMER.md).
+
+Beta.5 tag, unpublished draft and assets remain immutable historical artifacts.
+New-release publication lookup uses the exact tag API with bounded read-only 404
+retries, plus exact-ID draft/asset validation before public PATCH. There is no
+existing-draft resume or mutation retry; permission failures still stop.
+Separate owner approval plus exact head/CI/metadata/reproducibility/checksum guards
+are required for a NEW beta.6 publication; no release was published by this change.
+No stable/master merge, retention setting change or release/tag deletion.
+
+---
+
+> Historical beta.5 notes below describe the rejected helper implementation in
+> its frozen **unpublished draft**, not the beta.6 native device timer.
+
 # v1.7.1-beta.5 — cumulative Sonos Sleep, artwork and navigation
 
 Based on exact immutable beta.4, preserving its Radio recognition/cache behavior,

@@ -51,7 +51,11 @@ Branch movement or a new CI attempt requires a fresh verification run.
    lightweight beta tag at the exact tested commit. Never force or update a tag.
 5. Create a **draft prerelease**, upload `honeycomb-menu-ng.js`, `SHA256SUMS.txt`
    and `release-provenance.json`, then download and compare every byte. Validate
-   asset names, sizes, available GitHub digests, tag SHA and metadata. Provenance
+   asset names, sizes, available GitHub digests, tag SHA and metadata. Locate the
+   new draft with the exact tag API; retry only HTTP 404 reads (four attempts,
+   1/2/3-second backoff). Other API failures stop immediately. Re-read the exact
+   draft ID and validate its metadata/assets before the public PATCH. This never
+   retries creation or resumes an existing draft. Provenance
    identifies branch, source SHA, version, bundle SHA256 and CI run attempts.
 6. Recheck branch/CI/tag and existing release inventory, then publish with
    `prerelease=true` and `make_latest=false`. Verify that the latest stable and
@@ -79,3 +83,20 @@ owner approval after real Home Assistant testing before merge/promotion or stabl
 publication.** Green synthetic CI does not replace that approval. This workflow
 cannot publish stable releases. It leaves PRs unmerged and master unchanged unless
 master itself was the selected source branch; even then it changes no source.
+
+
+## Frozen beta.5 and proposed beta.6
+
+Beta.5's publisher failed after creating its tag/draft/assets with “New beta draft
+not found” from an immediate release-list lookup. The cause of that lookup omission
+is not proven. The native timer candidate hardens lookup for **new** releases;
+it does not finalize, delete, overwrite or resume the existing beta.5 draft.
+Its tag remains `74c3b166088242965c7e8270062d99511f70597f`, draft ID `419308278`.
+
+Review the native-timer PR based on that exact cumulative commit. After all matching
+CI is green, obtain explicit owner approval for beta.6 publication. Dispatch the
+unchanged manual workflow on the tested feature branch with its exact SHA, new
+unused `v1.7.1-beta.6` tag and approved notes. Verification may run without publishing;
+only explicitly authorized `publish=true` can create the new tag/release. Keep the
+historical beta.5 draft private and untouched. Any further staging failure stops
+without rollback or reuse. Do not merge master or enable retention cleanup.

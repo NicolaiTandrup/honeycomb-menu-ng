@@ -61,7 +61,7 @@ jobs:
           python -m playwright install --with-deps chromium
           curl --fail --location --retry 2 https://github.com/custom-cards/button-card/releases/download/v7.0.1/button-card.js --output "$RUNNER_TEMP/button-card.js"
 
-      - name: Validate server-side Sonos Sleep Timer package contracts
+      - name: Validate native Sonos Sleep Timer device-boundary contracts
         run: python test/sleep_timer/run.py
 
       - name: Measure core visibility and allocation
