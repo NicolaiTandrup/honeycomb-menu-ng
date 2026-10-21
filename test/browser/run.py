@@ -855,7 +855,14 @@ class Cubes(unittest.TestCase):
         snapshot=self.sonos_radio_state()
         if self.evidence:
             reference=json.loads((self.evidence/'before'/f'{self.viewport["width"]}-radio-state.json').read_text())
+            # Shared presentation adds derived fill metadata. Radio favorites
+            # must still be solid with the exact pre-existing fill color.
+            for cell in snapshot['outer']:
+                self.assertEqual(cell['model']['fill'],{'type':'solid','center':cell['model']['colors']['center']})
+            self.assertEqual(snapshot['center']['fill']['center'],snapshot['center']['colors']['inner'])
             for scene in [snapshot,reference]:
+                scene['center'].pop('fill',None)
+                for cell in scene['outer']:cell['model'].pop('fill',None)
                 scene['center'].pop('artwork',None)
                 for cell in scene['outer']:
                     cell['model'].pop('artwork',None)
