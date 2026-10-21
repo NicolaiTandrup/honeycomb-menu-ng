@@ -6,12 +6,15 @@ from playwright.sync_api import sync_playwright
 p=argparse.ArgumentParser();p.add_argument('--evidence-dir',type=Path,required=True);a=p.parse_args();a.evidence_dir.mkdir(parents=True,exist_ok=True)
 class Handler(SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
+ def do_GET(self):
+  if self.path=='/favicon.ico':self.send_response(204);self.end_headers();return
+  super().do_GET()
 server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Handler,directory=str(Path(__file__).parent)));threading.Thread(target=server.serve_forever,daemon=True).start();rows=[]
 try:
  with sync_playwright() as pw:
   b=pw.chromium.launch(executable_path=os.getenv('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox'])
   for width,height in [(1100,900),(390,844)]:
-   page=b.new_page(viewport={'width':width,'height':height});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+   page=b.new_page(viewport={'width':width,'height':height});errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.on('console',lambda e:errors.append(e.text) if e.type=='error' else None)
    page.goto(f'http://127.0.0.1:{server.server_port}/demo.html');assert page.title()=='Honeycomb NG charging wave study';assert page.locator('h1').is_visible();assert page.locator('.sample').count()==180
    page.wait_for_function('document.getAnimations().length>0');visible=page.locator('[data-visible="true"]').count();assert 0<visible<180
    row=page.evaluate('({...study,visible:document.querySelectorAll("[data-visible=true]").length,animations:document.getAnimations().length})');assert row['animations']==visible
