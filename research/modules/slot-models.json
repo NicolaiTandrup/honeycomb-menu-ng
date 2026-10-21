@@ -1,0 +1,134 @@
+{
+  "car": {
+    "title": "Car \u00b7 proposed v1.11 UI",
+    "cells": [
+      [
+        "64%",
+        "Vehicle A"
+      ],
+      [
+        "100%",
+        "Tap target"
+      ],
+      [
+        "80%",
+        "Tap target"
+      ],
+      [
+        "At home",
+        "Location"
+      ],
+      [
+        "HVAC off",
+        "Hold: Climate"
+      ],
+      [
+        "Connected",
+        "Cable status"
+      ],
+      [
+        "Limit 80%",
+        "Hold: adjust"
+      ]
+    ]
+  },
+  "car-limit": {
+    "title": "Car charge limit \u00b7 nested view",
+    "cells": [
+      [
+        "80%",
+        "Charge limit"
+      ],
+      [
+        "\u22121%",
+        "point"
+      ],
+      [
+        "+1%",
+        "point"
+      ],
+      [
+        "\u22125%",
+        "points"
+      ],
+      [
+        "+5%",
+        "points"
+      ],
+      [
+        "\u221210%",
+        "points"
+      ],
+      [
+        "+10%",
+        "points"
+      ]
+    ]
+  },
+  "climate": {
+    "title": "Climate \u00b7 proposed v1.10 UI",
+    "cells": [
+      [
+        "20.2\u00b0",
+        "Set 21.0\u00b0"
+      ],
+      [
+        "+1.0\u00b0",
+        "Raise"
+      ],
+      [
+        "Heat",
+        "Mode / Off"
+      ],
+      [
+        "Modes",
+        "Presets / Fan"
+      ],
+      [
+        "\u22121.0\u00b0",
+        "Lower"
+      ],
+      [
+        "\u22120.5\u00b0",
+        "Lower"
+      ],
+      [
+        "+0.5\u00b0",
+        "Raise"
+      ]
+    ]
+  },
+  "charger": {
+    "title": "Charger \u00b7 proposed v1.9 UI",
+    "cells": [
+      [
+        "7.2 kW",
+        "Charger 1"
+      ],
+      [
+        "2.4 kWh",
+        "Session"
+      ],
+      [
+        "Enabled",
+        "Permission"
+      ],
+      [
+        "Cable",
+        "Lock status"
+      ],
+      [
+        "Charging",
+        "Status"
+      ],
+      [
+        "Limits",
+        "Read only"
+      ],
+      [
+        "Details",
+        "Capabilities"
+      ]
+    ]
+  }
+}

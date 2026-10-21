@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="390" viewBox="0 0 440 390" role="img" aria-labelledby="title description">
+<title id="title">Climate · proposed v1.10 UI</title>
+<desc id="description">Research mock only, no implemented module. Slot 0 is center, 1 left, 2 upper-left, 3 upper-right, 4 right, 5 lower-right, 6 lower-left. Dark shared 82px cells with synthetic values.</desc>
+<rect width="440" height="390" rx="16" fill="#18212b"/>
+<text x="20" y="30" fill="#f6f7f9" font-family="Arial" font-size="19">Climate · proposed v1.10 UI</text>
+<g font-family="Arial" text-anchor="middle">
+<g data-slot="0" data-x="1" data-y="0.865">
+<polygon points="220.00,147.66 261.00,171.33 261.00,218.67 220.00,242.34 179.00,218.67 179.00,171.33" fill="#34383d"/>
+<polygon points="220.00,151.12 258.00,173.06 258.00,216.94 220.00,238.88 182.00,216.94 182.00,173.06" fill="#4f7fae"/>
+<polygon points="220.00,154.58 255.00,174.79 255.00,215.21 220.00,235.42 185.00,215.21 185.00,174.79" fill="#202224"/>
+<text x="220" y="172.0" fill="#9aa8b6" font-size="10">0</text>
+<text x="220" y="196.0" fill="#f6f7f9" font-size="13" font-weight="600">20.2°</text>
+<text x="220" y="212.0" fill="#c8d0d9" font-size="10">Set 21.0°</text>
+</g>
+<g data-slot="1" data-x="0" data-y="0.865">
+<polygon points="134.00,147.66 175.00,171.33 175.00,218.67 134.00,242.34 93.00,218.67 93.00,171.33" fill="#34383d"/>
+<polygon points="134.00,151.12 172.00,173.06 172.00,216.94 134.00,238.88 96.00,216.94 96.00,173.06" fill="#4f7fae"/>
+<polygon points="134.00,154.58 169.00,174.79 169.00,215.21 134.00,235.42 99.00,215.21 99.00,174.79" fill="#202224"/>
+<text x="134" y="172.0" fill="#9aa8b6" font-size="10">1</text>
+<text x="134" y="196.0" fill="#f6f7f9" font-size="13" font-weight="600">+1.0°</text>
+<text x="134" y="212.0" fill="#c8d0d9" font-size="10">Raise</text>
+</g>
+<g data-slot="2" data-x="0.5" data-y="0">
+<polygon points="177.00,73.27 218.00,96.94 218.00,144.28 177.00,167.95 136.00,144.28 136.00,96.94" fill="#34383d"/>
+<polygon points="177.00,76.73 215.00,98.67 215.00,142.55 177.00,164.49 139.00,142.55 139.00,98.67" fill="#4f7fae"/>
+<polygon points="177.00,80.19 212.00,100.40 212.00,140.82 177.00,161.03 142.00,140.82 142.00,100.40" fill="#202224"/>
+<text x="177.0" y="97.61" fill="#9aa8b6" font-size="10">2</text>
+<text x="177.0" y="121.61" fill="#f6f7f9" font-size="13" font-weight="600">Heat</text>
+<text x="177.0" y="137.61" fill="#c8d0d9" font-size="10">Mode / Off</text>
+</g>
+<g data-slot="3" data-x="1.5" data-y="0">
+<polygon points="263.00,73.27 304.00,96.94 304.00,144.28 263.00,167.95 222.00,144.28 222.00,96.94" fill="#34383d"/>
+<polygon points="263.00,76.73 301.00,98.67 301.00,142.55 263.00,164.49 225.00,142.55 225.00,98.67" fill="#4f7fae"/>
+<polygon points="263.00,80.19 298.00,100.40 298.00,140.82 263.00,161.03 228.00,140.82 228.00,100.40" fill="#202224"/>
+<text x="263.0" y="97.61" fill="#9aa8b6" font-size="10">3</text>
+<text x="263.0" y="121.61" fill="#f6f7f9" font-size="13" font-weight="600">Modes</text>
+<text x="263.0" y="137.61" fill="#c8d0d9" font-size="10">Presets / Fan</text>
+</g>
+<g data-slot="4" data-x="2" data-y="0.865">
+<polygon points="306.00,147.66 347.00,171.33 347.00,218.67 306.00,242.34 265.00,218.67 265.00,171.33" fill="#34383d"/>
+<polygon points="306.00,151.12 344.00,173.06 344.00,216.94 306.00,238.88 268.00,216.94 268.00,173.06" fill="#4f7fae"/>
+<polygon points="306.00,154.58 341.00,174.79 341.00,215.21 306.00,235.42 271.00,215.21 271.00,174.79" fill="#202224"/>
+<text x="306" y="172.0" fill="#9aa8b6" font-size="10">4</text>
+<text x="306" y="196.0" fill="#f6f7f9" font-size="13" font-weight="600">−1.0°</text>
+<text x="306" y="212.0" fill="#c8d0d9" font-size="10">Lower</text>
+</g>
+<g data-slot="5" data-x="1.5" data-y="1.725">
+<polygon points="263.00,221.62 304.00,245.29 304.00,292.63 263.00,316.30 222.00,292.63 222.00,245.29" fill="#34383d"/>
+<polygon points="263.00,225.08 301.00,247.02 301.00,290.90 263.00,312.84 225.00,290.90 225.00,247.02" fill="#4f7fae"/>
+<polygon points="263.00,228.54 298.00,248.75 298.00,289.17 263.00,309.38 228.00,289.17 228.00,248.75" fill="#202224"/>
+<text x="263.0" y="245.96000000000004" fill="#9aa8b6" font-size="10">5</text>
+<text x="263.0" y="269.96000000000004" fill="#f6f7f9" font-size="13" font-weight="600">−0.5°</text>
+<text x="263.0" y="285.96000000000004" fill="#c8d0d9" font-size="10">Lower</text>
+</g>
+<g data-slot="6" data-x="0.5" data-y="1.725">
+<polygon points="177.00,221.62 218.00,245.29 218.00,292.63 177.00,316.30 136.00,292.63 136.00,245.29" fill="#34383d"/>
+<polygon points="177.00,225.08 215.00,247.02 215.00,290.90 177.00,312.84 139.00,290.90 139.00,247.02" fill="#4f7fae"/>
+<polygon points="177.00,228.54 212.00,248.75 212.00,289.17 177.00,309.38 142.00,289.17 142.00,248.75" fill="#202224"/>
+<text x="177.0" y="245.96000000000004" fill="#9aa8b6" font-size="10">6</text>
+<text x="177.0" y="269.96000000000004" fill="#f6f7f9" font-size="13" font-weight="600">+0.5°</text>
+<text x="177.0" y="285.96000000000004" fill="#c8d0d9" font-size="10">Raise</text>
+</g>
+</g>
+<text x="20" y="366" fill="#aab9c8" font-family="Arial" font-size="13">Design only · synthetic data · owner review required</text>
+</svg>
