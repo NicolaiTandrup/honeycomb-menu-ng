@@ -1,12 +1,14 @@
 # AI configuration guide
 
-**SUPPORTED AS OF v1.7.0 Stable.** This contract covers the approved
-`restart/v1.5.1` implementations from PR #77/#81, Issue #78 fixes, documentation
-PR #84 and release-retention PR #88. Use it with v1.7.0 code, not stable v1.5.1 or
-the abandoned v1.6 implementation. Package/release metadata is `1.7.0`, stable.
-Unfinished recursive palette, native Car and Climate/Thermostat features (#85–#87)
-are excluded. All YAML examples remain valid; unreleased Issue #90 Sonos slot/Join
-differences are marked in the Sonos section below.
+**SUPPORTED AS OF v1.7.1 Stable.** Includes the v1.7.0 shared Hub/Control and
+visibility/placement architecture plus all owner-approved cumulative beta.8
+functionality (`c1cdd390bed1c1acfc22b314807ce63050e43248`, Issue #102). Sonos slots,
+native no-helper Sleep, Radio artwork/cache compatibility, sibling navigation and
+recursive Light Hue/Kelvin zoom described in the versioned sections below are now
+stable. Historical beta headings identify when a capability was introduced; they
+are not a request to install an obsolete beta. Package/release metadata is `1.7.1`,
+stable. Car/Charger, Climate and unfinished #92/#93/#87/#86 remain excluded; #83
+retention is independent and disabled. No runtime code from v1.6 is imported.
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute

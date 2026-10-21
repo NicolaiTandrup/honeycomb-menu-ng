@@ -13,26 +13,16 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.7.0 Stable.** The shared Hub/Control engine, dynamic visibility, stable
-> slot allocation, Light navigation fixes and refreshed configuration guides are
-> promoted from `restart/v1.5.1`, including PRs #77, #81, #84 and #88.
-> [Download v1.7.0](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.0)
-> or read the [release notes](RELEASE_NOTES.md). No v1.6 implementation or unfinished
-> recursive palette, Car or Climate/Thermostat features (#85–#87) are included.
-
-> **v1.7.1-beta.3 — cumulative owner-test beta.** Includes every tested Sonos
-> beta.2 fix plus Light Color Zoom from isolated PR #94. One HACS bundle supplies
-> both modules; v1.7.0 remains latest stable. [HA beta test guide](docs/V1_7_1_BETA.md)
-> and [Color Zoom slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
-
-> **v1.7.1-beta.8 — cumulative owner-test beta:** based on published beta.7.
-> Sonos Radio, Join and Sleep are sibling submenus: switching replaces the active
-> sibling; one Back returns to Sonos main. They inherit the module's idle-close
-> timeout (8 seconds by default); passive HA updates and discovery do not extend it.
-> Keeps native no-helper Sleep, Sonos visual polish and both recursive Light palettes.
-> [Navigation and timeout rules](docs/SONOS_MODULE.md#beta8-sibling-navigation-and-idle-close)
-> · [HA beta guide](docs/V1_7_1_BETA.md). All previous tags/assets and beta.5's private
-> draft remain immutable. No master/stable promotion without owner HA approval.
+> **v1.7.1 Stable.** Promotes the exact cumulative beta.8 functionality approved
+> by the owner in real Home Assistant. Includes Sonos alignment, station artwork
+> and colors, Join grouping/navigation, native no-helper Sleep Timer, recursive
+> Light Color/Kelvin zoom, clean White swatches and the graphical layout model.
+> Radio/Join/Sleep replace sibling views and inherit idle-close (8 seconds default).
+> [Download v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1)
+> · [release notes](RELEASE_NOTES.md) · [Sonos guide](docs/SONOS_MODULE.md)
+> · [Light guide](docs/LIGHT_MODULE.md). No runtime changes from approved beta.8;
+> the stable bundle adds only a version comment. Shared 82 CSS-px geometry and
+> dynamic visibility/placement are preserved. Car/Charger and Climate remain excluded.
 
 ## What you can build
 

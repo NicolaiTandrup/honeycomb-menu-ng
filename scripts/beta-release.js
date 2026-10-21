@@ -199,7 +199,7 @@ async function main() {
     if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`url=${release.html_url}\n`);
     console.log(`Published prerelease ${release.html_url}; commit=${expected.commit}; SHA256=${expected.sha256}`);
 }
-module.exports = {context,assertRun,verify,assertUnused,inventoryUnchanged,filesFor,assertAssets,newDraft,publish,backend,digest};
+module.exports = {context,assertRun,latestRun,verify,assertUnused,inventoryUnchanged,filesFor,assertAssets,newDraft,publish,backend,digest};
 if(require.main===module)main().catch(error=>{
     const status=/HTTP\s+(\d{3})/.exec(String(error.stderr || ''));
     console.error(error.code==='ERR_ASSERTION' ? error.message : `Beta verification/publication failed${status?' HTTP '+status[1]:''}.`);

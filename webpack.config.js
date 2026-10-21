@@ -8,9 +8,11 @@
  * @License: GPL-3
  */
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
     entry: './src/honeycomb-menu.js',
+    plugins: [new webpack.BannerPlugin({banner: `Honeycomb Menu NG v${require('./package.json').version}`})],
     mode: 'production',
     output: {
         filename: 'honeycomb-menu-ng.js',

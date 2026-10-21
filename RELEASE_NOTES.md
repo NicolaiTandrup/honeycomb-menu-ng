@@ -1,3 +1,52 @@
+# v1.7.1 — Stable
+
+Owner-approved on 2026-10-21 after real Home Assistant testing of cumulative
+v1.7.1-beta.8 at `c1cdd390bed1c1acfc22b314807ce63050e43248` (Issue #102).
+Issues #90, #97 and #99 are completed. Functional source is exactly that beta;
+the rebuilt stable JavaScript adds only a `v1.7.1` version comment. All earlier
+releases/tags/assets, including beta.5's unpublished private draft, are preserved.
+
+- Sonos controls match Light's icon/text layout at the shared 82 CSS-px size.
+  Slots: 1 Radio, 2 Play/Pause, 3 Join, 4 Sleep, 5 Volume Down, 6 Volume Up.
+- Known Radio favorites propagate cached artwork and deterministic station colors
+  to Hub launchers and promoted centers; playing fill is station-colored,
+  paused/idle fill is neutral gray with compact artwork. Existing favorites sensor
+  and template-cache YAML, ordering, artwork and playback remain compatible.
+- Join supports real group membership, room discovery and configured member/script
+  overrides. Radio, Join and Sleep are siblings: switches replace the active view,
+  one Back returns to Sonos main. Idle-close inherits the configured timeout
+  (8 seconds default, intentional zero preserved). Passive HA updates/discovery
+  do not extend it, and late responses cannot resurrect abandoned menus.
+- Native Sonos Sleep uses `sonos.set_sleep_timer` / `sonos.clear_sleep_timer` on the
+  selected group's coordinator: 15/30/45/60/90 minutes and Cancel/OFF. The speaker
+  owns the timer; no HA helper/script/automation setup. Remaining time is a local
+  estimate, not device readback. See [timer limitations](docs/SONOS_SLEEP_TIMER.md).
+- Recursive Hue and bounded linear Kelvin zoom preserve the exact selected slot
+  and value. Holds never apply a Light service; Back restores exact palettes and
+  full close resets. White swatches are filled hexagons without visible dots or
+  values, with screen-reader labels. Native Kelvin bounds are required; client
+  precision is 1 K and devices can quantize more coarsely.
+- Accessible responsive SVG layout model, canonical terminology and versioned
+  human/AI guides ship with all existing Light presets, media controls, dynamic
+  Hub allocation and drag-select behavior.
+
+Stable publication requires a reviewed beta-approval manifest, exact unchanged
+runtime/dependencies, a reproducible bundle, matching green CI on the exact master
+commit and explicit manual authorization. Version/title gates support future
+canonical stable SemVer releases. Retention must remain explicitly false; the
+post-publication retention call is forced read-only. No releases, assets, tags,
+refs, branches or source history are cleanup targets during this release.
+
+HACS: Redownload Honeycomb Menu NG and select v1.7.1 stable, then hard-refresh all
+clients. Keep the existing `honeycomb-menu-ng.js` JavaScript module resource.
+Existing HA Sonos services and optional favorites/cache setup remain prerequisites;
+no new helpers or configuration keys. Car/Charger, Climate and unrelated
+#83/#92/#93/#87/#86 work are excluded. Existing mobile outer-menu edge cropping
+and native Sleep readback limitations are unchanged. Future stable versions still
+require beta testing and explicit owner approval.
+
+---
+
 # v1.7.1-beta.7 — cumulative Sonos visuals and Kelvin zoom
 
 ## v1.7.1-beta.8 — cumulative Sonos navigation and idle-close
