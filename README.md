@@ -354,3 +354,5 @@ read-only. All v0/v1 stable releases and v1.7 prereleases are retained. Before a
 future activation, review a fresh [retention dry-run](docs/RELEASE_RETENTION.md).
 Deleting a Release record removes its uploaded assets; its Git tag and tagged
 source remain. Tags, branches and source history are never cleanup targets.
+
+Maintainers: see the [HACS catalog readiness and submission checklist](docs/HACS_SUBMISSION.md). Catalog submission remains owner-gated.

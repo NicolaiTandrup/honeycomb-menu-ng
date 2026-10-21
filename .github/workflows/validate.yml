@@ -1,0 +1,19 @@
+name: HACS dashboard validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate the current branch with official HACS checks
+        uses: hacs/action@main
+        with:
+          category: plugin
+          comment: false
