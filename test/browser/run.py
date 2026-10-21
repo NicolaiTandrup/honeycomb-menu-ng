@@ -1079,6 +1079,22 @@ class Cubes(unittest.TestCase):
         self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Metadata unavailable')
         self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
         self.page.wait_for_function('hub._menuContext.stack.length===1')
+    def test_beta5_named_light_center_keeps_visible_label_and_accessible_back(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','menu':{
+            'entity':'light.zone_a','nested_expand':True,'promote_to_center':True,
+            'promoted_center':{'entity':'light.zone_a','mode':'persistent','name':'Light A','show_name':True},
+            'buttons':[{'name':'Details','show_name':True,'tap_action':{'action':'honeycomb-open-nested','honeycomb_nested_menu':{
+                'entity':'light.zone_a','nested_expand':True,'buttons':[{'name':'Value A','show_name':True,'tap_action':{'action':'none'}}]}}}]}}]})
+        self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle()
+        center=self.page.locator('honeycomb-menu .center-item')
+        self.assertEqual(center.locator('.primary').inner_text(),'Light A')
+        self.assertEqual(center.locator('.interaction-surface').get_attribute('aria-label'),'Back')
+        self.activate(self.page.locator('honeycomb-menu [aria-label="Details"]'));self.settle()
+        self.assertEqual(center.locator('.primary').inner_text(),'Light A')
+        center.locator('.interaction-surface').press('Enter');self.page.wait_for_function('hub._menuContext.stack.length===1');self.settle()
+        self.assertEqual(center.locator('.primary').inner_text(),'Light A')
+        self.activate(center.locator('.interaction-surface'));self.page.wait_for_function('hub._menuContext.stack.length===0')
+
     def test_beta5_artwork_responsive_state_and_volume_labels(self):
         self.beta4_radio_hub();launcher=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
         for promoted in [False,True]:

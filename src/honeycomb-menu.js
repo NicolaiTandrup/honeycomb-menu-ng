@@ -184,7 +184,6 @@ function openHoneycombMenu(context, config)
                     honeycombConfig.promoted_center,
                     {
                         interactive: true,
-                        name: 'Back', show_name: false, autoclose: false,
                         tap_action: { action: 'honeycomb-back' },
                         size: (current.persistent_center || {}).size || honeycombConfig.promoted_center.size
                     }
@@ -197,7 +196,6 @@ function openHoneycombMenu(context, config)
                     honeycombConfig.persistent_center || current.persistent_center,
                     {
                         interactive: true,
-                        name: 'Back', show_name: false, autoclose: false,
                         icon: 'mdi:arrow-left',
                         tap_action: { action: 'honeycomb-back' }
                     }
