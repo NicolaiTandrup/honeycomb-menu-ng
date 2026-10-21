@@ -219,6 +219,17 @@ class Examples(BROWSER.Cubes):
         self.page.evaluate('states=>pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]))',STATES)
     def control_example(self,name):
         self.page.evaluate('config=>makeControl(config)',self.examples[name]);self.settle()
+    def test_docs_presentation_example_live_colors_and_action(self):
+        config=load((ROOT/'examples/presentation-light.yaml').read_text())
+        self.hub(config)
+        fills=self.controls().evaluate_all('(els)=>els.map(e=>e._model.fill)')
+        self.assertEqual(fills[0]['type'],'radial')
+        self.assertEqual(fills[1],{'type':'solid','center':'#203040'})
+        self.activate(self.controls().first.locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls'),[['homeassistant','toggle',{}, {'entity_id':'light.zone_a'}]])
+        self.page.evaluate("pushState('light.zone_a','off',{supported_color_modes:['hs']})")
+        self.assertEqual(self.controls().first.evaluate('(e)=>e._model.fill.type'),'solid')
+        self.capture('docs-shared-presentation-example')
     def test_docs_basic_hub_and_auto_tables(self):
         self.hub(self.examples['hub.yaml']);self.assert_visible_unique_cells(3)
         for count,without,with_logo in self.auto:
@@ -298,7 +309,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:
