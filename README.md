@@ -110,6 +110,8 @@ current coordinate tables, not inferred from button order.
 
 ### Naming standard: menu rings vs cube borders
 
+![Menu rings and the visual layers of one cube](docs/assets/menu-rings-vs-cube-borders.svg)
+
 When reporting layouts or visual bugs, distinguish **menu geometry** (multiple
 cells) from the **visual layers of one cube**:
 
