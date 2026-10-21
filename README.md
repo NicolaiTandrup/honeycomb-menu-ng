@@ -109,6 +109,34 @@ current coordinate tables, not inferred from button order.
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
 
+### Naming standard: menu rings vs cube borders
+
+When reporting layouts or visual bugs, distinguish **menu geometry** (multiple
+cells) from the **visual layers of one cube**:
+
+| Danish | English | Refers to |
+|---|---|---|
+| **Centerkube** | Center cube | Physical **slot 0** |
+| **Indre menuring** | Inner menu ring | Separate menu cubes in **slots 1–6** |
+| **Ydre menuring** | Outer menu ring | Separate menu cubes in **slots 7–18** |
+| **Kubefyld** | Cube fill / center fill | Background **inside one cube** (`colors.center`) |
+| **Inderkant** | Inner border | The **inner border of one cube** (`colors.inner_border`) |
+| **Yderkant** | Outer border | The **outer border of one cube** (`colors.outer_border`) |
+| **Hub-kube** | Persistent Hub launcher | Always-visible dashboard launcher; **not automatically slot 0** |
+| **Modulkube** | Module launcher | Cube in Hub menu opening a module |
+| **Promoveret centerkube** | Promoted center cube | Selected module shown at slot 0 of its submenu |
+
+Other agreed terms include **kubeikon** (cube icon), **kubelogo**
+(cube artwork), **kubetekst** (cube label), **tilbagekube** (back cube),
+**funktionskube** (action cube), and **favoritkube** (favorite cube).
+
+**Never use unqualified “inderring” or “yderring” for a cube border.**
+Use **menuring** for the spatial arrangement of separate cubes and
+**inderkant/yderkant** for the visual layers of one cube.
+
+The complete bilingual glossary, role distinctions, examples and Classic-menu
+exceptions are in **[Layout terminology](docs/TERMINOLOGY.md)**.
+
 The current Hub renderer supports **217 physical positions including center**.
 Configured items are not capped at 7 or 18: items beyond physical capacity remain
 tracked and report overflow. Large layouts may clip near viewport edges; there is
