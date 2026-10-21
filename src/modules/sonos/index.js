@@ -1,5 +1,6 @@
 const media = require('../media/index.js');
 const station = require('./station.js');
+const sleep = require('./sleep.js');
 const { registerActions } = require('./grouping.js');
 const { sonosButtonStyles } = require('./presentation.js');
 const { buildRadioMenu } = require('./favorites.js');
@@ -123,17 +124,7 @@ function buildMenu({ item })
                     sonos_item: {entity:item.entity,members:item.members,toggle_member_script:item.toggle_member_script}
                 }
             },
-            {
-                slot: 4,
-                slot_mode: 'hard',
-                entity: item.entity,
-                icon: 'mdi:folder-music',
-                name: 'Browse',
-                show_name: true,
-                autoclose: true,
-                styles: sonosButtonStyles(),
-                tap_action: { action: 'navigate', navigation_path: `/media-browser/${encodeURIComponent(item.entity)}` }
-            },
+            sleep.buildButton(item),
             {
                 slot: 5,
                 slot_mode: 'hard',
@@ -185,8 +176,9 @@ module.exports = {
     aliases: ['media-sonos'],
     priority: 400,
     launcherKind: 'persistent',
-    persistentModes: ['sonos'],
-    presentation: station,
+    persistentModes: ['sonos','sonos-sleep'],
+    presentation: {resolve:context=>context.config.mode==='sonos-sleep' ? sleep.resolve(context) : station.resolve(context),
+        diagnostics:context=>context.config.mode==='sonos-sleep' ? {ready:sleep.status(context.hass,context.config._sleep || {}).ready} : station.diagnostics(context)},
 
     // Backwards compatible: existing type: media continues to mean the
     // Sonos-oriented module unless the user explicitly selects module: media.
@@ -203,7 +195,7 @@ module.exports = {
 
     buildMenu,
     sonosButtonStyles,
-    registerActions,
+    registerActions(registry) { registerActions(registry); sleep.registerActions(registry); },
 
     buildLauncher(context)
     {

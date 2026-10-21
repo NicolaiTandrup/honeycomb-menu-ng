@@ -9,10 +9,17 @@ function presentationDependencies(config) {
         else if (value && typeof value === 'object') Object.values(value).forEach(visit);
     };
     for (const key of KEYS) visit(config[key]);
-    return {wildcard, entity:config.entity, sonos:config.mode==='sonos' ? config._sonos : null};
+    return {wildcard, entity:config.entity, sonos:config.mode==='sonos' ? config._sonos : null, sleep:config._sleep};
 }
 function presentationSnapshot(hass, dependency) {
     const entity = (hass && hass.states || {})[dependency.entity];
+    if (dependency.sleep) {
+        const states=hass && hass.states || {},options=dependency.sleep;
+        const reported=entity && entity.attributes && entity.attributes.group_members;
+        const group=Array.isArray(reported) ? reported : [];
+        return JSON.stringify([entity,states[options.state],states[options.deadline],states[options.script],
+            group.map(id=>states[id]),hass && hass.services && hass.services.script]);
+    }
     if (dependency.sonos) {
         const states=hass && hass.states || {};
         const leader=(entity && entity.attributes && entity.attributes.group_members || [])[0];

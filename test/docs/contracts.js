@@ -20,6 +20,10 @@ for(const [,slot,x,y] of svgCells){
     assert.ok(group.includes(`<text x="${actual.x*100+60}" y="${actual.y*100+70}">${slot}</text>`));
     assert.ok(group.includes(`points="${actual.x*100+60},${actual.y*100+15}`));
 }
+const terms=fs.readFileSync('docs/TERMINOLOGY.md','utf8');
+for(const term of ['Inner menu ring','Outer menu ring','Inner border','Outer border','Module launcher','Promoted center cube']) assert.ok(terms.includes(term));
+assert.ok(readme.includes('Naming standard: menu rings vs cube borders'));
+assert.ok(readme.includes('docs/TERMINOLOGY.md'));
 const guide=fs.readFileSync('docs/AI_SETUP.md','utf8');
 const diagram=guide.split('<!-- physical-slot-map:start -->')[1].split('<!-- physical-slot-map:end -->')[0];
 const cells=[];

@@ -66,6 +66,7 @@ function buildJoinMenu(item, discovery = null)
 
     return {
         entity: item.entity,
+        _sonos_join_entity: item._selected_entity || item.entity,
         nested_expand: true,
         inherit_inner: true,
         empty_slots: 'hidden',
@@ -146,25 +147,39 @@ function registerActions(registry)
     });
 }
 
-async function openJoin({hass,actionConfig,openNested,isCurrent=()=>true,getHass=()=>hass})
+const joinRequests=new WeakMap();
+async function openJoin({hass,actionConfig,openNested,isCurrent=()=>true,getHass=()=>hass,requestScope,menuConfig})
 {
     const original=actionConfig.sonos_item;
-    const discovery=Array.isArray(original.members) ? null : await discoverSonos(hass);
-    if (!isCurrent()) return false;
-    const live=getHass(),item={...original};
-    // Native grouping follows a reciprocally confirmed leader; external scripts
-    // keep their existing selected-coordinator contract.
-    if (!item.toggle_member_script) {
-        const state=(live.states || {})[item.entity],group=state && state.attributes.group_members;
-        const leader=Array.isArray(group) && group[0],leaderState=(live.states || {})[leader];
-        if (leader && leader!==item.entity && leaderState && Array.isArray(leaderState.attributes.group_members) &&
-            leaderState.attributes.group_members[0]===leader && leaderState.attributes.group_members.includes(item.entity) &&
-            (Array.isArray(original.members) || discovery && discovery.players.includes(leader))) {
-            item._selected_entity=item.entity;item.entity=leader;
+    // Inherited inner controls remain visible in Join. Re-entering the same
+    // view must not push duplicate levels that look like a stuck Back control.
+    if (menuConfig && menuConfig._sonos_join_entity===original.entity) return false;
+    const scope=requestScope || openNested;
+    const previous=joinRequests.get(scope);
+    if (previous && previous.isCurrent()) return false;
+    const request={isCurrent};joinRequests.set(scope,request);
+    let timeout;
+    try {
+        const discovery=Array.isArray(original.members) ? null : await Promise.race([
+            discoverSonos(hass),new Promise(resolve=>{timeout=setTimeout(()=>resolve({players:[],status:'unavailable'}),5000);})
+        ]);
+        if (!isCurrent() || joinRequests.get(scope)!==request) return false;
+        const live=getHass(),item={...original};
+        if (!item.toggle_member_script) {
+            const state=(live.states || {})[item.entity],group=state && state.attributes.group_members;
+            const leader=Array.isArray(group) && group[0],leaderState=(live.states || {})[leader];
+            if (leader && leader!==item.entity && leaderState && Array.isArray(leaderState.attributes.group_members) &&
+                leaderState.attributes.group_members[0]===leader && leaderState.attributes.group_members.includes(item.entity) &&
+                (Array.isArray(original.members) || discovery && discovery.players.includes(leader))) {
+                item._selected_entity=item.entity;item.entity=leader;
+            }
         }
+        openNested(buildJoinMenu(item,discovery));
+        return true;
+    } finally {
+        clearTimeout(timeout);
+        if (joinRequests.get(scope)===request) joinRequests.delete(scope);
     }
-    openNested(buildJoinMenu(item,discovery));
-    return true;
 }
 
 module.exports = { buildJoinMenu, memberState, toggleMember, openJoin, registerActions };

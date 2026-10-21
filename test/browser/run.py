@@ -641,7 +641,7 @@ class Cubes(unittest.TestCase):
     def test_issue90_slots_handlers_and_light_alignment(self):
         self.sonos_open()
         self.assert_visible_unique_cells(7)
-        self.assertEqual(self.page.locator('honeycomb-menu-item .interaction-surface').evaluate_all('(els)=>els.map(el=>el.getAttribute("aria-label"))'),['Radio','Pause','Join','Browse','Vol','Vol'])
+        self.assertEqual(self.page.locator('honeycomb-menu-item .interaction-surface').evaluate_all('(els)=>els.map(el=>el.getAttribute("aria-label"))'),['Radio','Pause','Join','Sleep','Vol','Vol'])
         self.assertEqual(self.page.locator('honeycomb-menu .center-item .secondary').inner_text(),'42%')
         for physical,service in [(2,'media_play_pause'),(5,'volume_down'),(6,'volume_up')]:
             self.activate(self.sonos_slot(physical).locator('.interaction-surface'))
@@ -814,7 +814,7 @@ class Cubes(unittest.TestCase):
         self.page.evaluate("pushState('media_player.player_a','playing',{media_content_id:'x-sonosapi-hls:other',media_channel:'Station A live',media_title:'Station A',group_members:['media_player.player_a']})")
         self.page.wait_for_function('!hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork')
         self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#00bcd4')
-    def test_beta2_discovered_native_join_unjoin_and_browse_route(self):
+    def test_beta5_discovered_join_sleep_default_and_optional_explicit_browse(self):
         self.sonos_open({'type':'media','entity':'media_player.player_a','active_color':'#00bcd4'})
         self.page.evaluate("""()=>{
           hass.entities=Object.fromEntries(['a','b','c'].map(s=>['media_player.player_'+s,{entity_id:'media_player.player_'+s,platform:'sonos'}]));
@@ -834,8 +834,16 @@ class Cubes(unittest.TestCase):
         self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
         self.page.evaluate("window.browseEvents=0;window.addEventListener('location-changed',()=>browseEvents++)")
         self.activate(self.sonos_slot(4).locator('.interaction-surface'))
-        self.assertTrue(self.page.url.endswith('/media-browser/media_player.player_a'))
-        self.assertEqual(self.page.evaluate('moreInfo'),[]);self.assertEqual(self.page.evaluate('browseEvents'),1)
+        self.page.wait_for_function('hub._menuContext.stack.length===2')
+        self.assertFalse('/media-browser/' in self.page.url)
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Setup required')
+        self.assertEqual(self.sonos_slot(7).locator('.interaction-surface').get_attribute('aria-disabled'),'true')
+        self.assertEqual(self.page.evaluate('moreInfo'),[]);self.assertEqual(self.page.evaluate('browseEvents'),0)
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.page.evaluate("makeControl({module:'generic',entity:'media_player.player_a',name:'Optional Browse',tap_action:{action:'navigate',navigation_path:'/media-browser/media_player.player_a'}})")
+        self.activate(self.page.locator('body > honeycomb-persistent-control .interaction-surface'))
+        self.assertTrue(self.page.url.endswith('/media-browser/media_player/player_a') or self.page.url.endswith('/media-browser/media_player.player_a'))
+        self.assertEqual(self.page.evaluate('browseEvents'),1)
     def test_beta2_registry_ws_failure_and_empty_discovery_are_distinct(self):
         self.sonos_open({'type':'sonos','entity':'media_player.player_a'})
         self.page.evaluate("()=>{hass.callWS=async()=>{throw new Error('synthetic permission denial')}}")
@@ -933,6 +941,165 @@ class Cubes(unittest.TestCase):
             self.assertEqual(center.locator('.station-artwork').get_attribute('src'),logo)
             self.capture(f'beta4-selected-{physical}-center')
             self.back();self.page.wait_for_function('hub._menuContext.stack.length===0')
+
+    def sleep_backend_setup(self,backend=None):
+        if backend is None:
+            import importlib.util,time
+            spec=importlib.util.spec_from_file_location('sleep_package_contract',ROOT/'test/sleep_timer/run.py')
+            module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+            backend=module.HA(two=True);backend.time=int(time.time())
+            for entity,state in backend.states.items():
+                if entity.startswith('media_player.'):
+                    state['attributes'].update(volume_level=.02,supported_features=524289,media_content_id='favorite_a')
+            backend.states['sensor.favorites']={'state':'1','attributes':{'items':{'favorite_a':'Station A'}}}
+            backend.states['sensor.favorites_cache']={'state':'1','attributes':{'items':[{'media_content_id':'favorite_a','thumbnail':'/station-a.svg'}]}}
+        self.sleep_backend=backend
+        if not getattr(self,'_sleep_binding',False):
+            def command(service,data):
+                suffix=service.rsplit('_',1)[1]
+                backend.command(suffix,**data);backend.drain()
+                return backend.states
+            self.page.expose_function('serverSleepCommand',command);self._sleep_binding=True
+        self.page.evaluate("""states=>{
+            window.notifications=[];
+            if(!window.sleepNotificationListener){window.sleepNotificationListener=true;document.querySelector('home-assistant').addEventListener('hass-notification',e=>notifications.push(e.detail.message));}
+            hass.services={script:{sonos_sleep_a:{},sonos_sleep_c:{}},media_player:{join:{},unjoin:{}}};
+            hass.entities=Object.fromEntries(Object.keys(states).filter(id=>id.startsWith('media_player.')).map(id=>[id,{entity_id:id,platform:'sonos'}]));
+            hass.callService=async(...args)=>{
+                calls.push(args);
+                if(args[0]==='script' && ['sonos_sleep_a','sonos_sleep_c'].includes(args[1])){
+                    const states=await serverSleepCommand(args[1],args[2]);
+                    pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]));
+                }
+            };
+            pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]));
+        }""",backend.states)
+        return backend
+    def sleep_hub(self,player='a'):
+        self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_'+player,
+            'favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache',
+            'sleep_timer':{'state':'input_text.sonos_sleep_'+player,'deadline':'input_datetime.sonos_sleep_deadline_'+player,'script':'script.sonos_sleep_'+player}}]})
+        self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1');self.settle()
+    def sleep_sync(self):
+        self.page.evaluate('states=>pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]))',self.sleep_backend.states)
+    def test_beta5_sleep_server_choices_cancel_reload_expiry_and_restart(self):
+        backend=self.sleep_backend_setup();self.sleep_hub()
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.settle()
+        self.assertEqual([self.sonos_slot(i).locator('.primary').inner_text() for i in range(7,13)],['15 min','30 min','45 min','60 min','90 min','Cancel'])
+        for physical,minutes in [(7,15),(8,30),(9,45),(10,60),(11,90)]:
+            self.activate(self.sonos_slot(physical).locator('.interaction-surface'))
+            self.page.wait_for_function('minutes=>JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).m===minutes',arg=minutes)
+            self.assertEqual(backend.record()['m'],minutes)
+            self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','sonos_sleep_a',{'player':'media_player.player_a','operation':'start','minutes':minutes},{}])
+        self.capture('beta5-sleep-running')
+        self.activate(self.sonos_slot(12).locator('.interaction-surface'))
+        self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="off"')
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
+        end=backend.record()['e']
+        self.page.reload();self.page.wait_for_function('window.ready');self.sleep_backend_setup(backend);self.sleep_hub()
+        self.assertEqual(backend.record()['e'],end);self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'15 min')
+        # The actual YAML contract executes outside the browser while it is absent.
+        self.page.goto('about:blank');backend.tick(900)
+        self.assertEqual(len(backend.pauses()),1)
+        self.page.goto(self.url);self.page.wait_for_function('window.ready');self.sleep_backend_setup(backend);self.sleep_hub()
+        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Expired')
+        for entity in ['media_player.player_a','media_player.player_b']:backend.states[entity]['state']='playing'
+        backend.request('start',15);backend.restart();self.sleep_sync();self.settle()
+        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Restarted');self.capture('beta5-sleep-restart-cancelled')
+        backend.request('start',15);backend.fail_pause=True;backend.tick(900);self.sleep_sync();self.settle()
+        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Check HA');self.capture('beta5-sleep-expiry-error')
+    def test_beta5_sleep_two_tabs_instances_and_group_change(self):
+        backend=self.sleep_backend_setup();self.sleep_hub()
+        other=Cubes();other.setUp()
+        try:
+            other.sleep_backend_setup(backend);other.sleep_hub()
+            self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+            self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
+            other.sleep_sync();other.settle();self.assertEqual(other.sonos_slot(4).locator('.secondary').inner_text(),'15 min')
+            backend.request('start',30,suffix='c');record=backend.record('c').copy()
+            self.activate(self.sonos_slot(12).locator('.interaction-surface'))
+            self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="off"')
+            self.assertEqual(backend.record('c'),record)
+            self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+            self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
+            backend.change('media_player.player_b','playing',{'group_members':['media_player.player_b'],'supported_features':524289});backend.drain()
+            self.sleep_sync();other.sleep_sync();self.settle();other.settle()
+            self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Group changed')
+            self.assertEqual(other.sonos_slot(4).locator('.secondary').inner_text(),'Group changed')
+            self.assertEqual(self.sonos_slot(7).locator('.interaction-surface').get_attribute('aria-disabled'),'true')
+            center=self.page.locator('honeycomb-menu .center-item .interaction-surface');self.activate(center)
+            self.page.wait_for_function('hub._menuContext.stack.length===1');self.capture('beta5-sleep-group-changed-back')
+        finally:other.tearDown()
+    def test_beta5_sleep_clock_is_display_only_and_errors_are_recoverable(self):
+        from datetime import datetime,timezone
+        backend=self.sleep_backend_setup();self.page.clock.install(time=datetime.fromtimestamp(backend.time,timezone.utc));self.sleep_hub()
+        self.activate(self.sonos_slot(4).locator('.interaction-surface'));self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.page.wait_for_function('JSON.parse(hass.states["input_text.sonos_sleep_a"].state.slice(4)).s==="running"')
+        count=self.page.evaluate('calls.length');self.page.clock.fast_forward(61000)
+        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'14 min')
+        self.assertEqual(self.page.evaluate('calls.length'),count);self.assertEqual(backend.pauses(),[])
+        self.page.clock.fast_forward(14*60000)
+        self.assertEqual(self.sonos_slot(4).locator('.secondary').inner_text(),'Due');self.assertEqual(backend.pauses(),[])
+        self.page.evaluate("()=>{hass.callService=async()=>{throw new Error('synthetic request failure')}}")
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+        self.page.wait_for_function('notifications.some(x=>x.includes("Sleep Timer request failed"))')
+        self.page.evaluate('()=>{hass.callService=()=>new Promise(()=>{})}')
+        self.activate(self.sonos_slot(7).locator('.interaction-surface'));self.page.clock.fast_forward(31000)
+        self.page.wait_for_function('notifications.filter(x=>x.includes("Sleep Timer request failed")).length===2')
+        self.capture('beta5-sleep-request-error')
+    def test_beta5_join_back_reentry_and_late_discovery(self):
+        self.sonos_open()
+        for iteration in range(4):
+            self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.page.wait_for_function('hub._menuContext.stack.length===2');self.settle()
+            self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.settle()
+            self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2,'No duplicate Join view')
+            self.activate(self.sonos_slot(7).locator('.interaction-surface'))
+            self.page.evaluate("pushState('media_player.player_b','idle',{group_members:['media_player.player_b'],volume_level:.2})")
+            center=self.page.locator('honeycomb-menu .center-item .interaction-surface')
+            self.assertEqual(center.get_attribute('aria-label'),'Back');center.press('Enter') if iteration==2 else self.activate(center)
+            self.page.wait_for_function('hub._menuContext.stack.length===1');self.settle()
+        self.capture('beta5-join-back-repeated')
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.sonos_open({'type':'sonos','entity':'media_player.player_a'})
+        self.page.evaluate("()=>{window.discovery=[];hass.callWS=()=>new Promise(resolve=>discovery.push(resolve))}")
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('discovery.length'),1)
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===0')
+        self.page.evaluate("discovery[0]({entities:[{ei:'media_player.player_a',pl:'sonos'},{ei:'media_player.player_b',pl:'sonos'}]})")
+        self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0,'Late discovery never reopens a closed view')
+        self.page.clock.install()
+        self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.page.clock.fast_forward(5100)
+        self.page.wait_for_function('hub._menuContext.stack.length===2');self.settle()
+        self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'Metadata unavailable')
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+    def test_beta5_artwork_responsive_state_and_volume_labels(self):
+        self.beta4_radio_hub();launcher=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
+        for promoted in [False,True]:
+            if promoted:
+                self.hold_input(launcher.locator('.interaction-surface'));self.page.wait_for_function('hub._menuContext.stack.length===1')
+            cube=self.page.locator('honeycomb-menu .center-item') if promoted else launcher
+            sizes=[]
+            for state in ['playing','paused']:
+                for volume in ([0,.02,.42,1] if state=='playing' else [.02]):
+                    self.page.evaluate("([state,volume])=>pushState('media_player.player_a',state,{...hass.states['media_player.player_a'].attributes,volume_level:volume})",[state,volume]);self.settle()
+                    img=cube.locator('.station-artwork');img.wait_for(state='visible')
+                    cell=cube.bounding_box();box=img.bounding_box();self.assertEqual(cell['width'],82)
+                    sizes.append(box['width'])
+                    self.assertGreater(box['x'],cell['x']);self.assertLess(box['x']+box['width'],cell['x']+cell['width'])
+                    if state=='playing':
+                        label=cube.locator('.secondary');self.assertEqual(label.inner_text(),f'{round(volume*100)}%')
+                        text=label.bounding_box();self.assertLess(box['y']+box['height'],text['y'])
+                    else:self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#202224')
+                self.capture(f'beta5-artwork-{ "center" if promoted else "module" }-{state}')
+            self.assertGreater(sizes[-1],sizes[0]*1.2)
+            self.page.evaluate("pushState('media_player.player_a','playing',{...hass.states['media_player.player_a'].attributes,volume_level:.02})")
 
     def station_hub(self, overrides=None):
         self.sonos_setup()

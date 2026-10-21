@@ -24,7 +24,9 @@ test('Hub Sonos, legacy media and standalone Sonos compile identical slots and h
         assert.equal(menu.buttons[0].tap_action.action,'honeycomb-open-nested');
         assert.equal(menu.buttons[1].tap_action.perform_action,'media_player.media_play_pause');
         assert.equal(menu.buttons[2].tap_action.sonos_item.toggle_member_script,script);
-        assert.deepEqual(menu.buttons[3].tap_action,{action:'navigate',navigation_path:'/media-browser/media_player.player_a'});
+        assert.equal(menu.buttons[3].name,'Sleep');
+        assert.equal(menu.buttons[3].tap_action.action,'honeycomb-open-nested');
+        assert.deepEqual(menu.buttons[3].tap_action.honeycomb_nested_menu.buttons.map(b=>b.name),['15 min','30 min','45 min','60 min','90 min','Cancel']);
         assert.equal(menu.buttons[4].tap_action.direction,'down');
         assert.equal(menu.buttons[5].tap_action.direction,'up');
         assert.equal(menu.promoted_center.mode,'sonos');
@@ -392,4 +394,27 @@ test('station/programme parsing is delimiter-bound, corroborated, unique and nev
     hass.states['sensor.favorites_cache_a'].attributes.items[0].title='Station Alpha';
     hass.states['sensor.favorites_a'].attributes.items['FV:2/58']='Station Alpha · Programme';
     assert.equal(probe('Station Alpha · Programme').diagnostics.reason,'channel_ambiguous','Full-label vs parsed-station conflict is rejected');
+});
+
+test('Join reentry does not stack duplicate views and late stale discovery cannot reopen after Back',async()=>{
+    const hass=fixture();let complete,calls=0,opened=0,live=true;
+    hass.callWS=()=>{calls++;return new Promise(resolve=>complete=resolve)};
+    const scope={},context={hass,actionConfig:{sonos_item:{entity:player}},requestScope:scope,
+        isCurrent:()=>live,openNested:()=>opened++};
+    const first=openJoin(context);
+    assert.equal(await openJoin(context),false);assert.equal(calls,1);
+    live=false;complete({entities:[{ei:player,pl:'sonos'}]});assert.equal(await first,false);assert.equal(opened,0);
+    assert.equal(await openJoin({...context,menuConfig:{_sonos_join_entity:player}}),false);
+});
+test('playing artwork reserves text space and paused artwork expands inside the same fill',()=>{
+    const {hass,config}=stationFixture();
+    hass.states[player].attributes.volume_level=.02;
+    let art=station.resolve({hass,config,state:hass.states[player]}).artwork;
+    assert.equal(art.style.width,'62%');assert.equal(art.style.height,'48%');
+    hass.states[player].state='paused';
+    art=station.resolve({hass,config,state:hass.states[player]}).artwork;
+    assert.equal(art.style.width,'80%');assert.equal(art.style.height,'74%');
+    config.label='Custom label';config.show_name=true;config.name='Player A';
+    art=station.resolve({hass,config,state:hass.states[player]}).artwork;
+    assert.equal(art.style.height,'36%','Explicit labels still reserve space');
 });

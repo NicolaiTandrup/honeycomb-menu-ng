@@ -1,6 +1,7 @@
 # Sonos module
 
-**Supported as of v1.7.0** Stable (validated on beta.3 and the stable candidate).
+**Current development: v1.7.1-beta.5** (cumulative; real HA approval required).
+Stable v1.7.0 has the historical slot arrangement described below.
 See [the complete card](../examples/v1.7/sonos.yaml) and the
 [external HA setup contract](AI_SETUP.md#external-home-assistant-prerequisites).
 
@@ -19,7 +20,7 @@ Legacy `type: media` still resolves to Sonos unless `module: media` is specified
 ## Default detail layout
 
 Issue #90 development patch (target v1.7.1, pending owner review) moves the Radio,
-Browse and volume launchers. Published v1.7.0 used volume down/up at 1/4 and
+Sleep and volume launchers. Published v1.7.0 used volume down/up at 1/4 and
 Radio/Browse at 5/6. The Radio outer submenu is unchanged.
 
 | Slot | Function |
@@ -28,7 +29,7 @@ Radio/Browse at 5/6. The Radio outer submenu is unchanged.
 | 1 | Radio favorites |
 | 2 | play/pause |
 | 3 | Join |
-| 4 | Home Assistant Browse Media |
+| 4 | Sleep Timer — optional HA package |
 | 5 | group-aware volume down |
 | 6 | group-aware volume up |
 
@@ -166,15 +167,20 @@ existing setup/error states. Request failures produce a notification; actual HA
 `group_members` controls live membership labels/colors. The ring stays open for
 repeated selections and center/back returns to the module.
 
-## Browse Media
+## Sleep Timer / optional Browse compatibility
 
-Slot 4 navigates to HA's actual `/media-browser/media_player.player_a` panel for
-the selected player, then closes the Honeycomb menu. It does not open more-info.
-This is the supported media-browser route, including the player's sources such
-as Favorites and Plex when HA exposes them. HA's internal lazy-loaded browse
-dialog has no stable custom-card import API; Honeycomb does not call private
-frontend methods or invent dialog-loading events. Use browser/HA back to return.
-The Media panel and player browsing capability must be available in HA.
+From cumulative beta.5, slot 4 is **Sleep**, opening native 15/30/45/60/90-minute
+and Cancel/OFF choices. [Setup and exact group/restart rules](SONOS_SLEEP_TIMER.md):
+install the optional two-helper HA package plus queued script/automation; without
+it timer choices are disabled. Browser reloads do not cancel a job; HA restart,
+automation reload, state-helper reload or group changes cancel safely.
+
+HA Browse Media APIs remain available to custom configurations. The old default
+`/media-browser/<player>` navigation is removed from Sonos slot 4. If desired,
+use an ordinary generic Hub cube with an explicit existing `navigate` action to
+`/media-browser/media_player.player_a`; no new Browse option or native hierarchy
+is introduced. No Spotify API/authentication, browser-only timer or backend
+favorites helper is added.
 
 ## Full example
 
@@ -334,3 +340,18 @@ Frontend interfaces reviewed at commit `a321b07bba901b64790e654d7539ee2bfe20b6d6
 [media browser route](https://github.com/home-assistant/frontend/blob/a321b07bba901b64790e654d7539ee2bfe20b6d6/src/panels/media-browser/ha-panel-media-browser.ts).
 Native feature constants reviewed in HA core `1d6681b0a21e92ca776e9bffcd1dd74daffe5391`.
 Actual HA/Sonos installation remains the owner's beta verification gate.
+
+## v1.7.1-beta.5 artwork and Join navigation
+
+Station artwork is sized inside the clipped cube fill, independently of the
+82 px cell. Playing artwork uses a compact 62% usable-width box with reserved
+volume/name space; default paused artwork expands to 80% while fill stays neutral
+and inner border retains its station hue. Explicit labels still reserve space.
+Both the Sonos module launcher in the Hub menu and promoted center cube are tested
+with 0%, 2%, 42%, 100%, station switches and missing/unknown artwork.
+
+Join's inherited inner control cannot push another identical Join view. Discovery
+is single-flight per menu revision, times out safely, and cannot reopen a view
+after Back/close/navigation; a fresh request can supersede a stale one. The center
+has an accessible Back label and pops exactly one level. Native discovery/grouping
+and configured member/script overrides remain unchanged.

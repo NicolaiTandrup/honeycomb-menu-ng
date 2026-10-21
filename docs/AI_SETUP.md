@@ -50,7 +50,7 @@ is not proof that a feature exists. Do not invent keys such as `visible_when`,
 | Shared presentation | `name`, `label`, `icon` strings/templates; `show_name`, `show_label`, `show_icon` booleans/templates; `background`, `foreground`; `colors`; `border`; `styles`; `variables`; `custom_fields`; `interactive`; `off`; `active_color`; `show_brightness`, `show_volume`. |
 | Shared interaction | `tap_action`, `hold_action`, `double_tap_action` action objects; `hold_time` ms (default 500, minimum 250); `autoclose`; `audio`. Optional `menu` overrides the module menu; advanced Hub `persistent` overrides its compiled launcher. |
 | Light options | `presets.brightness: {entity, default?}`; `presets.kelvin: {entity, default?}`; `presets.color: {hue_entity, saturation_entity}`. See units and capability precedence below. |
-| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
+| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`; beta.5 `sleep_timer: {state, deadline, script}` with external HA package. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
 
 Presentation keys pass through the shared engine; `styles` uses button-card-style
 lists under `card`, `icon`, `name`, `label`, `grid`. Domain defaults can hide names
@@ -269,11 +269,11 @@ Empty/setup labels distinguish missing registry metadata, no other Sonos, invali
 manual entries, unsupported grouping, unavailable native services and script errors.
 Do not silently insert scripts, fake success or regroup unrelated players.
 
-Sonos inner slots: 1 Radio, 2 Play/Pause, 3 Solo/Join, 4 Browse Media, 5 Volume Down,
+Sonos inner slots: 1 Radio, 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down,
 6 Volume Up. Hub legacy `type: media` still selects Sonos; explicit `module: media`
-keeps generic Media behavior. Browse uses HA's selected-player Media panel route
-`/media-browser/media_player.player_a`, not more-info or a private dialog API.
-The HA Media panel/player browse capability must be available. See
+keeps generic Media behavior. Slot 4 opens the optional HA-backed Sleep Timer;
+see [setup](SONOS_SLEEP_TIMER.md). Custom explicit navigation can still use
+`/media-browser/media_player.player_a`; it is not a default Sonos action. See
 [Sonos details](SONOS_MODULE.md).
 
 ## Canonical complete cards
@@ -556,3 +556,38 @@ endpoints, unrounded intermediates. See the verified [slot grid](LIGHT_MODULE.md
 Back restores each complete palette via the owning menu's stack. Full close or
 Escape/reopen resets. HA updates preserve open history. Never add zoom to Kelvin,
 static presets, Sonos or generic Media; preserve gestures, nested anchor and size.
+
+## v1.7.1-beta.5 — server-side Sleep and visual/navigation corrections
+
+Keep cumulative beta.4 Sonos recognition and owner-tested recursive Light Zoom.
+Use [canonical cube/menu terminology](TERMINOLOGY.md); README's slot diagram is
+unchanged. Sonos defaults are 1 Radio, 2 Play/Pause, 3 Join, **4 Sleep**, 5 Down, 6 Up.
+Sleep opens 15/30/45/60/90 min and Cancel/OFF at outer menu slots 7–12, retaining
+inner menu controls and center Back. External Browse navigation is optional custom
+configuration using the existing navigate action; it is no longer slot 4.
+
+New Sonos-only `sleep_timer` object has exactly `state` (`input_text.*`), `deadline`
+(`input_datetime.*`, date+time), and `script` (`script.*`). It must reference the
+[optional HA package](../examples/packages/sonos-sleep-a.yaml), hard-bound to the
+item's selected entity. Full [setup, protocol, supported mechanisms and safety
+semantics](SONOS_SLEEP_TIMER.md). Never claim HACS creates helpers or call an
+invented Sonos timer service. Missing/mismatched setup disables choices explicitly.
+
+Backend: queued commands, persisted UTC deadline/arm timestamp, canonical group
+fingerprint, exact player binding, idempotent expiry tokens, disarm-first/arm-last
+writes and failed-pause reporting. Any group/coordinator/unavailability transition
+cancels; expire only against the unchanged reciprocal current Sonos group. Browser
+reload/closure does not stop the HA job. **HA restart, automation reload and state
+helper reload cancel safely; countdown does not resume across HA restart.** Separate
+instances do not cancel each other; overlapping timers are not arbitrated globally.
+A local display-only refresh must never call HA or perform expiry. Unsupported/
+ambiguous stations retain beta.4 safe fallback and existing caches stay compatible.
+
+Artwork scales within usable cube fill, not cell geometry; pause enlarges it while
+keeping gray fill/station inner border. Explicit labels reserve space. Join must
+reject same-view reentry and stale async completion after a menu revision change.
+Back remains an accessible one-level action during state/group updates.
+
+Tests execute actual package YAML/Jinja via HA service/state contracts plus
+Chromium desktop/touch regression. They do not run a full HA server or real Sonos;
+owner installation and HA testing remain necessary before stable approval.

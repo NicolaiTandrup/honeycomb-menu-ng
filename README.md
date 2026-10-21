@@ -25,11 +25,11 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > both modules; v1.7.0 remains latest stable. [HA beta test guide](docs/V1_7_1_BETA.md)
 > and [Color Zoom slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
 
-> **v1.7.1-beta.4 target:** cumulative Sonos radio artwork corrections and
-> Light Zoom. Handles verified `Station Alpha · programme text` channel metadata
-> and preserves artwork on promoted/navigation centers. See the
-> [beta test guide](docs/V1_7_1_BETA.md) and
-> [privacy-safe diagnostics](docs/SONOS_MODULE.md#station-recognition-diagnostics).
+> **v1.7.1-beta.5 target:** cumulative Sonos artwork/Join Back fixes, native
+> Sleep submenu in slot 4, and owner-tested Light Zoom. Sleep needs an optional
+> [HA package and setup](docs/SONOS_SLEEP_TIMER.md); it survives browser closure
+> but deliberately cancels on HA restart or group changes. Terminology from PR #96
+> is included below. No master/stable promotion without owner approval.
 
 ## What you can build
 
@@ -249,7 +249,7 @@ These keys belong to **Hub items**, not standalone Control or submenu buttons.
 | Hub item | Standalone Control | Features |
 |---|---|---|
 | `type: light` | `module: light` | Toggle, brightness, Color/White, presets |
-| `type: sonos` | `module: sonos` | Play/pause, group volume, Join, Radio, Browse |
+| `type: sonos` | `module: sonos` | Play/pause, group volume, Join, Radio, Sleep (beta.5) |
 | `type: media` + `module: media` | `module: media` | Generic media without Sonos menus |
 | `type: generic` | `module: generic` | Custom entity/actions, no domain menu by default |
 
@@ -299,14 +299,17 @@ Group volume works natively using `group_members`; no volume scripts are require
 Radio needs the official Sonos favorites entity enabled in HA (often disabled by
 default). Supply its actual ID via `favorites_sensor`. An optional external
 [cache sensor](examples/sonos-favorites-cache.yaml) adds artwork; it does not supply
-playback IDs. Join needs both `members` and an external
-[toggle script](examples/sonos-toggle-member.yaml). Browse opens HA more-info.
+playback IDs. The current beta discovers Sonos rooms and groups natively;
+`members` and an external [toggle script](examples/sonos-toggle-member.yaml) remain
+optional overrides. Slot 4 opens native Sleep choices, requiring the optional
+[HA package](docs/SONOS_SLEEP_TIMER.md). Browse is an explicit custom navigation
+choice rather than a default Sonos control.
 The [complete Sonos example](examples/v1.7/sonos.yaml) and
 [AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)
 explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_MODULE.md).
 
 Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
-2 Play/Pause, 3 Solo/Join, 4 Browse, 5 Volume Down, 6 Volume Up**. Join shows live
+2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
 room membership or an explicit setup/availability state. Radio's outer submenu
 retains its ordering, artwork and playback, with new stable favorite accent rings.
 A reliably identified favorite can provide cached launcher artwork and playing

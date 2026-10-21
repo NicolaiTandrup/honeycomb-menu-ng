@@ -132,6 +132,15 @@ function stationForeground(color)
     const luminance=.2126*linear[0]+.7152*linear[1]+.0722*linear[2];
     return (luminance+.05)/.064 >= .98/(luminance+.05) ? '#14202b' : '#f6f7f9';
 }
+// Percentages refer to the usable clipped cube fill, never the whole cell.
+function artworkStyle(playing, primary, secondary)
+{
+    const text=primary || secondary;
+    const width=playing || text ? 62 : 80;
+    return {width:`${width}%`,left:`${(100-width)/2}%`,
+        top:text ? '10%' : playing ? '19%' : '13%',
+        height:primary && secondary ? '36%' : text ? '48%' : playing ? '62%' : '74%'};
+}
 function resolve({config,state,hass,runtime={}})
 {
     const base=media.resolve({config,state});
@@ -149,8 +158,9 @@ function resolve({config,state,hass,runtime={}})
     }
     const customImage=((config.styles || {}).card || []).some(rule=>Object.prototype.hasOwnProperty.call(rule,'background-image'));
     const artwork=usable && !config.custom_fields && config.show_icon!==false && config.icon!==false && !customImage
-        ? {url:favorite.url,key:favorite.key} : null;
+        ? {url:favorite.url,key:favorite.key,style:artworkStyle(favorite.playing,config.show_name && !!config.name,
+            config.label!==undefined && config.show_label!==false ? !!config.label : !!base.secondary)} : null;
     const foreground=usable && !forceColors && (!config.colors || !config.colors.center || config.colors.center==='auto') ? stationForeground(favorite.color) : undefined;
     return {...base,colors,forceColors,artwork,foreground};
 }
-module.exports={PALETTE,accentColor,accentTemplate,settings,validThumbnail,channelName,inspectFavorite,recognizedFavorite,diagnostics,stationForeground,resolve};
+module.exports={PALETTE,accentColor,accentTemplate,settings,validThumbnail,channelName,inspectFavorite,recognizedFavorite,diagnostics,stationForeground,artworkStyle,resolve};

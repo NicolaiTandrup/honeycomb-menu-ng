@@ -87,6 +87,35 @@ def capture_reference(cubes, handler, button, evidence):
                     assert center.locator('.station-artwork').count()==0
                     case.capture('beta4-radio-center-playing')
                 finally:case.tearDown()
+            beta4='7f00dd9193c70c837dcbb71fd1c705539498800f'
+            beta4_bundle=subprocess.check_output(['git','show',f'{beta4}:honeycomb-menu-ng.js'])
+            assert hashlib.sha256(beta4_bundle).hexdigest()=='bc009fcf437191a5dbff52d89596b9342cd82abbc9b641fe7a82afc523b7543d'
+            file.write_bytes(beta4_bundle)
+            before_beta5=evidence/'before-beta5';before_beta5.mkdir(parents=True,exist_ok=True);cubes.evidence=before_beta5
+            depths=[]
+            for width,height in [(1100,900),(390,844)]:
+                cubes.viewport={'width':width,'height':height}
+                case=cubes();case.setUp()
+                try:
+                    case.beta4_radio_hub();launcher=case.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
+                    for promoted in [False,True]:
+                        if promoted:case.hold_input(launcher.locator('.interaction-surface'));case.settle()
+                        for state in ['playing','paused']:
+                            case.page.evaluate("state=>pushState('media_player.player_a',state,{...hass.states['media_player.player_a'].attributes,volume_level:state==='playing'?1:.02})",state)
+                            case.capture(f'beta5-artwork-{ "center" if promoted else "module" }-{state}')
+                        case.page.evaluate("pushState('media_player.player_a','playing',{...hass.states['media_player.player_a'].attributes,volume_level:.02})")
+                finally:case.tearDown()
+                case=cubes();case.setUp()
+                try:
+                    case.sonos_open();case.activate(case.sonos_slot(3).locator('.interaction-surface'));case.settle()
+                    case.activate(case.sonos_slot(3).locator('.interaction-surface'));case.settle()
+                    duplicate=case.page.evaluate('hub._menuContext.stack.length');assert duplicate==3
+                    case.activate(case.page.locator('honeycomb-menu .center-item .interaction-surface'));case.settle()
+                    after_back=case.page.evaluate('hub._menuContext.stack.length');assert after_back==2
+                    depths.append({'viewport':width,'duplicate_join_depth':duplicate,'after_one_back':after_back})
+                    case.capture('beta5-join-duplicate-back')
+                finally:case.tearDown()
+            (before_beta5/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.4','commit':beta4,'sha256':hashlib.sha256(beta4_bundle).hexdigest(),'entities':'synthetic','navigation':depths},indent=2)+'\n')
             (before_beta4/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.3','commit':beta3,'sha256':hashlib.sha256(beta3_bundle).hexdigest(),'entities':'synthetic','video':'owner written findings only; no video frames claimed'},indent=2)+'\n')
             (expanded/'provenance.json').write_text(json.dumps({'commit':previous,'sha256':hashlib.sha256(previous_bundle).hexdigest(),'entities':'synthetic'},indent=2)+'\n')
             (before/'provenance.json').write_text(json.dumps({'tag':'v1.7.0','commit':commit,'sha256':hashlib.sha256(bundle).hexdigest(),'viewports':[[1100,900],[390,844]],'entities':'synthetic','missing_join_setup':'more-info fallback; no outer candidates'},indent=2)+'\n')

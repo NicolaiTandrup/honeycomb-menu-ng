@@ -1,3 +1,42 @@
+# v1.7.1-beta.5 — cumulative Sonos Sleep, artwork and navigation
+
+Based on exact immutable beta.4, preserving its Radio recognition/cache behavior,
+Join/grouping, media controls and the owner-tested recursive Light Color Zoom.
+Documentation-only terminology PR #96 is deliberately integrated into this branch;
+no review PR or master is merged by publication.
+
+- Compact playing artwork leaves room for 0/2/42/100% volume labels. Paused artwork
+  expands within clipped cube fill, retaining gray fill, station-colored inner
+  border and shared 82 px geometry. Both module launcher and promoted center tested.
+- Fix repeated Join reentry stacking identical views and stale asynchronous
+  discovery after navigation. Accessible center Back returns one level; room
+  discovery, native grouping and configured scripts/members remain working.
+- Replace Sonos slot 4 Browse with native **Sleep**: 15/30/45/60/90 minutes plus
+  Cancel/OFF. Radio, Play/Pause, Join and volume retain their slots and handlers.
+  Explicit custom HA Browse navigation remains supported.
+- **Sleep requires the optional HA package**: two helpers, one queued script and
+  one automation per selected player. HACS frontend cannot create these. HA owns
+  the persisted deadline and expiry; there is no browser-only countdown/action.
+  Commands bind to one selected player, reject stale expiry and recheck the group.
+  Any group change/unavailability cancels; unrelated rooms are never targeted by
+  a global pause. Errors are surfaced without delayed playback retries.
+- **Browser closure/reload preserves the job; HA restart, automation reload and
+  state-helper reload cancel it safely. It does not resume across HA restart.**
+  Separate instances remain independent; overlapping timers have no global arbiter.
+
+See [HA setup / test checklist](docs/SONOS_SLEEP_TIMER.md),
+[HACS beta instructions](docs/V1_7_1_BETA.md) and [terminology](docs/TERMINOLOGY.md).
+Package YAML/Jinja service contracts and browser tests are not a running HA Core
+or physical Sonos installation. Real HA group/event behavior, artwork access,
+external setup and non-Chromium still require owner validation. Unsupported station
+formats fall back; very long helper payload identifiers fail closed. Existing
+narrow-screen outer-menu cropping is unchanged. #83 stays independent dry-run only;
+#92/#93/#87/#86 are excluded. No stable publication, master merge or deletion of
+releases/tags/branches/history is authorized. Owner approval after HA testing is
+required before stable promotion.
+
+---
+
 # v1.7.1-beta.4 — cumulative Sonos radio artwork and Light Zoom
 
 Continues from immutable cumulative beta.3 (`b61374e6589111642768b305724d52c385eccfa6`),
