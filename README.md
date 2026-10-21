@@ -1,3 +1,9 @@
+<p align="right">
+  <a href="https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/latest">
+    <img alt="Latest stable version" src="https://img.shields.io/github/v/release/NicolaiTandrup/honeycomb-menu-ng?label=stable&amp;color=2ea44f">
+  </a>
+</p>
+
 <p align="center">
   <img src="assets/honeycomb-menu-ng-logo.png" width="220" alt="Honeycomb Menu NG">
 </p>
@@ -107,27 +113,26 @@ current coordinate tables, not inferred from button order.
 When reporting layouts or visual bugs, distinguish **menu geometry** (multiple
 cells) from the **visual layers of one cube**:
 
-| Danish | English | Refers to |
-|---|---|---|
-| **Centerkube** | Center cube | Physical **slot 0** |
-| **Indre menuring** | Inner menu ring | Separate menu cubes in **slots 1–6** |
-| **Ydre menuring** | Outer menu ring | Separate menu cubes in **slots 7–18** |
-| **Kubefyld** | Cube fill / center fill | Background **inside one cube** (`colors.center`) |
-| **Inderkant** | Inner border | The **inner border of one cube** (`colors.inner_border`) |
-| **Yderkant** | Outer border | The **outer border of one cube** (`colors.outer_border`) |
-| **Hub-kube** | Persistent Hub launcher | Always-visible dashboard launcher; **not automatically slot 0** |
-| **Modulkube** | Module launcher | Cube in Hub menu opening a module |
-| **Promoveret centerkube** | Promoted center cube | Selected module shown at slot 0 of its submenu |
+| Term | Refers to |
+|---|---|
+| **Center cube** | Physical **slot 0** |
+| **Inner menu ring** | Separate menu cubes in **slots 1–6** |
+| **Outer menu ring** | Separate menu cubes in **slots 7–18** |
+| **Cube fill / center fill** | Background **inside one cube** (`colors.center`) |
+| **Inner border** | The **inner border of one cube** (`colors.inner_border`) |
+| **Outer border** | The **outer border of one cube** (`colors.outer_border`) |
+| **Persistent Hub launcher** | Always-visible dashboard launcher; **not automatically slot 0** |
+| **Module launcher** | Cube in Hub menu opening a module |
+| **Promoted center cube** | Selected module shown at slot 0 of its submenu |
 
-Other agreed terms include **kubeikon** (cube icon), **kubelogo**
-(cube artwork), **kubetekst** (cube label), **tilbagekube** (back cube),
-**funktionskube** (action cube), and **favoritkube** (favorite cube).
+Other agreed terms include **cube icon**, **cube artwork**, **cube label**,
+**back cube**, **action cube**, and **favorite cube**.
 
-**Never use unqualified “inderring” or “yderring” for a cube border.**
-Use **menuring** for the spatial arrangement of separate cubes and
-**inderkant/yderkant** for the visual layers of one cube.
+**Avoid ambiguous references to an “inner ring” or “outer ring.”**
+Use **menu ring** for the spatial arrangement of separate cubes and
+**inner border / outer border** for the visual layers of one cube.
 
-The complete bilingual glossary, role distinctions, examples and Classic-menu
+The complete layout glossary, role distinctions, examples and Classic-menu
 exceptions are in **[Layout terminology](docs/TERMINOLOGY.md)**.
 
 The current Hub renderer supports **217 physical positions including center**.
