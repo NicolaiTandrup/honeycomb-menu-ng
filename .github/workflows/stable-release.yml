@@ -44,20 +44,14 @@ jobs:
           cache: npm
       - name: Verify exact master, disabled retention and completed CI
         id: gates
+        env:
+          PUBLICATION_MODE: prepare
+          RELEASE_OUTPUT: ${{ runner.temp }}/stable-assets
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           test "$RELEASE_RETENTION_ENABLED" = false
-          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
-          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/master" --jq .commit.sha)" = "$EXPECTED_COMMIT"
-          git merge-base --is-ancestor 7706859016872ee95bde4299b10a07c072fa38b6 HEAD
-          git diff --exit-code 7706859016872ee95bde4299b10a07c072fa38b6 HEAD -- src
-          RUN_ID=$(gh run list --workflow build.yml --commit "$EXPECTED_COMMIT" --event push --status success --json databaseId,headBranch --jq '[.[] | select(.headBranch == "master")][0].databaseId // empty')
-          test -n "$RUN_ID"
-          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq .head_sha)" = "$EXPECTED_COMMIT"
-          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
-          echo "commit=$EXPECTED_COMMIT" >> "$GITHUB_OUTPUT"
+          node scripts/stable-release.js
       - uses: actions/download-artifact@v4
         with:
           name: honeycomb-menu-ng
@@ -79,7 +73,8 @@ jobs:
           node scripts/check-release.js --stable > "$RUNNER_TEMP/reproduced-SHA256SUMS.txt"
           cmp honeycomb-menu-ng.js "$RUNNER_TEMP/validated-master/honeycomb-menu-ng.js"
           cmp "$RUNNER_TEMP/reproduced-SHA256SUMS.txt" "$RUNNER_TEMP/validated-master/SHA256SUMS.txt"
-          node scripts/stable-release.js
+          cmp honeycomb-menu-ng.js "$RELEASE_OUTPUT/honeycomb-menu-ng.js"
+          cmp "$RUNNER_TEMP/reproduced-SHA256SUMS.txt" "$RELEASE_OUTPUT/SHA256SUMS.txt"
       - uses: actions/upload-artifact@v4
         with:
           name: verified-stable-assets-${{ inputs.expected_commit }}
@@ -102,6 +97,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       EXPECTED_COMMIT: ${{ needs.verify.outputs.commit }}
       VALIDATED_CI_RUN: ${{ needs.verify.outputs.ci_run }}
+      STABLE_PUBLICATION_AUTHORIZED: ${{ inputs.publish }}
       RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
     steps:
       - uses: actions/checkout@v4
@@ -146,5 +142,5 @@ jobs:
     uses: ./.github/workflows/release-retention.yml
     with:
       published_release_id: ${{ needs.publish.outputs.release_id }}
-      # Explicitly forbid cleanup during v1.7.0 even if an external actor changes the variable.
-      dry_run_only: ${{ needs.publish.outputs.version == '1.7.0' }}
+      # Stable publication never authorizes deletion; retention remains independent.
+      dry_run_only: true

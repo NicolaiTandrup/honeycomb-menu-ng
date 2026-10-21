@@ -13,12 +13,16 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.7.0 Stable.** The shared Hub/Control engine, dynamic visibility, stable
-> slot allocation, Light navigation fixes and refreshed configuration guides are
-> promoted from `restart/v1.5.1`, including PRs #77, #81, #84 and #88.
-> [Download v1.7.0](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.0)
-> or read the [release notes](RELEASE_NOTES.md). No v1.6 implementation or unfinished
-> recursive palette, Car or Climate/Thermostat features (#85–#87) are included.
+> **v1.7.1 Stable.** Promotes the exact cumulative beta.8 functionality approved
+> by the owner in real Home Assistant. Includes Sonos alignment, station artwork
+> and colors, Join grouping/navigation, native no-helper Sleep Timer, recursive
+> Light Color/Kelvin zoom, clean White swatches and the graphical layout model.
+> Radio/Join/Sleep replace sibling views and inherit idle-close (8 seconds default).
+> [Download v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1)
+> · [release notes](RELEASE_NOTES.md) · [Sonos guide](docs/SONOS_MODULE.md)
+> · [Light guide](docs/LIGHT_MODULE.md). No runtime changes from approved beta.8;
+> the stable bundle adds only a version comment. Shared 82 CSS-px geometry and
+> dynamic visibility/placement are preserved. Car/Charger and Climate remain excluded.
 
 ## What you can build
 
@@ -88,13 +92,7 @@ These are **physical slots**, viewed face-on. The figure is checked against the
 current coordinate tables, not inferred from button order.
 
 <!-- layout-diagram:start -->
-```text
-        [ 9]    [10]    [11]
-    [ 8]    [ 2]    [ 3]    [12]
-[ 7]    [ 1]    [ 0]    [ 4]    [13]
-    [18]    [ 6]    [ 5]    [14]
-        [17]    [16]    [15]
-```
+![Honeycomb physical slots: center 0; inner 1 left, 2 upper-left, 3 upper-right, 4 right, 5 lower-right, 6 lower-left; outer 7–18 as verified in the AI slot map](docs/assets/layout-slots.svg)
 <!-- layout-diagram:end -->
 
 | Area | Physical slots | Meaning |
@@ -103,6 +101,34 @@ current coordinate tables, not inferred from button order.
 | Inner ring | `1–6` | Six immediate neighbors |
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
+
+### Naming standard: menu rings vs cube borders
+
+When reporting layouts or visual bugs, distinguish **menu geometry** (multiple
+cells) from the **visual layers of one cube**:
+
+| Danish | English | Refers to |
+|---|---|---|
+| **Centerkube** | Center cube | Physical **slot 0** |
+| **Indre menuring** | Inner menu ring | Separate menu cubes in **slots 1–6** |
+| **Ydre menuring** | Outer menu ring | Separate menu cubes in **slots 7–18** |
+| **Kubefyld** | Cube fill / center fill | Background **inside one cube** (`colors.center`) |
+| **Inderkant** | Inner border | The **inner border of one cube** (`colors.inner_border`) |
+| **Yderkant** | Outer border | The **outer border of one cube** (`colors.outer_border`) |
+| **Hub-kube** | Persistent Hub launcher | Always-visible dashboard launcher; **not automatically slot 0** |
+| **Modulkube** | Module launcher | Cube in Hub menu opening a module |
+| **Promoveret centerkube** | Promoted center cube | Selected module shown at slot 0 of its submenu |
+
+Other agreed terms include **kubeikon** (cube icon), **kubelogo**
+(cube artwork), **kubetekst** (cube label), **tilbagekube** (back cube),
+**funktionskube** (action cube), and **favoritkube** (favorite cube).
+
+**Never use unqualified “inderring” or “yderring” for a cube border.**
+Use **menuring** for the spatial arrangement of separate cubes and
+**inderkant/yderkant** for the visual layers of one cube.
+
+The complete bilingual glossary, role distinctions, examples and Classic-menu
+exceptions are in **[Layout terminology](docs/TERMINOLOGY.md)**.
 
 The current Hub renderer supports **217 physical positions including center**.
 Configured items are not capped at 7 or 18: items beyond physical capacity remain
@@ -216,7 +242,7 @@ These keys belong to **Hub items**, not standalone Control or submenu buttons.
 | Hub item | Standalone Control | Features |
 |---|---|---|
 | `type: light` | `module: light` | Toggle, brightness, Color/White, presets |
-| `type: sonos` | `module: sonos` | Play/pause, group volume, Join, Radio, Browse |
+| `type: sonos` | `module: sonos` | Play/pause, group volume, Join, Radio, Sleep (beta.6 candidate) |
 | `type: media` + `module: media` | `module: media` | Generic media without Sonos menus |
 | `type: generic` | `module: generic` | Custom entity/actions, no domain menu by default |
 
@@ -251,7 +277,10 @@ cell width. Control has no Hub `items` list or item-level dynamic allocation.
 
 Light detail slots are: **1** 100%, **2** brightness preset, **3** Color/White
 (or passive Light for brightness-only), **4** standard color/Kelvin,
-**5** −5%, **6** +5%. Color or white palettes add slots 7–18 without moving center.
+**5** −5%, **6** +5%. Color or White palettes add slots 7–18 without moving the center cube. In beta.7,
+White swatches are solid temperature colors: tap applies; hold refines without
+calling HA. Back restores the prior palette, and full close resets it. Native
+Kelvin bounds and integer-precision limits apply; no new YAML options are needed.
 
 Preset values may be writable `number.*` entities on **another relay/device or
 integration**, or `input_number.*` helpers. They need not belong to the Light.
@@ -266,11 +295,21 @@ Group volume works natively using `group_members`; no volume scripts are require
 Radio needs the official Sonos favorites entity enabled in HA (often disabled by
 default). Supply its actual ID via `favorites_sensor`. An optional external
 [cache sensor](examples/sonos-favorites-cache.yaml) adds artwork; it does not supply
-playback IDs. Join needs both `members` and an external
-[toggle script](examples/sonos-toggle-member.yaml). Browse opens HA more-info.
+playback IDs. The current beta discovers Sonos rooms and groups natively;
+`members` and an external [toggle script](examples/sonos-toggle-member.yaml) remain
+optional overrides. Slot 4 opens native Sleep choices using official
+[Sonos device actions](docs/SONOS_SLEEP_TIMER.md), with no helper/script setup. Browse is an explicit custom navigation
+choice rather than a default Sonos control.
 The [complete Sonos example](examples/v1.7/sonos.yaml) and
 [AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)
 explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_MODULE.md).
+
+Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
+2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
+room membership or an explicit setup/availability state. Radio's outer submenu
+retains its ordering, artwork and playback, with new stable favorite accent rings.
+A reliably identified favorite can provide cached launcher artwork and playing
+color; pause/stop remains neutral. See [matching limits and styling precedence](docs/SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
 
 ## Actions, appearance and navigation
 

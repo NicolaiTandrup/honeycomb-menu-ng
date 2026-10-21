@@ -9,6 +9,7 @@ const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
+const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
 
 class CubeElement extends LitElement
@@ -80,6 +81,8 @@ class CubeElement extends LitElement
 
             .artwork { position:absolute;inset:0;pointer-events:none;
                 clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); }
+            .content.has-artwork { justify-content:flex-end;padding-bottom:22%;box-sizing:border-box; }
+            .station-artwork { position:absolute;left:22%;top:22%;width:56%;height:56%;object-fit:contain;pointer-events:none;z-index:1; }
             .external-content { position:absolute;inset:8%;overflow:hidden; }
             .external-content > * { height:100%; }
             .primary { font-size:calc(var(--honeycomb-persistent-size,82px)*.16);font-weight:650;line-height:1.1; }
@@ -215,6 +218,12 @@ class CubeElement extends LitElement
     _updatePresentation()
     {
         if (!this.config) return;
+        const key=this.isConnected && this.config._sleep ? presentationUpdates.connectionKey(this.hass) : null;
+        if (key!==this._localPresentationKey) {
+            if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
+            this._localPresentationKey=key;
+            this._localPresentationUnsubscribe=key ? presentationUpdates.subscribe(this.hass,()=>this._updatePresentation()) : null;
+        }
         const presentation = this._resolvePresentation();
         const style = key => Object.assign({}, ...(this._value((this.config.styles || {})[key], []) || []));
         const card = style('card');
@@ -231,15 +240,25 @@ class CubeElement extends LitElement
         if (this.config.mode === 'generic') {
             colors.center = card.background || card['background-color'] || this._value(this.config.background, colors.center);
         }
+        if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
         const secondary = this.config.label !== undefined && this.config.show_label !== false
             ? this._value(this.config.label) : presentation.secondary;
-        const model = {colors, secondary,
+        const model = {colors, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:this.config.show_name ? this._value(this.config.name) : '',
-            icon:this.config.show_icon === false ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
-            foreground:this._value(this.config.foreground, this._foregroundForBackground(colors.center)),
+            icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
+            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(colors.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
+        // Display refresh only. The backend/device owns expiry; this never calls HA.
+        const refreshAt=presentation.refreshAt || null;
+        if (refreshAt!==this._presentationRefreshAt || !this.isConnected) {
+            clearTimeout(this._presentationTimer);this._presentationTimer=null;
+            this._presentationRefreshAt=refreshAt;
+            if (refreshAt && this.isConnected) this._presentationTimer=setTimeout(()=>{
+                this._presentationRefreshAt=null;this._updatePresentation();
+            },Math.max(100,refreshAt-Date.now()));
+        }
         const signature = JSON.stringify(model);
         this._model = model;
         if (signature !== this._presentationSignature) {
@@ -326,6 +345,7 @@ class CubeElement extends LitElement
     connectedCallback()
     {
         super.connectedCallback();
+        this._updatePresentation();
         const host = this.getRootNode().host;
         if (!host || !host._menuContext) {
             if (!this._hasHassProvider) { this._hasHassProvider = true; provideHass(this); }
@@ -335,6 +355,9 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
+        this._localPresentationUnsubscribe=null;this._localPresentationKey=null;
+        clearTimeout(this._presentationTimer);this._presentationTimer=null;this._presentationRefreshAt=null;
         this._cancelGesture();
 
         if( this._beeFlapTimer )
@@ -380,12 +403,14 @@ class CubeElement extends LitElement
         if( module && module.presentation && typeof module.presentation.resolve === 'function' )
         {
             const runtime = {
-                lastKnownColor: this._lastKnownColor
+                lastKnownColor: this._lastKnownColor,
+                failedArtworkKey: this._failedArtworkKey
             };
 
             const presentation = module.presentation.resolve({
                 config: this.config || {},
                 state: this._entityState(),
+                hass: this.hass,
                 runtime
             });
 
@@ -405,6 +430,15 @@ class CubeElement extends LitElement
             },
             secondary: null
         };
+    }
+
+    // User-invoked, privacy-safe module diagnostics. No automatic logging.
+    getPresentationDiagnostics()
+    {
+        const module = moduleRegistry.resolvePresentation(this.config && this.config.mode);
+        if (!module || !module.presentation || !module.presentation.diagnostics) return null;
+        return module.presentation.diagnostics({hass:this.hass,config:this.config,
+            runtime:{failedArtworkKey:this._failedArtworkKey}});
     }
 
     _parseColor(color)
@@ -557,11 +591,14 @@ class CubeElement extends LitElement
 
     _handlePointerDown(e)
     {
-        if( ! this.config || this.config.disabled || this.config.interactive === false )
+        if( ! this.config || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false )
             return;
 
         if( e.button !== undefined && e.button !== 0 )
             return;
+
+        const owner = this.getRootNode().host;
+        if (owner && owner._resetIdleTimeout) owner._resetIdleTimeout();
 
         this._clearHoldTimer();
         this._pointerId = e.pointerId;
@@ -746,7 +783,7 @@ class CubeElement extends LitElement
 
     _executeAction(action)
     {
-        if (!action || !this.hass || this.config.disabled || this.config.interactive === false) return;
+        if (!action || !this.hass || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false) return;
         const name=typeof action === 'string' ? action : (action.action || 'toggle');
         this._dispatchAction(action);
         const owner=this.getRootNode().host;
@@ -760,7 +797,7 @@ class CubeElement extends LitElement
 
     _dispatchAction(action)
     {
-        if( ! action || ! this.hass || this.config.disabled || this.config.interactive === false )
+        if( ! action || ! this.hass || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false )
             return;
 
         if (typeof action === 'string') action = {action};
@@ -778,7 +815,19 @@ class CubeElement extends LitElement
         }
         if (actionName === 'honeycomb-close') { window.honeycomb_menu_context_close(context); return; }
         if (customActionRegistry.has(actionName)) {
+            const sourceConfig=this.config, sourceMenu=context && context.currentConfig;
+            const sourceHost=this.getRootNode().host;
+            // Menu identity changes on navigation, not on passive HA renders.
+            // Guard the completion as well as discovery's own checks so a late
+            // async action cannot resurrect an abandoned submenu.
+            const isCurrent=()=>context ? context.currentConfig===sourceMenu &&
+                context.honeycomb===sourceHost && sourceHost.isConnected && !sourceHost.closing :
+                this.isConnected && this.config===sourceConfig;
             customActionRegistry.handle(actionName,{hass:this.hass,actionConfig:action,
+                openNested:config=>isCurrent() ? this._openHoneycombMenu(config) : null,
+                getHass:()=>context && context.honeycomb ? context.honeycomb.hass : this.hass,
+                isCurrent,
+                requestScope:context || this,
                 entity:this.config.entity,itemConfig:this.config,menuConfig:(this.getRootNode().host || {}).config});
             return;
         }
@@ -893,9 +942,13 @@ class CubeElement extends LitElement
                     <polygon class="hex-fill" points=${points} fill=${m.colors.center}></polygon>
                 </g>
             </svg>
-            <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}></div>
+            <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>
+                ${m.artwork ? html`<img class="station-artwork" src=${m.artwork.url} alt="" aria-hidden="true"
+                    style=${styleMap(m.artwork.style || {})}
+                    @error=${()=>{if(this._model.artwork && this._model.artwork.key===m.artwork.key){this._failedArtworkKey=m.artwork.key;this._updatePresentation();}}}>` : ''}
+            </div>
             ${external ? html`<div class="external-content"></div>` : html`
-            <div class="content ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''}"
+            <div class="content ${m.artwork ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
                 ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
@@ -903,8 +956,15 @@ class CubeElement extends LitElement
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
             </div>`}
             ${this.config.interactive !== false && !this.config.disabled ? html`
-            <div class="interaction-surface" role="button" tabindex="0" aria-label=${m.name || String(m.secondary || this.config.entity || 'Honeycomb')}
-                @keydown=${e=>{if(!e.repeat && ['Enter',' '].includes(e.key)){e.preventDefault();this._executeAction(this.config.tap_action || {action:'toggle'});}}}
+            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+                @keydown=${e=>{
+                    const zoom=(this.config.hold_action && ['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action)) ||
+                        (this.config.tap_action && this.config.tap_action.action==='honeycomb-light-kelvin-apply');
+                    if (zoom && e.key==='Escape') {e.preventDefault();this._dispatchAction({action:'honeycomb-close'});return;}
+                    if(!m.disabled && !e.repeat && ['Enter',' '].includes(e.key)) {
+                        e.preventDefault();this._executeAction(zoom && e.shiftKey ? this.config.hold_action : this.config.tap_action || {action:'toggle'});
+                    }
+                }}
                 @pointerdown=${this._handlePointerDown} @pointermove=${this._handlePointerMove}
                 @pointerup=${this._handlePointerUp} @pointercancel=${this._handlePointerCancel}
                 @contextmenu=${e=>e.preventDefault()}></div>` : ''}

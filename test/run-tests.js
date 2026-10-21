@@ -473,7 +473,7 @@ function testSonosSlotZeroUsesPersistentContract()
 
     assert.strictEqual(sonos.launcherKind, 'persistent');
     assert.strictEqual(center.kind, 'persistent');
-    assert.strictEqual(center.config.mode, 'media');
+    assert.strictEqual(center.config.mode, 'sonos');
     assert.strictEqual(center.config.entity, 'media_player.player_a');
     assert.strictEqual(center.config.interactive, true);
     assert.strictEqual(center.config.active_color, '#00bcd4');
@@ -548,31 +548,24 @@ function testModuleMenusAreDeclarative()
 
     assert.strictEqual(sonosMenu.buttons.length, 6);
     assert.strictEqual(
-        sonosMenu.buttons[4].tap_action.action,
+        sonosMenu.buttons[0].tap_action.action,
         'honeycomb-open-nested'
     );
     assert.strictEqual(
-        sonosMenu.buttons[4].tap_action.honeycomb_nested_menu.buttons[0].slot,
+        sonosMenu.buttons[0].tap_action.honeycomb_nested_menu.buttons[0].slot,
         7
     );
 
-    // Sonos controls own their visual grid instead of inheriting the generic
-    // persistent defaults. Buttons with a secondary label get three rows.
-    assert.strictEqual(
-        sonosMenu.buttons[0].styles.grid[0]['grid-template-areas'],
-        '"i" "n"'
-    );
-    assert.strictEqual(
-        sonosMenu.buttons[1].styles.grid[0]['grid-template-areas'],
-        '"i" "n" "l"'
-    );
-    assert.strictEqual(
-        sonosMenu.buttons[2].styles.grid[0]['grid-template-areas'],
-        '"i" "n" "l"'
-    );
+    // Ordinary Sonos function cubes inherit the canonical Light flex hierarchy;
+    // preset-specific reserved rows and typography must not leak into them.
+    for (const button of sonosMenu.buttons) {
+        assert.strictEqual(button.styles.grid,undefined);
+        assert.strictEqual(button.styles.icon,undefined);
+        assert.strictEqual(button.styles.name,undefined);
+    }
 
     const firstFavorite =
-        sonosMenu.buttons[4]
+        sonosMenu.buttons[0]
             .tap_action
             .honeycomb_nested_menu
             .buttons[0];

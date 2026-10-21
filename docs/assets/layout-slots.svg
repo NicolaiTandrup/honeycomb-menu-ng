@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 490" role="img" aria-labelledby="title description" width="520" height="490">
+<title id="title">Honeycomb physical slots 0–18, viewed face-on</title>
+<desc id="description">Center 0. Inner ring: 1 left, 2 upper left, 3 upper right, 4 right, 5 lower right, 6 lower left. Outer rows: 9 10 11; 8 and 12; 7 and 13; 18 and 14; 17 16 15.</desc>
+<style>text{font-family:system-ui,sans-serif;font-size:25px;font-weight:700;text-anchor:middle;dominant-baseline:central;fill:#14202b}polygon{stroke:#14202b;stroke-width:2}.center polygon{fill:#ffd15c}.inner polygon{fill:#80d7ef}.outer polygon{fill:#e3edf3}</style>
+<g class="center" data-slot="0" data-x="2" data-y="1.73"><polygon points="260,188 308,215.5 308,270.5 260,298 212,270.5 212,215.5"/><text x="260" y="243">0</text></g>
+<g class="inner" data-slot="1" data-x="1" data-y="1.73"><polygon points="160,188 208,215.5 208,270.5 160,298 112,270.5 112,215.5"/><text x="160" y="243">1</text></g>
+<g class="inner" data-slot="2" data-x="1.5" data-y="0.865"><polygon points="210,101.5 258,129 258,184 210,211.5 162,184 162,129"/><text x="210" y="156.5">2</text></g>
+<g class="inner" data-slot="3" data-x="2.5" data-y="0.865"><polygon points="310,101.5 358,129 358,184 310,211.5 262,184 262,129"/><text x="310" y="156.5">3</text></g>
+<g class="inner" data-slot="4" data-x="3" data-y="1.73"><polygon points="360,188 408,215.5 408,270.5 360,298 312,270.5 312,215.5"/><text x="360" y="243">4</text></g>
+<g class="inner" data-slot="5" data-x="2.5" data-y="2.59"><polygon points="310,274 358,301.5 358,356.5 310,384 262,356.5 262,301.5"/><text x="310" y="329">5</text></g>
+<g class="inner" data-slot="6" data-x="1.5" data-y="2.59"><polygon points="210,274 258,301.5 258,356.5 210,384 162,356.5 162,301.5"/><text x="210" y="329">6</text></g>
+<g class="outer" data-slot="7" data-x="0" data-y="1.73"><polygon points="60,188 108,215.5 108,270.5 60,298 12,270.5 12,215.5"/><text x="60" y="243">7</text></g>
+<g class="outer" data-slot="8" data-x="0.5" data-y="0.865"><polygon points="110,101.5 158,129 158,184 110,211.5 62,184 62,129"/><text x="110" y="156.5">8</text></g>
+<g class="outer" data-slot="9" data-x="1" data-y="0"><polygon points="160,15 208,42.5 208,97.5 160,125 112,97.5 112,42.5"/><text x="160" y="70">9</text></g>
+<g class="outer" data-slot="10" data-x="2" data-y="0"><polygon points="260,15 308,42.5 308,97.5 260,125 212,97.5 212,42.5"/><text x="260" y="70">10</text></g>
+<g class="outer" data-slot="11" data-x="3" data-y="0"><polygon points="360,15 408,42.5 408,97.5 360,125 312,97.5 312,42.5"/><text x="360" y="70">11</text></g>
+<g class="outer" data-slot="12" data-x="3.5" data-y="0.865"><polygon points="410,101.5 458,129 458,184 410,211.5 362,184 362,129"/><text x="410" y="156.5">12</text></g>
+<g class="outer" data-slot="13" data-x="4" data-y="1.73"><polygon points="460,188 508,215.5 508,270.5 460,298 412,270.5 412,215.5"/><text x="460" y="243">13</text></g>
+<g class="outer" data-slot="14" data-x="3.5" data-y="2.59"><polygon points="410,274 458,301.5 458,356.5 410,384 362,356.5 362,301.5"/><text x="410" y="329">14</text></g>
+<g class="outer" data-slot="15" data-x="3" data-y="3.455"><polygon points="360,360.5 408,388 408,443 360,470.5 312,443 312,388"/><text x="360" y="415.5">15</text></g>
+<g class="outer" data-slot="16" data-x="2" data-y="3.455"><polygon points="260,360.5 308,388 308,443 260,470.5 212,443 212,388"/><text x="260" y="415.5">16</text></g>
+<g class="outer" data-slot="17" data-x="1" data-y="3.455"><polygon points="160,360.5 208,388 208,443 160,470.5 112,443 112,388"/><text x="160" y="415.5">17</text></g>
+<g class="outer" data-slot="18" data-x="0.5" data-y="2.59"><polygon points="110,274 158,301.5 158,356.5 110,384 62,356.5 62,301.5"/><text x="110" y="329">18</text></g>
+</svg>

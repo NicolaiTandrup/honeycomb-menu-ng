@@ -7,7 +7,25 @@ const {compileVisibility}=require('../../src/core/visibility');
 const {allocateHubSlots}=require('../../src/core/hub-allocation');
 const input=JSON.parse(fs.readFileSync(process.argv[2]));
 const readme=fs.readFileSync('README.md','utf8');
-const diagram=readme.split('<!-- layout-diagram:start -->')[1].split('<!-- layout-diagram:end -->')[0];
+const visual=readme.split('<!-- layout-diagram:start -->')[1].split('<!-- layout-diagram:end -->')[0];
+assert.ok(visual.includes('](docs/assets/layout-slots.svg)') && !visual.includes('```'));
+const svg=fs.readFileSync('docs/assets/layout-slots.svg','utf8');
+assert.match(svg,/viewBox="0 0 520 490"/);assert.match(svg,/aria-labelledby="title description"/);
+const svgCells=[...svg.matchAll(/data-slot="(\d+)" data-x="([\d.]+)" data-y="([\d.]+)"/g)];
+assert.deepEqual(svgCells.map(match=>Number(match[1])),Array.from({length:19},(_,i)=>i));
+for(const [,slot,x,y] of svgCells){
+    const actual=Number(slot)===0?layout.sceneCenter(2):layout.buttonPosition(Number(slot)-1,{inner:true,outer:true,radius:2});
+    assert.equal(Number(x),actual.x);assert.equal(Number(y),actual.y);
+    const group=svg.split(`data-slot="${slot}"`)[1].split('</g>')[0];
+    assert.ok(group.includes(`<text x="${actual.x*100+60}" y="${actual.y*100+70}">${slot}</text>`));
+    assert.ok(group.includes(`points="${actual.x*100+60},${actual.y*100+15}`));
+}
+const terms=fs.readFileSync('docs/TERMINOLOGY.md','utf8');
+for(const term of ['Inner menu ring','Outer menu ring','Inner border','Outer border','Module launcher','Promoted center cube']) assert.ok(terms.includes(term));
+assert.ok(readme.includes('Naming standard: menu rings vs cube borders'));
+assert.ok(readme.includes('docs/TERMINOLOGY.md'));
+const guide=fs.readFileSync('docs/AI_SETUP.md','utf8');
+const diagram=guide.split('<!-- physical-slot-map:start -->')[1].split('<!-- physical-slot-map:end -->')[0];
 const cells=[];
 for(const [row,line] of diagram.split('\n').filter(l=>l.includes('[')).entries())
     for(const match of line.matchAll(/\[\s*(\d+)\]/g)) cells.push({slot:Number(match[1]),x:match.index,y:row});
@@ -53,7 +71,27 @@ assert.deepEqual(visibility.map(v=>v.evaluate(hass)),[true,false,false,true]);
 let allocation=allocateHubSlots(dynamic.items.map((i,index)=>({id:String(index),mode:i.slot_mode,slot:i.slot||0,visible:index<3})));
 assert.deepEqual([...allocation.placements],[['0',0],['1',2],['2',1]]);
 const sonos=buildCubeConfig(input.examples['sonos.yaml'].items[0],hass).menu;
-assert.equal(sonos.buttons[2].tap_action.honeycomb_nested_menu.buttons[0].tap_action.perform_action,'script.player_a_toggle_member');
-assert.equal(sonos.buttons[4].tap_action.honeycomb_nested_menu.buttons[0].tap_action.data.media_content_type,'favorite_item_id');
+assert.equal(sonos.buttons[2].tap_action.sonos_item.toggle_member_script,'script.player_a_toggle_member');
+assert.equal(sonos.buttons[0].tap_action.honeycomb_nested_menu.buttons[0].tap_action.data.media_content_type,'favorite_item_id');
 assert.equal(buildCubeConfig(input.examples['onoff-light.yaml'],hass).menu,null);
 console.log(`Documentation contracts: verified 19-cell diagram, 8 rings, ${compiled} module descriptors, dynamic bounds/placement and external action wiring`);
+
+// Current timer contract must never regress to the rejected manual-setup recipe.
+const timerGuide=fs.readFileSync('docs/SONOS_SLEEP_TIMER.md','utf8');
+for(const text of ['sonos.set_sleep_timer','sonos.clear_sleep_timer','7200','Status unknown','Cancel sent','Est. 30 min','speaker owns','real HA','coordinator'])
+    assert.ok(timerGuide.toLowerCase().includes(text.toLowerCase()),`Native Sleep guide: ${text}`);
+assert.ok(!fs.existsSync('examples/packages/sonos-sleep-a.yaml'));
+const sleep=sonos.buttons[3];assert.equal(sleep.slot,4);
+assert.deepEqual(sleep._sleep,{player:input.examples['sonos.yaml'].items[0].entity});
+assert.deepEqual(sleep.tap_action.honeycomb_nested_menu.buttons.map(b=>b.tap_action.minutes),[15,30,45,60,90,0]);
+const navigationGuide=fs.readFileSync('docs/SONOS_MODULE.md','utf8');
+for(const text of ['sibling submenus','Back once','8000','persistent.menu.idle_timeout','asynchronous room discovery','standalone'])
+    assert.ok(navigationGuide.includes(text),`Sonos navigation guide: ${text}`);
+for(const menu of [sonos.buttons[0].tap_action.honeycomb_nested_menu,sleep.tap_action.honeycomb_nested_menu])
+    assert.equal(menu.idle_timeout,undefined,'Sonos siblings inherit the configured timeout');
+
+const kelvinGuide=fs.readFileSync('docs/LIGHT_MODULE.md','utf8');
+for(const text of ['min_color_temp_kelvin','max_color_temp_kelvin','Shift+Enter','1 K','physical slot','screen-reader','No black','never silently clamped'])
+    assert.ok(kelvinGuide.toLowerCase().includes(text.toLowerCase()),`Kelvin guide: ${text}`);
+const white=buildCubeConfig(input.examples['kelvin-light.yaml'],hass);
+assert.equal(white.entity,'light.white_a');assert.equal(white.face_mode,'cell');

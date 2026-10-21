@@ -9,10 +9,22 @@ function presentationDependencies(config) {
         else if (value && typeof value === 'object') Object.values(value).forEach(visit);
     };
     for (const key of KEYS) visit(config[key]);
-    return {wildcard, entity:config.entity};
+    return {wildcard, entity:config.entity, sonos:config.mode==='sonos' ? config._sonos : null, sleep:config._sleep};
 }
 function presentationSnapshot(hass, dependency) {
     const entity = (hass && hass.states || {})[dependency.entity];
+    if (dependency.sleep) {
+        const states=hass && hass.states || {};
+        const reported=entity && entity.attributes && entity.attributes.group_members;
+        const group=Array.isArray(reported) ? reported : [];
+        return JSON.stringify([entity,group.map(id=>[states[id],hass && hass.entities && hass.entities[id]]),
+            hass && hass.services && hass.services.sonos]);
+    }
+    if (dependency.sonos) {
+        const states=hass && hass.states || {};
+        const leader=(entity && entity.attributes && entity.attributes.group_members || [])[0];
+        return JSON.stringify([entity,states[dependency.sonos.favorites],states[dependency.sonos.cache],states[leader]]);
+    }
     return JSON.stringify(entity ? [entity.state, entity.attributes] : null);
 }
 module.exports = {presentationDependencies, presentationSnapshot};

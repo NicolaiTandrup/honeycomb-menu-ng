@@ -1,11 +1,14 @@
 # AI configuration guide
 
-**SUPPORTED AS OF v1.7.0 Stable.** This contract covers the approved
-`restart/v1.5.1` implementations from PR #77/#81, Issue #78 fixes, documentation
-PR #84 and release-retention PR #88. Use it with v1.7.0 code, not stable v1.5.1 or
-the abandoned v1.6 implementation. Package/release metadata is `1.7.0`, stable.
-Unfinished recursive palette, native Car and Climate/Thermostat features (#85–#87)
-are excluded. Existing Light/Media/Sonos behavior and all examples below are unchanged.
+**SUPPORTED AS OF v1.7.1 Stable.** Includes the v1.7.0 shared Hub/Control and
+visibility/placement architecture plus all owner-approved cumulative beta.8
+functionality (`c1cdd390bed1c1acfc22b314807ce63050e43248`, Issue #102). Sonos slots,
+native no-helper Sleep, Radio artwork/cache compatibility, sibling navigation and
+recursive Light Hue/Kelvin zoom described in the versioned sections below are now
+stable. Historical beta headings identify when a capability was introduced; they
+are not a request to install an obsolete beta. Package/release metadata is `1.7.1`,
+stable. Car/Charger, Climate and unfinished #92/#93/#87/#86 remain excluded; #83
+retention is independent and disabled. No runtime code from v1.6 is imported.
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute
@@ -49,7 +52,7 @@ is not proof that a feature exists. Do not invent keys such as `visible_when`,
 | Shared presentation | `name`, `label`, `icon` strings/templates; `show_name`, `show_label`, `show_icon` booleans/templates; `background`, `foreground`; `colors`; `border`; `styles`; `variables`; `custom_fields`; `interactive`; `off`; `active_color`; `show_brightness`, `show_volume`. |
 | Shared interaction | `tap_action`, `hold_action`, `double_tap_action` action objects; `hold_time` ms (default 500, minimum 250); `autoclose`; `audio`. Optional `menu` overrides the module menu; advanced Hub `persistent` overrides its compiled launcher. |
 | Light options | `presets.brightness: {entity, default?}`; `presets.kelvin: {entity, default?}`; `presets.color: {hue_entity, saturation_entity}`. See units and capability precedence below. |
-| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
+| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`. Sleep in beta.6 needs no configuration or helpers. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
 
 Presentation keys pass through the shared engine; `styles` uses button-card-style
 lists under `card`, `icon`, `name`, `label`, `grid`. Domain defaults can hide names
@@ -77,6 +80,17 @@ Implementation references: [shared compilation](../src/core/cube-config.js),
 [classic reference](CLASSIC_MENU.md), not guesses from other cards.
 
 ## Geometry, allocation and live updates
+
+Machine-readable face-on slot map (rows from top to bottom; no rotation):
+<!-- physical-slot-map:start -->
+```text
+        [ 9]    [10]    [11]
+    [ 8]    [ 2]    [ 3]    [12]
+[ 7]    [ 1]    [ 0]    [ 4]    [13]
+    [18]    [ 6]    [ 5]    [14]
+        [17]    [16]    [15]
+```
+<!-- physical-slot-map:end -->
 
 Use the verified [physical slot diagram and automatic tables](../README.md#layout-model).
 Center is Hub slot 0, inner 1–6, outer 7–18; further rings end at 216. The current
@@ -221,13 +235,12 @@ cache falls back to icon/title. Playback always uses the **base favorites ID**
 with `media_player.play_media`, type `favorite_item_id`; cache alone cannot populate
 Radio or supply playback IDs.
 
-Recipe refresh triggers: favorites state **or attributes** change; every 15 minutes;
-or an HA event `sonos_favorites_refresh`. Both reference player and base sensor must
-have a value or refresh is skipped. There is no startup trigger; after installation,
-fire that event in Developer Tools or wait for a trigger. The sensor state counts
-browse children; `attributes.items` caches the first 12. Honeycomb reads this cache,
-it does not poll Browse Media. Reopen Radio after favorite **count/list** changes
-because submenu `show` is opening-time; current artwork/presentation updates with HA.
+Beta.2's optional cache recipe configures eligible `cache_players` once, in order;
+they must share a favorites library. It chooses the first available player on
+refresh, including HA start, favorites changes, the manual refresh event and the
+15-minute fallback. No source/base value means skip; `source_player` and
+`cache_version` provide diagnostics. Existing four-field templates stay supported.
+Radio count/list changes require reopening; current artwork/state updates live.
 
 Install the complete recipe under `template:` in `configuration.yaml`. If already
 using `template: !include templates.yaml`, copy only the `- triggers:` list item
@@ -238,20 +251,32 @@ and below into that include. Merge lists; do not duplicate top-level `template:`
 Native volume reads `group_members` and targets current members (solo: selected
 player). Do **not** generate volume scripts unless the user requests a custom override.
 
-Join requires both `members` and `toggle_member_script`. Adapt the external
-[Join recipe](../examples/sonos-toggle-member.yaml), replacing the coordinator
-`media_player.player_a` with the Hub/Control's selected player. It creates
-`script.player_a_toggle_member` with required field `member`; the menu passes the
-selected candidate's entity ID. Already grouped → `media_player.unjoin` targeting
-that member; otherwise `media_player.join` targets the coordinator with
-`group_members: [member]`. This depends on the real integration's supported actions.
+As of **v1.7.1-beta.2**, absent `members` means discover actual Sonos registry
+platform entries on Join open (frontend `hass.entities` or HA display-registry WS).
+Do not guess players from names/areas/domains. An explicit list, including `[]`,
+overrides discovery. Candidate order is stable; automatic order is entity-ID order;
+selected player, coordinator and duplicates are excluded. Existing outer ring has
+12 candidates. No polling or structural candidate movement while open.
 
-Install under `script:` in configuration.yaml, or copy only
-`player_a_toggle_member:` and below into `scripts.yaml` when using
-`script: !include scripts.yaml`. Reload scripts and confirm the entity ID.
-Use at most 12 candidate entries; exclude the coordinator itself. Without both
-script and candidates, Join opens more-info. Browse is also HA more-info, not a
-custom library browser. [Sonos details](SONOS_MODULE.md).
+Native grouping requires GROUPING (524288) on selected coordinator and candidate,
+and available `media_player.join`/`unjoin` services. Join targets coordinator with
+`group_members: [candidate]`; unjoin targets candidate. A selected follower uses
+its reciprocally confirmed leader. Other groups, unavailable players and unknown
+group state are read-only. Live HA membership is authoritative; failures notify.
+A configured `toggle_member_script` remains an optional authoritative override
+with its existing `member`-only data contract and selected-coordinator restriction.
+The [external script recipe](../examples/sonos-toggle-member.yaml) remains valid.
+
+Empty/setup labels distinguish missing registry metadata, no other Sonos, invalid
+manual entries, unsupported grouping, unavailable native services and script errors.
+Do not silently insert scripts, fake success or regroup unrelated players.
+
+Sonos inner slots: 1 Radio, 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down,
+6 Volume Up. Hub legacy `type: media` still selects Sonos; explicit `module: media`
+keeps generic Media behavior. Slot 4 opens the native Sonos device Sleep Timer in beta.6;
+see [setup](SONOS_SLEEP_TIMER.md). Custom explicit navigation can still use
+`/media-browser/media_player.player_a`; it is not a default Sonos action. See
+[Sonos details](SONOS_MODULE.md).
 
 ## Canonical complete cards
 
@@ -482,3 +507,166 @@ Hub base selection may establish a module center; deeper menus may expand rings
 but never move that center. [Architecture](../ARCHITECTURE.md),
 [Phase 1](V1_7_PHASE1.md), [Issue #78](ISSUE_78.md), [Phase 2](V1_7_PHASE2.md),
 [documentation validation commands](DOCUMENTATION.md).
+
+## v1.7.1-beta.2 development additions (PR #91)
+
+The corrected Sonos inner slots/Join behavior above remain. Radio outer slots
+7–18 add only deterministic Light-wheel inner accents. Preserve favorite order,
+IDs, existing cache compatibility, artwork and actions. Up to 12 IDs have distinct colors stable
+under reordering; larger sets can share hues.
+
+Beta.4 matches exact favorite IDs or unique optional
+cached `uri`/`playback_uri`. Validated Sonos radio schemes can instead use a
+unique `media_channel` match against the favorite-map name OR cached `title`
+(type `favorite_item_id`); map/cache names need not agree. Normalize only NFC,
+whitespace and case. A live channel `Station Alpha · programme text` or
+`Station Alpha • programme text` can match its station prefix only when that
+name uniquely agrees with both map and typed cache title. Require the spaced
+separator/nonempty programme; reject conflicts with full labels, duplicate
+entries, arbitrary suffix/diacritic inference, substrings, HTTP channels and
+`media_title`. Valid artwork
+remains required. Four-field caches work unchanged. Reciprocal groups use the
+coordinator's identity. Recognized Sonos artwork may replace a navigation arrow;
+center Back action remains unchanged on deeper menus.
+Call the inspected cube's `getPresentationDiagnostics()` for privacy-safe
+state/counts/reasons (no identifiers/URLs or automatic logging). See
+[diagnostic procedure and evidence gate](SONOS_MODULE.md#station-recognition-diagnostics).
+The owner's sanitized FV/stream + station/programme tuple is covered by regressions;
+real hardware remains the owner's beta acceptance gate.
+No stream mapping is learned merely from successful service completion.
+
+Known logo/accent may remain on pause/stop only while metadata still matches;
+center fill becomes neutral `off.center_color`, default `#202224`. Explicit playing
+colors beat station accent, legacy `active_color` fallback and defaults; unavailable state stays
+unavailable. Custom background image and `show_icon: false` win over automatic
+artwork. See [Sonos precedence](SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
+
+PR #91 stays unmerged. Beta installation requires an actual GitHub prerelease
+and owner real-HA testing; synthetic CI is insufficient approval for stable.
+
+## Light Color Zoom — cumulative v1.7.1-beta.3
+
+This independent Light review change is based on stable master v1.7.0. Publish it
+only as cumulative **v1.7.1-beta.3** after integrating all tested Sonos beta.2 code;
+never imply module patches install side-by-side. No new public YAML key is needed.
+In Color outer slots 7–18, tap applies the exact current HS color; hold (default
+500 ms) or Shift+Enter/Shift+Space refines without HA service calls. Preserve the
+selected physical slot/HS exactly. Interpolate towards current clockwise neighbor
+in five clockwise steps and current counterclockwise neighbor in six reverse
+steps. Shortest circular hue, positive 180° tie, linear saturation, exact copied
+endpoints, unrounded intermediates. See the verified [slot grid](LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
+Back restores each complete palette via the owning menu's stack. Full close or
+Escape/reopen resets. HA updates preserve open history. Never use the Color interpolator for Kelvin,
+static presets, Sonos or generic Media; preserve gestures, nested anchor and size.
+
+## v1.7.1-beta.6 — published native Sonos Sleep baseline
+
+Version-gated: published beta.6, not stable v1.7.1. Keep beta.4 recognition,
+owner-tested recursive Light Zoom, beta.5 logo scaling/Join Back and
+[canonical terminology](TERMINOLOGY.md). Sonos slots: 1 Radio, 2 Play/Pause,
+3 Join, **4 Sleep**, 5 Down, 6 Up. Sleep choices occupy slots 7–12:
+15/30/45/60/90 min and Cancel/OFF. Inner controls and center Back remain.
+
+**No `sleep_timer` YAML key, HA helper, script, automation or package is required.**
+Use the official Sonos integration's `sonos.set_sleep_timer` with `sleep_time`
+integer seconds (900/1800/2700/3600/5400, maximum 7200) and
+`sonos.clear_sleep_timer` with empty data. Explicit target is the freshly validated
+selected group's coordinator, including follower selections. Reject inconsistent
+or unavailable groups. Missing native service disables its choice. Setting needs
+playback; paused/stopped cancellation is allowed. Preserve all optional Radio cache
+and grouping-script compatibility; generic Media/Light do not acquire Sleep keys.
+
+The Sonos device owns expiry. **Do not implement browser expiry, invent timer
+attributes/readback APIs, or promise group-change automatic cancellation.**
+Local acknowledgements produce an explicitly **Est. N min** display, never a
+confirmed device status. Unknown after reload, reconnect or observed group change
+means unknown, not OFF. A clear acknowledgement says Cancel sent; estimate elapsed
+or request failure says Check device. Other clients/external changes are not
+synchronized by the supported HA API. No automatic actions occur on local timeout,
+reconnect or group changes. The native timer should survive browser closure and
+HA restart while the speaker remains running; physical verification is required.
+See [exact limitations, supported API audit and HA checklist](SONOS_SLEEP_TIMER.md).
+
+The beta.5 helper-backed tag/draft are frozen historical artifacts, not this
+implementation. Do not publish or rewrite them. Published beta.6 points to `214443460f827c05f977a8aaeefe48f71a7216b6`.
+Keep that tag and all its assets immutable; beta.7 must pass fresh publisher gates
+with its own unused tag and exact tested branch head, without a master merge.
+
+
+## v1.7.1-beta.7 — cumulative Sonos visuals and isolated Kelvin zoom
+
+Baseline is the exact published beta.6 commit
+`214443460f827c05f977a8aaeefe48f71a7216b6`. Preserve native Sonos Sleep (no HA
+helpers), Radio identity/cache/actions, Join Back, recursive Color zoom, presets,
+dynamic placement, [terminology](TERMINOLOGY.md) and shared 82 CSS-px geometry.
+Sonos function icons/text inherit ordinary Light's shared hierarchy; no forced
+three-row preset grid. Station artwork stays compact at 62% of usable fill in
+paused/idle states, with neutral gray fill and the station-colored inner border.
+Playing artwork reserves label space and sits slightly lower. Explicit styling
+precedence, aspect ratio, fallback and favorite recognition rules remain unchanged.
+
+White on temperature-only Lights now supports its own Kelvin refinement. Native
+HA prerequisites: `supported_color_modes` includes `color_temp`; numeric positive
+`min_color_temp_kelvin <= max_color_temp_kelvin`; at least one integer in that
+range. Missing/invalid values disable White with an explanation, not guessed bounds.
+No `min_kelvin`, `zoom`, step or helper YAML keys are introduced. Use the standard
+[module Control example](../examples/v1.7/kelvin-light.yaml).
+
+<!-- example:kelvin-light.yaml -->
+```yaml
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.white_a
+```
+
+
+Physical slots 7–18 contain only Kelvin-derived RGB cube fill and existing borders:
+`show_icon`, `show_name`, `show_label` are false on generated swatches. Exact Kelvin
+is retained in their nonvisual accessible name and action. No dots or visible codes.
+Short tap sends exactly one `light.turn_on` with `color_temp_kelvin` to the selected
+entity after fresh native range validation; stale/unavailable samples do not call HA.
+Hold or Shift+Enter/Shift+Space never sends a Light service. Initial integer samples
+are `round(min + (max-min)*i/11)`. Refined integer step is
+`max(1,floor(minimumAdjacentGap/2))`; values are
+`selectedKelvin+(i-selectedIndex)*step`. Keep the anchor's exact physical slot/value,
+strictly increasing samples and both endpoints inside the previous/native range.
+No wrapping or Hue logic. A repeated identical/duplicate-producing refinement is a
+no-op. Back restores each exact snapshot; full close/reopen rereads native bounds.
+State updates must not rewrite the open palette or history. Keyboard Escape also
+closes at the precision limit.
+
+HA does not advertise a standard native Kelvin step. Use 1 K client precision;
+hardware may round more coarsely. An original range with fewer than twelve integer
+values cannot fill twelve positions distinctly: retain only legal sampled values
+with repetitions, disable zoom and document the limit. Never invent extra Kelvin
+values or promise infinite precision. See [exact rules and limitations](LIGHT_MODULE.md#recursive-white--kelvin-zoom--issue-99-beta7).
+
+#90/#97/#99 remain open until owner HA validation is documented. Stable/master
+promotion needs explicit owner approval after real HA tests. #83/#92/#93/#87/#86
+are excluded. Never alter existing beta tags/assets or the unpublished beta.5 draft.
+
+
+## v1.7.1-beta.8 — Sonos sibling navigation and idle-close
+
+Cumulative source baseline: published beta.7 commit
+`737a13c8f1a1020db18e14325a40240708dc2706`; all beta.7 behavior above is retained.
+Radio (slot 1), Join (slot 3) and Sleep (slot 4) are siblings, not successive depths.
+Opening or reopening any sibling replaces the active sibling; Back once returns to
+Sonos main. A real child menu still pushes one meaningful level. Hue/Kelvin zoom
+history and selected physical slots remain unchanged. Internal navigation markers
+are implementation details, not new user configuration keys.
+
+The three submenus inherit the main module's `idle_timeout` (8000 ms default).
+Use the existing `persistent.menu.idle_timeout` override for a different positive
+duration, or explicit `0` to disable. Do not inject `idle_timeout: 0` into generated
+Sonos submenus. Idle returns a persistent Hub to its base; a standalone Control
+closes its overlay. Only user interaction resets this timer; HA state updates,
+async discovery, Sleep estimates/acknowledgements and rerenders do not.
+
+Do not confuse UI idle-close with native Sonos Sleep Timer: closing the menu does
+not cancel the device timer. No helper/script setup is added. Preserve Radio
+order/cache/recognition, Join discovery/grouping, both Light palettes, presets,
+dynamic Hub allocation and the 82 CSS-px geometry. Existing beta tags/assets and
+the unpublished beta.5 draft remain immutable; no stable/master merge without
+explicit owner approval after real HA validation. #90/#97/#99 remain open pending
+that validation; #83/#92/#93/#87/#86 are excluded.

@@ -1,0 +1,47 @@
+{
+  "favorites": {
+    "FV:2/57": "Station Alpha",
+    "FV:2/58": "Station Beta"
+  },
+  "cache": [
+    {
+      "media_content_id": "FV:2/57",
+      "media_content_type": "favorite_item_id",
+      "title": "Station Alpha",
+      "thumbnail": "/station-a.svg"
+    },
+    {
+      "media_content_id": "FV:2/58",
+      "media_content_type": "favorite_item_id",
+      "title": "Station Beta",
+      "thumbnail": "/station-c.svg"
+    }
+  ],
+  "playing_a": {
+    "media_content_id": "x-sonosapi-hls:synthetic-stream-a?sid=1",
+    "media_channel": "Station Alpha · Current programme description with additional broadcast text",
+    "media_title": "Station Alpha · Current programme description with additional broadcast text",
+    "volume_level": 0.42,
+    "group_members": [
+      "media_player.player_a"
+    ],
+    "media_content_type": "music"
+  },
+  "playing_b": {
+    "media_content_id": "x-rincon-mp3radio:https://radio.example.invalid/b",
+    "media_channel": "Station Beta • Programme B",
+    "media_title": "Station Beta • Programme B",
+    "volume_level": 0.42,
+    "group_members": [
+      "media_player.player_a"
+    ]
+  },
+  "unverified": {
+    "media_content_id": "x-sonosapi-hls:synthetic-unknown?sid=1",
+    "media_channel": "Station Alpha live broadcast",
+    "media_title": "Station Alpha",
+    "group_members": [
+      "media_player.player_a"
+    ]
+  }
+}

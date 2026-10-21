@@ -3,10 +3,7 @@ name: Build Honeycomb Menu NG
 on:
   push:
     branches:
-      - master
-      - feature/**
-    paths-ignore:
-      - honeycomb-menu-ng.js
+      - '**'
 
   pull_request:
 
@@ -63,6 +60,9 @@ jobs:
           python -m pip install -r test/browser/requirements.txt
           python -m playwright install --with-deps chromium
           curl --fail --location --retry 2 https://github.com/custom-cards/button-card/releases/download/v7.0.1/button-card.js --output "$RUNNER_TEMP/button-card.js"
+
+      - name: Validate native Sonos Sleep Timer device-boundary contracts
+        run: python test/sleep_timer/run.py
 
       - name: Measure core visibility and allocation
         run: node test/performance/hub-benchmark.js --output "$RUNNER_TEMP/cube-evidence/core-performance.json"

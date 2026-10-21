@@ -1,3 +1,19 @@
+const kelvinActions = require('./kelvin-actions.js');
+const {refinePalette} = require('./color-zoom.js');
+const {buildColorPaletteButtons} = require('./controls.js');
+
+function zoomColor({hass,entity,actionConfig,openNested})
+{
+    const state=hass && hass.states && hass.states[entity];
+    const modes=state && state.attributes && state.attributes.supported_color_modes;
+    if (!state || ['unknown','unavailable'].includes(state.state) || !Array.isArray(modes) ||
+        !modes.some(mode=>['xy','hs','rgb','rgbw','rgbww'].includes(mode)) || typeof openNested!=='function') return false;
+    const palette=refinePalette(actionConfig.palette,actionConfig.selected);
+    openNested({entity,nested_expand:true,inherit_inner:true,empty_slots:'hidden',idle_timeout:8000,
+        buttons:buildColorPaletteButtons(palette)});
+    return true;
+}
+
 function setNumberHelper(hass, entityId, value)
 {
     if( ! hass || ! entityId || ! Number.isFinite(Number(value)) )
@@ -154,6 +170,8 @@ function handlePreset(mode, context)
 
 function registerActions(registry)
 {
+    registry.register('honeycomb-light-color-zoom',zoomColor);
+    kelvinActions.registerActions(registry);
     registry.register(
         'honeycomb-preset-apply',
         context => handlePreset('apply', context)
@@ -167,5 +185,6 @@ function registerActions(registry)
 
 module.exports = {
     registerActions,
+    zoomColor,
     handlePreset
 };

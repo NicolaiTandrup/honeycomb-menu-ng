@@ -27,6 +27,7 @@ BROWSER=importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(BROWSER)
 class Loader(yaml.SafeLoader):
     pass
 Loader.add_constructor('!include',lambda loader,node:loader.construct_scalar(node))
+Loader.add_constructor('!include_dir_named',lambda loader,node:loader.construct_scalar(node))
 # Reject duplicate keys, including accidental duplicate template:/script: wrappers.
 def mapping(loader,node,deep=False):
     result={}
@@ -95,6 +96,8 @@ def fragment(config,where):
         if all(isinstance(v,dict) and v.get('type') in ('light','sonos','media','generic') for v in config):
             return {'type':'custom:honeycomb-persistent-hub','items':config}
         for value in config:known(value,SHARED|{'slot','slot_mode','position','active','show'},where)
+    elif 'homeassistant' in config:
+        assert config=={'homeassistant':{'packages':'packages'}},where
     elif 'type' in config:
         if config['type'] in ('light','sonos','media','generic'):
             return {'type':'custom:honeycomb-persistent-hub','items':[config]}
@@ -150,18 +153,22 @@ def links():
 def external_recipes():
     cache=load((ROOT/'examples/sonos-favorites-cache.yaml').read_text())
     recipe=cache['template'][0]
-    assert [t['trigger'] for t in recipe['triggers']]==['event','state','time_pattern']
+    assert [t['trigger'] for t in recipe['triggers']]==['event','state','time_pattern','homeassistant']
     assert recipe['triggers'][0]['event_type']=='sonos_favorites_refresh'
     assert recipe['triggers'][1]['entity_id']=='sensor.favorites_a'
     assert recipe['triggers'][2]['minutes']=='/15'
-    action=recipe['actions'][0]
+    assert recipe['triggers'][3]=={'trigger':'homeassistant','event':'start'}
+    action=recipe['actions'][3]
     assert action['action']=='media_player.browse_media'
-    assert action['target']['entity_id']=='media_player.player_a'
+    assert action['target']['entity_id']=='{{ cache_player }}'
     assert action['data']=={'media_content_type':'favorites_folder','media_content_id':'object.item.audioItem.audioBroadcast'}
     env=NativeEnvironment()
-    context={'sonos_radio_favorites':{'media_player.player_a':{'children':[
+    context={'cache_player':'media_player.player_a','sonos_radio_favorites':{'media_player.player_a':{'children':[
         {'title':'Station A','media_content_id':'favorite_a','media_content_type':'favorite_item_id','thumbnail':''},
         {'title':'Station B','media_content_id':'favorite_b','media_content_type':'favorite_item_id'}]}}}
+    selector=env.from_string(recipe['actions'][1]['variables']['cache_player'])
+    assert selector.render(cache_players=['media_player.player_a','media_player.player_b'],has_value=lambda e:e.endswith('b')).strip()=='media_player.player_b'
+    assert selector.render(cache_players=['media_player.player_a'],has_value=lambda e:False).strip()==''
     sensor=recipe['sensor'][0]
     def native(template, **values):
         result=env.from_string(template).render(**values)
@@ -187,6 +194,7 @@ def external_recipes():
     return items
 
 STATES={
+ 'light.white_a':{'state':'on','attributes':{'brightness':128,'color_temp_kelvin':3000,'supported_color_modes':['color_temp'],'min_color_temp_kelvin':1800,'max_color_temp_kelvin':6535}},
  'light.zone_a':{'state':'on','attributes':{'brightness':128,'hs_color':[30,80],'rgb_color':[255,128,0],'color_temp_kelvin':2700,'supported_color_modes':['hs','color_temp']}},
  'light.zone_b':{'state':'on','attributes':{'brightness':200,'supported_color_modes':['brightness']}},
  'light.switch_a':{'state':'on','attributes':{'supported_color_modes':['onoff']}},
@@ -194,6 +202,7 @@ STATES={
  'media_player.player_a':{'state':'playing','attributes':{'volume_level':.42,'group_members':['media_player.player_a','media_player.player_b']}},
  'media_player.player_b':{'state':'idle','attributes':{'volume_level':.2}},
  'media_player.player_c':{'state':'idle','attributes':{'volume_level':.2}},
+ 'script.player_a_toggle_member':{'state':'off','attributes':{}},
  'number.relay_a_brightness':{'state':'60','attributes':{}},
  'number.relay_a_kelvin':{'state':'2700','attributes':{}},
  'input_number.preset_a_hue':{'state':'30','attributes':{}},
@@ -206,6 +215,7 @@ for entity,state in STATES.items():state['entity_id']=entity
 class Examples(BROWSER.Cubes):
     def setUp(self):
         super().setUp()
+        self.page.evaluate('hass.services={script:{player_a_toggle_member:{}}}')
         self.page.evaluate('states=>pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]))',STATES)
     def control_example(self,name):
         self.page.evaluate('config=>makeControl(config)',self.examples[name]);self.settle()
@@ -240,6 +250,17 @@ class Examples(BROWSER.Cubes):
         color=self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface')
         self.hold_input(color);self.assertEqual(self.page.evaluate('calls.slice(-2).map(c=>c[0])'),['input_number','input_number'])
         self.capture('docs-control-light')
+    def test_docs_kelvin_example(self):
+        self.control_example('kelvin-light.yaml')
+        self.hold_input(self.page.locator('#anchor .interaction-surface'));self.settle()
+        self.zoom_tap(3);self.settle()
+        original=self.kelvin_palette();self.assertEqual((original[0],original[-1]),(1800,6535))
+        self.assertEqual(self.sonos_slot(7).locator('ha-icon,.primary,.secondary').count(),0)
+        self.hold_input(self.zoom_cell(8));self.settle();self.assertEqual(self.kelvin_palette()[1],original[1])
+        self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.zoom_tap(8);self.assertEqual(self.page.evaluate('calls.at(-1)'),['light','turn_on',{'color_temp_kelvin':original[1]},{'entity_id':'light.white_a'}])
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle();self.assertEqual(self.kelvin_palette(),original)
+        self.capture('docs-kelvin-control')
     def test_docs_sonos(self):
         self.hub(self.examples['sonos.yaml']);self.assert_visible_unique_cells(1)
         self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))
@@ -247,7 +268,7 @@ class Examples(BROWSER.Cubes):
         self.activate(self.page.locator('honeycomb-menu [aria-label="Join"]'))
         self.page.wait_for_function('hub._menuContext.stack.length===2')
         self.activate(self.page.locator('honeycomb-menu [data-honeycomb-slot="6"] .interaction-surface'))
-        self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','player_a_toggle_member',{'member':'media_player.player_b'},{'entity_id':'media_player.player_b'}])
+        self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','player_a_toggle_member',{'member':'media_player.player_b'},{}])
         self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
         self.activate(self.page.locator('honeycomb-menu [aria-label="Radio"]'))
         self.page.wait_for_function('hub._menuContext.stack.length===2')

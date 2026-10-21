@@ -1,5 +1,8 @@
 const media = require('../media/index.js');
-const { buildJoinMenu } = require('./grouping.js');
+const station = require('./station.js');
+const sleep = require('./sleep.js');
+const { registerActions } = require('./grouping.js');
+const { sonosButtonStyles } = require('./presentation.js');
 const { buildRadioMenu } = require('./favorites.js');
 
 function actionForScript(script, fallbackService, entity)
@@ -19,55 +22,8 @@ function actionForScript(script, fallbackService, entity)
     };
 }
 
-function sonosButtonStyles(options = {})
-{
-    const withLabel = options.withLabel === true;
-    const styles = {
-        grid: [
-            { 'grid-template-areas': withLabel ? '"i" "n" "l"' : '"i" "n"' },
-            { 'grid-template-columns': '1fr' },
-            { 'grid-template-rows': withLabel ? '43% 29% 28%' : '58% 42%' },
-            { height: '100%' },
-            { 'align-items': 'center' }
-        ],
-        icon: [
-            { width: '18px' },
-            { 'align-self': 'end' }
-        ],
-        name: [
-            { 'align-self': 'start' },
-            { 'padding-top': '2px' },
-            { 'font-size': '10px' },
-            { 'line-height': '1' },
-            { 'font-weight': '650' },
-            { 'white-space': 'nowrap' },
-            { overflow: 'hidden' },
-            { 'text-overflow': 'ellipsis' }
-        ]
-    };
-
-    if( withLabel )
-    {
-        styles.label = [
-            { 'align-self': 'start' },
-            { 'font-size': '8px' },
-            { 'line-height': '1' },
-            { opacity: '0.82' },
-            { 'white-space': 'nowrap' },
-            { overflow: 'hidden' },
-            { 'text-overflow': 'ellipsis' }
-        ];
-    }
-
-    if( options.background )
-        styles.card = [{ background: options.background }];
-
-    return styles;
-}
-
 function buildMenu({ item })
 {
-    const joinMenu = buildJoinMenu(item);
     const radioMenu = buildRadioMenu(item);
 
     const playPauseIcon = `[[[
@@ -86,8 +42,11 @@ function buildMenu({ item })
     ]]]`;
 
     const joinedLabel = `[[[
-        const members = states['${item.entity}']?.attributes?.group_members || [];
-        const joined = members.filter(x => x !== '${item.entity}');
+        const state = states[${JSON.stringify(item.entity)}];
+        if (!state || ['unknown', 'unavailable'].includes(state.state)) return 'Unavailable';
+        const members = state.attributes?.group_members;
+        if (!Array.isArray(members) || !members.includes(${JSON.stringify(item.entity)})) return 'Group unknown';
+        const joined = [...new Set(members)].filter(x => x !== ${JSON.stringify(item.entity)});
         return joined.length ? joined.length + ' joined' : 'Solo';
     ]]]`;
 
@@ -98,14 +57,17 @@ function buildMenu({ item })
         promoted_center: {
             entity: item.entity,
             icon: item.icon || 'mdi:speaker',
-            mode: 'media',
+            mode: 'sonos',
+            _sonos: station.settings(item),
+            off: {...item.off,...(item.persistent || {}).off},
+            show_icon: (item.persistent || {}).show_icon !== undefined ? item.persistent.show_icon : item.show_icon,
             show_brightness: 'never',
             show_volume: 'when_playing',
             active_color: item.active_color || item.color || '#00bcd4',
             colors: {
-                center: 'auto',
-                inner_border: 'auto',
-                outer_border: '#34383d'
+                center: ((item.persistent || {}).colors || {}).center || (item.colors || {}).center || 'auto',
+                inner_border: ((item.persistent || {}).colors || {}).inner_border || (item.colors || {}).inner_border || 'auto',
+                outer_border: ((item.persistent || {}).colors || {}).outer_border || (item.colors || {}).outer_border || '#34383d'
             }
         },
         empty_slots: 'hidden',
@@ -113,6 +75,58 @@ function buildMenu({ item })
         buttons: [
             {
                 slot: 1,
+                slot_mode: 'hard',
+                entity: item.entity,
+                icon: 'mdi:star',
+                name: 'Radio',
+                show_name: true,
+                autoclose: false,
+                styles: sonosButtonStyles({
+                    background: 'rgba(108, 62, 78, 0.82)'
+                }),
+                tap_action: {
+                    action: 'honeycomb-open-nested',
+                    honeycomb_nested_menu: radioMenu
+                }
+            },
+            {
+                slot: 2,
+                slot_mode: 'hard',
+                entity: item.entity,
+                icon: playPauseIcon,
+                name: playPauseName,
+                label: playPauseLabel,
+                show_name: true,
+                show_label: true,
+                autoclose: false,
+                styles: sonosButtonStyles(),
+                tap_action: {
+                    action: 'perform-action',
+                    perform_action: 'media_player.media_play_pause',
+                    target: { entity_id: item.entity }
+                }
+            },
+            {
+                slot: 3,
+                slot_mode: 'hard',
+                entity: item.entity,
+                icon: 'mdi:speaker-multiple',
+                name: 'Join',
+                label: joinedLabel,
+                show_name: true,
+                show_label: true,
+                autoclose: false,
+                styles: sonosButtonStyles({
+                    background: 'rgba(126, 54, 96, 0.82)'
+                }),
+                tap_action: {
+                    action: 'honeycomb-sonos-open-join',
+                    sonos_item: {entity:item.entity,members:item.members,toggle_member_script:item.toggle_member_script}
+                }
+            },
+            sleep.buildButton(item),
+            {
+                slot: 5,
                 slot_mode: 'hard',
                 entity: item.entity,
                 icon: 'mdi:volume-minus',
@@ -133,45 +147,7 @@ function buildMenu({ item })
                     }
             },
             {
-                slot: 2,
-                slot_mode: 'hard',
-                entity: item.entity,
-                icon: playPauseIcon,
-                name: playPauseName,
-                label: playPauseLabel,
-                show_name: true,
-                show_label: true,
-                autoclose: false,
-                styles: sonosButtonStyles({ withLabel: true }),
-                tap_action: {
-                    action: 'perform-action',
-                    perform_action: 'media_player.media_play_pause',
-                    target: { entity_id: item.entity }
-                }
-            },
-            {
-                slot: 3,
-                slot_mode: 'hard',
-                entity: item.entity,
-                icon: 'mdi:speaker-multiple',
-                name: 'Join',
-                label: joinedLabel,
-                show_name: true,
-                show_label: true,
-                autoclose: false,
-                styles: sonosButtonStyles({
-                    withLabel: true,
-                    background: 'rgba(126, 54, 96, 0.82)'
-                }),
-                tap_action: joinMenu
-                    ? {
-                        action: 'honeycomb-open-nested',
-                        honeycomb_nested_menu: joinMenu
-                    }
-                    : { action: 'more-info' }
-            },
-            {
-                slot: 4,
+                slot: 6,
                 slot_mode: 'hard',
                 entity: item.entity,
                 icon: 'mdi:volume-plus',
@@ -190,33 +166,6 @@ function buildMenu({ item })
                         direction: 'up',
                         entity: item.entity
                     }
-            },
-            {
-                slot: 5,
-                slot_mode: 'hard',
-                entity: item.entity,
-                icon: 'mdi:star',
-                name: 'Radio',
-                show_name: true,
-                autoclose: false,
-                styles: sonosButtonStyles({
-                    background: 'rgba(108, 62, 78, 0.82)'
-                }),
-                tap_action: {
-                    action: 'honeycomb-open-nested',
-                    honeycomb_nested_menu: radioMenu
-                }
-            },
-            {
-                slot: 6,
-                slot_mode: 'hard',
-                entity: item.entity,
-                icon: 'mdi:folder-music',
-                name: 'Browse',
-                show_name: true,
-                autoclose: false,
-                styles: sonosButtonStyles(),
-                tap_action: { action: 'more-info' }
             }
         ]
     };
@@ -227,6 +176,9 @@ module.exports = {
     aliases: ['media-sonos'],
     priority: 400,
     launcherKind: 'persistent',
+    persistentModes: ['sonos','sonos-sleep'],
+    presentation: {resolve:context=>context.config.mode==='sonos-sleep' ? sleep.resolve(context) : station.resolve(context),
+        diagnostics:context=>context.config.mode==='sonos-sleep' ? {ready:sleep.status(context.hass,context.config._sleep || {}).ready} : station.diagnostics(context)},
 
     // Backwards compatible: existing type: media continues to mean the
     // Sonos-oriented module unless the user explicitly selects module: media.
@@ -243,9 +195,10 @@ module.exports = {
 
     buildMenu,
     sonosButtonStyles,
+    registerActions(registry) { registerActions(registry); sleep.registerActions(registry); },
 
     buildLauncher(context)
     {
-        return media.buildLauncher(context);
+        return {...media.buildLauncher(context),mode:'sonos',_sonos:station.settings(context.item)};
     }
 };
