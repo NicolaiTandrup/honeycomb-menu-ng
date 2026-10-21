@@ -108,6 +108,10 @@ current coordinate tables, not inferred from button order.
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
 
+### Canonical visual baseline: Light module
+
+**All modules use the existing Light module as their graphical baseline** — Sonos/Media, Climate, Car, Charger and future modules. Keep consistent 82px hex cube geometry, cube fill/inner/outer border layers, icon and label placement, typography, spacing and nested-menu navigation. Module-specific behavior and colors may differ, but modules must not introduce their own competing layout styles. Follow the [shared visual design contract](docs/TERMINOLOGY.md#shared-visual-design-contract--light-is-the-canonical-reference) and compare new module screens side by side against Light on desktop and mobile.
+
 ### Naming standard: menu rings vs cube borders
 
 ![Menu rings and the visual layers of one cube](docs/assets/menu-rings-vs-cube-borders.svg)
