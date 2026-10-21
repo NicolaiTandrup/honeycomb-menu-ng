@@ -19,7 +19,7 @@ BUTTON_SHA = '5d6e9c6afca01e8014653fa56bb5d6aa9248d832c34fb944a7f2c36329bc22d1'
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        paths = {'/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button, '/layout.svg': ROOT/'docs/assets/layout-slots.svg', '/station-a.svg': ROOT/'test/browser/assets/station-a.svg', '/station-c.svg': ROOT/'test/browser/assets/station-c.svg'}
+        paths = {'/station-full-bleed.svg': ROOT/'test/browser/assets/station-full-bleed.svg', '/mdi-icons.js': ROOT/'test/browser/assets/mdi-icons.js', '/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button, '/layout.svg': ROOT/'docs/assets/layout-slots.svg', '/station-a.svg': ROOT/'test/browser/assets/station-a.svg', '/station-c.svg': ROOT/'test/browser/assets/station-c.svg'}
         if self.path == '/favicon.ico':
             self.send_response(204); self.end_headers(); return
         if self.path not in paths:
@@ -661,12 +661,13 @@ class Cubes(unittest.TestCase):
         self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
         self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))
         self.settle()
-        light=self.sonos_slot(2).evaluate('''el=>{const r=el.shadowRoot.querySelector('.content').getBoundingClientRect();return ['ha-icon','.primary','.secondary'].map(s=>{const n=el.shadowRoot.querySelector(s),b=n.getBoundingClientRect(),c=getComputedStyle(n);return {x:b.x+b.width/2-r.x,width:b.width,y:b.y-r.y,height:b.height,font:c.fontSize,align:c.alignSelf,padding:c.paddingTop}})}''')
-        for index in range(3):
-            for key in ['x','y','height','font','align','padding']:
-                if key in ['x','y','height']:
-                    self.assertAlmostEqual(metrics['items'][index][key],light[index][key],delta=.1,msg=f'Light/Sonos {index} {key}')
-                else:self.assertEqual(metrics['items'][index][key],light[index][key],f'Light/Sonos {index} {key}')
+        light=self.sonos_slot(1).evaluate('''el=>{const r=el.shadowRoot.querySelector('.content').getBoundingClientRect();return ['ha-icon','.primary'].map(s=>{const n=el.shadowRoot.querySelector(s),b=n.getBoundingClientRect(),c=getComputedStyle(n);return {x:b.x+b.width/2-r.x,width:b.width,y:b.y-r.y,height:b.height,font:c.fontSize,align:c.alignSelf,padding:c.paddingTop}})}''')
+        # Sonos optional secondary text uses the same inherited hierarchy; its
+        # extra line naturally shifts the group up without a reserved grid row.
+        for index in range(2):
+            for key in ['x','font']:
+                if key=='x':self.assertAlmostEqual(metrics['items'][index][key],light[index][key],delta=.1)
+                else:self.assertEqual(metrics['items'][index][key],light[index][key])
         self.capture('issue90-light-reference')
     def test_issue90_join_unjoin_live_state_failure_and_retry(self):
         self.sonos_open()
@@ -1107,6 +1108,70 @@ class Cubes(unittest.TestCase):
         self.assertEqual(center.locator('.primary').inner_text(),'Light A')
         self.activate(center.locator('.interaction-surface'));self.page.wait_for_function('hub._menuContext.stack.length===0')
 
+    def test_beta7_sonos_functions_match_light_hierarchy_with_real_icon_boxes(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
+        self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle()
+        reference=self.sonos_slot(1).evaluate('''el=>{const r=el.getBoundingClientRect(),root=el.shadowRoot;return {
+            config:el.config,items:['ha-svg-icon','.primary'].map(s=>{const b=(s==='ha-svg-icon'?root.querySelector('ha-icon').shadowRoot.querySelector(s):root.querySelector(s)).getBoundingClientRect();return {x:b.x-r.x,y:b.y-r.y,w:b.width,h:b.height}}),
+            font:getComputedStyle(root.querySelector('.primary')).fontSize}}''')
+        self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()')
+        self.sleep_backend_setup();self.sonos_open();self.settle()
+        for physical in [1,2,3,4,5,6]:
+            cube=self.sonos_slot(physical)
+            metrics=cube.evaluate('''el=>{const r=el.getBoundingClientRect(),root=el.shadowRoot;return {
+              config:el.config,display:getComputedStyle(root.querySelector('.content')).display,
+              items:['ha-svg-icon','.primary','.secondary'].map(s=>{const n=s==='ha-svg-icon'?root.querySelector('ha-icon').shadowRoot.querySelector(s):root.querySelector(s);if(!n)return null;const b=n.getBoundingClientRect();return {x:b.x-r.x,y:b.y-r.y,w:b.width,h:b.height}}),
+              font:getComputedStyle(root.querySelector('.primary')).fontSize}}''')
+            self.assertEqual(metrics['display'],'flex');self.assertEqual(metrics['font'],reference['font'])
+            icon,name,secondary=metrics['items'];self.assertEqual((icon['w'],icon['h']),(24,24))
+            self.assertAlmostEqual(icon['x']+icon['w']/2,41,delta=.5)
+            self.assertAlmostEqual(name['x']+name['w']/2,41,delta=.5)
+            self.assertLessEqual(icon['y']+icon['h'],name['y']+1)
+            if secondary:
+                self.assertGreaterEqual(secondary['y'],name['y']+name['h'])
+                self.assertLessEqual(secondary['w'],82*.8+.5)
+            else:
+                for actual,expected in zip(metrics['items'][:2],reference['items']):
+                    for key in ['y','h']:self.assertAlmostEqual(actual[key],expected[key],delta=.5)
+        # Render actual compiled Light/Sonos descriptors together for side-by-side evidence.
+        self.page.evaluate('''reference=>{
+          const panel=document.createElement('div');panel.style.cssText='position:absolute;top:520px;left:20px;display:grid;grid-template-columns:120px 120px;gap:8px';
+          for(const [title,config] of [['Light function',reference],['Sonos function',hub._hubMenu.shadowRoot.querySelector('[data-honeycomb-slot="0"]').config]]){
+            const box=document.createElement('div');box.textContent=title;const cube=document.createElement('honeycomb-persistent-control');cube.setConfig({...config,interactive:false});box.append(cube);panel.append(box);
+          }document.body.append(panel);
+        }''',reference['config']);self.settle();self.capture('beta7-light-sonos-side-by-side')
+
+    def test_beta7_full_bleed_station_artwork_spacing_compact_gray_and_radio_preservation(self):
+        self.beta4_radio_hub()
+        self.page.evaluate("pushState('sensor.favorites_cache','2',{items:[{title:'Station Alpha',media_content_id:'FV:2/57',media_content_type:'favorite_item_id',thumbnail:'/station-full-bleed.svg'}]})")
+        launcher=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
+        launcher.locator('.station-artwork').wait_for(state='visible')
+        for promoted in [False,True]:
+            if promoted:self.hold_input(launcher.locator('.interaction-surface'));self.settle()
+            cube=self.page.locator('honeycomb-menu .center-item') if promoted else launcher
+            for state in ['playing','paused','idle']:
+                for volume in ([0,.02,.42,1] if state=='playing' else [.42]):
+                    self.page.evaluate("([state,volume])=>pushState('media_player.player_a',state,{...hass.states['media_player.player_a'].attributes,volume_level:volume})",[state,volume]);self.settle()
+                    img=cube.locator('.station-artwork');img.wait_for(state='visible')
+                    self.page.wait_for_function('()=>[...document.querySelectorAll("honeycomb-persistent-hub")].every(h=>!!h)')
+                    details=img.evaluate('el=>({fit:getComputedStyle(el).objectFit,width:el.style.width,top:el.style.top,natural:[el.naturalWidth,el.naturalHeight],opacity:getComputedStyle(el).opacity})')
+                    self.assertEqual(details['fit'],'contain');self.assertEqual(details['width'],'62%');self.assertEqual(details['opacity'],'1')
+                    self.assertEqual(details['natural'],[160,80])
+                    self.assertEqual(cube.bounding_box()['width'],82)
+                    if state=='playing':
+                        self.assertEqual(details['top'],'14%');self.assertEqual(cube.locator('.secondary').inner_text(),f'{round(volume*100)}%')
+                        self.assertLess(img.bounding_box()['y']+img.bounding_box()['height'],cube.locator('.secondary').bounding_box()['y'])
+                    else:
+                        self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#202224')
+                        pixels=Image.open(io.BytesIO(cube.screenshot())).convert('RGB')
+                        self.assertEqual(pixels.getpixel((10,pixels.height//2)),(32,34,36),'Opaque edge-to-edge artwork leaves gray fill visible')
+                self.capture(f'beta7-full-bleed-{ "promoted" if promoted else "module" }-{state}')
+        self.activate(self.sonos_slot(1).locator('.interaction-surface'));self.settle()
+        favorite=self.sonos_slot(7)
+        self.assertEqual(favorite.locator('.artwork').evaluate('el=>getComputedStyle(el).backgroundSize'),'56% auto')
+        self.assertEqual(favorite.locator('.artwork').evaluate('el=>getComputedStyle(el).opacity'),'1')
+        self.activate(favorite.locator('.interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)[2].media_content_id'),'FV:2/57')
+        self.capture('beta7-full-bleed-radio-unchanged')
     def test_beta5_artwork_responsive_state_and_volume_labels(self):
         self.beta4_radio_hub();launcher=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
         for promoted in [False,True]:
@@ -1126,7 +1191,7 @@ class Cubes(unittest.TestCase):
                         text=label.bounding_box();self.assertLess(box['y']+box['height'],text['y'])
                     else:self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#202224')
                 self.capture(f'beta5-artwork-{ "center" if promoted else "module" }-{state}')
-            self.assertGreater(sizes[-1],sizes[0]*1.2)
+            self.assertAlmostEqual(sizes[-1],sizes[0],delta=.1,msg='Paused artwork remains compact with visible gray fill')
             self.page.evaluate("pushState('media_player.player_a','playing',{...hass.states['media_player.player_a'].attributes,volume_level:.02})")
 
     def station_hub(self, overrides=None):

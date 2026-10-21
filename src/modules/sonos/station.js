@@ -136,10 +136,10 @@ function stationForeground(color)
 function artworkStyle(playing, primary, secondary)
 {
     const text=primary || secondary;
-    const width=playing || text ? 62 : 80;
+    const width=62;
     return {width:`${width}%`,left:`${(100-width)/2}%`,
-        top:text ? '10%' : playing ? '19%' : '13%',
-        height:primary && secondary ? '36%' : text ? '48%' : playing ? '62%' : '74%'};
+        top:text ? '14%' : '19%',
+        height:primary && secondary ? '36%' : text ? '48%' : '62%'};
 }
 function resolve({config,state,hass,runtime={}})
 {

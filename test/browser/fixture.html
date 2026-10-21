@@ -6,6 +6,7 @@ body{margin:0;background:#18212b;color:#f6f7f9;font:16px Arial;--primary-text-co
 h1{font-size:18px;margin:18px} #anchor{position:absolute;left:160px;top:260px}
 </style>
 <h1>Honeycomb shared cube test</h1><home-assistant></home-assistant>
+<script src="/mdi-icons.js"></script>
 <script>
 window.calls=[]; window.moreInfo=[];
 window.hass={states:{
@@ -31,7 +32,16 @@ const hui=document.createElement('hui-root');panel.append(hui);hui.lovelace={con
 const container=document.createElement('div');container.id='view';hui.attachShadow({mode:'open'}).append(container);
 window.view=document.createElement('hui-view');view.style.cssText='display:block;min-height:100vh';container.append(view);
 customElements.define('ha-card',class extends HTMLElement{constructor(){super();this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:block;position:relative;box-sizing:border-box;height:100%;background:var(--ha-card-background);color:var(--primary-text-color)}</style><slot></slot>'}});
-customElements.define('ha-icon',class extends HTMLElement{constructor(){super();this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:inline-block}svg{width:100%;height:100%;fill:currentColor}</style><svg viewBox="0 0 24 24"><path d="M9 2h6v7h7v6h-7v7H9v-7H2V9h7z"/></svg>'}});
+// HA-shaped inner SVG size (24px by default), not a stretched placeholder.
+customElements.define('ha-svg-icon',class extends HTMLElement{
+ constructor(){super();this.attachShadow({mode:'open'}).innerHTML='<style>:host{display:var(--ha-icon-display,inline-flex);align-items:center;justify-content:center;position:relative;vertical-align:middle;fill:currentColor;width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px)}svg{width:100%;height:100%;pointer-events:none;display:block}</style><svg viewBox="0 0 24 24"><path/></svg>';}
+ set path(value){this.shadowRoot.querySelector('path').setAttribute('d',value);}
+});
+customElements.define('ha-icon',class extends HTMLElement{
+ constructor(){super();this.attachShadow({mode:'open'}).innerHTML='<style>:host{fill:currentColor}</style><ha-svg-icon></ha-svg-icon>';}
+ set icon(value){this._icon=value;this.shadowRoot.querySelector('ha-svg-icon').path=fixtureIconPaths[value]||fixtureIconPaths['mdi:plus'];}
+ get icon(){return this._icon;}
+});
 customElements.define('hui-error-card',class extends HTMLElement{setConfig(c){this.textContent=c.error}});
 document.addEventListener('hass-more-info',e=>moreInfo.push(e.detail.entityId));
 document.body.addEventListener('hass-action',e=>{const source=e.composedPath().find(n=>n.tagName==='BUTTON-CARD');const c=e.detail.config;const a=c[e.detail.action+'_action']||c.tap_action;if(!source||!a)return;if(a.action==='fire-dom-event')source.dispatchEvent(new CustomEvent('ll-custom',{detail:a,bubbles:true,composed:true}));else if(a.action==='perform-action'){const [d,s]=a.perform_action.split('.');hass.callService(d,s,a.data||{},a.target||{})}});

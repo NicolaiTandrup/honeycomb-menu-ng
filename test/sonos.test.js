@@ -43,10 +43,12 @@ test('volume script overrides move with their cubes; explicit generic media slot
     assert.equal(generic.buttons[0].tap_action.direction,'down');
     assert.equal(generic.buttons[2].tap_action.direction,'up');
 });
-test('Sonos typography and grid match actual Light preset styles locally',()=>{
+test('Sonos functions inherit ordinary Light cube typography without a forced preset grid',()=>{
+    assert.deepEqual(sonosButtonStyles(),{});
+    assert.deepEqual(sonosButtonStyles({background:'#34424e'}),{card:[{background:'#34424e'}]});
     const light={entity:'light.zone_a',buttons:[{control:'preset-brightness'}]};
     applyPresetControls(light);
-    assert.deepEqual(sonosButtonStyles(),light.buttons[0].styles);
+    assert.ok(light.buttons[0].styles.grid,'Light preset layout stays unchanged and distinct from ordinary function cubes');
 });
 test('Radio descriptor golden preserves all twelve slots, order, artwork/cache and playback',()=>{
     const radio=buildRadioMenu(options);
@@ -406,14 +408,15 @@ test('Join reentry does not stack duplicate views and late stale discovery canno
     live=false;complete({entities:[{ei:player,pl:'sonos'}]});assert.equal(await first,false);assert.equal(opened,0);
     assert.equal(await openJoin({...context,menuConfig:{_sonos_join_entity:player}}),false);
 });
-test('playing artwork reserves text space and paused artwork expands inside the same fill',()=>{
+test('playing artwork moves down with text space; paused and idle artwork stay compact inside gray fill',()=>{
     const {hass,config}=stationFixture();
     hass.states[player].attributes.volume_level=.02;
     let art=station.resolve({hass,config,state:hass.states[player]}).artwork;
     assert.equal(art.style.width,'62%');assert.equal(art.style.height,'48%');
     hass.states[player].state='paused';
     art=station.resolve({hass,config,state:hass.states[player]}).artwork;
-    assert.equal(art.style.width,'80%');assert.equal(art.style.height,'74%');
+    assert.equal(art.style.width,'62%');assert.equal(art.style.height,'62%');
+    assert.equal(art.style.top,'19%');
     config.label='Custom label';config.show_name=true;config.name='Player A';
     art=station.resolve({hass,config,state:hass.states[player]}).artwork;
     assert.equal(art.style.height,'36%','Explicit labels still reserve space');
