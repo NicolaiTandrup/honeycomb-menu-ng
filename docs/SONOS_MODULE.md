@@ -233,14 +233,72 @@ Unavailable players use `colors.unavailable` (gray by default).
 
 Matching first uses an exact favorite ID or a unique cached `uri`/`playback_uri`.
 For Sonos radio transports (`x-sonosapi-hls:`, `x-sonosapi-radio:`,
-`x-sonosapi-stream:` or `x-rincon-mp3radio:`), beta.2 also accepts a strictly unique
-exact correspondence between `media_channel`, the canonical favorite name, and
-that favorite's cache `title` with `media_content_type: favorite_item_id`.
-Whitespace/NFC normalization is allowed; substrings, case guesses, track titles
-and arbitrary HTTP track channels never qualify. Duplicate names/IDs/URIs or a
-missing/invalid thumbnail fail safely. A reciprocal group uses its coordinator's
-playback identity. This repairs FV-ID versus stream-URI data without replacing
-working playback IDs or requiring existing cache sensors to be reconfigured.
+`x-sonosapi-stream:` or `x-rincon-mp3radio:`), beta.4
+accepts `media_channel` matching a unique favorite-map name **or** that favorite's
+cache `title`, with cache type `favorite_item_id`. These two HA sources need not
+use identical display labels. Normalize NFC, whitespace and letter case only;
+retain punctuation and diacritics. Additionally, parse the explicit
+`Station Alpha · programme text` / `Station Alpha • programme text` formats:
+require a spaced middle dot/bullet, nonempty suffix, and station prefix identifying
+exactly one favorite corroborated by both map and typed cache title. Reject
+conflicts with another full channel/favorite label. Do not strip arbitrary
+broadcast suffixes. The bullet form is used by
+[HA Sonos radio-show metadata](https://github.com/home-assistant/core/blob/487f8ae6a1ea60f770fb4a1aaa37c796ecb47fcf/homeassistant/components/sonos/media.py#L170);
+the middle-dot form reproduces the owner's sanitized HA tuple. If map and cache labels point to
+conflicting IDs, fail closed. Never match `media_title`, substrings, arbitrary
+HTTP track channels, guessed regional labels or guessed broadcast suffixes.
+Duplicate IDs/URIs and missing/invalid thumbnails also fall back safely.
+A reciprocal group uses its coordinator's playback identity. Existing four-field
+cache records, sensors, favorite IDs and Radio actions remain supported unchanged.
+
+Recognized artwork also replaces a Sonos navigation center's back-arrow icon.
+The existing center tap still performs Back; no navigation handler changes.
+Unknown stations retain the usual navigation icon. Both a parent Hub ring
+launcher and promoted submenu center react live to playback/cache changes.
+
+Tests reproduce the owner's sanitized tuple: FV favorite ID, distinct Sonos
+stream URI, station name in the map/cache, and live channel containing the name
+plus programme text. Unknown formats still fall back. No selection/stream mapping
+is learned from service completion: a successful command alone does not prove
+which later stream update belongs to it, especially during grouped playback.
+There is no URI-session stability assumption or persisted learned mapping.
+Real hardware/HACS behavior remains the owner's beta test gate before stable.
+
+### Station recognition diagnostics
+
+On desktop, inspect the cube's `.interaction-surface` in browser developer tools,
+then run this explicitly in the console:
+
+```javascript
+$0.getRootNode().host.getPresentationDiagnostics()
+```
+
+There is no automatic logging, polling, storage or additional HA request. The
+returned object contains only bounded state/category strings, presence flags,
+counts and presentation/override flags. It never includes entity IDs, favorite
+names/IDs, stream/artwork URLs, cache payloads or tokens. Call it on the parent
+launcher and submenu center separately. Other modules return `null`.
+
+- `match_stage`: `identifier`, `radio_channel`, `radio_station_programme`, or `none`.
+- `map_channel_candidates` / `cache_channel_candidates`: exact-label counts.
+  `programme_channel` and `programme_map_candidates` / `programme_cache_candidates`
+  expose structured-format parsing and corroboration counts.
+- `reason`: `recognized`, `channel_or_mapping_missing`, `channel_ambiguous`,
+  `mapping_ambiguous`, `identifier_not_mapped`, `playback_id_missing`,
+  `favorites_or_cache_missing`, `favorites_or_cache_unavailable`,
+  `group_not_verified`, `player_unavailable`, or `artwork_missing_or_invalid`.
+- `artwork_load_failed` distinguishes a valid-looking URL from failed browser
+  loading. `presentation` reports station playing/inactive or standard/override.
+- `explicit_center_color` / `explicit_inner_color` identify explicit color choices.
+
+When no exact correspondence exists, supply only a sanitized failing tuple:
+`media_channel`, matching favorite-map name, cache title/type, whether optional
+`uri`/`playback_uri` exists, and whether stream identity changes on station switch.
+Use consistent synthetic replacements preserving the differing spelling/suffix
+structure. Never share real URLs, stream query parameters or access tokens.
+A verified optional cache `playback_uri` must equal the actual stream identifier;
+never fabricate it from an FV ID. Without reliable metadata, stop and collect
+that evidence before claiming that unknown format is supported.
 
 The reusable cache exports optional `uri` when Browse Media actually supplies it;
 it does not fabricate stream mappings or promise HA always supplies one. Original

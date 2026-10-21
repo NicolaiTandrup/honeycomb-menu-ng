@@ -56,6 +56,38 @@ def capture_reference(cubes, handler, button, evidence):
                     case.activate(case.sonos_slot(1).locator('.interaction-surface'))
                     case.capture('issue90-station-radio-accents')
                 finally:case.tearDown()
+            # Exact immutable cumulative beta.3: reproduce the remaining defect
+            # with FV IDs, distinct streams and cache/map label differences.
+            beta3='b61374e6589111642768b305724d52c385eccfa6'
+            beta3_bundle=subprocess.check_output(['git','show',f'{beta3}:honeycomb-menu-ng.js'])
+            assert hashlib.sha256(beta3_bundle).hexdigest()=='86047b72c5c05edb6ff0325f6f2b8acdb0650b084cc0a30cc6e086293e69960d'
+            file.write_bytes(beta3_bundle)
+            before_beta4=evidence/'before-beta4';before_beta4.mkdir(parents=True,exist_ok=True)
+            cubes.evidence=before_beta4
+            for width,height in [(1100,900),(390,844)]:
+                cubes.viewport={'width':width,'height':height}
+                case=cubes();case.setUp()
+                try:
+                    case.beta4_radio_hub()
+                    launcher=case.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
+                    assert launcher.locator('.station-artwork').count()==0
+                    assert launcher.locator('.hex-fill').get_attribute('fill')=='#00bcd4'
+                    case.capture('beta4-parent-playing')
+                    case.hold_input(launcher.locator('.interaction-surface'))
+                    case.page.wait_for_function('hub._menuContext.stack.length===1')
+                    center=case.page.locator('honeycomb-menu .center-item')
+                    assert center.locator('.station-artwork').count()==0
+                    case.capture('beta4-promoted-playing')
+                    # Prove suppression independently, even with exact ID match.
+                    case.page.evaluate("pushState('media_player.player_a','playing',{media_content_id:'FV:2/57',group_members:['media_player.player_a']})")
+                    center.locator('.station-artwork').wait_for(state='visible')
+                    case.activate(case.sonos_slot(1).locator('.interaction-surface'))
+                    case.page.wait_for_function('hub._menuContext.stack.length===2');case.settle()
+                    assert center.evaluate('(el)=>el._model.icon')=='mdi:arrow-left'
+                    assert center.locator('.station-artwork').count()==0
+                    case.capture('beta4-radio-center-playing')
+                finally:case.tearDown()
+            (before_beta4/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.3','commit':beta3,'sha256':hashlib.sha256(beta3_bundle).hexdigest(),'entities':'synthetic','video':'owner written findings only; no video frames claimed'},indent=2)+'\n')
             (expanded/'provenance.json').write_text(json.dumps({'commit':previous,'sha256':hashlib.sha256(previous_bundle).hexdigest(),'entities':'synthetic'},indent=2)+'\n')
             (before/'provenance.json').write_text(json.dumps({'tag':'v1.7.0','commit':commit,'sha256':hashlib.sha256(bundle).hexdigest(),'viewports':[[1100,900],[390,844]],'entities':'synthetic','missing_join_setup':'more-info fallback; no outer candidates'},indent=2)+'\n')
         finally:

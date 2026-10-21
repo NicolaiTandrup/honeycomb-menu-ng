@@ -513,13 +513,25 @@ The corrected Sonos inner slots/Join behavior above remain. Radio outer slots
 IDs, existing cache compatibility, artwork and actions. Up to 12 IDs have distinct colors stable
 under reordering; larger sets can share hues.
 
-The launcher first matches exact favorite IDs or unique optional cached playback
-URIs. For validated Sonos radio URI schemes, it may instead match a unique exact
-`media_channel` = canonical favorite name = cached `title`, requiring cache type
-`favorite_item_id`. This is not fuzzy title matching. Reject ambiguous or partial
-names, arbitrary HTTP track channels and `media_title` matching. A valid thumbnail
-is still required. Existing four-field cache entries work without adding URIs.
-Groups require reciprocal membership and use coordinator playback identity.
+Beta.4 matches exact favorite IDs or unique optional
+cached `uri`/`playback_uri`. Validated Sonos radio schemes can instead use a
+unique `media_channel` match against the favorite-map name OR cached `title`
+(type `favorite_item_id`); map/cache names need not agree. Normalize only NFC,
+whitespace and case. A live channel `Station Alpha · programme text` or
+`Station Alpha • programme text` can match its station prefix only when that
+name uniquely agrees with both map and typed cache title. Require the spaced
+separator/nonempty programme; reject conflicts with full labels, duplicate
+entries, arbitrary suffix/diacritic inference, substrings, HTTP channels and
+`media_title`. Valid artwork
+remains required. Four-field caches work unchanged. Reciprocal groups use the
+coordinator's identity. Recognized Sonos artwork may replace a navigation arrow;
+center Back action remains unchanged on deeper menus.
+Call the inspected cube's `getPresentationDiagnostics()` for privacy-safe
+state/counts/reasons (no identifiers/URLs or automatic logging). See
+[diagnostic procedure and evidence gate](SONOS_MODULE.md#station-recognition-diagnostics).
+The owner's sanitized FV/stream + station/programme tuple is covered by regressions;
+real hardware remains the owner's beta acceptance gate.
+No stream mapping is learned merely from successful service completion.
 
 Known logo/accent may remain on pause/stop only while metadata still matches;
 center fill becomes neutral `off.center_color`, default `#202224`. Explicit playing

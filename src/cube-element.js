@@ -412,6 +412,15 @@ class CubeElement extends LitElement
         };
     }
 
+    // User-invoked, privacy-safe module diagnostics. No automatic logging.
+    getPresentationDiagnostics()
+    {
+        const module = moduleRegistry.resolvePresentation(this.config && this.config.mode);
+        if (!module || !module.presentation || !module.presentation.diagnostics) return null;
+        return module.presentation.diagnostics({hass:this.hass,config:this.config,
+            runtime:{failedArtworkKey:this._failedArtworkKey}});
+    }
+
     _parseColor(color)
     {
         if( typeof color !== 'string' )

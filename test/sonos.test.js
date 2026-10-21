@@ -292,9 +292,9 @@ test('Sonos snapshots track favorites/cache/group leader but ignore unrelated up
     hass.states['sensor.favorites_cache_a'].attributes.items[0].thumbnail='/local/changed.png';
     assert.notEqual(presentationSnapshot(hass,deps),before);
 });
-test('back arrow stays visible and unavailable color beats station context',()=>{
+test('recognized Sonos navigation surface retains artwork and unavailable color beats station context',()=>{
     const {hass,config}=stationFixture();config.icon='mdi:arrow-left';
-    assert.equal(station.resolve({hass,config,state:hass.states[player]}).artwork,null);
+    assert.equal(station.resolve({hass,config,state:hass.states[player]}).artwork.url,LOGO);
     hass.states[player].state='unavailable';
     const result=station.resolve({hass,config,state:hass.states[player]});
     assert.deepEqual(result.forceColors,{center:'#555b63',inner:'#555b63',outer:'#555b63'});
@@ -306,4 +306,90 @@ test('station contrast is local to station fills and respects explicit foregroun
     assert.equal(station.resolve({hass,config,state:hass.states[player]}).foreground,'#14202b');
     config.colors.center='#112233';
     assert.equal(station.resolve({hass,config,state:hass.states[player]}).foreground,undefined);
+});
+
+test('real-shaped radio fixtures match unique map or cache labels without requiring all labels to agree',()=>{
+    const data=require('./fixtures/sonos-radio.json'),{hass,config}=stationFixture();
+    hass.states['sensor.favorites_a'].attributes.items=data.favorites;
+    hass.states['sensor.favorites_cache_a'].attributes.items=data.cache;
+    for(const [key,id] of [['playing_a','FV:2/57'],['playing_b','FV:2/58']]) {
+        hass.states[player].attributes=data[key];
+        assert.equal(station.recognizedFavorite(hass,config).id,id);
+        assert.equal(station.inspectFavorite(hass,config).diagnostics.match_stage,'radio_station_programme');
+    }
+    hass.states[player].attributes={...data.playing_a,media_channel:'Station Alpha'};
+    assert.equal(station.recognizedFavorite(hass,config).id,'FV:2/57');
+    hass.states['sensor.favorites_cache_a'].attributes.items=JSON.parse(JSON.stringify(data.cache));
+    hass.states['sensor.favorites_cache_a'].attributes.items[0].title='Station Alpha — Region A';
+    hass.states[player].attributes.media_channel=' STATION ALPHA — REGION A ';
+    assert.equal(station.recognizedFavorite(hass,config).id,'FV:2/57','Unique exact cache label need not equal the map label');
+    hass.states[player].attributes=data.unverified;
+    assert.equal(station.recognizedFavorite(hass,config),null,'Never infer arbitrary broadcast suffixes');
+    assert.equal(station.inspectFavorite(hass,config).diagnostics.reason,'channel_or_mapping_missing');
+});
+test('channel normalization preserves station identity and rejects conflicting aliases across map/cache',()=>{
+    const {hass,config}=stationFixture(),cache=hass.states['sensor.favorites_cache_a'].attributes.items;
+    hass.states['sensor.favorites_a'].attributes.items={favorite_a:'Státion A',favorite_b:'Station B'};
+    cache[0].title='Station A region';cache[0].media_content_type='favorite_item_id';
+    cache[1].title='Station B region';cache[1].media_content_type='favorite_item_id';
+    hass.states[player].attributes={media_content_id:'x-sonosapi-hls:synthetic',media_channel:'  STA\u0301TION   A '};
+    assert.equal(station.recognizedFavorite(hass,config).id,'favorite_a');
+    hass.states[player].attributes.media_channel='Station A';
+    assert.equal(station.recognizedFavorite(hass,config),null,'Diacritics are not guessed away');
+    hass.states[player].attributes.media_channel='Státion A';cache[1].title='Státion A';
+    assert.equal(station.inspectFavorite(hass,config).diagnostics.reason,'channel_ambiguous');
+});
+test('inspectable diagnostics contain reason/counts only, including missing metadata and artwork failures',()=>{
+    const {hass,config}=stationFixture();
+    let found=station.recognizedFavorite(hass,config),report=station.diagnostics({hass,config});
+    assert.equal(report.presentation,'station_playing');assert.equal(report.candidate_count,1);
+    report=station.diagnostics({hass,config,runtime:{failedArtworkKey:found.key}});
+    assert.equal(report.artwork_load_failed,true);assert.equal(report.presentation,'standard_or_override');
+    const serialized=JSON.stringify(report);
+    for(const privateValue of [player,config._sonos.cache,'favorite_a','Station A',LOGO]) assert.ok(!serialized.includes(privateValue));
+    delete hass.states['sensor.favorites_cache_a'];
+    assert.equal(station.diagnostics({hass,config}).reason,'favorites_or_cache_missing');
+});
+
+test('FV/stream cache-label matching follows live group state and cache changes without optimistic memory',()=>{
+    const data=require('./fixtures/sonos-radio.json'),{hass,config}=stationFixture();
+    hass.states['sensor.favorites_a'].attributes.items=data.favorites;
+    hass.states['sensor.favorites_cache_a'].attributes.items=JSON.parse(JSON.stringify(data.cache));
+    hass.states[player].attributes={group_members:[member,player]};
+    hass.states[member]={state:'playing',attributes:{...data.playing_a,group_members:[member,player]}};
+    const resolve=()=>station.resolve({hass,config,state:hass.states[player]});
+    assert.equal(resolve().artwork.url,'/station-a.svg');const color=resolve().colors.inner;
+    for(const value of ['paused','idle','off']) {
+        hass.states[member].state=value;
+        assert.equal(resolve().forceColors.center,'#202224');assert.equal(resolve().colors.inner,color);
+    }
+    hass.states[member]={state:'playing',attributes:{...data.playing_b,group_members:[member,player]}};
+    assert.equal(resolve().artwork.url,'/station-c.svg');assert.notEqual(resolve().colors.inner,color);
+    hass.states[member].attributes.media_channel='Station B live';
+    assert.equal(resolve().artwork,null,'Do not remember a station after identifiers become unverified');
+    hass.states['sensor.favorites_cache_a'].attributes.items[1].playback_uri=data.playing_b.media_content_id;
+    assert.equal(resolve().artwork.url,'/station-c.svg','An explicitly verified URI mapping works with a differing channel');
+    delete hass.states['sensor.favorites_a'].attributes.items['FV:2/58'];
+    assert.equal(resolve().artwork,null,'Removed favorites invalidate mappings immediately');
+});
+
+test('station/programme parsing is delimiter-bound, corroborated, unique and never fuzzy',()=>{
+    const data=require('./fixtures/sonos-radio.json'),{hass,config}=stationFixture();
+    hass.states['sensor.favorites_a'].attributes.items=JSON.parse(JSON.stringify(data.favorites));
+    hass.states['sensor.favorites_cache_a'].attributes.items=JSON.parse(JSON.stringify(data.cache));
+    const probe=channel=>{hass.states[player].attributes={...data.playing_a,media_channel:channel};return station.inspectFavorite(hass,config)};
+    for(const channel of ['Station Alpha · Programme A','  STATION   ALPHA • Programme A • Episode B ']) {
+        assert.equal(probe(channel).favorite.id,'FV:2/57');
+        assert.equal(probe(channel).diagnostics.match_stage,'radio_station_programme');
+    }
+    for(const channel of ['Station Alpha Plus · Programme','Station Alpha - Programme','Station Alpha: Programme','Station Alpha·Programme','Programme · Station Alpha','Station Alpha · ','Station Alpha / Programme'])
+        assert.equal(probe(channel).favorite,null,channel);
+    hass.states['sensor.favorites_a'].attributes.items['FV:2/58']='Station Alpha';
+    assert.equal(probe('Station Alpha · Programme').diagnostics.reason,'channel_ambiguous');
+    hass.states['sensor.favorites_a'].attributes.items['FV:2/58']='Station Beta';
+    hass.states['sensor.favorites_cache_a'].attributes.items[0].title='Different name';
+    assert.equal(probe('Station Alpha · Programme').favorite,null,'Programme parsing requires map/cache corroboration');
+    hass.states['sensor.favorites_cache_a'].attributes.items[0].title='Station Alpha';
+    hass.states['sensor.favorites_a'].attributes.items['FV:2/58']='Station Alpha · Programme';
+    assert.equal(probe('Station Alpha · Programme').diagnostics.reason,'channel_ambiguous','Full-label vs parsed-station conflict is rejected');
 });

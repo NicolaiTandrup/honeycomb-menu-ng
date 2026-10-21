@@ -25,6 +25,12 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > both modules; v1.7.0 remains latest stable. [HA beta test guide](docs/V1_7_1_BETA.md)
 > and [Color Zoom slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
 
+> **v1.7.1-beta.4 target:** cumulative Sonos radio artwork corrections and
+> Light Zoom. Handles verified `Station Alpha · programme text` channel metadata
+> and preserves artwork on promoted/navigation centers. See the
+> [beta test guide](docs/V1_7_1_BETA.md) and
+> [privacy-safe diagnostics](docs/SONOS_MODULE.md#station-recognition-diagnostics).
+
 ## What you can build
 
 - Persistent Hubs and individual Controls with consistent icons, labels and rings.

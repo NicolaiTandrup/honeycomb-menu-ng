@@ -849,6 +849,91 @@ class Cubes(unittest.TestCase):
         self.assertEqual(self.sonos_slot(7).locator('.secondary').inner_text(),'No other Sonos')
         self.assertEqual(self.page.evaluate('calls.length'),0)
 
+    def beta4_radio_hub(self):
+        self.sonos_setup()
+        data=json.loads((ROOT/'test/fixtures/sonos-radio.json').read_text())
+        self.page.evaluate("""data=>{
+            pushStates([
+                ['sensor.favorites','2',{items:data.favorites}],
+                ['sensor.favorites_cache','2',{items:data.cache}],
+                ['media_player.player_a','playing',data.playing_a]
+            ]);
+        }""",data)
+        # A real parent ring launcher beside a Light, rather than only slot 0.
+        item={'type':'media','entity':'media_player.player_a','active_color':'#00bcd4',
+              'favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}
+        self.hub({'logo':True,'items':[{'type':'light','entity':'light.zone_a'},item]})
+        self.settle()
+        return data
+    def test_beta4_parent_and_promoted_center_real_shaped_live_radio(self):
+        data=self.beta4_radio_hub()
+        launcher=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
+        launcher.locator('.station-artwork').wait_for(state='visible')
+        color=launcher.locator('.hex-inner').get_attribute('fill')
+        self.assertNotEqual(color,'#00bcd4')
+        self.assertEqual(launcher.locator('.hex-fill').get_attribute('fill'),color)
+        self.capture('beta4-parent-playing')
+        self.hold_input(launcher.locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        center=self.page.locator('honeycomb-menu .center-item')
+        center.locator('.station-artwork').wait_for(state='visible')
+        self.assertEqual(center.locator('.hex-fill').get_attribute('fill'),color)
+        self.capture('beta4-promoted-playing')
+        # Deeper Radio center uses arrow-left for navigation, but remains the
+        # same Sonos presentation surface. Back still works with a station logo.
+        self.activate(self.sonos_slot(1).locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===2');self.settle()
+        self.assertTrue(center.locator('.station-artwork').is_visible())
+        self.assertEqual(center.locator('.hex-inner').get_attribute('fill'),color)
+        self.capture('beta4-radio-center-playing')
+        self.activate(center.locator('.interaction-surface'))
+        self.page.wait_for_function('hub._menuContext.stack.length===1')
+        self.page.evaluate("attrs=>pushState('media_player.player_a','playing',attrs)",data['playing_b'])
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork?.url==="/station-c.svg"')
+        switched=center.locator('.hex-inner').get_attribute('fill');self.assertNotEqual(switched,color)
+        self.assertEqual(center.locator('.hex-fill').get_attribute('fill'),switched)
+        self.page.evaluate("attrs=>pushState('media_player.player_a','paused',attrs)",data['playing_b'])
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.colors.center==="#202224"')
+        self.assertEqual(center.locator('.hex-inner').get_attribute('fill'),switched)
+        self.assertTrue(center.locator('.station-artwork').is_visible());self.capture('beta4-promoted-paused')
+        self.back();self.page.wait_for_function('hub._menuContext.stack.length===0')
+        self.assertEqual(launcher.locator('.hex-fill').get_attribute('fill'),'#202224')
+        self.assertEqual(launcher.locator('.station-artwork').get_attribute('src'),'/station-c.svg')
+        self.capture('beta4-parent-paused')
+        self.page.evaluate("attrs=>pushState('media_player.player_a','playing',attrs)",data['unverified'])
+        self.page.wait_for_function('''!hub._hubMenu.shadowRoot.querySelector('[data-honeycomb-id="items[1]"]')._model.artwork''')
+        self.assertEqual(launcher.locator('.hex-fill').get_attribute('fill'),'#00bcd4')
+        report=launcher.evaluate('(el)=>el.getPresentationDiagnostics()')
+        self.assertEqual(report['reason'],'channel_or_mapping_missing')
+        self.assertEqual(report['map_channel_candidates'],0);self.assertEqual(report['cache_channel_candidates'],0)
+        for value in ['Station A','media_player.player_a','synthetic-unknown']:
+            self.assertNotIn(value,json.dumps(report))
+
+    def test_beta4_select_favorites_preserves_payload_and_updates_both_surfaces(self):
+        data=self.beta4_radio_hub()
+        self.page.evaluate("attrs=>pushState('media_player.player_a','playing',attrs)",data['unverified'])
+        launcher=self.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
+        for physical,key,expected,logo in [(7,'playing_a','FV:2/57','/station-a.svg'),(8,'playing_b','FV:2/58','/station-c.svg')]:
+            self.hold_input(launcher.locator('.interaction-surface'))
+            self.page.wait_for_function('hub._menuContext.stack.length===1')
+            self.activate(self.sonos_slot(1).locator('.interaction-surface'))
+            self.page.wait_for_function('hub._menuContext.stack.length===2')
+            self.activate(self.sonos_slot(physical).locator('.interaction-surface'))
+            self.assertEqual(self.page.evaluate('calls.at(-1)'),['media_player','play_media',
+                {'media_content_id':expected,'media_content_type':'favorite_item_id'},{'entity_id':'media_player.player_a'}])
+            # Simulate HA's distinct stream response, never an optimistic FV ID.
+            self.page.evaluate("attrs=>pushState('media_player.player_a','playing',attrs)",data[key])
+            self.page.wait_for_function('hub._menuContext.stack.length===0 && hub._hubMenu && !hub._hubMenu.closing')
+            self.page.wait_for_function("logo=>hub._hubMenu?.shadowRoot?.querySelector('[data-honeycomb-id=\"items[1]\"]')?._model.artwork?.url===logo",arg=logo)
+            self.assertEqual(launcher.locator('.station-artwork').get_attribute('src'),logo)
+            self.capture(f'beta4-selected-{physical}-parent')
+            self.hold_input(launcher.locator('.interaction-surface'))
+            self.page.wait_for_function('hub._menuContext.stack.length===1')
+            center=self.page.locator('honeycomb-menu .center-item')
+            self.assertEqual(center.locator('.station-artwork').get_attribute('src'),logo)
+            self.capture(f'beta4-selected-{physical}-center')
+            self.back();self.page.wait_for_function('hub._menuContext.stack.length===0')
+
     def station_hub(self, overrides=None):
         self.sonos_setup()
         self.page.evaluate('''()=>{
@@ -907,7 +992,7 @@ class Cubes(unittest.TestCase):
         self.page.evaluate("stationUpdate('paused')")
         self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.colors.center==="#303030"')
         self.activate(self.sonos_slot(3).locator('.interaction-surface'))
-        self.assertEqual(cube.locator('.station-artwork').count(),0,'Nested back arrow remains visible')
+        self.assertTrue(cube.locator('.station-artwork').is_visible(),'Station artwork does not suppress the existing back action')
         self.page.evaluate("stationUpdate('playing',{group_members:['media_player.player_b','media_player.player_a'],media_content_id:'favorite_a'});pushState('media_player.player_b','playing',{group_members:['media_player.player_b','media_player.player_a'],media_content_id:'favorite_c'})")
         self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
         self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork?.url==="/station-c.svg"')

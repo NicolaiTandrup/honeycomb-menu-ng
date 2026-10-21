@@ -1,3 +1,37 @@
+# v1.7.1-beta.4 — cumulative Sonos radio artwork and Light Zoom
+
+Continues from immutable cumulative beta.3 (`b61374e6589111642768b305724d52c385eccfa6`),
+retaining all Sonos beta.2 fixes and recursive Light Color Zoom. No stable/master
+merge is authorized.
+
+- Recognize the owner's real-HA-shaped `Station Alpha · programme text` channel
+  using an exact, unique station prefix corroborated by the favorite map and
+  typed cache title. Also accept HA's spaced bullet format. No fuzzy names,
+  arbitrary suffixes, track-title matching or inferred stream-session mapping.
+- Compare plain radio channels against unique exact favorite-map OR cache labels,
+  normalizing case/whitespace/NFC and rejecting conflicts. Existing FV IDs,
+  four-field caches, sensors, playback actions and favorite order are unchanged.
+- Preserve logo, hue inner ring and playing fill on parent Hub ring launchers,
+  promoted Sonos centers and deeper Radio/Join centers. Artwork no longer vanishes
+  solely because the navigation icon is `mdi:arrow-left`; Back still works.
+  Pause/stop stays neutral; unknown content/failed artwork falls back safely.
+- Add explicit privacy-safe diagnostic inspection, realistic FV/stream fixtures,
+  unit and desktop/mobile transition regressions, and immutable beta.3 before
+  screenshots. No automatic logging, polling or identifier/URL disclosure.
+
+Known limitations: only exact identifiers/labels and the two validated structured
+channel formats identify stations. Ambiguous names, unverified suffixes and
+unavailable artwork fall back. Actual HA/HACS, group metadata, artwork access,
+non-Chromium and external automation require owner testing; the existing 82 px
+outer ring can crop at narrow viewport edges. Stable v1.7.1 requires explicit
+approval after real HA beta testing. No retention settings, releases, tags,
+branches or history are deleted/replaced.
+
+See [diagnostics](docs/SONOS_MODULE.md#station-recognition-diagnostics) and
+[HACS / real HA checklist](docs/V1_7_1_BETA.md).
+
+---
+
 # v1.7.1-beta.3 — cumulative Sonos and Light owner test
 
 One HACS bundle combining **all tested Sonos beta.2 code** from PR #91 at
