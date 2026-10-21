@@ -37,13 +37,13 @@ test('invalid palette data and selected indices are rejected',()=>{
     for(const [palette,index] of [[[],0],[INITIAL,-1],[INITIAL,12],[INITIAL,1.5],[INITIAL.map(()=>[NaN,85]),0],[INITIAL.map(()=>[0,-1]),0],[INITIAL.map(()=>[361,85]),0]])
         assert.throws(()=>refinePalette(palette,index));
 });
-test('long press opens a nested palette without any HA calls; tap IDs and Kelvin remain unchanged',()=>{
+test('Color long press opens a nested palette without HA calls; Kelvin uses its isolated zoom action',()=>{
     const buttons=buildColorPaletteButtons(),hass={states:{'light.zone_a':{state:'on',attributes:{supported_color_modes:['hs']}}},callService:()=>assert.fail('Zoom never sends HA calls')};
     let submenu;
     assert.equal(zoomColor({hass,entity:'light.zone_a',actionConfig:buttons[1].hold_action,openNested:config=>submenu=config}),true);
     assert.equal(submenu.entity,'light.zone_a');assert.equal(submenu.inherit_inner,true);
     assert.deepEqual(submenu.buttons[1].tap_action,{action:'perform-action',perform_action:'light.turn_on',data:{hs_color:[25,85]}});
     assert.equal(submenu.buttons[1].hold_action.action,'honeycomb-light-color-zoom');
-    assert.ok(buildWhitePaletteButtons({minKelvin:2200,maxKelvin:6500}).every(b=>!b.hold_action));
+    assert.ok(buildWhitePaletteButtons({minKelvin:2200,maxKelvin:6500}).every(b=>b.hold_action.action==='honeycomb-light-kelvin-zoom'));
     hass.states['light.zone_a'].state='unavailable';assert.equal(zoomColor({hass,entity:'light.zone_a',actionConfig:buttons[0].hold_action,openNested:()=>assert.fail('Unavailable')}),false);
 });

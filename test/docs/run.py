@@ -194,6 +194,7 @@ def external_recipes():
     return items
 
 STATES={
+ 'light.white_a':{'state':'on','attributes':{'brightness':128,'color_temp_kelvin':3000,'supported_color_modes':['color_temp'],'min_color_temp_kelvin':1800,'max_color_temp_kelvin':6535}},
  'light.zone_a':{'state':'on','attributes':{'brightness':128,'hs_color':[30,80],'rgb_color':[255,128,0],'color_temp_kelvin':2700,'supported_color_modes':['hs','color_temp']}},
  'light.zone_b':{'state':'on','attributes':{'brightness':200,'supported_color_modes':['brightness']}},
  'light.switch_a':{'state':'on','attributes':{'supported_color_modes':['onoff']}},
@@ -249,6 +250,17 @@ class Examples(BROWSER.Cubes):
         color=self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface')
         self.hold_input(color);self.assertEqual(self.page.evaluate('calls.slice(-2).map(c=>c[0])'),['input_number','input_number'])
         self.capture('docs-control-light')
+    def test_docs_kelvin_example(self):
+        self.control_example('kelvin-light.yaml')
+        self.hold_input(self.page.locator('#anchor .interaction-surface'));self.settle()
+        self.zoom_tap(3);self.settle()
+        original=self.kelvin_palette();self.assertEqual((original[0],original[-1]),(1800,6535))
+        self.assertEqual(self.sonos_slot(7).locator('ha-icon,.primary,.secondary').count(),0)
+        self.hold_input(self.zoom_cell(8));self.settle();self.assertEqual(self.kelvin_palette()[1],original[1])
+        self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.zoom_tap(8);self.assertEqual(self.page.evaluate('calls.at(-1)'),['light','turn_on',{'color_temp_kelvin':original[1]},{'entity_id':'light.white_a'}])
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle();self.assertEqual(self.kelvin_palette(),original)
+        self.capture('docs-kelvin-control')
     def test_docs_sonos(self):
         self.hub(self.examples['sonos.yaml']);self.assert_visible_unique_cells(1)
         self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))

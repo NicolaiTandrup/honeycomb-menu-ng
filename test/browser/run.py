@@ -166,7 +166,7 @@ class Cubes(unittest.TestCase):
         # The existing capability-dependent slot 3 is White for temperature-only
         # lights and a passive Light action for brightness-only lights.
         for modes,label in [(['color_temp'],'White'),(['brightness'],'Light')]:
-            self.page.evaluate('modes=>pushState("light.zone_a","on",{brightness:128,supported_color_modes:modes})',modes)
+            self.page.evaluate('modes=>pushState("light.zone_a","on",{brightness:128,min_color_temp_kelvin:2200,max_color_temp_kelvin:6500,supported_color_modes:modes})',modes)
             self.hold_input(self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface'))
             self.assert_visible_unique_cells(7)
             self.assertEqual(self.page.locator('honeycomb-menu [data-honeycomb-slot="2"] .interaction-surface').get_attribute('aria-label'),label)
@@ -571,18 +571,115 @@ class Cubes(unittest.TestCase):
         target.dispatch_event('pointercancel',{'pointerId':77,'pointerType':'touch'})
         self.page.wait_for_timeout(550);self.assertEqual(self.zoom_palette(),original);self.assertEqual(self.page.evaluate('calls.length'),1)
         self.capture('issue85-control-reset')
-    def test_issue85_white_palette_remains_outside_zoom(self):
-        self.page.evaluate("pushState('light.zone_a','on',{supported_color_modes:['color_temp'],color_temp_kelvin:3000})")
-        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
-        self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))
-        self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===6')
-        self.zoom_tap(3);self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===18')
-        self.assertTrue(self.page.evaluate('hub._hubMenu.buttons.filter(b=>b && b.slot>=7).every(b=>!b.hold_action)'))
-        self.hold_input(self.zoom_cell(8));self.settle()
-        self.assertEqual(self.page.evaluate('calls.length'),0);self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
-        self.zoom_tap(8);self.assertEqual(self.page.evaluate('calls.at(-1)[1]'),'turn_on')
-        self.assertIn('color_temp_kelvin',self.page.evaluate('calls.at(-1)[2]'))
+    def kelvin_open(self,standalone=False,min_k=2000,max_k=6535):
+        self.page.evaluate("([min,max])=>pushState('light.zone_a','on',{brightness:128,supported_color_modes:['color_temp'],min_color_temp_kelvin:min,max_color_temp_kelvin:max,color_temp_kelvin:3000})",[min_k,max_k])
+        if standalone:
+            self.page.evaluate("makeControl({module:'light',entity:'light.zone_a'})")
+            self.hold_input(self.page.locator('body > honeycomb-persistent-control .interaction-surface'))
+        else:
+            self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
+            self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'))
+        self.page.wait_for_function('view.querySelector("honeycomb-menu").buttons.filter(Boolean).length===6')
+        self.zoom_tap(3);self.page.wait_for_function('view.querySelector("honeycomb-menu").buttons.filter(Boolean).length===18');self.settle()
+    def kelvin_palette(self):
+        return self.page.evaluate('view.querySelector("honeycomb-menu").buttons.filter(b=>b&&b.slot>=7).map(b=>b.tap_action.data.color_temp_kelvin)')
+    def kelvin_snapshot(self):
+        return self.page.evaluate('view.querySelector("honeycomb-menu").buttons.filter(b=>b&&b.slot>=7).map(b=>({slot:b.slot,tap:b.tap_action,hold:b.hold_action,name:b.name,styles:b.styles}))')
+    def test_issue99_solid_white_swatches_accessible_exact_kelvin_and_keyboard_tap(self):
+        self.kelvin_open();values=self.kelvin_palette()
+        self.assertEqual((values[0],values[-1]),(2000,6535));self.assertEqual(len(set(values)),12)
+        for physical,value in enumerate(values,7):
+            cell=self.sonos_slot(physical)
+            self.assertEqual(cell.locator('ha-icon,.primary,.secondary').count(),0)
+            self.assertIn(f'{value} K;',self.zoom_cell(physical).get_attribute('aria-label'))
+            self.assertEqual(cell.bounding_box()['width'],82)
+            color=cell.locator('.hex-fill').get_attribute('fill');expected=tuple(int(c) for c in color.removeprefix('rgb(').removesuffix(')').split(','))
+            box=cell.bounding_box()
+            # The pre-existing mobile envelope clips edge cells; DOM assertions
+            # cover all twelve, pixel checks use fully visible cells only.
+            if box['x']>=0 and box['x']+box['width']<=self.viewport['width']:
+                pixel=Image.open(io.BytesIO(cell.screenshot())).convert('RGB');center=pixel.getpixel((41,pixel.height//2))
+                self.assertEqual(center,expected,'Swatch center is temperature fill, never a black dot/text')
+        self.capture('beta7-kelvin-solid-accessible')
+        for physical in [7,12,18]:
+            count=self.page.evaluate('calls.length');self.zoom_tap(physical)
+            self.assertEqual(self.page.evaluate('calls.length'),count+1)
+            self.assertEqual(self.page.evaluate('calls.at(-1)'),['light','turn_on',{'color_temp_kelvin':values[physical-7]},{'entity_id':'light.zone_a'}])
+        self.zoom_cell(9).press('Enter');self.assertEqual(self.page.evaluate('calls.at(-1)[2]'),{'color_temp_kelvin':values[2]})
+        self.zoom_cell(10).press('Space');self.assertEqual(self.page.evaluate('calls.at(-1)[2]'),{'color_temp_kelvin':values[3]})
+        self.assertEqual(self.page.evaluate('calls.length'),5)
+    def test_issue99_kelvin_endpoints_recursive_anchor_back_live_state_and_zoom_limit(self):
+        self.kelvin_open();original=self.kelvin_snapshot();initial=self.kelvin_palette()
+        geometry=self.page.locator('honeycomb-menu [data-honeycomb-slot]').evaluate_all('(els)=>els.map(el=>[el.dataset.honeycombSlot,el.offsetLeft,el.offsetTop,el.offsetWidth])')
+        for physical in [7,8,10,18]:
+            self.hold_input(self.zoom_cell(physical));self.page.wait_for_function('hub._menuContext.stack.length===3')
+            current=self.kelvin_palette();self.assertEqual(current[physical-7],initial[physical-7]);self.assertEqual(len(set(current)),12)
+            self.assertEqual(current,sorted(current));self.assertGreaterEqual(current[0],2000);self.assertLessEqual(current[-1],6535)
+            self.assertEqual(self.page.evaluate('calls.length'),0)
+            self.assertEqual(self.page.locator('honeycomb-menu [data-honeycomb-slot]').evaluate_all('(els)=>els.map(el=>[el.dataset.honeycombSlot,el.offsetLeft,el.offsetTop,el.offsetWidth])'),geometry)
+            self.page.evaluate("pushState('light.zone_a','on',{brightness:200,supported_color_modes:['color_temp'],min_color_temp_kelvin:2000,max_color_temp_kelvin:6535,color_temp_kelvin:4500})")
+            self.settle();self.assertEqual(self.kelvin_palette(),current)
+            self.back();self.page.wait_for_function('hub._menuContext.stack.length===2');self.assertEqual(self.kelvin_snapshot(),original)
+        history=[self.kelvin_snapshot()]
+        for _ in range(16):
+            prior=self.kelvin_snapshot();depth=self.page.evaluate('hub._menuContext.stack.length')
+            self.hold_input(self.zoom_cell(8));self.settle()
+            if self.kelvin_snapshot()==prior:
+                self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),depth);break
+            history.append(self.kelvin_snapshot())
+            self.assertEqual(self.kelvin_palette()[1],initial[1]);self.assertEqual(self.page.evaluate('calls.length'),0)
+        else:self.fail('Kelvin zoom must terminate at finite integer precision')
+        self.assertEqual(self.kelvin_palette()[1]-self.kelvin_palette()[0],1)
+        self.assertIn('zoom limit',self.zoom_cell(8).get_attribute('aria-label'));self.capture('beta7-kelvin-recursive-limit')
+        for expected in reversed(history[:-1]):
+            self.back();self.settle();self.assertEqual(self.kelvin_snapshot(),expected)
+        self.assertEqual(self.kelvin_snapshot(),original)
+    def test_issue99_kelvin_control_keyboard_cancel_close_reset_to_current_native_range(self):
+        self.kelvin_open(True);original=self.kelvin_snapshot();anchor=self.kelvin_palette()[3]
+        self.zoom_cell(10).press('Shift+Enter');self.settle();self.assertEqual(self.kelvin_palette()[3],anchor)
+        self.zoom_cell(10).press('Shift+Space');self.settle();self.assertEqual(self.kelvin_palette()[3],anchor)
+        self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle();self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle();self.assertEqual(self.kelvin_snapshot(),original)
+        self.zoom_cell(8).dispatch_event('pointerdown',{'pointerId':77,'pointerType':'touch','clientX':30,'clientY':30,'button':0})
+        self.zoom_cell(8).dispatch_event('pointercancel',{'pointerId':77,'pointerType':'touch'})
+        self.page.wait_for_timeout(550);self.assertEqual(self.kelvin_snapshot(),original);self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.zoom_cell(8).press('Escape');self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
+        self.page.evaluate("pushState('light.zone_a','on',{supported_color_modes:['color_temp'],min_color_temp_kelvin:1800,max_color_temp_kelvin:7200})")
+        self.hold_input(self.page.locator('body > honeycomb-persistent-control .interaction-surface'));self.settle();self.zoom_tap(3);self.settle()
+        self.assertEqual((self.kelvin_palette()[0],self.kelvin_palette()[-1]),(1800,7200));self.capture('beta7-kelvin-reset-native-range')
+        self.page.evaluate("pushState('light.zone_a','on',{supported_color_modes:['color_temp'],min_color_temp_kelvin:2990,max_color_temp_kelvin:3001})")
+        self.zoom_cell(8).press('Escape');self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
+        self.hold_input(self.page.locator('body > honeycomb-persistent-control .interaction-surface'));self.settle();self.zoom_tap(3);self.settle()
+        self.assertIn('zoom limit',self.zoom_cell(8).get_attribute('aria-label'))
+        self.zoom_cell(8).press('Shift+Enter');self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.zoom_cell(8).press('Escape');self.page.wait_for_function('!view.querySelector("honeycomb-menu")')
 
+    def test_issue99_kelvin_small_fixed_missing_and_invalid_native_ranges(self):
+        self.kelvin_open(min_k=2990,max_k=2991)
+        self.assertEqual(set(self.kelvin_palette()),{2990,2991});self.assertEqual(len(self.kelvin_palette()),12)
+        self.hold_input(self.zoom_cell(8));self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        self.assertEqual(self.page.evaluate('calls.length'),0);self.assertIn('zoom limit',self.zoom_cell(8).get_attribute('aria-label'))
+        self.zoom_tap(18);self.assertEqual(self.page.evaluate('calls.at(-1)[2]'),{'color_temp_kelvin':2991})
+        for min_k,max_k in [(2990,2990),(6500,2200),(None,6500)]:
+            self.page.evaluate('honeycomb_menu_context_dispose(hub._menuContext);hub.remove()');self.page.evaluate('calls=[]')
+            self.page.evaluate("([min,max])=>pushState('light.zone_a','on',{supported_color_modes:['color_temp'],min_color_temp_kelvin:min,max_color_temp_kelvin:max})",[min_k,max_k])
+            self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]});self.hold_input(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle()
+            if min_k==max_k:
+                self.zoom_tap(3);self.settle();self.assertEqual(set(self.kelvin_palette()),{2990})
+                self.zoom_tap(7);self.assertEqual(self.page.evaluate('calls.at(-1)[2]'),{'color_temp_kelvin':2990})
+            else:
+                self.assertEqual(self.zoom_cell(3).get_attribute('aria-label'),'White unavailable');self.zoom_tap(3)
+                self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),1);self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.capture('beta7-kelvin-missing-native-range')
+    def test_issue99_kelvin_stale_range_and_unavailable_service_isolation(self):
+        self.kelvin_open()
+        self.page.evaluate("window.kelvinNotices=[];document.querySelector('home-assistant').addEventListener('hass-notification',e=>kelvinNotices.push(e.detail.message));pushState('light.zone_a','on',{supported_color_modes:['color_temp'],min_color_temp_kelvin:2200,max_color_temp_kelvin:4000})")
+        self.zoom_tap(18);self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.hold_input(self.zoom_cell(18));self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),2)
+        self.assertTrue(self.page.evaluate('kelvinNotices.length>=2'))
+        self.page.evaluate("pushState('light.zone_a','unavailable',{supported_color_modes:['color_temp'],min_color_temp_kelvin:2000,max_color_temp_kelvin:6535})")
+        self.zoom_tap(8);self.hold_input(self.zoom_cell(8));self.settle();self.assertEqual(self.page.evaluate('calls.length'),0)
+        self.back();self.page.wait_for_function('hub._menuContext.stack.length===1');self.capture('beta7-kelvin-stale-range-safe-back')
     def test_light_presets_palette_swatches_and_back_keep_anchor(self):
         self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','presets':{'brightness':{'entity':'input_number.brightness_a'}}}]})
         self.hold(self.page.locator('honeycomb-menu .center-item .interaction-surface'))

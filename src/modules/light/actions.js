@@ -1,3 +1,4 @@
+const kelvinActions = require('./kelvin-actions.js');
 const {refinePalette} = require('./color-zoom.js');
 const {buildColorPaletteButtons} = require('./controls.js');
 
@@ -170,6 +171,7 @@ function handlePreset(mode, context)
 function registerActions(registry)
 {
     registry.register('honeycomb-light-color-zoom',zoomColor);
+    kelvinActions.registerActions(registry);
     registry.register(
         'honeycomb-preset-apply',
         context => handlePreset('apply', context)

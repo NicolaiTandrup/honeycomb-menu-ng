@@ -1,0 +1,5 @@
+# Synthetic entity: replace it with a temperature-capable Light from your HA.
+# Native min_color_temp_kelvin / max_color_temp_kelvin come from the entity.
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.white_a

@@ -1,6 +1,7 @@
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { INITIAL } = require('./color-zoom.js');
+const {normalizeRange,initialPalette,validPalette,refineKelvinPalette}=require('./kelvin-zoom.js');
 
 function presetTemplateNumber(entityId, suffix = '')
 {
@@ -117,8 +118,8 @@ function lightCapabilities(entityId)
         modes,
         colorCapable,
         temperatureCapable,
-        minKelvin: Number(attrs.min_color_temp_kelvin) || 2200,
-        maxKelvin: Number(attrs.max_color_temp_kelvin) || 6500
+        minKelvin: attrs.min_color_temp_kelvin,
+        maxKelvin: attrs.max_color_temp_kelvin
     };
 }
 
@@ -176,51 +177,22 @@ function buildColorPaletteButtons(palette = INITIAL)
     }));
 }
 
-function buildWhitePaletteButtons(capabilities)
+function buildWhitePaletteButtons(capabilities,palette)
 {
-    let minKelvin = Math.max(1000, Number(capabilities.minKelvin) || 2200);
-    let maxKelvin = Math.max(minKelvin, Number(capabilities.maxKelvin) || 6500);
-
-    if( maxKelvin === minKelvin )
-        maxKelvin = minKelvin + 1;
-
-    const values = [];
-
-    for( let index = 0; index < 12; index++ )
-    {
-        const ratio = index / 11;
-        values.push(Math.round(minKelvin + ((maxKelvin - minKelvin) * ratio)));
-    }
-
-    return values.map((kelvin, index) => ({
-        slot: index + 7,
-        slot_mode: 'hard',
-        icon: 'mdi:circle',
-        name: `${kelvin}K`,
-        show_name: true,
-        autoclose: false,
-        styles: {
-            card: [
-                { background: kelvinToCssRgb(kelvin) },
-                { color: '#17212b' },
-                { border: '1px solid rgba(35,45,55,0.28)' }
-            ],
-            icon: [
-                { width: '12px' },
-                { color: '#17212b' }
-            ],
-            name: [
-                { 'font-size': '8px' },
-                { color: '#17212b' },
-                { 'font-weight': '650' }
-            ]
-        },
-        tap_action: {
-            action: 'perform-action',
-            perform_action: 'light.turn_on',
-            data: { color_temp_kelvin: kelvin }
-        }
-    }));
+    const range=normalizeRange(capabilities.minKelvin,capabilities.maxKelvin);
+    const values=palette || initialPalette(range);
+    if (!validPalette(values,range)) return [];
+    return values.map((kelvin,index)=>{
+        const zoom=!!refineKelvinPalette(values,index,range);
+        return {
+            slot:index+7,slot_mode:'hard',show_icon:false,show_name:false,show_label:false,
+            name:`${kelvin} K; ${zoom ? 'hold or Shift+Enter to zoom' : 'zoom limit at integer Kelvin precision'}`,
+            autoclose:false,
+            styles:{card:[{background:kelvinToCssRgb(kelvin)},{border:'1px solid rgba(35,45,55,0.28)'}]},
+            tap_action:{action:'honeycomb-light-kelvin-apply',data:{color_temp_kelvin:kelvin}},
+            hold_action:zoom ? {action:'honeycomb-light-kelvin-zoom',palette:[...values],selected:index} : {action:'none'}
+        };
+    });
 }
 
 function expandLightPaletteControl(button, inheritedEntity)
@@ -252,6 +224,11 @@ function expandLightPaletteControl(button, inheritedEntity)
 
     if( capabilities.temperatureCapable )
     {
+        if (!normalizeRange(capabilities.minKelvin,capabilities.maxKelvin)) {
+            _defaults(button,{entity:lightEntity,icon:'mdi:temperature-kelvin',name:'White unavailable',label:'Kelvin range missing',
+                show_name:true,show_label:true,autoclose:false,tap_action:{action:'none'},hold_action:{action:'none'}});
+            return;
+        }
         _defaults(button, {
             entity: lightEntity,
             icon: 'mdi:temperature-kelvin',
