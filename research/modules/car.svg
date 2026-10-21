@@ -8,9 +8,10 @@
 <polygon points="220.00,147.66 261.00,171.33 261.00,218.67 220.00,242.34 179.00,218.67 179.00,171.33" fill="#34383d"/>
 <polygon points="220.00,151.12 258.00,173.06 258.00,216.94 220.00,238.88 182.00,216.94 182.00,173.06" fill="#4f7fae"/>
 <polygon points="220.00,154.58 255.00,174.79 255.00,215.21 220.00,235.42 185.00,215.21 185.00,174.79" fill="#202224"/>
+<path d="M 210,179 L 213,174 H 227 L 230,179 V 185 H 210 Z M 214,185 V 188 M 226,185 V 188" fill="none" stroke="#f6f7f9" stroke-width="1.8"/>
 <text x="220" y="172.0" fill="#9aa8b6" font-size="10">0</text>
-<text x="220" y="196.0" fill="#f6f7f9" font-size="13" font-weight="600">64%</text>
-<text x="220" y="212.0" fill="#c8d0d9" font-size="10">Vehicle A</text>
+<text x="220" y="203.0" fill="#f6f7f9" font-size="13" font-weight="600">64%</text>
+<text x="220" y="219.0" fill="#c8d0d9" font-size="10">Vehicle A</text>
 </g>
 <g data-slot="1" data-x="0" data-y="0.865">
 <polygon points="134.00,147.66 175.00,171.33 175.00,218.67 134.00,242.34 93.00,218.67 93.00,171.33" fill="#34383d"/>
