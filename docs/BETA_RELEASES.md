@@ -52,8 +52,11 @@ Branch movement or a new CI attempt requires a fresh verification run.
 5. Create a **draft prerelease**, upload `honeycomb-menu-ng.js`, `SHA256SUMS.txt`
    and `release-provenance.json`, then download and compare every byte. Validate
    asset names, sizes, available GitHub digests, tag SHA and metadata. Locate the
-   new draft with the exact tag API; retry only HTTP 404 reads (four attempts,
-   1/2/3-second backoff). Other API failures stop immediately. Re-read the exact
+   new draft by exact tag in the full paginated release inventory; retry only a
+   missing inventory entry (four attempts, 1/2/3-second backoff). Pin and GET its
+   exact ID. API failures (including 403/404) and conflicting entries stop immediately.
+   The published-release-by-tag endpoint can return 404 for unpublished drafts and
+   is not used. Re-read the exact
    draft ID and validate its metadata/assets before the public PATCH. This never
    retries creation or resumes an existing draft. Provenance
    identifies branch, source SHA, version, bundle SHA256 and CI run attempts.
@@ -89,7 +92,7 @@ master itself was the selected source branch; even then it changes no source.
 
 Beta.5's publisher failed after creating its tag/draft/assets with “New beta draft
 not found” from an immediate release-list lookup. The cause of that lookup omission
-is not proven. The native timer candidate hardens lookup for **new** releases;
+is not proven. The native timer candidate hardens paginated inventory/exact-ID lookup for **new** releases;
 it does not finalize, delete, overwrite or resume the existing beta.5 draft.
 Its tag remains `74c3b166088242965c7e8270062d99511f70597f`, draft ID `419308278`.
 

@@ -14,8 +14,8 @@ Sonos semantics, without extra Honeycomb cancellation. See
 [native API/limitations and checklist](docs/SONOS_SLEEP_TIMER.md).
 
 Beta.5 tag, unpublished draft and assets remain immutable historical artifacts.
-New-release publication lookup uses the exact tag API with bounded read-only 404
-retries, plus exact-ID draft/asset validation before public PATCH. There is no
+New-release publication lookup uses bounded paginated inventory reads for a missing
+draft, then exact-ID draft/asset validation before public PATCH. There is no
 existing-draft resume or mutation retry; permission failures still stop.
 Separate owner approval plus exact head/CI/metadata/reproducibility/checksum guards
 are required for a NEW beta.6 publication; no release was published by this change.

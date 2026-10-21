@@ -111,20 +111,23 @@ function verifyTag(io, expected) {
     assert.equal(ref.object.type, 'commit');
     assert.equal(ref.object.sha, expected.commit, 'Tag differs from tested source');
 }
-// Only a NEW release created in this invocation may enter this lookup. A 404
-// can be transient; retry reads only. Authentication/other failures fail closed.
+// Only a NEW release created in this invocation may enter this lookup. The
+// published-release-by-tag endpoint may return 404 for drafts. Search the full
+// paginated inventory, then pin/re-read the exact ID. Never retry mutations or
+// permission/unknown failures; only a missing inventory entry gets bounded reads.
 async function newDraft(io, expected) {
     for (let attempt=0;attempt<4;attempt++) {
-        let release;
-        try { release=io.api(`releases/tags/${encodeURIComponent(expected.tag)}`); }
-        catch(error) {
-            const status=error.status || /HTTP\s+(\d{3})/.exec(String(error.stderr || error.message || ''))?.[1];
-            if (Number(status)!==404) throw error;
-            if (attempt===3) assert.fail('New beta draft still unavailable by exact tag after 4 reads; preserve the tag/draft for inspection.');
+        const matches=io.list('releases?per_page=100').filter(r=>r.tag_name===expected.tag);
+        assert.ok(matches.length<=1,'Conflicting new beta draft inventory');
+        if (!matches.length) {
+            if (attempt===3) assert.fail('New beta draft still unavailable in paginated inventory after 4 reads; preserve the tag/draft for inspection.');
             await (io.wait || (ms=>new Promise(resolve=>setTimeout(resolve,ms))))(1000*(attempt+1));
             continue;
         }
-        assert.ok(Number.isSafeInteger(release.id) && release.id>0,'Invalid new beta draft ID');
+        const id=matches[0].id;
+        assert.ok(Number.isSafeInteger(id) && id>0,'Invalid new beta draft ID');
+        const release=io.api(`releases/${id}`);
+        assert.equal(release.id,id,'New beta draft ID mismatch');
         assert.equal(release.tag_name,expected.tag,'New beta draft tag mismatch');
         assert.equal(release.target_commitish,expected.commit,'New beta draft target mismatch');
         assert.equal(release.draft,true,'New beta release is not a draft');
