@@ -291,8 +291,64 @@ Keyboard: focus a swatch, press Enter/Space to apply, **Shift+Enter/Shift+Space*
 to zoom, or **Escape** to fully close/reset. Hidden visual names provide accessible
 color/gesture labels. Pointer cancel and movement retain existing gesture guards.
 
-The feature does not apply to White/Kelvin, numeric presets, on/off-only lights,
+The Color interpolator does not apply to White/Kelvin, numeric presets, on/off-only lights,
 Sonos favorites or generic Media. Shared 82 px geometry and inner controls remain
 unchanged. It adds no timers/listeners/polling beyond the existing active-pointer
 hold timer. History uses bounded-size 12-color snapshots per level and is released
 on navigation close/teardown. No fixed maximum zoom depth is imposed.
+
+
+## Recursive White / Kelvin zoom — issue #99, beta.7
+
+Beta.7 extends the temperature-only **White** palette with its own bounded linear
+zoom. The existing recursive Color zoom is unchanged. No new YAML option or helper
+is needed. [Complete synthetic Control example](../examples/v1.7/kelvin-light.yaml):
+
+```yaml
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.white_a
+```
+
+The real entity must advertise `supported_color_modes` containing `color_temp`,
+and numeric native `min_color_temp_kelvin` / `max_color_temp_kelvin`. Honeycomb
+uses those bounds, rounded inward to integer Kelvin; it never substitutes
+2200–6500 K or derives bounds from mireds. Missing, nonpositive, inverted or
+otherwise invalid bounds produce an explanatory **White unavailable** action
+without opening a guessed palette. Color-capable Lights retain their Color
+palette precedence. Inner controls, presets and on/off-only behavior are unchanged.
+
+All twelve **outer menu ring** cells (physical slots 7–18) show only approximate
+warm-to-cool Kelvin **cube fill** plus the normal **inner/outer borders**. No black
+dot, icon, visible Kelvin number, primary text or secondary text is drawn there.
+Accessible button names retain the exact Kelvin and available zoom/limit action.
+The display RGB approximation never changes the exact integer sent to HA.
+
+- Short tap or Enter/Space applies the selected temperature exactly once, after
+  checking the current native range and availability. An out-of-date/out-of-range
+  selection is rejected with a request to close/reopen; it is never silently clamped.
+- Hold (existing 500 ms default) or Shift+Enter/Shift+Space refines without calling
+  any Light service. The selected physical slot and exact Kelvin value stay fixed.
+- Initial samples are `round(min + (max-min)*i/11)`, in slot order `i=0..11`.
+  Refinement finds the smallest adjacent integer gap, halves it with floor, and
+  uses at least 1 K. The new grid is `selectedKelvin + (i-selectedIndex)*step`.
+  It is linear, strictly increasing, inside the previous/native range, and never
+  wraps endpoints. Hue's circular neighbor interpolation is not used.
+- Stop when another grid would be identical, or twelve distinct samples are
+  impossible. A hold at the limit is a no-op and does not add history or call HA.
+  Back restores the entire prior palette exactly. Escape/full close and reopen
+  rebuilds from the Light's current native bounds; live state changes preserve
+  open history. Canceling a pointer gesture never applies a temperature.
+
+HA's standard Light API exposes integer Kelvin bounds/commands, **not a standard
+hardware Kelvin-resolution attribute**. The client minimum is therefore 1 K;
+physical lamps may quantize more coarsely. This is not a promise of infinite
+precision or visually distinct RGB at every Kelvin. If the original native range
+contains fewer than twelve integer temperatures (including a fixed temperature),
+all twelve positions remain occupied by the legal initial samples, with unavoidable
+repeated values and zoom disabled. No out-of-range extra endpoint is manufactured.
+
+Desktop/mobile regression covers clean fills, screen-reader names, short tap,
+keyboard/pointer hold, both endpoints, repeated refinement, limits, exact Back,
+close/reset, changed bounds and service isolation. Real lamp quantization and
+appearance still need owner HA validation before stable approval.

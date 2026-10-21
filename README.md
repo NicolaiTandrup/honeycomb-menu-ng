@@ -25,12 +25,13 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > both modules; v1.7.0 remains latest stable. [HA beta test guide](docs/V1_7_1_BETA.md)
 > and [Color Zoom slot grid](docs/LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
 
-> **v1.7.1-beta.6 candidate:** cumulative artwork/Join Back fixes, owner-tested
-> Light Zoom and slot-4 Sleep using official Sonos device timers, with **no manual
-> HA setup**. Remaining time is explicitly a local estimate; reload shows unknown.
-> [Native timer behavior and HA checklist](docs/SONOS_SLEEP_TIMER.md).
-> Beta.5's immutable tag and unpublished historical draft remain untouched.
-> Beta.6 publication and later master/stable promotion require owner approval.
+> **v1.7.1-beta.7 target:** cumulative Sonos visual polish and clean White/Kelvin
+> swatches with recursive bounded Kelvin zoom, based on published beta.6. Keeps
+> native Sonos Sleep without helpers and the owner-tested Color zoom. Temperature
+> values stay in accessible labels rather than on the swatch faces.
+> [Light rules and limits](docs/LIGHT_MODULE.md#recursive-white--kelvin-zoom--issue-99-beta7)
+> · [HA beta guide](docs/V1_7_1_BETA.md). Existing beta tags/assets and beta.5's private
+> draft remain immutable. No master/stable promotion without owner HA approval.
 
 ## What you can build
 
@@ -285,7 +286,10 @@ cell width. Control has no Hub `items` list or item-level dynamic allocation.
 
 Light detail slots are: **1** 100%, **2** brightness preset, **3** Color/White
 (or passive Light for brightness-only), **4** standard color/Kelvin,
-**5** −5%, **6** +5%. Color or white palettes add slots 7–18 without moving center.
+**5** −5%, **6** +5%. Color or White palettes add slots 7–18 without moving the center cube. In beta.7,
+White swatches are solid temperature colors: tap applies; hold refines without
+calling HA. Back restores the prior palette, and full close resets it. Native
+Kelvin bounds and integer-precision limits apply; no new YAML options are needed.
 
 Preset values may be writable `number.*` entities on **another relay/device or
 integration**, or `input_number.*` helpers. They need not belong to the Light.

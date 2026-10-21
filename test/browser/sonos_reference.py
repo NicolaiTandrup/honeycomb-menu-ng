@@ -132,6 +132,36 @@ def capture_reference(cubes, handler, button, evidence):
                     case.capture('beta6-before-helper-required')
                 finally:case.tearDown()
             (before_beta6/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.5','commit':beta5,'sha256':hashlib.sha256(beta5_bundle).hexdigest(),'release':'unpublished immutable draft','entities':'synthetic'},indent=2)+'\n')
+            beta6='214443460f827c05f977a8aaeefe48f71a7216b6'
+            beta6_bundle=subprocess.check_output(['git','show',f'{beta6}:honeycomb-menu-ng.js'])
+            assert hashlib.sha256(beta6_bundle).hexdigest()=='73d4dd72bfb2858a334e89f574d90c9c02b81557f2ef9be52814c5dc825de6bd'
+            file.write_bytes(beta6_bundle)
+            before_beta7=evidence/'before-beta7';before_beta7.mkdir(parents=True,exist_ok=True);cubes.evidence=before_beta7
+            for width,height in [(1100,900),(390,844)]:
+                cubes.viewport={'width':width,'height':height}
+                case=cubes();case.setUp()
+                try:
+                    case.sonos_open();case.settle();case.capture('beta7-sonos-functions-before')
+                finally:case.tearDown()
+                case=cubes();case.setUp()
+                try:
+                    case.kelvin_open();case.settle()
+                    assert case.sonos_slot(7).locator('ha-icon').count()==1
+                    assert case.sonos_slot(7).locator('.primary').count()==1
+                    case.capture('beta7-kelvin-dot-text-before')
+                finally:case.tearDown()
+                case=cubes();case.setUp()
+                try:
+                    case.beta4_radio_hub()
+                    case.page.evaluate("pushState('sensor.favorites_cache','2',{items:[{title:'Station Alpha',media_content_id:'FV:2/57',media_content_type:'favorite_item_id',thumbnail:'/station-full-bleed.svg'}]})")
+                    launcher=case.page.locator('honeycomb-menu [data-honeycomb-id="items[1]"]')
+                    for promoted in [False,True]:
+                        if promoted:case.hold_input(launcher.locator('.interaction-surface'));case.settle()
+                        for state in ['playing','paused']:
+                            case.page.evaluate("state=>pushState('media_player.player_a',state,{...hass.states['media_player.player_a'].attributes,volume_level:1})",state)
+                            case.capture(f'beta7-full-bleed-{ "promoted" if promoted else "module" }-{state}-before')
+                finally:case.tearDown()
+            (before_beta7/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.6','commit':beta6,'sha256':hashlib.sha256(beta6_bundle).hexdigest(),'entities':'synthetic','icon_fixture':'HA-shaped fixed SVG size with pinned MDI paths; not a real HA backend'},indent=2)+'\n')
             (before_beta5/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.4','commit':beta4,'sha256':hashlib.sha256(beta4_bundle).hexdigest(),'entities':'synthetic','navigation':depths},indent=2)+'\n')
             (before_beta4/'provenance.json').write_text(json.dumps({'tag':'v1.7.1-beta.3','commit':beta3,'sha256':hashlib.sha256(beta3_bundle).hexdigest(),'entities':'synthetic','video':'owner written findings only; no video frames claimed'},indent=2)+'\n')
             (expanded/'provenance.json').write_text(json.dumps({'commit':previous,'sha256':hashlib.sha256(previous_bundle).hexdigest(),'entities':'synthetic'},indent=2)+'\n')

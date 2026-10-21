@@ -554,12 +554,12 @@ in five clockwise steps and current counterclockwise neighbor in six reverse
 steps. Shortest circular hue, positive 180° tie, linear saturation, exact copied
 endpoints, unrounded intermediates. See the verified [slot grid](LIGHT_MODULE.md#recursive-color-zoom-issue-85-beta3).
 Back restores each complete palette via the owning menu's stack. Full close or
-Escape/reopen resets. HA updates preserve open history. Never add zoom to Kelvin,
+Escape/reopen resets. HA updates preserve open history. Never use the Color interpolator for Kelvin,
 static presets, Sonos or generic Media; preserve gestures, nested anchor and size.
 
-## v1.7.1-beta.6 candidate — native Sonos Sleep and cumulative fixes
+## v1.7.1-beta.6 — published native Sonos Sleep baseline
 
-Version-gated: not stable v1.7.1 and not yet published. Keep beta.4 recognition,
+Version-gated: published beta.6, not stable v1.7.1. Keep beta.4 recognition,
 owner-tested recursive Light Zoom, beta.5 logo scaling/Join Back and
 [canonical terminology](TERMINOLOGY.md). Sonos slots: 1 Radio, 2 Play/Pause,
 3 Join, **4 Sleep**, 5 Down, 6 Up. Sleep choices occupy slots 7–12:
@@ -586,6 +586,59 @@ HA restart while the speaker remains running; physical verification is required.
 See [exact limitations, supported API audit and HA checklist](SONOS_SLEEP_TIMER.md).
 
 The beta.5 helper-backed tag/draft are frozen historical artifacts, not this
-implementation. Do not publish or rewrite them. Beta.6 must use a new unused tag
-from an exact tested review-branch commit, after explicit owner authorization and
-all existing beta publisher gates; no master merge is required.
+implementation. Do not publish or rewrite them. Published beta.6 points to `214443460f827c05f977a8aaeefe48f71a7216b6`.
+Keep that tag and all its assets immutable; beta.7 must pass fresh publisher gates
+with its own unused tag and exact tested branch head, without a master merge.
+
+
+## v1.7.1-beta.7 — cumulative Sonos visuals and isolated Kelvin zoom
+
+Baseline is the exact published beta.6 commit
+`214443460f827c05f977a8aaeefe48f71a7216b6`. Preserve native Sonos Sleep (no HA
+helpers), Radio identity/cache/actions, Join Back, recursive Color zoom, presets,
+dynamic placement, [terminology](TERMINOLOGY.md) and shared 82 CSS-px geometry.
+Sonos function icons/text inherit ordinary Light's shared hierarchy; no forced
+three-row preset grid. Station artwork stays compact at 62% of usable fill in
+paused/idle states, with neutral gray fill and the station-colored inner border.
+Playing artwork reserves label space and sits slightly lower. Explicit styling
+precedence, aspect ratio, fallback and favorite recognition rules remain unchanged.
+
+White on temperature-only Lights now supports its own Kelvin refinement. Native
+HA prerequisites: `supported_color_modes` includes `color_temp`; numeric positive
+`min_color_temp_kelvin <= max_color_temp_kelvin`; at least one integer in that
+range. Missing/invalid values disable White with an explanation, not guessed bounds.
+No `min_kelvin`, `zoom`, step or helper YAML keys are introduced. Use the standard
+[module Control example](../examples/v1.7/kelvin-light.yaml).
+
+<!-- example:kelvin-light.yaml -->
+```yaml
+type: custom:honeycomb-persistent-control
+module: light
+entity: light.white_a
+```
+
+
+Physical slots 7–18 contain only Kelvin-derived RGB cube fill and existing borders:
+`show_icon`, `show_name`, `show_label` are false on generated swatches. Exact Kelvin
+is retained in their nonvisual accessible name and action. No dots or visible codes.
+Short tap sends exactly one `light.turn_on` with `color_temp_kelvin` to the selected
+entity after fresh native range validation; stale/unavailable samples do not call HA.
+Hold or Shift+Enter/Shift+Space never sends a Light service. Initial integer samples
+are `round(min + (max-min)*i/11)`. Refined integer step is
+`max(1,floor(minimumAdjacentGap/2))`; values are
+`selectedKelvin+(i-selectedIndex)*step`. Keep the anchor's exact physical slot/value,
+strictly increasing samples and both endpoints inside the previous/native range.
+No wrapping or Hue logic. A repeated identical/duplicate-producing refinement is a
+no-op. Back restores each exact snapshot; full close/reopen rereads native bounds.
+State updates must not rewrite the open palette or history. Keyboard Escape also
+closes at the precision limit.
+
+HA does not advertise a standard native Kelvin step. Use 1 K client precision;
+hardware may round more coarsely. An original range with fewer than twelve integer
+values cannot fill twelve positions distinctly: retain only legal sampled values
+with repetitions, disable zoom and document the limit. Never invent extra Kelvin
+values or promise infinite precision. See [exact rules and limitations](LIGHT_MODULE.md#recursive-white--kelvin-zoom--issue-99-beta7).
+
+#90/#97/#99 remain open until owner HA validation is documented. Stable/master
+promotion needs explicit owner approval after real HA tests. #83/#92/#93/#87/#86
+are excluded. Never alter existing beta tags/assets or the unpublished beta.5 draft.

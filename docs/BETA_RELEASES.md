@@ -88,18 +88,24 @@ cannot publish stable releases. It leaves PRs unmerged and master unchanged unle
 master itself was the selected source branch; even then it changes no source.
 
 
-## Frozen beta.5 and proposed beta.6
+## Frozen beta.5 and published beta.6 baseline
 
 Beta.5's publisher failed after creating its tag/draft/assets with “New beta draft
-not found” from an immediate release-list lookup. The cause of that lookup omission
-is not proven. The native timer candidate hardens paginated inventory/exact-ID lookup for **new** releases;
-it does not finalize, delete, overwrite or resume the existing beta.5 draft.
-Its tag remains `74c3b166088242965c7e8270062d99511f70597f`, draft ID `419308278`.
+not found” from an immediate release-list lookup. The cause of that omission is
+not proven. Its tag remains `74c3b166088242965c7e8270062d99511f70597f`, private
+unpublished draft ID `419308278`; preserve all assets unchanged. Never finalize
+its rejected helper implementation or bypass immutability with a rerun.
 
-Review the native-timer PR based on that exact cumulative commit. After all matching
-CI is green, obtain explicit owner approval for beta.6 publication. Dispatch the
-unchanged manual workflow on the tested feature branch with its exact SHA, new
-unused `v1.7.1-beta.6` tag and approved notes. Verification may run without publishing;
-only explicitly authorized `publish=true` can create the new tag/release. Keep the
-historical beta.5 draft private and untouched. Any further staging failure stops
-without rollback or reuse. Do not merge master or enable retention cleanup.
+Beta.6 published successfully at `214443460f827c05f977a8aaeefe48f71a7216b6` using
+bounded paginated inventory/exact-ID lookup for the new draft, all normal publisher
+gates and explicit owner authorization. Every public asset was independently
+verified. Its tag and assets are now immutable too.
+
+Cumulative beta.7 starts from that exact published source. After full matching CI,
+reviewable Sonos/Light changes and owner-authorized publication, dispatch the normal
+manual workflow at its exact tested feature-branch head with a NEW unused
+`v1.7.1-beta.7` tag and approved notes. Never require a master merge. The workflow
+compares committed/rebuilt/CI/staged bundles/checksums and downloaded Release assets,
+then publishes only a prerelease with latest stable unchanged. Any failure stops
+without rollback, overwrite, deletion or existing-draft reuse. Keep retention
+independent and disabled; no stable/master promotion before real HA owner approval.

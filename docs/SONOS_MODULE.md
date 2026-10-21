@@ -1,6 +1,6 @@
 # Sonos module
 
-**Current development: v1.7.1-beta.6 candidate** (cumulative; real HA approval required).
+**Current development: v1.7.1-beta.7** (cumulative; real HA approval required).
 Stable v1.7.0 has the historical slot arrangement described below.
 See [the complete card](../examples/v1.7/sonos.yaml) and the
 [external HA setup contract](AI_SETUP.md#external-home-assistant-prerequisites).
@@ -169,7 +169,7 @@ repeated selections and center/back returns to the module.
 
 ## Sleep Timer / optional Browse compatibility
 
-The cumulative beta.6 candidate retains slot 4 **Sleep**, opening 15/30/45/60/90-minute
+Published beta.6 introduced native slot-4 **Sleep**, retained by beta.7, opening 15/30/45/60/90-minute
 and Cancel/OFF choices. [Native actions and group/restart rules](SONOS_SLEEP_TIMER.md):
 no helper, script, automation or package setup. Official `sonos.set_sleep_timer`
 and `sonos.clear_sleep_timer` target the live coordinator. The speaker owns the
@@ -358,3 +358,14 @@ is single-flight per menu revision, times out safely, and cannot reopen a view
 after Back/close/navigation; a fresh request can supersede a stale one. The center
 has an accessible Back label and pops exactly one level. Native discovery/grouping
 and configured member/script overrides remain unchanged.
+
+
+## beta.7 visual polish — issue #90
+
+Function cubes inherit the ordinary Light function icon/text hierarchy, rather
+than forcing its separate preset grid onto every Sonos action. No slot or handler
+changes. Playing artwork moves down slightly while clearing the volume label;
+paused/idle artwork stays at 62% of usable cube fill with aspect ratio preserved,
+visible neutral gray fill and the recognized station's inner border color. This
+supersedes beta.5's enlarged paused artwork. Radio favorite order, cache, artwork
+sizing and playback remain unchanged. Native Sleep and Join Back stay as in beta.6.

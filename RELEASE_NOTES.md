@@ -1,3 +1,37 @@
+# v1.7.1-beta.7 — cumulative Sonos visuals and Kelvin zoom
+
+Based on exact published beta.6 `214443460f827c05f977a8aaeefe48f71a7216b6`.
+Sonos/Light work is isolated in reviewable commits; no PR or master merge.
+
+- Sonos function icons and labels inherit ordinary Light's shared hierarchy.
+  Playing station artwork shifts down with volume text unobstructed; paused/idle
+  artwork stays compact at 62% of usable fill, retaining gray cube fill, station
+  inner border, aspect ratio and exact 82 px geometry. Radio behavior is unchanged.
+- White outer-menu swatches are solid Kelvin fills without dots/icons/visible
+  codes. Screen-reader names preserve exact values. Tap sends one validated native
+  temperature; hold/Shift+Enter/Shift+Space opens bounded linear Kelvin refinement
+  with no HA service call. Preserve exact selected slot/value and Back snapshots;
+  full close resets to native bounds. Existing Color interpolation is unchanged.
+- Keep native device-owned Sonos Sleep without helpers, Radio recognition/cache,
+  Join Back/grouping, light presets, dynamic placement and terminology.
+
+Limits: native numeric Kelvin bounds are mandatory, with no invented range or
+mired conversion. Client precision is 1 K because HA has no standard hardware
+Kelvin-step attribute; lamps can quantize more coarsely. Zoom stops before duplicate
+or identical refinements. Original ranges with fewer than twelve integer values
+keep twelve legal sampled cells with unavoidable repetitions and no zoom. Kelvin
+RGB is approximate. Real HA/Sonos/lamp validation and non-Chromium testing remain
+necessary; existing narrow-screen outer-menu cropping is unchanged. Sleep labels
+are estimates, not hardware status/readback.
+
+[HA beta checklist](docs/V1_7_1_BETA.md), [Kelvin rules](docs/LIGHT_MODULE.md#recursive-white--kelvin-zoom--issue-99-beta7),
+[Sonos reference](docs/SONOS_MODULE.md), [terminology](docs/TERMINOLOGY.md).
+Existing beta tags/assets and beta.5's unpublished draft stay immutable. No stable
+release, master merge, retention changes or issue closure. #90/#97/#99 require
+owner validation; #83/#92/#93/#87/#86 are excluded.
+
+---
+
 # v1.7.1-beta.6 candidate — native Sonos device Sleep Timer
 
 Unpublished candidate from cumulative beta.5 source, preserving beta.4 recognition

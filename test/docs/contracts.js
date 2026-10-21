@@ -84,3 +84,9 @@ assert.ok(!fs.existsSync('examples/packages/sonos-sleep-a.yaml'));
 const sleep=sonos.buttons[3];assert.equal(sleep.slot,4);
 assert.deepEqual(sleep._sleep,{player:input.examples['sonos.yaml'].items[0].entity});
 assert.deepEqual(sleep.tap_action.honeycomb_nested_menu.buttons.map(b=>b.tap_action.minutes),[15,30,45,60,90,0]);
+
+const kelvinGuide=fs.readFileSync('docs/LIGHT_MODULE.md','utf8');
+for(const text of ['min_color_temp_kelvin','max_color_temp_kelvin','Shift+Enter','1 K','physical slot','screen-reader','No black','never silently clamped'])
+    assert.ok(kelvinGuide.toLowerCase().includes(text.toLowerCase()),`Kelvin guide: ${text}`);
+const white=buildCubeConfig(input.examples['kelvin-light.yaml'],hass);
+assert.equal(white.entity,'light.white_a');assert.equal(white.face_mode,'cell');

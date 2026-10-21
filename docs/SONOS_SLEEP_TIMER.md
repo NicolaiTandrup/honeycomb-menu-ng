@@ -1,4 +1,4 @@
-# Native Sonos Sleep Timer — v1.7.1-beta.6 candidate
+# Native Sonos Sleep Timer — v1.7.1-beta.6 and later
 
 Sonos slot 4 opens Honeycomb choices **15, 30, 45, 60, 90 minutes and Cancel/OFF**
 (outer menu slots 7–12). Center Back returns one level. No HA helper, script,
@@ -6,10 +6,10 @@ automation, package import or additional integration is needed. The selected
 entity must belong to the **official Home Assistant Sonos integration** and its
 Sonos actions must be available. Radio's optional favorites/cache setup is unchanged.
 
-This candidate replaces the rejected helper design in the unpublished beta.5.
+Published beta.6 replaces the rejected helper design in the unpublished beta.5.
 Beta.5's existing tag, draft and assets stay unchanged; do not install or publish
-that draft as the native implementation. Beta.6 publication needs separate owner
-approval and every existing publisher safety gate.
+that draft as the native implementation. Beta.7 retains this native implementation. New beta publication requires an
+unused tag, owner authorization and every existing publisher safety gate.
 
 ## Supported API and device ownership
 
