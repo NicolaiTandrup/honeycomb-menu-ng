@@ -356,3 +356,5 @@ Deleting a Release record removes its uploaded assets; its Git tag and tagged
 source remain. Tags, branches and source history are never cleanup targets.
 
 Development: [v1.8 beta runtime namespace and mixed-install routing](docs/NG_RUNTIME.md). Stable v1.7.1 is unchanged.
+
+The v1.8 beta.2 candidate adds [shared active gradients and solid-fill precedence](docs/CUBE_PRESENTATION.md); inactive cubes remain solid.

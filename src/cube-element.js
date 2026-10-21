@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, svg } from 'lit';
 import { fireEvent, provideHass, getTemplateOrValue, createCard } from "./helpers.js";
 
 import { styleMap } from 'lit/directives/style-map.js';
@@ -8,6 +8,8 @@ const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
+const cubePresentation = require('./core/cube-presentation.js');
+let nextFillId=0;
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
@@ -31,6 +33,7 @@ class CubeElement extends LitElement
     constructor()
     {
         super();
+        this._fillId=`honeycomb-ng-fill-${++nextFillId}`;
         this._hass = null;
         this.config = null;
         this.size = 82;
@@ -243,10 +246,15 @@ class CubeElement extends LitElement
         if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
         const secondary = this.config.label !== undefined && this.config.show_label !== false
             ? this._value(this.config.label) : presentation.secondary;
-        const model = {colors, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
+        const fill=cubePresentation.resolveFill({colors,active:presentation.active===true,
+            gradient:this._value(configured.fill_gradient,undefined),
+            explicitCenter:!!(configured.center && this._value(configured.center)!=='auto'),
+            customBackground:!!(card.background || card['background-color'] || this.config.background),
+            disabled:!!(this.config.disabled || presentation.disabled)});
+        const model = {colors, fill, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:this.config.show_name ? this._value(this.config.name) : '',
             icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
-            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(colors.center)),
+            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
@@ -934,12 +942,15 @@ class CubeElement extends LitElement
         this._externalContent = !!external;
         return html`<div class="persistent-center" style="--honeycomb-persistent-size:${this.size}px;--honeycomb-persistent-foreground:${m.foreground}">
             <svg class="hex-svg" viewBox="0 0 100 115.47" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                ${m.fill.type==='radial' ? svg`<defs><radialGradient id=${this._fillId} cx="50%" cy="50%" r="65%">
+                    <stop offset="0%" stop-color=${m.fill.center}></stop><stop offset="100%" stop-color=${m.fill.edge}></stop>
+                </radialGradient></defs>` : ''}
                 <polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>
                 <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
                     <polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>
                 </g>
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-fill" points=${points} fill=${m.colors.center}></polygon>
+                    <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
                 </g>
             </svg>
             <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>

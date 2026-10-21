@@ -72,7 +72,7 @@ def item(value,where):
                 if k!='default': assert re.fullmatch(r'(number|input_number)\.\w+',v)
     if 'members' in value:
         for member in value['members']: known(member,{'entity','name','icon'},where)
-    if 'colors' in value: known(value['colors'],{'center','inner_border','outer_border','unavailable'},where)
+    if 'colors' in value: known(value['colors'],{'center','inner_border','outer_border','unavailable','fill_gradient'},where)
     if 'border' in value: known(value['border'],{'inner_width','outer_width'},where)
 def card(config,where):
     assert isinstance(config,dict),where

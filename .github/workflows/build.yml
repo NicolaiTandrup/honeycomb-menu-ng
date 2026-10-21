@@ -75,6 +75,9 @@ jobs:
           curl --fail --location --retry 2 https://raw.githubusercontent.com/Sian-Lee-SA/honeycomb-menu/16a2ac09a98c6837cb092603696e97e3a6102b45/honeycomb-menu.js --output "$RUNNER_TEMP/original-honeycomb.js"
           python test/browser/coexistence.py --bundle honeycomb-menu-ng.js --original "$RUNNER_TEMP/original-honeycomb.js" --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/coexistence"
 
+      - name: Verify shared active/inactive cube presentation
+        run: python test/browser/presentation.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/presentation"
+
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

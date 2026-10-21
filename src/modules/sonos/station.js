@@ -1,3 +1,4 @@
+const {artworkLayout}=require('../../core/cube-presentation');
 const media = require('../media/presentation.js');
 const { buildColorPaletteButtons } = require('../light/controls.js');
 
@@ -135,11 +136,7 @@ function stationForeground(color)
 // Percentages refer to the usable clipped cube fill, never the whole cell.
 function artworkStyle(playing, primary, secondary)
 {
-    const text=primary || secondary;
-    const width=62;
-    return {width:`${width}%`,left:`${(100-width)/2}%`,
-        top:text ? '14%' : '19%',
-        height:primary && secondary ? '36%' : text ? '48%' : '62%'};
+    return artworkLayout({primary,secondary});
 }
 function resolve({config,state,hass,runtime={}})
 {
@@ -161,6 +158,6 @@ function resolve({config,state,hass,runtime={}})
         ? {url:favorite.url,key:favorite.key,style:artworkStyle(favorite.playing,config.show_name && !!config.name,
             config.label!==undefined && config.show_label!==false ? !!config.label : !!base.secondary)} : null;
     const foreground=usable && !forceColors && (!config.colors || !config.colors.center || config.colors.center==='auto') ? stationForeground(favorite.color) : undefined;
-    return {...base,colors,forceColors,artwork,foreground};
+    return {...base,active:base.active===true && !(usable && !favorite.playing),colors,forceColors,artwork,foreground};
 }
 module.exports={PALETTE,accentColor,accentTemplate,settings,validThumbnail,channelName,inspectFavorite,recognizedFavorite,diagnostics,stationForeground,artworkStyle,resolve};

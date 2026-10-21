@@ -37,3 +37,7 @@ require owner testing. Existing narrow-screen outer-cell cropping and native
 Sleep readback limitations are unchanged. Explicit JavaScript/global-selector
 migration and mixed-popup routing need owner review before any stable promotion.
 No master merge or stable publication is authorized by beta testing.
+
+## beta.2 candidate — cumulative presentation
+
+Includes beta.1 namespace isolation plus shared static active gradients and bounded artwork layout. See [CubePresentation](CUBE_PRESENTATION.md). No charging animation or research module is shipped. Compare active RGB/Kelvin Light, playing/paused Sonos, independent borders, explicit center/solid/edge settings and mobile text/artwork legibility. Run the complete beta.1 checklist too; stable requires owner real HA approval.

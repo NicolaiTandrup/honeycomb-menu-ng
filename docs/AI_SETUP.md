@@ -674,3 +674,5 @@ that validation; #83/#92/#93/#87/#86 are excluded.
 ## v1.8 beta runtime identity
 
 The namespace milestone preserves persistent Hub/Control YAML. See [NG runtime API](NG_RUNTIME.md) for explicit mixed-install popup routing and JavaScript API migration. This is beta-only; stable v1.7.1 remains the functional baseline.
+
+For v1.8 beta.2 only, see the [shared presentation contract](CUBE_PRESENTATION.md) and [validated example](../examples/presentation-light.yaml). Existing explicit center colors remain solid; no new domain actions are added.

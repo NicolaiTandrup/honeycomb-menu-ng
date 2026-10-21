@@ -47,6 +47,7 @@ function resolve({ config, state })
             : (off.center_color || '#202224');
 
     return {
+        active: playing,
         colors: {
             center:
                 configured.center && configured.center !== 'auto'

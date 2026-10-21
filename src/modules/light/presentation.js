@@ -130,6 +130,7 @@ function resolve({ config, state, runtime })
     const automaticOuter = automaticCenter;
 
     return {
+        active: on,
         colors: {
             center:
                 configured.center && configured.center !== 'auto'

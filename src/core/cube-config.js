@@ -1,3 +1,4 @@
+const {validateGradient}=require('./cube-presentation');
 const merge = require('lodash/merge');
 const { moduleRegistry } = require('../modules/index.js');
 
@@ -31,6 +32,7 @@ function validateCubeConfig(config, {hubItems = false, placement = false} = {})
     if (!config || typeof config !== 'object') throw new Error('A Honeycomb configuration is required.');
     if (!placement && (config.visibility !== undefined || config.slot_mode === 'priority'))
         throw new Error('Dynamic visibility and priority placement are supported only on Hub items.');
+    validateGradient(config.colors && config.colors.fill_gradient);
     if (Array.isArray(config)) {
         config.forEach(value => { if (value && typeof value === 'object') validateCubeConfig(value, {placement}); });
         return;
