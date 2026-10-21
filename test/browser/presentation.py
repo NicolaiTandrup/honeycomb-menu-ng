@@ -30,6 +30,15 @@ class Presentation(Cubes):
    self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','colors':options}]});self.assertEqual(self.fill()['type'],kind)
    if kind=='radial':self.assertEqual(self.fill()['edge'],'#102030')
    self.page.evaluate('ng.disposeContext(hub._menuContext);hub.remove()')
+ def test_named_and_css_variable_status_colors(self):
+  self.page.evaluate("document.body.style.setProperty('--synthetic-accent','#22aa66')")
+  for color in ['lime','var(--synthetic-accent)']:
+   self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','colors':{'inner_border':color}}]})
+   self.assertEqual(self.fill()['type'],'radial');self.assertEqual(self.fill()['center'],color)
+   stop=self.cube().locator('radialGradient stop').last
+   self.assertNotIn('color-mix',stop.evaluate('(el)=>getComputedStyle(el).stopColor'))
+   self.assertEqual(stop.evaluate('(el)=>el.namespaceURI'),'http://www.w3.org/2000/svg')
+   self.page.evaluate('ng.disposeContext(hub._menuContext);hub.remove()')
  def test_large_hub_no_unrelated_render_work(self):
   self.page.evaluate("window.entries=Array.from({length:91},(_,i)=>['light.item_'+i,'on',{brightness:128,rgb_color:[255,128,0],supported_color_modes:['hs']}]);pushStates(entries)")
   self.hub({'logo':False,'items':[{'type':'light','entity':f'light.item_{i}'} for i in range(91)]});self.settle()

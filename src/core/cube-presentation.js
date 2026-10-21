@@ -17,13 +17,15 @@ function darken(color,amount=.2) {
     const fraction=typeof amount==='number' && Number.isFinite(amount)?Math.max(0,Math.min(.4,amount)):.2;
     return 'rgb('+rgb.map(v=>Math.round(v*(1-fraction))).join(', ')+')';
 }
-function resolveFill({colors,active=false,gradient,explicitCenter=false,customBackground=false,disabled=false}) {
+function resolveFill({colors,active=false,gradient,explicitCenter=false,customBackground=false,disabled=false,colorMix=false}) {
     const solid={type:'solid',center:colors.center};
     if(!active || disabled || gradient===false || gradient==='solid' || gradient && gradient.type==='solid')return solid;
     const explicitRadial=gradient && gradient.type==='radial';
     if((explicitCenter || customBackground) && !explicitRadial)return solid;
     const center=explicitCenter ? colors.center : colors.inner;
-    const edge=gradient && gradient.edge || darken(center,gradient && gradient.darken);
+    const amount=gradient && typeof gradient.darken==='number'?gradient.darken:.2;
+    const edge=gradient && gradient.edge || darken(center,amount) ||
+        (colorMix && typeof center==='string' ? `color-mix(in srgb, ${center} ${100-Math.round(Math.max(0,Math.min(.4,amount))*100)}%, black)` : null);
     return edge ? {type:'radial',center,edge} : solid;
 }
 function validateGradient(value) {

@@ -28,3 +28,9 @@ test('modules provide semantics, not retained-color guesses',()=>{
  assert.equal(media.resolve({config,state:{state:'paused',attributes:{}}}).active,false);
  assert.notEqual(media.resolve({config,state:{state:'unavailable'}}).active,true);
 });
+
+test('modern CSS color fallback handles named/variable status colors without DOM reads',()=>{
+ const named={...colors,inner:'var(--status-accent, lime)'};
+ assert.equal(resolveFill({colors:named,active:true}).type,'solid');
+ assert.equal(resolveFill({colors:named,active:true,colorMix:true}).edge,'color-mix(in srgb, var(--status-accent, lime) 80%, black)');
+});

@@ -10,6 +10,7 @@ const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
 let nextFillId=0;
+const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-mix(in srgb, red 80%, black)');
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
@@ -250,7 +251,8 @@ class CubeElement extends LitElement
             gradient:this._value(configured.fill_gradient,undefined),
             explicitCenter:!!(configured.center && this._value(configured.center)!=='auto'),
             customBackground:!!(card.background || card['background-color'] || this.config.background),
-            disabled:!!(this.config.disabled || presentation.disabled)});
+            disabled:!!(this.config.disabled || presentation.disabled),
+            colorMix:supportsColorMix});
         const model = {colors, fill, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:this.config.show_name ? this._value(this.config.name) : '',
             icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),

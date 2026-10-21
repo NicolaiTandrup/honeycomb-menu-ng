@@ -33,8 +33,8 @@ off, paused, unavailable and disabled cubes default to a solid fill.
 4. Explicit foreground, artwork and legacy style overrides keep their existing
    precedence. Existing Sonos unavailable/paused safety colors remain in force.
 
-RGB, hex and hue-wheel HSL status colors support deterministic darkening. An
-unresolved CSS variable/named/unsupported color falls back to solid unless an
+RGB, hex and hue-wheel HSL status colors support deterministic darkening. Named/CSS-variable colors use feature-detected CSS `color-mix()` without DOM
+reads; older browsers without that support fall back to solid unless an
 explicit edge is supplied; never invent a color or issue new device commands.
 Only literal gradient option shapes/darkening values are accepted; edge/color
 strings follow existing template evaluation. Invalid option keys/types fail
