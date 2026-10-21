@@ -1,62 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1350 540" role="img" aria-labelledby="title desc">
-<title id="title">Honeycomb NG: menu rings versus cube borders</title>
-<desc id="desc">The left diagram illustrates physical center slot zero, six inner menu ring slots one through six and twelve outer menu ring slots seven through eighteen. The right diagram shows the fill, inner border and outer border of one cube.</desc>
-<rect width="1350" height="540" rx="22" fill="#0d1523"/>
-<rect x="20" y="20" width="690" height="498" rx="16" fill="#121e2d" stroke="#2d4056"/>
-<rect x="730" y="20" width="600" height="498" rx="16" fill="#121e2d" stroke="#2d4056"/>
-<text x="52" y="63" fill="#f1f5f9" font-size="27" font-weight="700" font-family="Arial,sans-serif">Menu geometry</text>
-<text x="52" y="88" fill="#adbbcb" font-size="15" font-family="Arial,sans-serif">Separate cubes in numbered physical slots</text>
-<ellipse cx="330" cy="280" rx="187" ry="181" fill="none" stroke="#ad81ea" stroke-width="1.5" stroke-dasharray="7 6"/>
-<ellipse cx="330" cy="280" rx="108" ry="104" fill="none" stroke="#42b7f5" stroke-width="1.5" stroke-dasharray="6 5"/>
-<polygon points="359.4,263.0 359.4,297.0 330.0,314.0 300.6,297.0 300.6,263.0 330.0,246.0" fill="#413208" stroke="#f6c453" stroke-width="4"/><text x="330" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">0</text>
-    <polygon points="279.4,263.0 279.4,297.0 250.0,314.0 220.6,297.0 220.6,263.0 250.0,246.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="250" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">1</text>
-    <polygon points="319.4,193.0 319.4,227.0 290.0,244.0 260.6,227.0 260.6,193.0 290.0,176.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="290" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">2</text>
-    <polygon points="399.4,193.0 399.4,227.0 370.0,244.0 340.6,227.0 340.6,193.0 370.0,176.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="370" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">3</text>
-    <polygon points="439.4,263.0 439.4,297.0 410.0,314.0 380.6,297.0 380.6,263.0 410.0,246.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="410" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">4</text>
-    <polygon points="399.4,333.0 399.4,367.0 370.0,384.0 340.6,367.0 340.6,333.0 370.0,316.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="370" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">5</text>
-    <polygon points="319.4,333.0 319.4,367.0 290.0,384.0 260.6,367.0 260.6,333.0 290.0,316.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="290" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">6</text>
-    <polygon points="199.4,263.0 199.4,297.0 170.0,314.0 140.6,297.0 140.6,263.0 170.0,246.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="170" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">7</text>
-    <polygon points="239.4,193.0 239.4,227.0 210.0,244.0 180.6,227.0 180.6,193.0 210.0,176.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="210" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">8</text>
-    <polygon points="279.4,123.0 279.4,157.0 250.0,174.0 220.6,157.0 220.6,123.0 250.0,106.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="250" y="147" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">9</text>
-    <polygon points="359.4,123.0 359.4,157.0 330.0,174.0 300.6,157.0 300.6,123.0 330.0,106.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="330" y="147" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">10</text>
-    <polygon points="439.4,123.0 439.4,157.0 410.0,174.0 380.6,157.0 380.6,123.0 410.0,106.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="410" y="147" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">11</text>
-    <polygon points="479.4,193.0 479.4,227.0 450.0,244.0 420.6,227.0 420.6,193.0 450.0,176.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="450" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">12</text>
-    <polygon points="519.4,263.0 519.4,297.0 490.0,314.0 460.6,297.0 460.6,263.0 490.0,246.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="490" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">13</text>
-    <polygon points="479.4,333.0 479.4,367.0 450.0,384.0 420.6,367.0 420.6,333.0 450.0,316.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="450" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">14</text>
-    <polygon points="439.4,403.0 439.4,437.0 410.0,454.0 380.6,437.0 380.6,403.0 410.0,386.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="410" y="427" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">15</text>
-    <polygon points="359.4,403.0 359.4,437.0 330.0,454.0 300.6,437.0 300.6,403.0 330.0,386.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="330" y="427" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">16</text>
-    <polygon points="279.4,403.0 279.4,437.0 250.0,454.0 220.6,437.0 220.6,403.0 250.0,386.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="250" y="427" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">17</text>
-    <polygon points="239.4,333.0 239.4,367.0 210.0,384.0 180.6,367.0 180.6,333.0 210.0,316.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="210" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">18</text>
-<g font-family="Arial,sans-serif">
- <rect x="40" y="115" width="140" height="40" rx="9" fill="#2c1c42" stroke="#ad81ea"/>
- <text x="110" y="140" text-anchor="middle" font-size="16" font-weight="700" fill="#dbbafc">Outer ring · 7–18</text>
- <path d="M 180,135 L 207,164" fill="none" stroke="#ad81ea" stroke-width="2"/>
- <rect x="40" y="183" width="140" height="40" rx="9" fill="#153548" stroke="#42b7f5"/>
- <text x="110" y="208" text-anchor="middle" font-size="16" font-weight="700" fill="#94dcff">Inner ring · 1–6</text>
- <path d="M 180,203 L 228,222" fill="none" stroke="#42b7f5" stroke-width="2"/>
- <rect x="40" y="445" width="185" height="40" rx="9" fill="#3b3015" stroke="#f6c453"/>
- <text x="132" y="470" text-anchor="middle" font-size="16" font-weight="700" fill="#ffdf87">Center cube · slot 0</text>
- <path d="M 225,465 L 330,320" fill="none" stroke="#f6c453" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="570" viewBox="0 0 1360 570" role="img" aria-labelledby="title description">
+<title id="title">Honeycomb NG menu geometry and cube anatomy</title>
+<desc id="description">Left panel: center cube at slot 0, six neighboring cubes in inner menu ring slots 1 through 6, twelve outer menu ring cubes in slots 7 through 18. Right panel: example of a real Honeycomb NG dark cube with a dark cube fill, green inner border and charcoal-gray outer border. Menu rings are spatial groups, not cube background colors.</desc>
+<rect width="1360" height="570" rx="20" fill="#0c121b"/>
+<rect x="16" y="16" width="700" height="538" rx="18" fill="#0e1722" stroke="#394959" stroke-width="2"/>
+<rect x="734" y="16" width="610" height="538" rx="18" fill="#0e1722" stroke="#394959" stroke-width="2"/>
+<g font-family="Arial,Helvetica,sans-serif">
+<text x="45" y="62" font-size="32" font-weight="700" fill="#f2f5f9">Honeycomb NG layout</text>
+<text x="45" y="90" font-size="17" fill="#aab9c8">Menu geometry: separate cubes in physical slots</text>
+<g><polygon points="375.70,243.50 375.70,290.50 335.00,314.00 294.30,290.50 294.30,243.50 335.00,220.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="372.24,245.50 372.24,288.50 335.00,310.00 297.76,288.50 297.76,245.50 335.00,224.00" fill="#151e2a" stroke="#f7bd4e" stroke-width="2.5"/><polygon points="367.91,248.00 367.91,286.00 335.00,305.00 302.09,286.00 302.09,248.00 335.00,229.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="335" y="273" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">0</text></g>
+<g><polygon points="289.70,243.50 289.70,290.50 249.00,314.00 208.30,290.50 208.30,243.50 249.00,220.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="286.24,245.50 286.24,288.50 249.00,310.00 211.76,288.50 211.76,245.50 249.00,224.00" fill="#151e2a" stroke="#48b9e6" stroke-width="2.5"/><polygon points="281.91,248.00 281.91,286.00 249.00,305.00 216.09,286.00 216.09,248.00 249.00,229.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="249" y="273" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">1</text></g>
+<g><polygon points="332.70,168.50 332.70,215.50 292.00,239.00 251.30,215.50 251.30,168.50 292.00,145.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="329.24,170.50 329.24,213.50 292.00,235.00 254.76,213.50 254.76,170.50 292.00,149.00" fill="#151e2a" stroke="#48b9e6" stroke-width="2.5"/><polygon points="324.91,173.00 324.91,211.00 292.00,230.00 259.09,211.00 259.09,173.00 292.00,154.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="292" y="198" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">2</text></g>
+<g><polygon points="418.70,168.50 418.70,215.50 378.00,239.00 337.30,215.50 337.30,168.50 378.00,145.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="415.24,170.50 415.24,213.50 378.00,235.00 340.76,213.50 340.76,170.50 378.00,149.00" fill="#151e2a" stroke="#48b9e6" stroke-width="2.5"/><polygon points="410.91,173.00 410.91,211.00 378.00,230.00 345.09,211.00 345.09,173.00 378.00,154.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="378" y="198" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">3</text></g>
+<g><polygon points="461.70,243.50 461.70,290.50 421.00,314.00 380.30,290.50 380.30,243.50 421.00,220.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="458.24,245.50 458.24,288.50 421.00,310.00 383.76,288.50 383.76,245.50 421.00,224.00" fill="#151e2a" stroke="#48b9e6" stroke-width="2.5"/><polygon points="453.91,248.00 453.91,286.00 421.00,305.00 388.09,286.00 388.09,248.00 421.00,229.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="421" y="273" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">4</text></g>
+<g><polygon points="418.70,318.50 418.70,365.50 378.00,389.00 337.30,365.50 337.30,318.50 378.00,295.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="415.24,320.50 415.24,363.50 378.00,385.00 340.76,363.50 340.76,320.50 378.00,299.00" fill="#151e2a" stroke="#48b9e6" stroke-width="2.5"/><polygon points="410.91,323.00 410.91,361.00 378.00,380.00 345.09,361.00 345.09,323.00 378.00,304.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="378" y="348" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">5</text></g>
+<g><polygon points="332.70,318.50 332.70,365.50 292.00,389.00 251.30,365.50 251.30,318.50 292.00,295.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="329.24,320.50 329.24,363.50 292.00,385.00 254.76,363.50 254.76,320.50 292.00,299.00" fill="#151e2a" stroke="#48b9e6" stroke-width="2.5"/><polygon points="324.91,323.00 324.91,361.00 292.00,380.00 259.09,361.00 259.09,323.00 292.00,304.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="292" y="348" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">6</text></g>
+<g><polygon points="203.70,243.50 203.70,290.50 163.00,314.00 122.30,290.50 122.30,243.50 163.00,220.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="200.24,245.50 200.24,288.50 163.00,310.00 125.76,288.50 125.76,245.50 163.00,224.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="195.91,248.00 195.91,286.00 163.00,305.00 130.09,286.00 130.09,248.00 163.00,229.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="163" y="273" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">7</text></g>
+<g><polygon points="246.70,168.50 246.70,215.50 206.00,239.00 165.30,215.50 165.30,168.50 206.00,145.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="243.24,170.50 243.24,213.50 206.00,235.00 168.76,213.50 168.76,170.50 206.00,149.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="238.91,173.00 238.91,211.00 206.00,230.00 173.09,211.00 173.09,173.00 206.00,154.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="206" y="198" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">8</text></g>
+<g><polygon points="289.70,93.50 289.70,140.50 249.00,164.00 208.30,140.50 208.30,93.50 249.00,70.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="286.24,95.50 286.24,138.50 249.00,160.00 211.76,138.50 211.76,95.50 249.00,74.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="281.91,98.00 281.91,136.00 249.00,155.00 216.09,136.00 216.09,98.00 249.00,79.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="249" y="123" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">9</text></g>
+<g><polygon points="375.70,93.50 375.70,140.50 335.00,164.00 294.30,140.50 294.30,93.50 335.00,70.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="372.24,95.50 372.24,138.50 335.00,160.00 297.76,138.50 297.76,95.50 335.00,74.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="367.91,98.00 367.91,136.00 335.00,155.00 302.09,136.00 302.09,98.00 335.00,79.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="335" y="123" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">10</text></g>
+<g><polygon points="461.70,93.50 461.70,140.50 421.00,164.00 380.30,140.50 380.30,93.50 421.00,70.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="458.24,95.50 458.24,138.50 421.00,160.00 383.76,138.50 383.76,95.50 421.00,74.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="453.91,98.00 453.91,136.00 421.00,155.00 388.09,136.00 388.09,98.00 421.00,79.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="421" y="123" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">11</text></g>
+<g><polygon points="504.70,168.50 504.70,215.50 464.00,239.00 423.30,215.50 423.30,168.50 464.00,145.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="501.24,170.50 501.24,213.50 464.00,235.00 426.76,213.50 426.76,170.50 464.00,149.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="496.91,173.00 496.91,211.00 464.00,230.00 431.09,211.00 431.09,173.00 464.00,154.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="464" y="198" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">12</text></g>
+<g><polygon points="547.70,243.50 547.70,290.50 507.00,314.00 466.30,290.50 466.30,243.50 507.00,220.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="544.24,245.50 544.24,288.50 507.00,310.00 469.76,288.50 469.76,245.50 507.00,224.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="539.91,248.00 539.91,286.00 507.00,305.00 474.09,286.00 474.09,248.00 507.00,229.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="507" y="273" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">13</text></g>
+<g><polygon points="504.70,318.50 504.70,365.50 464.00,389.00 423.30,365.50 423.30,318.50 464.00,295.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="501.24,320.50 501.24,363.50 464.00,385.00 426.76,363.50 426.76,320.50 464.00,299.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="496.91,323.00 496.91,361.00 464.00,380.00 431.09,361.00 431.09,323.00 464.00,304.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="464" y="348" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">14</text></g>
+<g><polygon points="461.70,393.50 461.70,440.50 421.00,464.00 380.30,440.50 380.30,393.50 421.00,370.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="458.24,395.50 458.24,438.50 421.00,460.00 383.76,438.50 383.76,395.50 421.00,374.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="453.91,398.00 453.91,436.00 421.00,455.00 388.09,436.00 388.09,398.00 421.00,379.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="421" y="423" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">15</text></g>
+<g><polygon points="375.70,393.50 375.70,440.50 335.00,464.00 294.30,440.50 294.30,393.50 335.00,370.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="372.24,395.50 372.24,438.50 335.00,460.00 297.76,438.50 297.76,395.50 335.00,374.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="367.91,398.00 367.91,436.00 335.00,455.00 302.09,436.00 302.09,398.00 335.00,379.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="335" y="423" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">16</text></g>
+<g><polygon points="289.70,393.50 289.70,440.50 249.00,464.00 208.30,440.50 208.30,393.50 249.00,370.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="286.24,395.50 286.24,438.50 249.00,460.00 211.76,438.50 211.76,395.50 249.00,374.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="281.91,398.00 281.91,436.00 249.00,455.00 216.09,436.00 216.09,398.00 249.00,379.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="249" y="423" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">17</text></g>
+<g><polygon points="246.70,318.50 246.70,365.50 206.00,389.00 165.30,365.50 165.30,318.50 206.00,295.00" fill="#2a3440" stroke="#0b121a" stroke-width="5"/><polygon points="243.24,320.50 243.24,363.50 206.00,385.00 168.76,363.50 168.76,320.50 206.00,299.00" fill="#151e2a" stroke="#8294a7" stroke-width="2.5"/><polygon points="238.91,323.00 238.91,361.00 206.00,380.00 173.09,361.00 173.09,323.00 206.00,304.00" fill="#151e2a" stroke="#253342" stroke-width="2"/><text x="206" y="348" font-family="Arial,Helvetica,sans-serif" font-size="23" font-weight="700" text-anchor="middle" fill="#f4f7fb">18</text></g>
+<g fill="none" stroke-width="2.5" stroke-linejoin="round">
+ <path d="M 130,145 H 160 L 196,174" stroke="#a8b4c0"/>
+ <path d="M 138,345 H 176 L 245,305" stroke="#48b9e6"/>
+ <path d="M 522,111 H 570 L 588,146" stroke="#f7bd4e"/>
 </g>
-<text x="762" y="63" fill="#f1f5f9" font-size="27" font-weight="700" font-family="Arial,sans-serif">Visual layers of one cube</text>
-<text x="762" y="88" fill="#adbbcb" font-size="15" font-family="Arial,sans-serif">Borders are not menu rings</text>
-<polygon points="1045.9,228.5 1045.9,341.5 948.0,398.0 850.1,341.5 850.1,228.5 948.0,172.0" fill="#ad81ea" stroke="#ad81ea" stroke-width="1.5"/>
-<polygon points="1038.1,233.0 1038.1,337.0 948.0,389.0 857.9,337.0 857.9,233.0 948.0,181.0" fill="#1b273b" stroke="#1b273b" stroke-width="1.5"/>
-<polygon points="1031.1,237.0 1031.1,333.0 948.0,381.0 864.9,333.0 864.9,237.0 948.0,189.0" fill="#42b7f5" stroke="#42b7f5" stroke-width="1.5"/>
-<polygon points="1021.6,242.5 1021.6,327.5 948.0,370.0 874.4,327.5 874.4,242.5 948.0,200.0" fill="#f6c453" stroke="#f6c453" stroke-width="1.5"/>
-<polygon points="1014.7,246.5 1014.7,323.5 948.0,362.0 881.3,323.5 881.3,246.5 948.0,208.0" fill="#4c3914" stroke="#4c3914"/>
-<text x="948" y="282" font-family="Arial,sans-serif" font-weight="700" font-size="23" fill="#fff0c7" text-anchor="middle">ONE CUBE</text>
-<text x="948" y="308" font-family="Arial,sans-serif" font-size="17" fill="#fff0c7" text-anchor="middle">fill + 2 borders</text>
-<g font-family="Arial,sans-serif" font-size="19" font-weight="700">
- <path d="M 998,258 L 1105,166 L 1140,166" fill="none" stroke="#f6c453" stroke-width="2"/>
- <text x="1140" y="153" fill="#f6c453">Cube fill</text>
- <text x="1140" y="179" fill="#adbbcb" font-size="13" font-weight="400">colors.center</text>
- <path d="M 1041,310 L 1105,287 L 1140,287" fill="none" stroke="#42b7f5" stroke-width="2"/>
- <text x="1140" y="275" fill="#7ad3ff">Inner border</text>
- <text x="1140" y="300" fill="#adbbcb" font-size="13" font-weight="400">colors.inner_border</text>
- <path d="M 1011,383 L 1105,401 L 1140,401" fill="none" stroke="#ad81ea" stroke-width="2"/>
- <text x="1140" y="389" fill="#d7b4fb">Outer border</text>
- <text x="1140" y="415" fill="#adbbcb" font-size="13" font-weight="400">colors.outer_border</text>
+<g font-size="18" font-weight="700">
+ <rect x="36" y="110" width="132" height="38" rx="8" fill="#1b2735" stroke="#8294a7"/>
+ <text x="102" y="135" text-anchor="middle" fill="#d9e3ed">Outer ring</text>
+ <rect x="38" y="325" width="132" height="38" rx="8" fill="#143448" stroke="#48b9e6"/>
+ <text x="104" y="350" text-anchor="middle" fill="#94dbfa">Inner ring</text>
+ <rect x="524" y="95" width="146" height="38" rx="8" fill="#402f18" stroke="#f7bd4e"/>
+ <text x="597" y="120" text-anchor="middle" fill="#ffcf6a">Center · 0</text>
 </g>
-<text x="762" y="480" fill="#adbbcb" font-size="15" font-family="Arial,sans-serif">Menu rings = positions of different cubes. Borders = styling of one cube.</text>
+<text x="45" y="513" font-size="16" fill="#aec0ce">Outer: 7–18  ·  Inner: 1–6  ·  Center: 0</text>
+<text x="763" y="62" font-size="32" font-weight="700" fill="#f2f5f9">Cube anatomy</text>
+<text x="763" y="90" font-size="17" fill="#aab9c8">Visual layers of a single cube</text>
+<polygon points="1075.38,210.50 1075.38,349.50 955.00,419.00 834.62,349.50 834.62,210.50 955.00,141.00" fill="#3b444e" stroke="#131a23" stroke-width="4"/>
+<polygon points="1065.85,216.00 1065.85,344.00 955.00,408.00 844.15,344.00 844.15,216.00 955.00,152.00" fill="#18232f" stroke="#42c665" stroke-width="9"/>
+<polygon points="1054.59,222.50 1054.59,337.50 955.00,395.00 855.41,337.50 855.41,222.50 955.00,165.00" fill="#19232f" stroke="#17212b" stroke-width="1"/>
+<g fill="none" stroke-width="2.5" stroke-linejoin="round">
+ <path d="M 965,258 V 151 H 1136" stroke="#dde8f2"/>
+ <circle cx="965" cy="258" r="5" fill="#dde8f2" stroke="none"/>
+ <path d="M 1061,337 L 1155,351 H 1200" stroke="#42c665"/>
+ <circle cx="1061" cy="337" r="5" fill="#42c665" stroke="none"/>
+ <path d="M 844,351 L 783,409 H 774" stroke="#8f9ba8"/>
+ <circle cx="844" cy="351" r="5" fill="#8f9ba8" stroke="none"/>
+</g>
+<g font-size="19" font-weight="700">
+ <text x="1139" y="144" fill="#eef3f8">Cube fill</text>
+ <text x="1169" y="344" fill="#59d878">Inner border</text>
+ <text x="765" y="437" fill="#bac7d2">Outer border</text>
+</g>
+<text x="763" y="493" font-size="16" fill="#aec0ce">Dark fill · status-colored inner border · dark outer border</text>
+<text x="763" y="518" font-size="14" fill="#8296a8">Example styling; colors can vary by module and state.</text>
+</g>
 </svg>
