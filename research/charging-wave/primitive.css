@@ -1,0 +1,6 @@
+/* Research overlay primitive only; not a production renderer or domain module. */
+.wave-surface{position:absolute;inset:0;pointer-events:none;overflow:hidden;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.wave-surface::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,transparent 25%,rgba(240,255,244,.13) 43%,transparent 62%);transform:scale(.15);opacity:0}
+[data-wave="true"][data-visible="true"][data-page-visible="true"] .wave-surface::after{animation:honeycomb-ng-energy-wave 3s ease-out infinite}
+@keyframes honeycomb-ng-energy-wave{0%{transform:scale(.15);opacity:0}25%{opacity:.65}100%{transform:scale(1.5);opacity:0}}
+@media(prefers-reduced-motion:reduce){.wave-surface::after{animation:none!important;opacity:0!important}}

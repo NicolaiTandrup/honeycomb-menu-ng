@@ -1,0 +1,29 @@
+name: Charging wave research proof
+on:
+  push:
+    paths: ['research/charging-wave/**', '.github/workflows/charging-wave-research.yml']
+  pull_request:
+    paths: ['research/charging-wave/**', '.github/workflows/charging-wave-research.yml']
+permissions:
+  contents: read
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: node --test research/charging-wave/primitive.test.js
+      - run: |
+          python -m pip install -r test/browser/requirements.txt
+          python -m playwright install --with-deps chromium
+      - run: python research/charging-wave/run.py --evidence-dir "$RUNNER_TEMP/wave-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wave-research-evidence
+          path: ${{ runner.temp }}/wave-evidence
