@@ -1,0 +1,17 @@
+name: Future module design contracts
+on:
+  push:
+    paths: ['research/modules/**', '.github/workflows/future-module-research.yml']
+  pull_request:
+    paths: ['research/modules/**', '.github/workflows/future-module-research.yml']
+permissions:
+  contents: read
+jobs:
+  design:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --test research/modules/contracts.test.js

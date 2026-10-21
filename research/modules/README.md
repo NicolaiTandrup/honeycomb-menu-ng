@@ -20,10 +20,10 @@ Easee community integration audited at
 [services](https://github.com/fondberg/easee_hass/blob/c57d085a5ff8e1df3c8938e2a4c63ba4d1d6f683/custom_components/easee/services.yaml).
 This is a third-party integration, not HA core; installed version must be verified.
 
-Tesla Custom investigation uses the current `alandtse/tesla` **dev** branch:
-[number](https://github.com/alandtse/tesla/blob/dev/custom_components/tesla_custom/number.py),
-[climate](https://github.com/alandtse/tesla/blob/dev/custom_components/tesla_custom/climate.py),
-[binary sensors](https://github.com/alandtse/tesla/blob/dev/custom_components/tesla_custom/binary_sensor.py).
+Tesla Custom investigation uses `alandtse/tesla` commit `1fa4a8daa6f02f7fd85286114a13c13485cd19b0`:
+[number](https://github.com/alandtse/tesla/blob/1fa4a8daa6f02f7fd85286114a13c13485cd19b0/custom_components/tesla_custom/number.py),
+[climate](https://github.com/alandtse/tesla/blob/1fa4a8daa6f02f7fd85286114a13c13485cd19b0/custom_components/tesla_custom/climate.py),
+[binary sensors](https://github.com/alandtse/tesla/blob/1fa4a8daa6f02f7fd85286114a13c13485cd19b0/custom_components/tesla_custom/binary_sensor.py).
 This is an identified candidate integration, not confirmation of the owner's
 installed fork/version. Entity registry platform/config-entry identity and exact
 installed versions must be confirmed before producing automatic adapter rules.
