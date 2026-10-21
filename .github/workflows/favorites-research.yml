@@ -1,0 +1,19 @@
+name: Read-only Sonos favorites design proof
+on:
+  push:
+    paths: ['research/sonos-favorites/**', '.github/workflows/favorites-research.yml']
+  pull_request:
+    paths: ['research/sonos-favorites/**', '.github/workflows/favorites-research.yml']
+permissions:
+  contents: read
+jobs:
+  prototype:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: node --test research/sonos-favorites/prototype.test.js
