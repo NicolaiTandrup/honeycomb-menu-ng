@@ -703,20 +703,20 @@ class CubeElement extends LitElement
         const host = root && root.host ? root.host : null;
         const context = host && host._menuContext ? host._menuContext : null;
 
-        if( context && typeof window.honeycomb_menu_in_context === 'function' )
-            return window.honeycomb_menu_in_context(context, menu);
+        if( context && typeof window.honeycombNG.openInContext === 'function' )
+            return window.honeycombNG.openInContext(context, menu);
 
-        if( typeof window.honeycomb_menu !== 'function' )
+        if( typeof window.honeycombNG.open !== 'function' )
             return null;
 
-        return window.honeycomb_menu(menu);
+        return window.honeycombNG.open(menu);
     }
 
     _openMenu()
     {
         const menu = this._persistentMenuConfig();
 
-        if( ! menu || typeof window.honeycomb_menu !== 'function' )
+        if( ! menu || typeof window.honeycombNG.open !== 'function' )
             return;
 
         const rect = this.getBoundingClientRect();
@@ -754,7 +754,7 @@ class CubeElement extends LitElement
                     this.style.visibility = '';
                 };
 
-                openedMenu.addEventListener('closed', restore, { once: true });
+                openedMenu.addEventListener('honeycomb-ng-closed', restore, { once: true });
             }
         }
 
@@ -790,7 +790,7 @@ class CubeElement extends LitElement
         if (owner && owner._menuContext) {
             if (this.config.autoclose && !name.startsWith('honeycomb-') && name !== 'none' &&
                 !(action.honeycomb_menu || action.honeycomb_nested_menu))
-                window.honeycomb_menu_context_close(owner._menuContext);
+                window.honeycombNG.closeInContext(owner._menuContext);
             else if (owner._resetIdleTimeout) owner._resetIdleTimeout();
         }
     }
@@ -813,7 +813,7 @@ class CubeElement extends LitElement
             this._openHoneycombMenu(nested);
             return;
         }
-        if (actionName === 'honeycomb-close') { window.honeycomb_menu_context_close(context); return; }
+        if (actionName === 'honeycomb-close') { window.honeycombNG.closeInContext(context); return; }
         if (customActionRegistry.has(actionName)) {
             const sourceConfig=this.config, sourceMenu=context && context.currentConfig;
             const sourceHost=this.getRootNode().host;
@@ -854,10 +854,10 @@ class CubeElement extends LitElement
             const host = root && root.host ? root.host : null;
             const context = host && host._menuContext ? host._menuContext : null;
 
-            if( context && typeof window.honeycomb_menu_context_back === 'function' )
-                window.honeycomb_menu_context_back(context);
-            else if( typeof window.honeycomb_menu_back === 'function' )
-                window.honeycomb_menu_back();
+            if( context && typeof window.honeycombNG.backInContext === 'function' )
+                window.honeycombNG.backInContext(context);
+            else if( typeof window.honeycombNG.back === 'function' )
+                window.honeycombNG.back();
             return;
         }
 
@@ -865,7 +865,7 @@ class CubeElement extends LitElement
             history.pushState(null,'',action.navigation_path); fireEvent(window,'location-changed',{replace:false}); return;
         }
         if (actionName === 'url') { window.open(action.url_path,'_blank','noopener'); return; }
-        if (actionName === 'fire-dom-event') { fireEvent(this,'ll-custom',action); return; }
+        if (actionName === 'fire-dom-event') { fireEvent(this,'ll-custom', action.honeycomb_menu ? {...action,honeycomb_ng_menu:action.honeycomb_menu,honeycomb_menu:undefined} : action); return; }
         if( actionName === 'toggle' )
         {
             if (!this.config.entity) return;

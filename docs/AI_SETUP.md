@@ -670,3 +670,7 @@ dynamic Hub allocation and the 82 CSS-px geometry. Existing beta tags/assets and
 the unpublished beta.5 draft remain immutable; no stable/master merge without
 explicit owner approval after real HA validation. #90/#97/#99 remain open pending
 that validation; #83/#92/#93/#87/#86 are excluded.
+
+## v1.8 beta runtime identity
+
+The namespace milestone preserves persistent Hub/Control YAML. See [NG runtime API](NG_RUNTIME.md) for explicit mixed-install popup routing and JavaScript API migration. This is beta-only; stable v1.7.1 remains the functional baseline.

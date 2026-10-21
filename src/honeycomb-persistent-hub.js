@@ -35,9 +35,9 @@ class HoneycombPersistentHub extends CubeElement
 
     _ensureMenuContext()
     {
-        if( ! this._menuContext && typeof window.honeycomb_menu_create_context === 'function' )
+        if( ! this._menuContext && typeof window.honeycombNG.createContext === 'function' )
         {
-            this._menuContext = window.honeycomb_menu_create_context();
+            this._menuContext = window.honeycombNG.createContext();
             this._menuContext.owner = this;
             this._menuContext.onIdle = () => this._scheduleStructure();
         }
@@ -49,8 +49,8 @@ class HoneycombPersistentHub extends CubeElement
     {
         const context = this._ensureMenuContext();
 
-        if( context && typeof window.honeycomb_menu_in_context === 'function' )
-            return window.honeycomb_menu_in_context(context, menu);
+        if( context && typeof window.honeycombNG.openInContext === 'function' )
+            return window.honeycombNG.openInContext(context, menu);
 
         return super._openHoneycombMenu(menu);
     }
@@ -102,8 +102,8 @@ class HoneycombPersistentHub extends CubeElement
         // Lovelace edit mode can replace/preview cards faster than close
         // animations complete. Dispose the local overlay synchronously so a
         // removed Hub can never leave a ghost base on the dashboard.
-        if( this._menuContext && typeof window.honeycomb_menu_context_dispose === 'function' )
-            window.honeycomb_menu_context_dispose(this._menuContext);
+        if( this._menuContext && typeof window.honeycombNG.disposeContext === 'function' )
+            window.honeycombNG.disposeContext(this._menuContext);
         else if( this._hubMenu && this._hubMenu.isConnected )
             this._hubMenu.remove();
 
@@ -184,7 +184,7 @@ class HoneycombPersistentHub extends CubeElement
 
     _trackHubMenu(opened)
     {
-        opened.addEventListener('closed',()=>queueMicrotask(()=>{
+        opened.addEventListener('honeycomb-ng-closed',()=>queueMicrotask(()=>{
             if (!this.isConnected) return;
             const current=this._menuContext && this._menuContext.honeycomb;
             if (current && current !== opened) {
@@ -384,7 +384,7 @@ class HoneycombPersistentHub extends CubeElement
             const menu = this._persistentMenuConfig();
             menu.anchor_x = context.honeycomb._anchorX;
             menu.anchor_y = context.honeycomb._anchorY;
-            window.honeycomb_menu_context_update_base(context, menu);
+            window.honeycombNG.updateBase(context, menu);
         }
     }
 

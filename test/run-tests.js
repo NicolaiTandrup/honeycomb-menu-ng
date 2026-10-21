@@ -701,13 +701,13 @@ function testArchitectureBoundaries()
     );
 
     // Persistent-Hub lifecycle contracts.
-    assert.ok(hubSource.includes('honeycomb_menu_context_dispose'));
+    assert.ok(hubSource.includes('honeycombNG.disposeContext'));
     assert.ok(hubSource.includes('toCenterDescriptor(center.module, center.launcher)'));
     assert.ok(hubSource.includes("center.kind === 'persistent'"));
     assert.strictEqual(hubSource.includes('center._persistent_launcher === true'), false);
     assert.ok(hubSource.includes("next.restore_on_close = next.auto_open === false"));
     assert.ok(persistentControlSource.includes('restore_on_close !== false'));
-    assert.ok(rendererSource.includes('window.honeycomb_menu_context_dispose'));
+    assert.ok(rendererSource.includes('window.honeycombNG.disposeContext'));
     assert.ok(rendererSource.includes('while( context.stack.length > 0 )'));
 
     assert.strictEqual(rendererSource.includes('_handleMediaVolumeAction('), false);
