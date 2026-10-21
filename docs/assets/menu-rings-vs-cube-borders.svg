@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1350 540" role="img" aria-labelledby="title desc">
+<title id="title">Honeycomb NG: menu rings versus cube borders</title>
+<desc id="desc">The left diagram illustrates physical center slot zero, six inner menu ring slots one through six and twelve outer menu ring slots seven through eighteen. The right diagram shows the fill, inner border and outer border of one cube.</desc>
+<rect width="1350" height="540" rx="22" fill="#0d1523"/>
+<rect x="20" y="20" width="690" height="498" rx="16" fill="#121e2d" stroke="#2d4056"/>
+<rect x="730" y="20" width="600" height="498" rx="16" fill="#121e2d" stroke="#2d4056"/>
+<text x="52" y="63" fill="#f1f5f9" font-size="27" font-weight="700" font-family="Arial,sans-serif">Menu geometry</text>
+<text x="52" y="88" fill="#adbbcb" font-size="15" font-family="Arial,sans-serif">Separate cubes in numbered physical slots</text>
+<ellipse cx="330" cy="280" rx="187" ry="181" fill="none" stroke="#ad81ea" stroke-width="1.5" stroke-dasharray="7 6"/>
+<ellipse cx="330" cy="280" rx="108" ry="104" fill="none" stroke="#42b7f5" stroke-width="1.5" stroke-dasharray="6 5"/>
+<polygon points="359.4,263.0 359.4,297.0 330.0,314.0 300.6,297.0 300.6,263.0 330.0,246.0" fill="#413208" stroke="#f6c453" stroke-width="4"/><text x="330" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">0</text>
+    <polygon points="279.4,263.0 279.4,297.0 250.0,314.0 220.6,297.0 220.6,263.0 250.0,246.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="250" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">1</text>
+    <polygon points="319.4,193.0 319.4,227.0 290.0,244.0 260.6,227.0 260.6,193.0 290.0,176.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="290" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">2</text>
+    <polygon points="399.4,193.0 399.4,227.0 370.0,244.0 340.6,227.0 340.6,193.0 370.0,176.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="370" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">3</text>
+    <polygon points="439.4,263.0 439.4,297.0 410.0,314.0 380.6,297.0 380.6,263.0 410.0,246.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="410" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">4</text>
+    <polygon points="399.4,333.0 399.4,367.0 370.0,384.0 340.6,367.0 340.6,333.0 370.0,316.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="370" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">5</text>
+    <polygon points="319.4,333.0 319.4,367.0 290.0,384.0 260.6,367.0 260.6,333.0 290.0,316.0" fill="#152335" stroke="#42b7f5" stroke-width="2.2"/><text x="290" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">6</text>
+    <polygon points="199.4,263.0 199.4,297.0 170.0,314.0 140.6,297.0 140.6,263.0 170.0,246.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="170" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">7</text>
+    <polygon points="239.4,193.0 239.4,227.0 210.0,244.0 180.6,227.0 180.6,193.0 210.0,176.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="210" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">8</text>
+    <polygon points="279.4,123.0 279.4,157.0 250.0,174.0 220.6,157.0 220.6,123.0 250.0,106.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="250" y="147" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">9</text>
+    <polygon points="359.4,123.0 359.4,157.0 330.0,174.0 300.6,157.0 300.6,123.0 330.0,106.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="330" y="147" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">10</text>
+    <polygon points="439.4,123.0 439.4,157.0 410.0,174.0 380.6,157.0 380.6,123.0 410.0,106.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="410" y="147" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">11</text>
+    <polygon points="479.4,193.0 479.4,227.0 450.0,244.0 420.6,227.0 420.6,193.0 450.0,176.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="450" y="217" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">12</text>
+    <polygon points="519.4,263.0 519.4,297.0 490.0,314.0 460.6,297.0 460.6,263.0 490.0,246.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="490" y="287" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">13</text>
+    <polygon points="479.4,333.0 479.4,367.0 450.0,384.0 420.6,367.0 420.6,333.0 450.0,316.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="450" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">14</text>
+    <polygon points="439.4,403.0 439.4,437.0 410.0,454.0 380.6,437.0 380.6,403.0 410.0,386.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="410" y="427" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">15</text>
+    <polygon points="359.4,403.0 359.4,437.0 330.0,454.0 300.6,437.0 300.6,403.0 330.0,386.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="330" y="427" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">16</text>
+    <polygon points="279.4,403.0 279.4,437.0 250.0,454.0 220.6,437.0 220.6,403.0 250.0,386.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="250" y="427" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">17</text>
+    <polygon points="239.4,333.0 239.4,367.0 210.0,384.0 180.6,367.0 180.6,333.0 210.0,316.0" fill="#152335" stroke="#b27df4" stroke-width="2.2"/><text x="210" y="357" fill="#f8fafc" font-size="20" font-family="Arial,sans-serif" font-weight="700" text-anchor="middle">18</text>
+<g font-family="Arial,sans-serif">
+ <rect x="40" y="115" width="140" height="40" rx="9" fill="#2c1c42" stroke="#ad81ea"/>
+ <text x="110" y="140" text-anchor="middle" font-size="16" font-weight="700" fill="#dbbafc">Outer ring · 7–18</text>
+ <path d="M 180,135 L 207,164" fill="none" stroke="#ad81ea" stroke-width="2"/>
+ <rect x="40" y="183" width="140" height="40" rx="9" fill="#153548" stroke="#42b7f5"/>
+ <text x="110" y="208" text-anchor="middle" font-size="16" font-weight="700" fill="#94dcff">Inner ring · 1–6</text>
+ <path d="M 180,203 L 228,222" fill="none" stroke="#42b7f5" stroke-width="2"/>
+ <rect x="40" y="445" width="185" height="40" rx="9" fill="#3b3015" stroke="#f6c453"/>
+ <text x="132" y="470" text-anchor="middle" font-size="16" font-weight="700" fill="#ffdf87">Center cube · slot 0</text>
+ <path d="M 225,465 L 330,320" fill="none" stroke="#f6c453" stroke-width="2"/>
+</g>
+<text x="762" y="63" fill="#f1f5f9" font-size="27" font-weight="700" font-family="Arial,sans-serif">Visual layers of one cube</text>
+<text x="762" y="88" fill="#adbbcb" font-size="15" font-family="Arial,sans-serif">Borders are not menu rings</text>
+<polygon points="1045.9,228.5 1045.9,341.5 948.0,398.0 850.1,341.5 850.1,228.5 948.0,172.0" fill="#ad81ea" stroke="#ad81ea" stroke-width="1.5"/>
+<polygon points="1038.1,233.0 1038.1,337.0 948.0,389.0 857.9,337.0 857.9,233.0 948.0,181.0" fill="#1b273b" stroke="#1b273b" stroke-width="1.5"/>
+<polygon points="1031.1,237.0 1031.1,333.0 948.0,381.0 864.9,333.0 864.9,237.0 948.0,189.0" fill="#42b7f5" stroke="#42b7f5" stroke-width="1.5"/>
+<polygon points="1021.6,242.5 1021.6,327.5 948.0,370.0 874.4,327.5 874.4,242.5 948.0,200.0" fill="#f6c453" stroke="#f6c453" stroke-width="1.5"/>
+<polygon points="1014.7,246.5 1014.7,323.5 948.0,362.0 881.3,323.5 881.3,246.5 948.0,208.0" fill="#4c3914" stroke="#4c3914"/>
+<text x="948" y="282" font-family="Arial,sans-serif" font-weight="700" font-size="23" fill="#fff0c7" text-anchor="middle">ONE CUBE</text>
+<text x="948" y="308" font-family="Arial,sans-serif" font-size="17" fill="#fff0c7" text-anchor="middle">fill + 2 borders</text>
+<g font-family="Arial,sans-serif" font-size="19" font-weight="700">
+ <path d="M 998,258 L 1105,166 L 1140,166" fill="none" stroke="#f6c453" stroke-width="2"/>
+ <text x="1140" y="153" fill="#f6c453">Cube fill</text>
+ <text x="1140" y="179" fill="#adbbcb" font-size="13" font-weight="400">colors.center</text>
+ <path d="M 1041,310 L 1105,287 L 1140,287" fill="none" stroke="#42b7f5" stroke-width="2"/>
+ <text x="1140" y="275" fill="#7ad3ff">Inner border</text>
+ <text x="1140" y="300" fill="#adbbcb" font-size="13" font-weight="400">colors.inner_border</text>
+ <path d="M 1011,383 L 1105,401 L 1140,401" fill="none" stroke="#ad81ea" stroke-width="2"/>
+ <text x="1140" y="389" fill="#d7b4fb">Outer border</text>
+ <text x="1140" y="415" fill="#adbbcb" font-size="13" font-weight="400">colors.outer_border</text>
+</g>
+<text x="762" y="480" fill="#adbbcb" font-size="15" font-family="Arial,sans-serif">Menu rings = positions of different cubes. Borders = styling of one cube.</text>
+</svg>
