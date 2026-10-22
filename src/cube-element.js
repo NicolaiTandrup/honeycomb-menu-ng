@@ -277,7 +277,10 @@ class CubeElement extends LitElement
             customBackground:!!(card.background || card['background-color'] || this.config.background),
             disabled:!!(this.config.disabled || presentation.disabled),
             colorMix:supportsColorMix});
-        const model = {colors, fill, secondary, tertiary:presentation.tertiary, ariaLabel:presentation.ariaLabel, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
+        const model = {colors, fill, secondary,
+            ...(presentation.tertiary !== undefined ? {tertiary:presentation.tertiary} : {}),
+            ...(presentation.ariaLabel !== undefined ? {ariaLabel:presentation.ariaLabel} : {}),
+            ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
             icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
             foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
