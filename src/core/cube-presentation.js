@@ -12,9 +12,9 @@ function channels(color) {
     const hue=(h%360)/60,c=(1-Math.abs(2*l/100-1))*s/100,x=c*(1-Math.abs(hue%2-1)),m=l/100-c/2;
     return [[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][Math.floor(hue)].map(v=>(v+m)*255);
 }
-function darken(color,amount=.2) {
+function darken(color,amount=.3) {
     const rgb=channels(color);if(!rgb)return null;
-    const fraction=typeof amount==='number' && Number.isFinite(amount)?Math.max(0,Math.min(.4,amount)):.2;
+    const fraction=typeof amount==='number' && Number.isFinite(amount)?Math.max(0,Math.min(.4,amount)):.3;
     return 'rgb('+rgb.map(v=>Math.round(v*(1-fraction))).join(', ')+')';
 }
 function resolveFill({colors,active=false,gradient,explicitCenter=false,customBackground=false,disabled=false,colorMix=false}) {
@@ -23,7 +23,7 @@ function resolveFill({colors,active=false,gradient,explicitCenter=false,customBa
     const explicitRadial=gradient && gradient.type==='radial';
     if((explicitCenter || customBackground) && !explicitRadial)return solid;
     const center=explicitCenter ? colors.center : colors.inner;
-    const amount=gradient && typeof gradient.darken==='number'?gradient.darken:.2;
+    const amount=gradient && typeof gradient.darken==='number'?gradient.darken:.3;
     const edge=gradient && gradient.edge || darken(center,amount) ||
         (colorMix && typeof center==='string' ? `color-mix(in srgb, ${center} ${100-Math.round(Math.max(0,Math.min(.4,amount))*100)}%, black)` : null);
     return edge ? {type:'radial',center,edge} : solid;

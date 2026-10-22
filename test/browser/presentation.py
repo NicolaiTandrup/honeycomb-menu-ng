@@ -11,6 +11,8 @@ class Presentation(Cubes):
   self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
   cube=self.cube();self.assertEqual(self.fill()['type'],'radial');self.assertEqual(self.fill()['center'],cube.locator('.hex-inner').get_attribute('fill'))
   self.assertEqual(cube.locator('radialGradient stop').first.get_attribute('stop-color'),self.fill()['center'])
+  expected=cube.evaluate('(el)=>{const canvas=document.createElement("canvas"),c=canvas.getContext("2d");c.fillStyle=el._model.fill.center;c.fillRect(0,0,1,1);return [...c.getImageData(0,0,1,1).data].slice(0,3).map(v=>Math.round(v*.7))}')
+  actual=[int(v.strip()) for v in self.fill()['edge'][4:-1].split(',')];self.assertTrue(all(abs(a-b)<=1 for a,b in zip(actual,expected)))
   self.assertIn('url(',cube.locator('.hex-fill').evaluate('(el)=>getComputedStyle(el).fill'))
   outer=cube.locator('.hex-outer').get_attribute('fill');self.capture('presentation-rgb-active')
   self.page.evaluate("pushState('light.zone_a','on',{brightness:200,color_temp_kelvin:3200,supported_color_modes:['color_temp']})")
@@ -26,9 +28,9 @@ class Presentation(Cubes):
   self.page.evaluate("pushState('media_player.player_a','paused',{media_content_id:'favorite_a',volume_level:.42,group_members:['media_player.player_a']})")
   self.assertEqual(self.fill()['type'],'solid');self.assertEqual(self.fill()['center'],'#202224');self.capture('presentation-sonos-paused')
  def test_explicit_legacy_and_new_fill_choices(self):
-  for options,kind in [({'center':'#102030'},'solid'),({'fill_gradient':False},'solid'),({'fill_gradient':{'type':'solid'}},'solid'),({'fill_gradient':{'type':'radial','edge':'#102030'}},'radial')]:
+  for options,kind in [({'center':'#102030'},'solid'),({'fill_gradient':{'type':'radial','darken':0.2}},'radial'),({'fill_gradient':False},'solid'),({'fill_gradient':{'type':'solid'}},'solid'),({'fill_gradient':{'type':'radial','edge':'#102030'}},'radial')]:
    self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','colors':options}]});self.assertEqual(self.fill()['type'],kind)
-   if kind=='radial':self.assertEqual(self.fill()['edge'],'#102030')
+   if kind=='radial' and options['fill_gradient'].get('edge'):self.assertEqual(self.fill()['edge'],'#102030')
    self.page.evaluate('ng.disposeContext(hub._menuContext);hub.remove()')
  def test_named_and_css_variable_status_colors(self):
   self.page.evaluate("document.body.style.setProperty('--synthetic-accent','#22aa66')")

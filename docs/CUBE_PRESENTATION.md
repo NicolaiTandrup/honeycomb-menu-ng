@@ -18,7 +18,7 @@ stay solid; future modules must supply explicit normalized active semantics.
 
 For a truly active cube without an explicit fill override, a shared SVG radial
 fill begins at **exactly the resolved inner-border color** and darkens toward the
-edge by 20% per RGB channel (same hue). It is clipped inside the original fill
+edge by 30% per RGB channel (same hue). It is clipped inside the original fill
 polygon. Inner/outer border colors and geometry are independent. Inactive,
 off, paused, unavailable and disabled cubes default to a solid fill.
 
@@ -26,7 +26,7 @@ off, paused, unavailable and disabled cubes default to a solid fill.
    choices as solid by default. `auto` is not an explicit color override.
 2. `colors.fill_gradient: false`, `"solid"`, or `{type: solid}` requests solid.
 3. `{type: radial}` explicitly requests active radial fill. Optional `edge`
-   overrides the edge; optional numeric `darken` is bounded 0–0.4, default 0.2.
+   overrides the edge; optional numeric `darken` is bounded 0–0.4, default 0.3.
    With no explicit center, the center equals resolved inner-border color.
    Combining explicit radial with existing `colors.center` deliberately chooses
    that center stop. Inactive states still use solid fill.

@@ -5,7 +5,7 @@ const colors={center:'#202224',inner:'hsl(120, 85%, 55%)',outer:'#34383d'};
 test('active default center equals resolved inner, edge darker, independent outer',()=>{
  const fill=resolveFill({colors,active:true});assert.equal(fill.type,'radial');assert.equal(fill.center,colors.inner);assert.equal(fill.edge,darken(colors.inner));assert.equal(colors.outer,'#34383d');
  for(const color of ['#abc','#12abef','rgb(12, 34, 56)','hsl(360, 85%, 55%)'])assert.ok(channels(color));
- assert.deepEqual(channels(darken('#ff8000',.2)),[204,102,0]);assert.equal(darken('var(--status)'),null);
+ assert.deepEqual(channels(darken('#ff8000',.2)),[204,102,0]);assert.deepEqual(channels(darken('#ff8000')),[179,90,0]);assert.equal(darken('var(--status)'),null);
 });
 test('inactive/off/paused/disabled remain solid even with retained accent',()=>{
  for(const value of [{active:false},{active:true,disabled:true},{active:false,gradient:{type:'radial'}}])assert.deepEqual(resolveFill({colors,...value}),{type:'solid',center:colors.center});
@@ -32,5 +32,5 @@ test('modules provide semantics, not retained-color guesses',()=>{
 test('modern CSS color fallback handles named/variable status colors without DOM reads',()=>{
  const named={...colors,inner:'var(--status-accent, lime)'};
  assert.equal(resolveFill({colors:named,active:true}).type,'solid');
- assert.equal(resolveFill({colors:named,active:true,colorMix:true}).edge,'color-mix(in srgb, var(--status-accent, lime) 80%, black)');
+ assert.equal(resolveFill({colors:named,active:true,colorMix:true}).edge,'color-mix(in srgb, var(--status-accent, lime) 70%, black)');
 });
