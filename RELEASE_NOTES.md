@@ -1,5 +1,32 @@
 # v1.7.1 — Stable
 
+## v1.8.0-beta.7 — resolved energy-wave contour color
+
+Approved functional source: PR #120 commit
+`ad057f7133871826cab631b7a0f5e78fdb63dc2a`, directly on immutable published
+beta.6. Release preparation changes version metadata, documentation and the
+generated version banner only; every source and test file is unchanged.
+
+- Omitted `energy_wave.color` inherits the final resolved inner-border color,
+  including live Light/Sonos status/station colors and user border overrides.
+- Optional color overrides use safe CSS color syntax and the existing frontend
+  HA JS template evaluator. Invalid literals reject in-browser; missing,
+  invalid or throwing template results suppress only the contour until valid.
+- Same renderer/model, SVG contour and alpha/opacity. No geometry, timing,
+  phase, scheduler, visibility/reduced-motion/health or performance-budget change.
+- Complete cumulative beta.6 functionality remains: owner-approved 40%/logo
+  gradients, display-reference auto sizing and fixed numeric sizes, power/fixed
+  speed, native-only Sonos, Light zoom/presets, all navigation and coexistence.
+
+[Complete no-hardware green/blue example](examples/energy-wave-color.yaml),
+[color contract](docs/ENERGY_WAVE.md#contour-color--v180-beta7),
+[sizing guide](docs/FLOORPLAN_SIZING.md). Full exact-release-head CI,
+reproducible HACS bundle/checksums and the normal manually authorized publisher
+must pass. This is a prerelease from an unmerged PR; installed HA and other
+browser engines remain owner acceptance. Existing image-frame/touch-size and
+Sonos/Sleep limits remain. No future Charger/Climate/Car modules, master merge,
+stable promotion, retention changes or old release/tag/asset edits/deletions.
+
 ## v1.8.0-beta.6 — stable display baseline and power-responsive pulse
 
 Cumulative on exact published beta.5 `ece8f9e5af7e92b1629cfe164cf000028b0b1068`.

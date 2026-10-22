@@ -673,9 +673,9 @@ A shared350ms playback-rate transition preserves animation identity/phase; no
 per-cube polling or HA service. [No-hardware full demo](../examples/energy-wave-power.yaml).
 Preserve all health/reduced-motion/visibility gates, 40% gradients and Sonos.
 
-## Unreleased Issue #119: energy-wave contour color
+## v1.8.0-beta.7: energy-wave contour color
 
-Baseline is immutable v1.8.0-beta.6; do not claim this setting exists in beta.6.
+Introduced in v1.8.0-beta.7 on immutable beta.6; it does not exist in beta.6.
 Optional `energy_wave.color` defaults to the final resolved `colors.inner_border`
 (module auto/status/station resolution, then configured overrides), not center
 fill or the raw string `auto`. Explicit color affects only the contour. Existing
@@ -689,5 +689,5 @@ keywords/auto, declarations/markup/control characters and >512 characters.
 Use a defined custom property or a valid color fallback. Never output raw HTML,
 styles or paint URLs. Node checks validate structure, not browser color support.
 Keep alpha, opacity, geometry, rate/phase, health gates and sizing unchanged.
-[Exact color contract](ENERGY_WAVE.md#contour-color--unreleased-issue-119-candidate)
+[Exact color contract](ENERGY_WAVE.md#contour-color--v180-beta7)
 and [complete no-hardware green/blue demo](../examples/energy-wave-color.yaml).

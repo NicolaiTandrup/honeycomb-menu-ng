@@ -1,4 +1,4 @@
-# Six-sided energy pulse — v1.8.0-beta.6
+# Six-sided energy pulse — v1.8.0-beta.7
 
 This is a **shared renderer capability**, not the future Charger module (#105).
 It does not discover chargers, infer vendor states, call services or change
@@ -113,10 +113,10 @@ map its real charging/availability/fault semantics. Missing attributes in this
 example fail closed; don't invent healthy state or multiply kW incorrectly.
 External HA owns measurements/freshness, not this animation primitive.
 
-## Contour color — unreleased Issue #119 candidate
+## Contour color — v1.8.0-beta.7
 
-This addition is based on published beta.6; it is **not in that immutable
-release**. See the [complete inherited-green/custom-blue demo](../examples/energy-wave-color.yaml),
+This addition starts in beta.7 and is **not in immutable beta.6**.
+See the [complete inherited-green/custom-blue demo](../examples/energy-wave-color.yaml),
 which needs no real device, helpers or service calls.
 
 Omit `energy_wave.color` to inherit the cube's **resolved inner-border color**,

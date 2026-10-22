@@ -1,4 +1,4 @@
-# Unreleased Issue #119 candidate on beta.6; synthetic, no device/helpers/services.
+# v1.8.0-beta.7: synthetic, no device/helpers/services.
 type: custom:honeycomb-persistent-hub
 size: 82
 logo: false
