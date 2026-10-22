@@ -1,5 +1,38 @@
 # v1.7.1 — Stable
 
+## v1.8.0-beta.5 — cumulative floorplan and shared presentation beta
+
+Starts from the exact owner-accepted beta.4 commit
+`355caa680ada9c38f7562fbc3a4df8344068140a`. Native-only Sonos, namespace
+isolation, recursive Light zoom and existing actions/navigation are retained.
+
+- Opt-in `size: auto` derives an effective numeric size from the actual floorplan
+  image; contain/cover offsets, shared lifecycle observation, live menu geometry.
+  Numeric sizes and omitted fixed-82 default remain. Unsupported frames safely
+  fall back to 82px. No additional scaling engine or YAML dimensions.
+- Default active gradient edge darkening is 40% with softer visible spread;
+  decorative Hub logos receive shared depth. Independent borders, explicit
+  styling precedence and solid inactive physical fills remain.
+- Optional normalized `energy_wave` draws a genuinely six-sided expanding SVG
+  contour in the existing renderer, with healthy positive-power/motion/visibility
+  gates, one shared observer and a 24-animation budget. No Charger module.
+- Consolidated reviewed English terminology/dark anatomy diagram/stable badge,
+  complete GPL/NOTICE/SPDX metadata, local HACS payload validation and manual
+  official catalog readiness review. No upstream listing submission.
+
+See [floorplan YAML/limits](docs/FLOORPLAN_SIZING.md),
+[synthetic no-device wave demo](examples/energy-wave.yaml),
+[shared visual policy](docs/CUBE_PRESENTATION.md),
+[Sonos migration](docs/SONOS_NATIVE_FAVORITES.md) and
+[HACS readiness](docs/HACS_SUBMISSION.md). Small auto-scaled touch targets,
+HA DOM compatibility, non-Chromium hardware and GPU/battery behavior still
+need owner real-HA testing. HACS topics/default-branch license/fork admission
+remain owner/external gates; local checks do not certify catalog approval.
+Beta.4's intentional Sonos cache removal and NG namespace migration still
+require SemVer/stable review. No master merge, stable promotion, retention
+change, existing tag/asset overwrite or mutation of private v1.7.1-beta.5.
+
+
 Owner-approved on 2026-10-21 after real Home Assistant testing of cumulative
 v1.7.1-beta.8 at `c1cdd390bed1c1acfc22b314807ce63050e43248` (Issue #102).
 Issues #90, #97 and #99 are completed. Functional source is exactly that beta;
