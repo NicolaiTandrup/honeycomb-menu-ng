@@ -374,4 +374,17 @@ source remain. Tags, branches and source history are never cleanup targets.
 
 Development: [v1.8 beta runtime namespace and mixed-install routing](docs/NG_RUNTIME.md). Stable v1.7.1 is unchanged.
 
-The v1.8 beta.2 candidate adds [shared active gradients and solid-fill precedence](docs/CUBE_PRESENTATION.md); inactive cubes remain solid.
+The v1.8.0-beta.5 candidate adds [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and the omitted fixed-82 default stay unchanged.
+
+### Floorplan sizing in v1.8.0-beta.5
+
+For a persistent Hub or Control inside `picture-elements`, opt in with
+`size: auto`. A floorplan displayed at 50% of its intrinsic width gets 41px
+cubes; 75% gets 61.5px. Existing numeric sizes stay fixed. No detectable image
+means a harmless 82px fallback. See [complete copy/paste YAML, coordinate-frame
+support and touch-size limits](docs/FLOORPLAN_SIZING.md).
+
+The [synthetic charging-pulse demo](examples/energy-wave.yaml) uses the shared
+renderer without a charger or service call. Charger, Climate and Car modules
+remain future releases. [HACS listing readiness](docs/HACS_SUBMISSION.md) is
+separate from installing this beta as a custom repository.

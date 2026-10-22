@@ -54,3 +54,21 @@ YAML or backend integration is needed. This owner-approved breaking beta change
 requires a SemVer major/stable compatibility review before promotion.
 Both releases remain immutable prereleases; master/v1.7.1 stable are unchanged.
 Beta.5 is reserved for actionable owner HA findings; no automatic stable promotion.
+
+## Cumulative beta.5
+
+Builds on immutable beta.4 `355caa680ada9c38f7562fbc3a4df8344068140a`,
+including owner-accepted native-only Sonos. Adds [auto floorplan sizing](FLOORPLAN_SIZING.md)
+through the existing numeric pipeline, 40% softer-spread active depth, decorative
+logo gradients and an optional [true hexagonal energy overlay](ENERGY_WAVE.md).
+Reviewed English diagram/terminology and bounded local HACS/GPL readiness fixes
+are included. Catalog topics/default-branch license/fork acceptance remain
+external owner gates; no official listing submission. No Charger/Climate/Car.
+
+Install by HACS Redownload → Show beta versions → v1.8.0-beta.5; hard-refresh
+clients and retain one NG resource. Beta.4 removed the legacy Sonos cache option:
+follow its migration if upgrading from older versions. Never recreate that cache.
+Test numeric versus auto image ratios and touch targets, Light zoom/presets,
+Sonos artwork/Radio/Join/Sleep/Back, reduced-motion and tab/offscreen wave gates.
+Master/v1.7.1 and previous releases stay unchanged. Stable still requires owner
+real-HA approval and explicit namespace/SemVer migration review.

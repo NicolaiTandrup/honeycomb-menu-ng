@@ -284,9 +284,10 @@ class CubeElement extends LitElement
         const wave=this.config.energy_wave;
         const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
         const state=this._entityState();
-        model.energyWave=!model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
-        if(model.energyWave && this.isConnected && !this._waveCleanup)this._waveCleanup=energyWave.attach(this);
-        else if((!model.energyWave || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
+        const waveEnabled=!model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
+        if(waveEnabled)model.energyWave=true;
+        if(waveEnabled && this.isConnected && !this._waveCleanup)this._waveCleanup=energyWave.attach(this);
+        else if((!waveEnabled || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
         // Display refresh only. The backend/device owns expiry; this never calls HA.
         const refreshAt=presentation.refreshAt || null;
         if (refreshAt!==this._presentationRefreshAt || !this.isConnected) {

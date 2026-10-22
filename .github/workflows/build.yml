@@ -44,6 +44,9 @@ jobs:
           cp honeycomb-menu-ng.js "$RUNNER_TEMP/build-artifact/honeycomb-menu-ng.js"
           echo "::notice title=Bundle checksum::$(node scripts/check-release.js)"
 
+      - name: Validate local HACS package and licensing
+        run: node scripts/check-hacs-package.js
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +83,9 @@ jobs:
 
       - name: Verify native-only Sonos Favorites isolation and lifecycle
         run: python test/browser/native_favorites.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/native-favorites"
+
+      - name: Verify auto floorplan sizing and true hexagonal pulse
+        run: python test/browser/beta5.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta5"
 
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"

@@ -41,7 +41,7 @@ def load(text): return yaml.load(text,Loader=Loader)
 def blocks(text):
     return re.findall(r'^(?:```|~~~)yaml\s*\n(.*?)^(?:```|~~~)\s*$',text,re.M|re.S)
 
-SHARED=set('entity name label icon show_name show_label show_icon background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
+SHARED=set('entity name label icon show_name show_label show_icon energy_wave background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
 SONOS=set('favorites_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
 ITEM=SHARED|SONOS|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
@@ -60,7 +60,7 @@ def actions(obj):
 def item(value,where):
     known(value,ITEM,where)
     assert value.get('module',value.get('type')) in ('light','sonos','media','generic'),where
-    assert re.fullmatch(r'\w+\.\w+',value['entity']),where
+    if value.get('module',value.get('type'))!='generic' or 'entity' in value:assert re.fullmatch(r'\w+\.\w+',value['entity']),where
     if 'slot_mode' in value: assert value['slot_mode'] in ('hard','soft','priority')
     if value.get('slot_mode')=='priority': assert 'slot' in value
     if 'slot' in value: assert type(value['slot']) is int and 0<=value['slot']<=216
@@ -77,11 +77,11 @@ def item(value,where):
 def card(config,where):
     assert isinstance(config,dict),where
     if config['type']=='custom:honeycomb-persistent-hub':
-        known(config,{'type','name','size','logo','items','auto_open','menu'},where)
+        known(config,{'type','name','size','logo','items','auto_open','menu','style'},where)
         for i,value in enumerate(config['items']): item(value,f'{where} item {i}')
     elif config['type']=='custom:honeycomb-persistent-control':
-        known(config,SHARED|SONOS|{'type','module','size'},where)
-        item({k:v for k,v in config.items() if k not in ('type','size')},where)
+        known(config,SHARED|SONOS|{'type','module','size','style'},where)
+        item({k:v for k,v in config.items() if k not in ('type','size','style')},where)
     elif config['type']=='button':
         known(config,{'type','entity','name','hold_action'},where)
         menu=config['hold_action']['honeycomb_menu']
@@ -104,7 +104,9 @@ def fragment(config,where):
         if config['type']=='picture-elements':
             known(config,{'type','image','elements'},where)
             for element in config['elements']:
-                known(element,{'type','entity','style','tap_action','hold_action'},where)
+
+                if element.get('type') in ('custom:honeycomb-persistent-hub','custom:honeycomb-persistent-control'):card(element,where+' picture element')
+                else:known(element,{'type','entity','style','tap_action','hold_action'},where)
             actions(config)
         else:raise AssertionError(f'{where}: unrecognized card type')
     elif set(config)<={'presets'} or set(config)<=SONOS:
@@ -280,7 +282,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:

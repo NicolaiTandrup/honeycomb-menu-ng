@@ -2,7 +2,7 @@
 
 **VERSION CONTRACT:** v1.7.1 Stable functionality remains supported. This branch
 adds v1.8.0-beta.1 runtime namespace isolation, beta.2 shared presentation,
-beta.3 default 30% active-gradient edge and **beta.4 native-only Sonos favorites (breaking migration)**.
+beta.5 default 40% active-gradient edge, decorative logo gradient, image-aligned `size: auto` and normalized hexagonal energy overlay and **beta.4 native-only Sonos favorites (breaking migration)**.
 These are prerelease capabilities, not stable v1.8 approval. See [runtime migration](NG_RUNTIME.md),
 [shared presentation](CUBE_PRESENTATION.md) and [native favorites](SONOS_NATIVE_FAVORITES.md).
 No Car/Charger/Climate, backend helper or retention activation is included.
@@ -633,3 +633,22 @@ that validation; #83/#92/#93/#87/#86 are excluded.
 The namespace milestone preserves persistent Hub/Control YAML. See [NG runtime API](NG_RUNTIME.md) for explicit mixed-install popup routing and JavaScript API migration. This is beta-only; stable v1.7.1 remains the functional baseline.
 
 For v1.8 beta.2 only, see the [shared presentation contract](CUBE_PRESENTATION.md) and [validated example](../examples/presentation-light.yaml). Existing explicit center colors remain solid; no new domain actions are added.
+
+## v1.8.0-beta.5 sizing and energy capability
+
+For persistent Hub/Control, `size: auto` derives 82 × displayed floorplan image
+width / intrinsic image width, entering the existing numeric geometry engine.
+Use only inside a standard picture-elements image frame; safe fixed-82 fallback
+otherwise. Numeric size remains fixed; omitted size remains fixed 82. Do not
+invent responsive_scale/global configuration or another CSS transform. Percent
+left/top use actual image offsets for supported contain/cover. No minimum clamp.
+See [tested complete YAML and limits](FLOORPLAN_SIZING.md).
+
+`energy_wave` is a shared presentation primitive with mandatory normalized
+boolean active/available/fault and finite numeric power_w; optional enabled.
+All healthy active positive-power conditions must hold. Templates may map
+explicit capabilities; no vendor/device discovery, polling or Charger module.
+Use the [synthetic no-service demo](../examples/energy-wave.yaml) and
+[state/performance contract](ENERGY_WAVE.md). Normal inactive fills stay solid.
+The decorative Hub logo alone has state-independent depth; explicit fill
+overrides remain available. See [shared presentation](CUBE_PRESENTATION.md).

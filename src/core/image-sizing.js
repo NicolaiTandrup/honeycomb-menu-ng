@@ -84,7 +84,7 @@ function createRecord(card){
                 }
             }
             const bounds=card.getBoundingClientRect();
-            callback({size:frame?82*frame.scale:82,dx,dy,visible:bounds.width>0 && bounds.height>0});
+            callback({size:frame?82*frame.scale:82,dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
         }
     }
     resize.observe(card);mutation.observe(card,{childList:true});

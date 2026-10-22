@@ -1,0 +1,19 @@
+name: Manual HACS catalog readiness
+
+# Catalog approval is separate from tested beta payload publication.
+# No ignored checks. Owner must resolve repository topics/default-branch license.
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Official HACS Dashboard checks without suppression
+        uses: hacs/action@main
+        with:
+          category: plugin
+          comment: false

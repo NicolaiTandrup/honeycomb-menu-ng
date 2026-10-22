@@ -37,12 +37,12 @@ Do not claim upstream endorsement, a transferred listing, or guaranteed acceptan
 | Public stable payload | v1.7.1, non-draft/non-prerelease; bundle, sums and provenance independently verified during #102 |
 | Product identity | Honeycomb Menu NG; distinct repo, JS filename and `/hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js` |
 | Runtime coexistence | v1.7.1 collides on menu/item/XY tags, globals and legacy popup event routing; #104 must validate both full bundles in both orders before claiming coexistence |
-| Official validation | Added `validate.yml`, category `plugin`, read-only token, no ignored checks or PR comment permission |
+| Official validation | PR #108 proposed validate.yml; cumulative beta.5 stages manual hacs-readiness.yml, category plugin, no ignored checks or PR comment permission |
 | License | Existing abbreviated grant was reported NOASSERTION by GitHub. Preserve it verbatim in NOTICE and supply the complete GPL-3.0-or-later text in LICENSE. Verify GitHub recognition after review/merge |
 | Repository topics | Empty at audit: owner should add `home-assistant`, `hacs`, `lovelace`, `dashboard`, `honeycomb` |
 | Description | Existing text describes upstream popup only; owner should describe NG's persistent Hub/Control, Light and Sonos capabilities |
 | Issues / archived | Issues enabled; repository active |
-| Optional companions | Sonos favorites cache and Light preset helpers remain optional/configured prerequisites; native Sonos Sleep needs none |
+| Optional companions | v1.8 beta native Sonos Browse Media needs an enabled official favorites entity; no template-cache support. Light preset helpers remain optional; native Sonos Sleep needs none |
 | Real HA installation | Requires owner fresh-install/update smoke test; synthetic browser tests are not HACS installation proof |
 
 No repository settings, releases, assets, tags or fork-network metadata are
@@ -59,7 +59,7 @@ before catalog submission. Do not bypass missing-topic/license failures.
 4. Hard-refresh each browser. Use the tested quick start in README, then check
    Light tap/hold, Sonos Radio/Join/Sleep and persistent Hub/Control navigation.
 5. For an existing installation, redownload the stable version, preserve YAML,
-   refresh clients and verify favorites/cache, presets and dynamic visibility.
+   refresh clients and verify native favorites, presets and dynamic visibility.
 6. Original+NG coexistence is gated on #104; do not promise it on v1.7.1.
 
 ## Submission checklist and draft
@@ -99,3 +99,25 @@ requirements; do not invent an integration manifest/backend installer.
 Code separation and GitHub fork-network metadata are independent. Never detach,
 recreate or rewrite history to improve a listing's appearance. An owner-approved
 maintainer inquiry is safer than asserting undocumented acceptance rules.
+
+## Cumulative beta.5 packaging status
+
+The reviewed full GPL text/NOTICE from PR #108 and SPDX package metadata ship
+in the candidate. CI checks local HACS filename/root asset, metadata, attribution
+and reproducible bundle. The official HACS catalog workflow is **manual only**
+for readiness review, with zero ignored checks; it is not an automatic beta
+publication gate. It remains expected to fail on repository-wide topics and
+default-branch license recognition until the owner resolves those settings via
+the later approved stable/default-branch process. This separates local payload
+validity from external catalog admission; it does not claim official validation
+has passed. No repository settings change or hacs/default submission occurs.
+
+Current beta namespace coexistence and native-only Sonos are production code
+from beta.4; the old v1.7.1 behavior above is stable-specific. Master remains
+v1.7.1. Owner must review topics/description, GitHub license recognition, fork
+listing suitability and final physical HACS install/update before resolving #92.
+
+A new manual workflow is dispatchable only after GitHub recognizes it on the
+default branch through a later approved integration. Beta.5 does not alter master
+to enable that catalog review. The already observed #108 HACS failures remain
+reported rather than claimed resolved.
