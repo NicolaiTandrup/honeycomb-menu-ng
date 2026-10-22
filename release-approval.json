@@ -1,11 +1,11 @@
 {
-  "version": "1.8.0",
-  "issue": "https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/104",
+  "version": "1.8.1",
+  "issue": "https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/92",
   "approved_beta": {
-    "tag": "v1.8.0-beta.7",
-    "commit": "58e26543f13020912e6188a75863ecf06a2a2df4",
+    "tag": "v1.8.1-beta.1",
+    "commit": "fe39cf04995d62e9a978d70eb4eae026b8221632",
     "src_tree": "92d6f3ce0e1d33bb9e213d9f23163dd2826208e6",
-    "sha256": "6d7f78acdb3c40e939cf64523b5813ff9a4d55cfb3e1dd30f147e9b9986b1f8c",
+    "sha256": "98d605a1be6d770b59c7b98b07c0bf87217744d9f027cc849ee9af5ceed878d7",
     "bytes": 218407
   },
   "allowed_bundle_change": "version-banner-v1"
