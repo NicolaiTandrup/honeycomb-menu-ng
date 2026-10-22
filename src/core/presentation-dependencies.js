@@ -1,7 +1,7 @@
 // Declarative static faces depend on their entity's state/attributes. Arbitrary
 // existing JS templates/custom content remain conservative, never guessed from
 // a partial JS parser (which could miss computed entity IDs or user context).
-const KEYS = ['name','label','icon','colors','border','styles','background','foreground','variables','custom_fields'];
+const KEYS = ['name','label','icon','colors','border','styles','background','foreground','variables','custom_fields','energy_wave'];
 function presentationDependencies(config) {
     let wildcard = !!config.custom_fields;
     const visit = value => {

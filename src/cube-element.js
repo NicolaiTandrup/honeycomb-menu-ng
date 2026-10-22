@@ -10,6 +10,7 @@ const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
 const imageSizing = require('./core/image-sizing.js');
+const energyWave = require('./core/energy-wave.js');
 let nextFillId=0;
 const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-mix(in srgb, red 80%, black)');
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
@@ -78,7 +79,10 @@ class CubeElement extends LitElement
                 pointer-events: none;
                 z-index: 0;
             }
-
+            .energy-contour { transform-box:view-box;transform-origin:50% 50%;opacity:0; }
+            :host([energy-wave-running]) .energy-contour { animation:honeycomb-ng-energy 3s ease-out infinite; }
+            @keyframes honeycomb-ng-energy { 0% {transform:scale(.12);opacity:0} 25% {opacity:.32} 100% {transform:scale(1.4);opacity:0} }
+            @media(prefers-reduced-motion:reduce) { .energy-contour {animation:none!important;opacity:0!important} }
 
             .hex-polygon {
                 vector-effect: non-scaling-stroke;
@@ -264,6 +268,7 @@ class CubeElement extends LitElement
         const secondary = this.config.label !== undefined && this.config.show_label !== false
             ? this._value(this.config.label) : presentation.secondary;
         const fill=cubePresentation.resolveFill({colors,active:presentation.active===true,
+            decorative:this.config._decorative_logo===true,
             gradient:this._value(configured.fill_gradient,undefined),
             explicitCenter:!!(configured.center && this._value(configured.center)!=='auto'),
             customBackground:!!(card.background || card['background-color'] || this.config.background),
@@ -276,6 +281,12 @@ class CubeElement extends LitElement
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
+        const wave=this.config.energy_wave;
+        const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
+        const state=this._entityState();
+        model.energyWave=!model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
+        if(model.energyWave && this.isConnected && !this._waveCleanup)this._waveCleanup=energyWave.attach(this);
+        else if((!model.energyWave || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
         // Display refresh only. The backend/device owns expiry; this never calls HA.
         const refreshAt=presentation.refreshAt || null;
         if (refreshAt!==this._presentationRefreshAt || !this.isConnected) {
@@ -382,6 +393,7 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        if(this._waveCleanup)this._waveCleanup();this._waveCleanup=null;
         if(this._imageSizingCleanup)this._imageSizingCleanup();
         this._imageSizingCleanup=null;
         if (this._moduleObserver) this._moduleObserver.dispose();
@@ -993,7 +1005,7 @@ class CubeElement extends LitElement
         this._externalContent = !!external;
         return html`<div class="persistent-center" style="--honeycomb-persistent-size:${this.size}px;--honeycomb-persistent-foreground:${m.foreground}">
             <svg class="hex-svg" viewBox="0 0 100 115.47" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                ${m.fill.type==='radial' ? svg`<defs><radialGradient id=${this._fillId} cx="50%" cy="50%" r="65%">
+                ${m.fill.type==='radial' ? svg`<defs><radialGradient id=${this._fillId} cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color=${m.fill.center}></stop><stop offset="100%" stop-color=${m.fill.edge}></stop>
                 </radialGradient></defs>` : ''}
                 <polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>
@@ -1002,7 +1014,8 @@ class CubeElement extends LitElement
                 </g>
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
                     <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
-
+                    ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
+                    <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="white" stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
             </svg>
             <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>

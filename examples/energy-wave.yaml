@@ -1,0 +1,22 @@
+# Synthetic shared-renderer demonstration only. No device/service/backend required.
+type: custom:honeycomb-persistent-hub
+size: 82
+logo: false
+items:
+  - type: generic
+    name: Energy demo
+    label: Synthetic 1.2 kW
+    icon: mdi:flash
+    colors:
+      center: '#116644'
+      inner_border: '#22cc88'
+    energy_wave:
+      enabled: true
+      active: true
+      available: true
+      fault: false
+      power_w: 1200
+    tap_action:
+      action: none
+    hold_action:
+      action: none

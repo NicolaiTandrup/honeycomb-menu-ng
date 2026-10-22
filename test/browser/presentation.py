@@ -11,7 +11,7 @@ class Presentation(Cubes):
   self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
   cube=self.cube();self.assertEqual(self.fill()['type'],'radial');self.assertEqual(self.fill()['center'],cube.locator('.hex-inner').get_attribute('fill'))
   self.assertEqual(cube.locator('radialGradient stop').first.get_attribute('stop-color'),self.fill()['center'])
-  expected=cube.evaluate('(el)=>{const canvas=document.createElement("canvas"),c=canvas.getContext("2d");c.fillStyle=el._model.fill.center;c.fillRect(0,0,1,1);return [...c.getImageData(0,0,1,1).data].slice(0,3).map(v=>Math.round(v*.7))}')
+  expected=cube.evaluate('(el)=>{const canvas=document.createElement("canvas"),c=canvas.getContext("2d");c.fillStyle=el._model.fill.center;c.fillRect(0,0,1,1);return [...c.getImageData(0,0,1,1).data].slice(0,3).map(v=>Math.round(v*.6))}')
   actual=[int(v.strip()) for v in self.fill()['edge'][4:-1].split(',')];self.assertTrue(all(abs(a-b)<=1 for a,b in zip(actual,expected)))
   self.assertIn('url(',cube.locator('.hex-fill').evaluate('(el)=>getComputedStyle(el).fill'))
   outer=cube.locator('.hex-outer').get_attribute('fill');self.capture('presentation-rgb-active')

@@ -275,6 +275,8 @@ class HoneycombPersistentHub extends CubeElement
                     tap_action: { action: 'honeycomb-bee-flap' },
                     show_brightness: 'never',
                     mode: 'hub',
+                    _decorative_logo: true,
+                    colors: {fill_gradient: (this.config.colors || {}).fill_gradient === undefined ? (this._logoExplicitCenter ? false : {type:'radial'}) : this.config.colors.fill_gradient},
                     face_mode: this.config.base_face_mode || 'cell'
                 }
             );
@@ -437,6 +439,7 @@ class HoneycombPersistentHub extends CubeElement
         validateCubeConfig(config, {hubItems:true});
         if (!this._hasHassProvider) { this._hasHassProvider=true; provideHass(this); }
         const next = merge({}, config);
+        this._logoExplicitCenter=!!(config.colors && config.colors.center && config.colors.center!=='auto');
 
         _defaults(next, {
             mode: 'hub',

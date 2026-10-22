@@ -1,4 +1,5 @@
 const {validateGradient}=require('./cube-presentation');
+const energyWave=require('./energy-wave');
 const merge = require('lodash/merge');
 const { moduleRegistry } = require('../modules/index.js');
 
@@ -25,7 +26,7 @@ function buildCubeConfig(item, hass, index = 0, slot = 0)
     for (const key of ['entity','name','label','show_name','show_label','show_icon','icon',
         'background','foreground','colors','border','styles','variables','interactive',
         'tap_action','hold_action','double_tap_action','autoclose','audio','off',
-        'active_color','show_brightness','show_volume','presets','hold_time','custom_fields'])
+        'active_color','show_brightness','show_volume','presets','hold_time','custom_fields','energy_wave'])
         if (item[key] !== undefined) overrides[key] = item[key];
     const compiled=merge({},launcher,{face_mode:'cell'},overrides,item.persistent || {});
     for (const key of ['tap_action','hold_action','double_tap_action']) {
@@ -44,6 +45,7 @@ function validateCubeConfig(config, {hubItems = false, placement = false} = {})
     if (!placement && (config.visibility !== undefined || config.slot_mode === 'priority'))
         throw new Error('Dynamic visibility and priority placement are supported only on Hub items.');
     validateGradient(config.colors && config.colors.fill_gradient);
+    energyWave.validate(config.energy_wave);
     if (Array.isArray(config)) {
         config.forEach(value => { if (value && typeof value === 'object') validateCubeConfig(value, {placement}); });
         return;

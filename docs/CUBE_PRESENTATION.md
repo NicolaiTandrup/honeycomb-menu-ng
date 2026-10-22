@@ -1,4 +1,4 @@
-# Shared CubePresentation — v1.8 beta.2 candidate
+# Shared CubePresentation — v1.8.0-beta.5
 
 One renderer (`src/cube-element.js`) owns the 82px cell geometry, hex clipping,
 fill and independent inner/outer borders, typography/text zones, icon/artwork,
@@ -18,7 +18,7 @@ stay solid; future modules must supply explicit normalized active semantics.
 
 For a truly active cube without an explicit fill override, a shared SVG radial
 fill begins at **exactly the resolved inner-border color** and darkens toward the
-edge by 30% per RGB channel (same hue). It is clipped inside the original fill
+edge by 40% per RGB channel (same hue). It is clipped inside the original fill
 polygon. Inner/outer border colors and geometry are independent. Inactive,
 off, paused, unavailable and disabled cubes default to a solid fill.
 
@@ -26,7 +26,7 @@ off, paused, unavailable and disabled cubes default to a solid fill.
    choices as solid by default. `auto` is not an explicit color override.
 2. `colors.fill_gradient: false`, `"solid"`, or `{type: solid}` requests solid.
 3. `{type: radial}` explicitly requests active radial fill. Optional `edge`
-   overrides the edge; optional numeric `darken` is bounded 0–0.4, default 0.3.
+   overrides the edge; optional numeric `darken` is bounded 0–0.4, default 0.4.
    With no explicit center, the center equals resolved inner-border color.
    Combining explicit radial with existing `colors.center` deliberately chooses
    that center stop. Inactive states still use solid fill.
@@ -55,7 +55,7 @@ remain supported; do not copy Light geometry/CSS into future modules.
 
 ## Performance and acceptance
 
-No animation or polling is introduced. Active cubes add one static, uniquely
+Normal status fills add no animation or polling. Active cubes add one static, uniquely
 identified SVG gradient in their shadow root; inactive cubes add none. Existing
 dependency snapshots and presentation signatures suppress unchanged renders.
 The focused browser benchmark uses 91 actual Light cubes: 1,000 unrelated HA
@@ -83,3 +83,17 @@ read-only metadata and cancellation guards; the renderer owns no Sonos browsing.
 An optional resolved `name` replaces the primary text (empty while Radio artwork
 is shown); absent keeps ordinary configured labels. The existing shared artwork
 image/error path and 82px geometry are reused. No additional renderer or polling.
+
+## Decorative logo and energy overlay
+
+The Hub decorative logo receives the same soft radial depth using its existing
+logo fill color. It is not an inactive physical device; ordinary off/paused
+cubes remain solid. Hub `colors.fill_gradient: false` opts out. The radial
+spread reaches the edge at 50% of the fill box (beta.3 used 65%), retaining the
+exact center color, 40% darkened edge and independent borders.
+
+The opt-in [six-sided energy overlay](ENERGY_WAVE.md) animates only explicitly
+normalized healthy positive-power data. One shared observer, reduced-motion/tab/
+offscreen gates and 24-animation budget protect resources. No Charger module
+or vendor semantics are added. [Auto floorplan sizing](FLOORPLAN_SIZING.md) feeds
+the existing numeric pipeline; there is no competing renderer or CSS scale.
