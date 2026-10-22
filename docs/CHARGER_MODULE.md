@@ -86,6 +86,11 @@ two controls. A physical lock sensor never becomes a switch. Known foreign
 device/platform/product mappings and ambiguous discovery candidates are rejected.
 Without registry access, explicit mapping is the owner's declaration of the
 correct capabilities; verify every target against the device page before use.
+Generic status entities must expose the documented textual states (for example
+`charging`, `ready_to_charge`, `disconnected`, `disabled`, `paused`, `error`).
+Vendor-specific numeric status codes are interpreted only for `provider: easee`;
+other providers need an externally normalized HA status entity. Unknown codes
+never prove physical connection or authorize a control.
 
 ## Level A: summary and named chargers
 

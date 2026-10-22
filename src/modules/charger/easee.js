@@ -7,9 +7,9 @@ const codes={1:'disconnected',2:'awaiting_start',3:'charging',4:'completed',5:'e
     100:'start_charging',101:'stop_charging',102:'offline',103:'awaiting_load_balancing',104:'awaiting_authorization',105:'awaiting_smart_start',
     106:'awaiting_scheduled_start',107:'authenticating',108:'paused_due_to_equalizer',109:'searching_for_master',157:'erratic_ev',
     158:'error_temperature_too_high',159:'error_dead_powerboard',160:'error_overcurrent',161:'error_pen_fault'};
-function normalize(value) {
+function normalize(value,numericCodes=true) {
     const text=String(value === undefined ? '' : value).trim().toLowerCase().replace(/[\s-]+/g,'_');
-    return codes[text] || ({car_disconnected:'disconnected',ready:'ready_to_charge',connected:'ready_to_charge',fault:'error',faulted:'error',disabled:'disabled',suspended:'suspended'}[text]) || text;
+    return (numericCodes && codes[text]) || ({car_disconnected:'disconnected',ready:'ready_to_charge',connected:'ready_to_charge',fault:'error',faulted:'error',disabled:'disabled',suspended:'suspended'}[text]) || text;
 }
 const connected=new Set(['awaiting_start','charging','completed','ready_to_charge','awaiting_authorization','de_authorizing','start_charging',
     'awaiting_load_balancing','awaiting_smart_start','awaiting_scheduled_start','authenticating','paused_due_to_equalizer']);

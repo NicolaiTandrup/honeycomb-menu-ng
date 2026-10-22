@@ -123,6 +123,8 @@ test('Easee discovery uses exact platform/device/unique keys; ambiguous and fore
 });
 test('generic explicit mapping works without registry access and does not discover by entity name',()=>{
     const f=fixture();f.item.provider='generic';f.options=settings(f.item);f.hass.entities={};assert.equal(model.state(f.hass,f.options).active,true);
+    set(f,'status','3');const unknown=model.state(f.hass,f.options);
+    assert.equal(unknown.active,false);assert.equal(unknown.connected,null);assert.equal(model.writable(f.hass,unknown,'enabled'),false);
     f.options.entities={status:f.entities.status};assert.deepEqual(model.state(f.hass,f.options).entities,{status:f.entities.status});
 });
 test('multi-entity dependencies ignore unrelated HA events and include associated feed, registry and switch services',()=>{

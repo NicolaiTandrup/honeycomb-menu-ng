@@ -37,7 +37,7 @@ function association(hass,options,connected,now) {
 function state(hass,options,now=Date.now()) {
     const mapped=easee.mapEntities(hass,options,registry.entries(hass));
     const states=hass && hass.states || {},get=role=>states[mapped.entities[role]];
-    const raw=get('status'),status=easee.normalize(raw && raw.state),online=boolean(get('online'));
+    const raw=get('status'),status=easee.normalize(raw && raw.state,options.provider === 'easee'),online=boolean(get('online'));
     const session=registry.session(hass);
     const offline=absent(raw) || ['offline','unavailable'].includes(status) ||
         !!mapped.entities.online && online !== true || !!(session && !session.online) || !!(hass && hass.connection && hass.connection.connected === false);
