@@ -112,3 +112,39 @@ Replace the synthetic entity with a sensor reporting **watts**, and deliberately
 map its real charging/availability/fault semantics. Missing attributes in this
 example fail closed; don't invent healthy state or multiply kW incorrectly.
 External HA owns measurements/freshness, not this animation primitive.
+
+## Contour color — unreleased Issue #119 candidate
+
+This addition is based on published beta.6; it is **not in that immutable
+release**. See the [complete inherited-green/custom-blue demo](../examples/energy-wave-color.yaml),
+which needs no real device, helpers or service calls.
+
+Omit `energy_wave.color` to inherit the cube's **resolved inner-border color**,
+after Light/Sonos state and user `colors.inner_border` overrides. With
+`inner_border: auto`, the module's actual resolved status/station color is used,
+not the literal word `auto`, the center fill or a hardcoded fallback. The contour
+updates live when the resolved border changes.
+
+Set `energy_wave.color: '#00bfff'` to override only the contour. The inner/outer
+borders, center, approved 40% gradient, alpha/animation opacity, six-sided
+geometry and fixed/power speed remain independent. Existing healthy-state,
+visibility, reduced-motion and performance limits still apply.
+
+Supported syntax: CSS hex (3/4/6/8 digits), named colors, `rgb()`/`rgba()`,
+`hsl()`/`hsla()`, and browser-supported `hwb()`, `lab()`, `lch()`, `oklab()`,
+`oklch()`, `color()`, `color-mix()` and `var(--name, color)` expressions. Use a
+defined color variable or a valid color fallback. The browser CSS color parser
+is authoritative; Node documentation checks validate structure only. `auto`,
+CSS-wide keywords, URLs/SVG paint, style declarations, markup, control characters
+and strings longer than 512 characters are rejected. Values are bound through
+Lit and the CSS **color** property, never injected as HTML/CSS declarations or
+interpreted as an SVG paint URL.
+
+Existing frontend HA JS templates also work, for example
+`color: 'HCJS: return entity.attributes.accent;'`. They use the existing template
+evaluator and update dependencies; no new expression language or polling.
+Invalid literal configuration fails validation. A missing, invalid or throwing
+template result suppresses the contour until valid, leaving the cube/actions
+usable; it does not silently substitute another color. Color changes retain
+the existing Animation and contour node. Power-only changes still cause no
+face rerender. Real device health/power normalization remains your responsibility.

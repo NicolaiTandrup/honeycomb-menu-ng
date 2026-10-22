@@ -37,3 +37,19 @@ test('speed schema validates static values and dynamic invalid settings fail clo
  assert.throws(()=>wave.validate({...base,speed_mode:'fixed'}));
  assert.throws(()=>wave.validate({...base,min_cycle_ms:3000}));
 });
+test('wave inherits resolved inner border, never center, and explicit color wins',()=>{
+ assert.equal(wave.resolveColor({},'#22cc88'),'#22cc88');
+ assert.equal(wave.resolveColor(undefined,'rgb(12, 34, 56)'),'rgb(12, 34, 56)');
+ assert.equal(wave.resolveColor({color:'#00bfff'},'#22cc88'),'#00bfff');
+ assert.equal(wave.resolveColor({color:'rgba(0, 191, 255, .5)'},'#22cc88'),'rgba(0, 191, 255, .5)');
+});
+test('wave color schema uses existing HA templates, invalid results never inherit silently',()=>{
+ const base={active:true,available:true,fault:false,power_w:100};
+ for(const color of ['#22cc88','blue','var(--wave-accent, #00bfff)','HCJS: return entity.attributes.accent;','[[[ return "#00bfff"; ]]]','${states["sensor.accent_a"].state}'])
+  assert.doesNotThrow(()=>validateCubeConfig({energy_wave:{...base,color}}));
+ assert.equal(presentationDependencies({energy_wave:{...base,color:'HCJS: return states["sensor.accent_a"].state;'}}).wildcard,true);
+ for(const color of [null,undefined,false,42,{},[], '', ' ', 'auto','inherit','initial','unset','revert','revert-layer','url(https://example.org/paint.svg)', 'var(--x, url(#paint))','#fff;opacity:1','red" onload="alert(1)','red\n', 'expression(alert(1))','x'.repeat(513)]){
+  assert.throws(()=>validateCubeConfig({energy_wave:{...base,color}}));
+  assert.equal(wave.resolveColor({color},'#22cc88'),null);
+ }
+});

@@ -403,3 +403,13 @@ geometry and adds bounded power/fixed speed with phase-preserving smooth rate
 changes. It requires no charger or service call. Existing energy_wave settings
 retain their three-second cycle. [Rate settings and real sensor mapping](docs/ENERGY_WAVE.md).
 The owner-approved40% and logo gradients, native Sonos and other modules remain.
+
+### Unreleased: energy-wave contour color (#119)
+
+The scoped beta.6 follow-up makes the pulse inherit the cube's resolved inner
+border, including live Light/Sonos colors and user overrides. Optional
+`energy_wave.color: '#00bfff'` changes only the contour. Existing gradients,
+six-sided geometry, power/fixed speed and sizing stay unchanged. Try the
+[complete synthetic green/blue demo](examples/energy-wave-color.yaml) and read
+the [color and template rules](docs/ENERGY_WAVE.md#contour-color--unreleased-issue-119-candidate).
+This setting is not in published beta.6; a new release requires owner approval.

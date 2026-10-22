@@ -286,8 +286,9 @@ class CubeElement extends LitElement
         const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
         const state=this._entityState();
         const timing=energyWave.timing(normalized);
-        const waveEnabled=!!timing && !model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
-        if(waveEnabled)model.energyWave=true;
+        const waveColor=wave && energyWave.resolveColor(normalized,colors.inner);
+        const waveEnabled=!!waveColor && !!timing && !model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
+        if(waveEnabled){model.energyWave=true;model.energyWaveColor=waveColor;}
         if(waveEnabled && this.isConnected && !this._waveCleanup)this._waveCleanup=energyWave.attach(this);
         if(waveEnabled && this._waveCleanup)energyWave.setCycle(this,timing.cycleMs);
         else if((!waveEnabled || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
@@ -1020,7 +1021,7 @@ class CubeElement extends LitElement
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
                     <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
                     ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
-                    <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="white" stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
+                    <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
             </svg>
             <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>

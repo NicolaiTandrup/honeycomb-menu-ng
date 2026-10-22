@@ -2,6 +2,19 @@
 const BASE_CYCLE_MS=3000,MIN_CYCLE_MS=500,MAX_CYCLE_MS=10000,TRANSITION_MS=350;
 const isTemplate=v=>typeof v==='string' && /\[\[\[|HCJS:|\$\{/.test(v);
 const numericKeys=['power_w','max_power_w','min_cycle_ms','max_cycle_ms','cycle_ms'];
+// Validate a CSS *color*, never SVG paint/URLs or arbitrary style declarations.
+// Node contract checks validate shape; the browser's CSS parser is authoritative.
+function validColor(value){
+    if(typeof value!=='string' || !value.trim() || value.length>512 ||
+       /[;{}<>"'\\\x00-\x1f\x7f]/.test(value) || /(?:url|expression)\s*\(/i.test(value) ||
+       /^(?:auto|inherit|initial|unset|revert|revert-layer)$/i.test(value.trim()))return false;
+    if(!/^(?:#(?:[\da-f]{3,4}|[\da-f]{6}|[\da-f]{8})|[a-z]+|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|var)\([\w\s#.,%()+/-]+\))$/i.test(value.trim()))return false;
+    return typeof CSS==='undefined' || typeof CSS.supports!=='function' || CSS.supports('color',value);
+}
+function resolveColor(state,inner){
+    const value=state && Object.prototype.hasOwnProperty.call(state,'color')?state.color:inner;
+    return validColor(value)?value.trim():null;
+}
 function enabled(state){return !!state && state.enabled!==false && state.active===true && state.available===true && state.fault===false && typeof state.power_w==='number' && Number.isFinite(state.power_w) && state.power_w>0;}
 function timing(state){
     if(!state || !['power','fixed'].includes(state.speed_mode===undefined?'fixed':state.speed_mode))return null;
@@ -22,11 +35,13 @@ function timing(state){
 function validate(value){
     if(value===undefined || value===false)return;
     if(!value || typeof value!=='object' || Array.isArray(value) ||
-       Object.keys(value).some(k=>!['enabled','active','available','fault','speed_mode',...numericKeys].includes(k)) ||
+       Object.keys(value).some(k=>!['enabled','active','available','fault','speed_mode','color',...numericKeys].includes(k)) ||
        ['active','available','fault','power_w'].some(k=>value[k]===undefined))
         throw new Error('energy_wave requires normalized active, available, fault and power_w with supported optional speed settings.');
     for(const [key,v] of Object.entries(value)){
-        if(key==='speed_mode'){
+        if(key==='color'){
+            if(!isTemplate(v) && !validColor(v))throw new Error('energy_wave.color requires a CSS color or HA JS template, not SVG paint or style declarations.');
+        }else if(key==='speed_mode'){
             if(!['power','fixed'].includes(v))throw new Error('energy_wave.speed_mode must be power or fixed.');
         }else if(!isTemplate(v) && (numericKeys.includes(key)?typeof v!=='number'||!Number.isFinite(v):typeof v!=='boolean'))
             throw new Error('energy_wave values require booleans/numbers or HA JS templates; speed_mode is literal.');
@@ -100,4 +115,4 @@ function attach(host){
         if(!clients.size){if(observer)observer.disconnect();observer=null;if(motion)motion.removeEventListener('change',refresh);motion=null;document.removeEventListener('visibilitychange',refresh);stopUnusedFrame();}
     };
 }
-module.exports={enabled,validate,timing,attach,setCycle,sync,MAX_ANIMATIONS,BASE_CYCLE_MS,TRANSITION_MS,diagnostics:()=>({eligible:clients.size,observers:observer?1:0,transitionFrame:frame!==null})};
+module.exports={enabled,validate,timing,resolveColor,attach,setCycle,sync,MAX_ANIMATIONS,BASE_CYCLE_MS,TRANSITION_MS,diagnostics:()=>({eligible:clients.size,observers:observer?1:0,transitionFrame:frame!==null})};
