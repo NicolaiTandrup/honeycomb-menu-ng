@@ -9,6 +9,7 @@ const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
+const imageSizing = require('./core/image-sizing.js');
 let nextFillId=0;
 const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-mix(in srgb, red 80%, black)');
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
@@ -77,6 +78,7 @@ class CubeElement extends LitElement
                 pointer-events: none;
                 z-index: 0;
             }
+
 
             .hex-polygon {
                 vector-effect: non-scaling-stroke;
@@ -358,9 +360,9 @@ class CubeElement extends LitElement
         }
 
         this.config = next;
-        this.size = Number(next.size);
-        if (!Number.isFinite(this.size) || this.size <= 0) throw new Error('Cube size must be a positive finite number.');
+        this.size = imageSizing.numericSize(next.size);
         this.style.setProperty('--honeycomb-persistent-size', `${this.size}px`);
+        this._syncImageSizing();
 
         this._updatePresentation();
         this.requestUpdate();
@@ -369,6 +371,7 @@ class CubeElement extends LitElement
     connectedCallback()
     {
         super.connectedCallback();
+        this._syncImageSizing();
         this._updatePresentation();
         const host = this.getRootNode().host;
         if (!host || !host._menuContext) {
@@ -379,6 +382,8 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        if(this._imageSizingCleanup)this._imageSizingCleanup();
+        this._imageSizingCleanup=null;
         if (this._moduleObserver) this._moduleObserver.dispose();
         this._moduleObserver=null;this._observerFactory=null;this._observerConnection=null;
         if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
@@ -396,6 +401,29 @@ class CubeElement extends LitElement
     getCardSize()
     {
         return 1;
+    }
+
+    _syncImageSizing()
+    {
+        if(this._imageSizingCleanup){this._imageSizingCleanup();this._imageSizingCleanup=null;}
+        if(this.config && this.config.size==='auto' && this.isConnected){
+            if(this._imageOriginalTranslate===undefined)this._imageOriginalTranslate=this.style.translate;
+            this._imageSizingCleanup=imageSizing.observeImage(this,({size,dx,dy,visible=true})=>{
+                if(!this.isConnected || this.config.size!=='auto')return;
+                // Preserve the HA -50% transform. Correct only auto percentage anchors.
+                if(!this._imageOriginalTranslate){const translate=dx||dy?`${dx}px ${dy}px`:'';if(this.style.translate!==translate)this.style.translate=translate;}
+                this._imageFrameVisible=visible;
+                const menu=this._menuContext && this._menuContext.honeycomb || this._autoSizedMenu;
+                if(menu && menu.isConnected)menu.style.visibility=visible?'':'hidden';
+                if(Math.abs(this.size-size)<.001)return;
+                this.size=size;this._anchorRenderedSize=null;
+                this.style.setProperty('--honeycomb-persistent-size',`${size}px`);
+                if(menu && menu.isConnected && !menu.closing && this.config.match_anchor_size!==false)menu.resizeCubes(size);
+                this.requestUpdate();
+            });
+        }else if(this._imageOriginalTranslate!==undefined){
+            this.style.translate=this._imageOriginalTranslate;this._imageOriginalTranslate=undefined;
+        }
     }
 
     _entityState()
@@ -765,6 +793,11 @@ class CubeElement extends LitElement
         const owner = root && root.host;
         const isMenuItem = owner && owner._menuContext;
         const openedMenu = this._openHoneycombMenu(menu);
+        if(openedMenu && this.config.size==='auto'){
+            this._autoSizedMenu=openedMenu;
+            if(this._imageFrameVisible===false)openedMenu.style.visibility='hidden';
+            openedMenu.addEventListener('honeycomb-ng-closed',()=>{if(this._autoSizedMenu===openedMenu)this._autoSizedMenu=null;},{once:true});
+        }
 
         // Only dashboard launchers need to hide behind an overlay. Menu-owned
         // cells are reused across in-place navigation: hiding one here also
@@ -969,6 +1002,7 @@ class CubeElement extends LitElement
                 </g>
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
                     <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
+
                 </g>
             </svg>
             <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>

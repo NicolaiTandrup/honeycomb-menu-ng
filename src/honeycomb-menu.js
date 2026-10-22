@@ -896,6 +896,21 @@ class HoneycombMenu extends LitElement
         this.requestUpdate();
     }
 
+    // Geometry-only refresh: do not reset idle, rebuild navigation, or reopen actions.
+    resizeCubes(size)
+    {
+        if(this.closing || !Number.isFinite(size) || size<=0)return;
+        const ratio=size/this.sizes.item;
+        this.sizes={item:size,containerWidth:this.sizes.containerWidth*ratio,containerHeight:this.sizes.containerHeight*ratio};
+        const context=this._menuContext;
+        const update=config=>{if(!config)return;config.size=size*3.586;if(config.persistent_center)config.persistent_center.size=size;};
+        update(this.config);
+        if(context){update(context.currentConfig);for(const entry of context.stack)update(entry.config || entry);}
+        this._setCssVars();
+        if(this._anchorX!==null && this._anchorY!==null)this._setPosition(this._anchorX,this._anchorY);
+        this.requestUpdate();
+    }
+
     firstUpdated()
     {
         this._setCssVars();
