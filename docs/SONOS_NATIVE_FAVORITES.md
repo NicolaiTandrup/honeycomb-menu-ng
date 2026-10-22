@@ -50,7 +50,10 @@ a **v1.8.0-beta.4+ option**, not supported by v1.7.1 stable or beta.3.
    Duplicate cache identities stay ambiguous; native browsing does not conceal them.
 3. With `favorites_browse: true`, missing metadata comes from Browse Media. Sonos
    returns `favorites_folder` children of `favorites`; only those exact returned
-   folders are read. Favorite leaves supply FV ID/title/thumbnail. No services,
+   folders are read. Favorite leaves supply FV ID/title/thumbnail. Native enrichment requires both
+   exact FV ID and agreeing sensor/browse favorite title (Unicode normalization
+   and outer whitespace only); stale or foreign-library collisions fall back.
+   Existing explicit cache labels retain their established compatibility. No services,
    playback commands, stream scraping or HA configuration writes are involved.
 4. Radio keeps sensor order and its existing twelve physical choices/playback IDs.
    Artwork updates live. Opted-in Radio uses the shared image-error fallback: a

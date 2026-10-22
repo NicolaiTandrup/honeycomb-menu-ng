@@ -151,3 +151,16 @@ test('configured persistent entity override never browses the original item play
  const f=fixture();const overridden={...f.config,entity:B};assert.equal(context(f.hass,overridden).coordinator,B);
  assert.equal(context(f.hass,{...f.config,mode:'sonos-favorite',entity:F}).coordinator,A);
 });
+test('colliding FV IDs from stale/foreign libraries cannot assign another station artwork',async()=>{
+ const f=fixture();f.connection.sendMessagePromise=async request=>request.media_content_type==='favorites'?f.root:{children:[
+  {...f.leaves()[0],title:'Different Station',thumbnail:'/wrong.svg'},
+  {...f.leaves()[1],title:undefined,thumbnail:'/unverified.svg'}]};
+ f.observe();await f.c.tick(5);assert.deepEqual(f.provider.peek(f.hass,f.config).items,[]);f.dispose();
+});
+test('all returned favorite folders are traversed, with sensor order and exact identity preserved',async()=>{
+ const f=fixture();f.connection.sendMessagePromise=async request=>{f.calls.push(request);return request.media_content_type==='favorites'?{children:[
+  {media_content_type:'favorites_folder',media_content_id:'radio'},
+  {media_content_type:'favorites_folder',media_content_id:'music'}]}:
+  {children:[f.leaves()[request.media_content_id==='radio'?1:0]]};};
+ f.observe();await f.c.tick(5);assert.equal(f.calls.length,3);assert.deepEqual(f.provider.peek(f.hass,f.config).items.map(v=>v.media_content_id),[id,other]);f.dispose();
+});

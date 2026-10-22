@@ -122,7 +122,7 @@ function createProvider({now = () => Date.now(), ttl = 300000, timeout = 8000, d
             media_content_type:type,media_content_id:id},entry.abort.signal);
         const root = await request('favorites','');
         if (!root || !Array.isArray(root.children) || root.children.length > 8) throw new Error('schema');
-        const folders = new Set(), found = new Map();
+        const folders = new Set(), found = new Map(), identities = new Set();
         let count = 0;
         for (const folder of root.children) {
             if (!folder || folder.media_content_type !== 'favorites_folder' || typeof folder.media_content_id !== 'string' ||
@@ -132,9 +132,15 @@ function createProvider({now = () => Date.now(), ttl = 300000, timeout = 8000, d
             if (!result || !Array.isArray(result.children) || (count += result.children.length) > 512) throw new Error('schema');
             for (const item of result.children) {
                 if (!item || item.media_content_type !== 'favorite_item_id' || !own(ctx.map,item.media_content_id)) continue;
-                if (found.has(item.media_content_id)) throw new Error('ambiguous');
+                if (identities.has(item.media_content_id)) throw new Error('ambiguous');
+                identities.add(item.media_content_id);
+                // Official sensor and Browse Media both expose favorite.title.
+                // Reject a stale/foreign library's colliding FV ID, rather than
+                // assigning its artwork to this sensor's differently named item.
+                if (typeof item.title !== 'string' || item.title.length > 2048 ||
+                    item.title.normalize('NFC').trim() !== ctx.map[item.media_content_id].normalize('NFC').trim()) continue;
                 found.set(item.media_content_id,Object.freeze({media_content_id:item.media_content_id,media_content_type:'favorite_item_id',
-                    title:typeof item.title === 'string' && item.title.length <= 2048 ? item.title : ctx.map[item.media_content_id],
+                    title:item.title,
                     thumbnail:validThumbnail(item.thumbnail) && item.thumbnail.length <= 8192 ? item.thumbnail : null}));
             }
         }
