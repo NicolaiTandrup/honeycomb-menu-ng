@@ -1,3 +1,21 @@
+# v1.8.1 — Stable
+
+Version-only maintenance release for HACS catalog readiness after successful
+official validation. Preserves the owner-approved v1.8.0 runtime without changes
+to application logic, styles, dependencies, APIs or configuration behavior.
+
+The matching v1.8.1-beta.1 supplies the immutable public source required by the
+unchanged stable publisher. The stable bundle differs from that beta, and from
+v1.8.0, only in its deterministic version banner. No Home Assistant configuration
+migration is required. HACS package identity, root JavaScript filename, GPL
+license and original-project attribution remain unchanged.
+
+Stable publication and master integration require separate owner approval.
+The external HACS catalog submission remains an owner-reviewed follow-up under
+Issue #92; this maintenance release does not imply catalog acceptance.
+
+---
+
 # v1.8.0 — Stable
 
 Promotes the complete owner-tested cumulative v1.8.0-beta.7 functionality.
