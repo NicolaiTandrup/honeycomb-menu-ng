@@ -1,0 +1,83 @@
+# Synthetic replacement IDs: collect the actual entities listed in docs/CHARGER_MODULE.md.
+# Install v1.9.0-beta.1 in HACS (prereleases enabled), keep the existing resource:
+# /hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js  (JavaScript module).
+# Paste this COMPLETE dashboard in the Lovelace raw configuration editor.
+# The neutral inline image needs no /local file. YAML anchors share each mapping.
+title: Charging
+views:
+  - title: Charging
+    path: charging
+    panel: true
+    cards:
+      - type: picture-elements
+        image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='600'%3E%3Crect width='900' height='600' fill='%23262e38'/%3E%3C/svg%3E"
+        elements:
+          - type: custom:honeycomb-persistent-hub
+            name: Charging Hub
+            size: 82
+            logo: false
+            style:
+              left: 60%
+              top: 50%
+            items:
+              - type: charging-hub
+                name: Charging Hub
+                slot: 0
+                energy_wave:
+                  speed_mode: power
+                  max_power_w: 19400
+                chargers:
+                  - &charger_1
+                    type: charger
+                    provider: easee
+                    name: Charger 1
+                    entity: sensor.charger_1_status
+                    entities:
+                      power: sensor.charger_1_power
+                      enabled: switch.charger_1_enabled
+                      online: binary_sensor.charger_1_online
+                      session_energy: sensor.charger_1_energy
+                      # These two entities are DIFFERENT capabilities:
+                      permanent_lock: switch.charger_1_permanent_lock
+                      physical_lock: binary_sensor.charger_1_lock
+                      # Optional read-only measurements; remove unavailable mappings.
+                      current: sensor.charger_1_current
+                      limit: sensor.charger_1_limit
+                    max_age: 300
+                    energy_wave:
+                      speed_mode: power
+                      max_power_w: 11000
+                    # Optional future feed. Missing/unavailable feed is harmless.
+                    association:
+                      entity: sensor.ev_charger_assignments
+                      charger_key: charger_1
+                      max_age: 300
+                  - &charger_2
+                    type: charger
+                    provider: easee
+                    name: Charger 2
+                    entity: sensor.charger_2_status
+                    entities:
+                      power: sensor.charger_2_power
+                      enabled: switch.charger_2_enabled
+                      online: binary_sensor.charger_2_online
+                      session_energy: sensor.charger_2_energy
+                      # These two entities are DIFFERENT capabilities:
+                      permanent_lock: switch.charger_2_permanent_lock
+                      physical_lock: binary_sensor.charger_2_lock
+                      # Optional read-only measurements; remove unavailable mappings.
+                      current: sensor.charger_2_current
+                      limit: sensor.charger_2_limit
+                    max_age: 300
+                    energy_wave:
+                      speed_mode: power
+                      max_power_w: 7400
+                    # Optional future feed. Missing/unavailable feed is harmless.
+                    association:
+                      entity: sensor.ev_charger_assignments
+                      charger_key: charger_2
+                      max_age: 300
+              - <<: *charger_1
+                slot: 1
+              - <<: *charger_2
+                slot: 2

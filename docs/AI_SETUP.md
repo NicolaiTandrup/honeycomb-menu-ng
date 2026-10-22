@@ -11,6 +11,44 @@ Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior is supported.
 No runtime code from v1.6 is imported. Catalog inclusion is pending; use the
 HACS custom repository until accepted. [Catalog submission](HACS_CATALOG_SUBMISSION.md).
 
+**BETA EXTENSION — v1.9.0-beta.1 only:** `type: charger` / `module: charger`
+and `type: charging-hub` / `module: charging-hub` are implemented in this prerelease.
+Never generate Charger YAML for v1.8.1 stable. Use the exact
+[Charger schema/entity/slot/action/freshness contract](CHARGER_MODULE.md) and the
+complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
+dashboards. No backend, optimizer, Car or Climate module is added.
+
+### Charger generation rules (1.9.0-beta.1)
+
+1. Collect real `entity` status plus explicit role mappings, provider (`easee` or
+   `generic`), friendly name and actual W/kW, Wh/kWh, A/mA units. Do not fabricate
+   installed IDs. Exact Easee platform/device/unique-ID discovery is optional;
+   a denied registry falls back to explicit mappings, never fuzzy names.
+2. Use an ordinary Hub with `logo: false`, a `charging-hub` item at `slot: 0`
+   containing `chargers: [full descriptors]`, and ordinary named `charger` items.
+   Reuse YAML anchors as in the complete examples. Zero members is supported.
+   The aggregate deduplicates physical identity/status/power; unavailable is not zero.
+3. Details are fixed: 0 identity/power/car/Back; 1 verified Enabled switch;
+   2 verified permanent-lock switch plus separate read-only physical lock;
+   3 session kWh; 4 current vehicle/connection; 5 current/allocation A read-only;
+   6 diagnostics/more-info. Missing capabilities stay reserved and disabled.
+4. Only intentional slot-1/2 taps call `switch.turn_on/off` with an exact entity
+   target. Never generate enable/lock on render, hold/navigation, refresh or restart.
+   No implicit retry. Pending/failed/unconfirmed are distinct from HA/hardware success.
+5. `max_age` (default 300 s, bounds 10–86400) gates measured power by timezone-aware
+   HA last_reported/last_updated. Use the existing `energy_wave` speed/color options;
+   module-derived health/power cannot be overridden to force an unsafe animation.
+6. Optional `association` has `entity: sensor.*`, exact `charger_key`, optional
+   `max_age` (same bounds/default). Attributes are assignments array with charger,
+   car, car_name, confirmed mode (auto_assigned/manual_until_disconnect), plus
+   timezone-aware updated_at. Never read lastAssignedCar, infer identity, count
+   associations as physical connections or require an absent Node-RED sensor.
+7. Preserve existing numeric size / `size: auto` + `auto_reference_width` and Hub
+   visibility/placement. Leave room for anchored detail rings on narrow floorplans.
+   Independent Car cubes are future work and must not be consumed by an association.
+8. Mark examples as synthetic and real-device acceptance as pending. Do not touch
+   owner automation or publish stable without explicit later approval.
+
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute
 invented entities, integrations, scripts, helpers or URLs into a user's installation.

@@ -34,8 +34,9 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Car/Charger modules and charging automation are not implemented. Honeycomb calls
-configured HA actions; device automation belongs in Home Assistant.
+Car and Climate modules are not implemented. Charging automation remains external.
+The generic Charger module below is **v1.9.0-beta.1 only**, not part of v1.8.1 stable.
+Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
 
 Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
 is unchanged from these verified v1.8.0 captures):
@@ -72,6 +73,25 @@ resources:
 After updating, reload the browser/app and hard-refresh if cached JavaScript persists.
 Check the installed release and resource URL before changing YAML. Installing a stable
 release does not make newer beta-only options available.
+
+## Charger beta: complete dashboards
+
+**v1.9.0-beta.1 prerelease only.** A generic Charger/Easee module shares the same
+82px renderer, gradients, sizing and power-sensitive hexagonal pulse. A Charging
+Hub sums fresh verified power and physically connected cars; named chargers open
+fixed detail menus. Permission and permanent-lock controls require deliberate taps
+on verified HA switches. Opening/Back/state updates never issue charging commands.
+
+- [Complete one-Easee dashboard](examples/charger-easee.yaml), with no vehicle feed.
+- [Complete two-charger dashboard](examples/charger-multi.yaml), with optional
+  external vehicle associations; it also works when that sensor is absent.
+- [Installation, entity checklist, source-backed capabilities and safe HA tests](docs/CHARGER_MODULE.md).
+
+All example IDs and screenshots are synthetic replacement points. Replace them
+with your actual integration entities. HACS prereleases must be enabled and the
+beta selected explicitly; v1.8.1 remains latest stable. No real hardware/Node-RED
+changes were performed by synthetic validation. Car identification, schedules,
+load balancing and optimization remain external; the Car module is future work.
 
 ## Start in 60 seconds
 

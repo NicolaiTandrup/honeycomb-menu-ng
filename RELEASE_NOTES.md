@@ -1,3 +1,33 @@
+# v1.9.0-beta.1 — Generic Charger / Easee
+
+Prerelease from published v1.8.1, using the existing shared 82px renderer, 40%
+gradients, numeric/auto sizing, dynamic placement and six-sided power-sensitive wave.
+Latest stable remains v1.8.1; no Charger code is merged into master.
+
+- Generic explicitly mapped `charger` and aggregate `charging-hub`; fresh W/kW
+  power, physical connection counts, honest unknown/partial values and deduplication.
+- Easee adapter based on verified integration source and exact same-device registry
+  keys; explicit fallback, separate physical lock and permanent-lock policy.
+- Named launchers, optional read-only vehicle associations, fixed detail slots,
+  explicit verified switch controls with pending/failed/unconfirmed feedback.
+- No charging command from navigation/render/reconnect; no retries, optimizer,
+  scheduling, vehicle inference, Node-RED edits or Car/Climate implementation.
+- Shared optional third text row and module-supplied health/dependency snapshot;
+  one-shot expiry correctly arms when a cube connects. Existing modules retained.
+- [Complete single-Easee dashboard](examples/charger-easee.yaml),
+  [complete multi-charger dashboard](examples/charger-multi.yaml),
+  [installation, entity checklist, capability sources and supervised hardware tests](docs/CHARGER_MODULE.md).
+- [HACS catalog submission package](docs/HACS_CATALOG_SUBMISSION.md) remains
+  prepared for owner review only; Charger is not advertised as stable.
+
+Synthetic unit/browser tests are not real-device acceptance. Verify installed
+Easee entity IDs/units, permission/lock semantics, fresh reporting and external
+association feed at hardware. The optional feed may be absent. HA acknowledgement
+is not independent hardware confirmation; a timeout may still have reached a device.
+Owner real-HA testing and explicit approval are required before stable publication.
+
+---
+
 # v1.8.1 — Stable
 
 Version-only maintenance release for HACS catalog readiness after successful
