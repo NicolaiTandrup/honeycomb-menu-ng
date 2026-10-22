@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const {localArtifact}=require('./check-release');
+const artifact=localArtifact();
+const pkg=JSON.parse(fs.readFileSync('package.json'));
+const license=fs.readFileSync('LICENSE','utf8'),notice=fs.readFileSync('NOTICE','utf8');
+assert.equal(pkg.license,'GPL-3.0-or-later');
+assert.equal(pkg.repository.url,'git+https://github.com/NicolaiTandrup/honeycomb-menu-ng.git');
+for(const text of ['GNU GENERAL PUBLIC LICENSE','Version 3, 29 June 2007','END OF TERMS AND CONDITIONS','How to Apply These Terms to Your New Programs'])assert.ok(license.includes(text));
+for(const text of ['Copyright (C) 2020 Sian Croser','either version 3 of the License','THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS'])assert.ok(notice.includes(text));
+const hacs=JSON.parse(fs.readFileSync('hacs.json'));
+assert.equal(hacs.content_in_root,true);assert.equal(hacs.filename,'honeycomb-menu-ng.js');assert.equal(hacs.render_readme,true);
+assert.ok(!fs.existsSync('custom_components'),'Frontend package must not silently install a backend');
+console.log(`Local HACS payload/metadata/complete GPL/attribution valid: ${artifact.tag}, ${artifact.bytes} bytes, SHA256 ${artifact.sha256}. This does not certify official catalog admission.`);

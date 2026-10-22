@@ -54,7 +54,6 @@ items:
     name: Media
     slot_mode: soft
     favorites_sensor: sensor.favorites_a
-    favorites_cache_sensor: sensor.favorites_cache_a
 ```
 
 Vehicle A and Charger 1 are ordinary generic cubes, not new domain modules.

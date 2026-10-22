@@ -95,3 +95,22 @@ for(const text of ['min_color_temp_kelvin','max_color_temp_kelvin','Shift+Enter'
     assert.ok(kelvinGuide.toLowerCase().includes(text.toLowerCase()),`Kelvin guide: ${text}`);
 const white=buildCubeConfig(input.examples['kelvin-light.yaml'],hass);
 assert.equal(white.entity,'light.white_a');assert.equal(white.face_mode,'cell');
+
+// Current public examples must never recommend the removed template cache.
+const nativeGuide=fs.readFileSync('docs/SONOS_NATIVE_FAVORITES.md','utf8');
+for(const text of ['only','Remove every `favorites_cache_sensor`','official native','SemVer','WebSocket','media_player/browse_media'])
+ assert.ok(nativeGuide.includes(text),`Native favorites migration guide: ${text}`);
+assert.ok(!fs.existsSync('examples/sonos-favorites-cache.yaml'));
+for(const entry of input.cards) assert.ok(!JSON.stringify(entry.config).includes('favorites_cache_sensor'));
+// The anatomy diagram uses the same coordinates, without rotating/mirroring slots.
+const anatomy=fs.readFileSync('docs/assets/menu-rings-vs-cube-borders.svg','utf8');
+assert.match(anatomy,/aria-labelledby="title description"/);
+const anatomyCells=[...anatomy.matchAll(/data-slot="(\d+)" data-x="([\d.]+)" data-y="([\d.]+)"/g)];
+assert.equal(anatomyCells.length,19);
+for(const [,slot,x,y] of anatomyCells){
+    const p=+slot===0?layout.sceneCenter(2):layout.buttonPosition(+slot-1,{inner:true,outer:true,radius:2});
+    assert.equal(+x,p.x);assert.equal(+y,p.y);
+}
+assert.ok(readme.includes('Latest stable version'));
+assert.ok(readme.includes('Canonical visual baseline: Light module'));
+assert.ok(terms.includes('Shared visual design contract'));

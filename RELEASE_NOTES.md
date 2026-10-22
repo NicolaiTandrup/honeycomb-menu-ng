@@ -1,4 +1,133 @@
+# v1.8.0 — Stable
+
+Promotes the complete owner-tested cumulative v1.8.0-beta.7 functionality.
+Runtime source, dependencies, HACS identity and executable bundle body are
+unchanged; only the deterministic version banner changes in the JavaScript.
+
+- NG-owned runtime namespace and API, with original Honeycomb coexistence in
+  either load order. Persistent Hub/Control names and module resource stay the same.
+- One shared 82px renderer with Light as the visual reference, 40% active fill
+  depth, decorative logo gradient, independent borders and solid inactive fills.
+- Native-only Sonos Browse Media favorite metadata/artwork, verified station
+  recognition and live launcher/promoted-center updates. Radio ordering/playback,
+  Join/grouping, native no-helper Sleep Timer and sibling navigation are retained.
+- Floorplan `size: auto` using actual rendered image bounds and a stable display
+  reference; optional `auto_reference_width` defaults to1536 CSS pixels. Fixed
+  numeric sizes and omitted82 remain fixed; no duplicate sizing engine.
+- Genuine six-sided outward energy contour with optional fixed/power-proportional
+  speed, smooth phase-preserving updates, resolved inner-border color by default
+  and optional `energy_wave.color`. Explicit health/power, reduced-motion,
+  visibility, lifecycle and bounded animation budgets remain mandatory.
+- Light brightness, recursive Hue/Kelvin zoom, presets, generic Media, dynamic
+  visibility/placement, nested Back/idle, drag-select, classic menus and touch
+  behavior are preserved. Charger, Climate and Car modules remain future work.
+
+The sole owner/user already uses the1.8 track and reports successful real-HA
+beta.7 acceptance. [Candidate audit/checklist](docs/V1_8_RELEASE_CANDIDATE.md),
+[runtime API](docs/NG_RUNTIME.md), [native Sonos](docs/SONOS_NATIVE_FAVORITES.md),
+[sizing](docs/FLOORPLAN_SIZING.md), [pulse configuration](docs/ENERGY_WAVE.md).
+
+HACS custom repository and root `honeycomb-menu-ng.js` asset are unchanged.
+After verified publication, redownload stable and hard-refresh all clients;
+beta users may disable Show beta versions. Keep one NG module resource. Official
+HACS catalog admission remains separate. Existing image-frame/fallback/touch-size,
+browser color support, power normalization and native Sonos/Sleep limits remain.
+All previous releases/assets/tags/history and retention settings are preserved.
+
+---
+
 # v1.7.1 — Stable
+
+## v1.8.0-beta.7 — resolved energy-wave contour color
+
+Approved functional source: PR #120 commit
+`ad057f7133871826cab631b7a0f5e78fdb63dc2a`, directly on immutable published
+beta.6. Release preparation changes version metadata, documentation and the
+generated version banner only; every source and test file is unchanged.
+
+- Omitted `energy_wave.color` inherits the final resolved inner-border color,
+  including live Light/Sonos status/station colors and user border overrides.
+- Optional color overrides use safe CSS color syntax and the existing frontend
+  HA JS template evaluator. Invalid literals reject in-browser; missing,
+  invalid or throwing template results suppress only the contour until valid.
+- Same renderer/model, SVG contour and alpha/opacity. No geometry, timing,
+  phase, scheduler, visibility/reduced-motion/health or performance-budget change.
+- Complete cumulative beta.6 functionality remains: owner-approved 40%/logo
+  gradients, display-reference auto sizing and fixed numeric sizes, power/fixed
+  speed, native-only Sonos, Light zoom/presets, all navigation and coexistence.
+
+[Complete no-hardware green/blue example](examples/energy-wave-color.yaml),
+[color contract](docs/ENERGY_WAVE.md#contour-color--v180-beta7),
+[sizing guide](docs/FLOORPLAN_SIZING.md). Full exact-release-head CI,
+reproducible HACS bundle/checksums and the normal manually authorized publisher
+must pass. This is a prerelease from an unmerged PR; installed HA and other
+browser engines remain owner acceptance. Existing image-frame/touch-size and
+Sonos/Sleep limits remain. No future Charger/Climate/Car modules, master merge,
+stable promotion, retention changes or old release/tag/asset edits/deletions.
+
+## v1.8.0-beta.6 — stable display baseline and power-responsive pulse
+
+Cumulative on exact published beta.5 `ece8f9e5af7e92b1629cfe164cf000028b0b1068`.
+The accepted40% gradient, logo gradient, all existing modules/actions, native-only
+Sonos, numeric sizing, navigation and original coexistence are retained.
+
+- `size: auto` now uses rendered image width / stable **display reference**,
+  default1536 CSS pixels. Optional positive `auto_reference_width: 1500` makes
+  1500px →82px,750px →41px regardless of bitmap1500/3000/6000px. This corrects
+  beta.5's tiny baseline; never infer the reference separately on each client.
+- Existing energy_wave defaults to fixed3000ms. Explicit power mode requires a
+  per-cube max_power_w, with default900–2200ms bounds; fixed cycle_ms is supported.
+  Effective cycles500–10000ms, safe validation and runtime static fallback.
+- Hex contour/keyframes unchanged. One shared350ms playback-rate transition
+  preserves animation phase/node identity; no per-cube timer, polling or DOM
+  rebuild per power update. All health/visibility/reduced-motion gates and
+  24-visible-motion budget remain. No Charger adapter or HA commands.
+
+[Copy/paste sizing and migration](docs/FLOORPLAN_SIZING.md),
+[rate mapping and sensor prerequisites](docs/ENERGY_WAVE.md),
+[no-hardware power demo](examples/energy-wave-power.yaml). The19400W aggregate
+reference is illustrative theoretical3×28A/400V capacity, not actual measured
+power or a limit for all users. Individual references remain independent.
+
+Full exact-head CI and manually authorized publisher must pass before an unused
+immutable prerelease tag. #115/#117 remain open for owner real-HA verification.
+Known static-image DOM/fallback/touch-size and native Sonos/Sleep limits remain;
+HACS catalog and stable SemVer/migration review are separate owner gates.
+No master/stable/retention change or prior release/tag/asset overwrite/deletion.
+
+
+## v1.8.0-beta.5 — cumulative floorplan and shared presentation beta
+
+Starts from the exact owner-accepted beta.4 commit
+`355caa680ada9c38f7562fbc3a4df8344068140a`. Native-only Sonos, namespace
+isolation, recursive Light zoom and existing actions/navigation are retained.
+
+- Opt-in `size: auto` derives an effective numeric size from the actual floorplan
+  image; contain/cover offsets, shared lifecycle observation, live menu geometry.
+  Numeric sizes and omitted fixed-82 default remain. Unsupported frames safely
+  fall back to 82px. No additional scaling engine or YAML dimensions.
+- Default active gradient edge darkening is 40% with softer visible spread;
+  decorative Hub logos receive shared depth. Independent borders, explicit
+  styling precedence and solid inactive physical fills remain.
+- Optional normalized `energy_wave` draws a genuinely six-sided expanding SVG
+  contour in the existing renderer, with healthy positive-power/motion/visibility
+  gates, one shared observer and a 24-animation budget. No Charger module.
+- Consolidated reviewed English terminology/dark anatomy diagram/stable badge,
+  complete GPL/NOTICE/SPDX metadata, local HACS payload validation and manual
+  official catalog readiness review. No upstream listing submission.
+
+See [floorplan YAML/limits](docs/FLOORPLAN_SIZING.md),
+[synthetic no-device wave demo](examples/energy-wave.yaml),
+[shared visual policy](docs/CUBE_PRESENTATION.md),
+[Sonos migration](docs/SONOS_NATIVE_FAVORITES.md) and
+[HACS readiness](docs/HACS_SUBMISSION.md). Small auto-scaled touch targets,
+HA DOM compatibility, non-Chromium hardware and GPU/battery behavior still
+need owner real-HA testing. HACS topics/default-branch license/fork admission
+remain owner/external gates; local checks do not certify catalog approval.
+Beta.4's intentional Sonos cache removal and NG namespace migration still
+require SemVer/stable review. No master merge, stable promotion, retention
+change, existing tag/asset overwrite or mutation of private v1.7.1-beta.5.
+
 
 Owner-approved on 2026-10-21 after real Home Assistant testing of cumulative
 v1.7.1-beta.8 at `c1cdd390bed1c1acfc22b314807ce63050e43248` (Issue #102).

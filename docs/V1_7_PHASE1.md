@@ -31,7 +31,6 @@ items:
   - type: sonos
     entity: media_player.player_a
     favorites_sensor: sensor.favorites
-    favorites_cache_sensor: sensor.favorites_cache
 ```
 
 ```yaml

@@ -41,8 +41,8 @@ def load(text): return yaml.load(text,Loader=Loader)
 def blocks(text):
     return re.findall(r'^(?:```|~~~)yaml\s*\n(.*?)^(?:```|~~~)\s*$',text,re.M|re.S)
 
-SHARED=set('entity name label icon show_name show_label show_icon background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
-SONOS=set('favorites_sensor favorites_cache_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
+SHARED=set('entity name label icon show_name show_label show_icon energy_wave background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
+SONOS=set('favorites_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
 ITEM=SHARED|SONOS|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
     assert isinstance(value,dict),where
@@ -60,7 +60,7 @@ def actions(obj):
 def item(value,where):
     known(value,ITEM,where)
     assert value.get('module',value.get('type')) in ('light','sonos','media','generic'),where
-    assert re.fullmatch(r'\w+\.\w+',value['entity']),where
+    if value.get('module',value.get('type'))!='generic' or 'entity' in value:assert re.fullmatch(r'\w+\.\w+',value['entity']),where
     if 'slot_mode' in value: assert value['slot_mode'] in ('hard','soft','priority')
     if value.get('slot_mode')=='priority': assert 'slot' in value
     if 'slot' in value: assert type(value['slot']) is int and 0<=value['slot']<=216
@@ -72,16 +72,16 @@ def item(value,where):
                 if k!='default': assert re.fullmatch(r'(number|input_number)\.\w+',v)
     if 'members' in value:
         for member in value['members']: known(member,{'entity','name','icon'},where)
-    if 'colors' in value: known(value['colors'],{'center','inner_border','outer_border','unavailable'},where)
+    if 'colors' in value: known(value['colors'],{'center','inner_border','outer_border','unavailable','fill_gradient'},where)
     if 'border' in value: known(value['border'],{'inner_width','outer_width'},where)
 def card(config,where):
     assert isinstance(config,dict),where
     if config['type']=='custom:honeycomb-persistent-hub':
-        known(config,{'type','name','size','logo','items','auto_open','menu'},where)
+        known(config,{'type','name','size','logo','items','auto_open','menu','style','auto_reference_width'},where)
         for i,value in enumerate(config['items']): item(value,f'{where} item {i}')
     elif config['type']=='custom:honeycomb-persistent-control':
-        known(config,SHARED|SONOS|{'type','module','size'},where)
-        item({k:v for k,v in config.items() if k not in ('type','size')},where)
+        known(config,SHARED|SONOS|{'type','module','size','style','auto_reference_width'},where)
+        item({k:v for k,v in config.items() if k not in ('type','size','style','auto_reference_width')},where)
     elif config['type']=='button':
         known(config,{'type','entity','name','hold_action'},where)
         menu=config['hold_action']['honeycomb_menu']
@@ -104,7 +104,9 @@ def fragment(config,where):
         if config['type']=='picture-elements':
             known(config,{'type','image','elements'},where)
             for element in config['elements']:
-                known(element,{'type','entity','style','tap_action','hold_action'},where)
+
+                if element.get('type') in ('custom:honeycomb-persistent-hub','custom:honeycomb-persistent-control'):card(element,where+' picture element')
+                else:known(element,{'type','entity','style','tap_action','hold_action'},where)
             actions(config)
         else:raise AssertionError(f'{where}: unrecognized card type')
     elif set(config)<={'presets'} or set(config)<=SONOS:
@@ -151,35 +153,7 @@ def links():
     return count
 
 def external_recipes():
-    cache=load((ROOT/'examples/sonos-favorites-cache.yaml').read_text())
-    recipe=cache['template'][0]
-    assert [t['trigger'] for t in recipe['triggers']]==['event','state','time_pattern','homeassistant']
-    assert recipe['triggers'][0]['event_type']=='sonos_favorites_refresh'
-    assert recipe['triggers'][1]['entity_id']=='sensor.favorites_a'
-    assert recipe['triggers'][2]['minutes']=='/15'
-    assert recipe['triggers'][3]=={'trigger':'homeassistant','event':'start'}
-    action=recipe['actions'][3]
-    assert action['action']=='media_player.browse_media'
-    assert action['target']['entity_id']=='{{ cache_player }}'
-    assert action['data']=={'media_content_type':'favorites_folder','media_content_id':'object.item.audioItem.audioBroadcast'}
     env=NativeEnvironment()
-    context={'cache_player':'media_player.player_a','sonos_radio_favorites':{'media_player.player_a':{'children':[
-        {'title':'Station A','media_content_id':'favorite_a','media_content_type':'favorite_item_id','thumbnail':''},
-        {'title':'Station B','media_content_id':'favorite_b','media_content_type':'favorite_item_id'}]}}}
-    selector=env.from_string(recipe['actions'][1]['variables']['cache_player'])
-    assert selector.render(cache_players=['media_player.player_a','media_player.player_b'],has_value=lambda e:e.endswith('b')).strip()=='media_player.player_b'
-    assert selector.render(cache_players=['media_player.player_a'],has_value=lambda e:False).strip()==''
-    sensor=recipe['sensor'][0]
-    def native(template, **values):
-        result=env.from_string(template).render(**values)
-        # HA strips template whitespace before interpreting native list/number values.
-        return ast.literal_eval(result.strip()) if isinstance(result,str) else result
-    assert native(sensor['state'],**context)==2
-    items=native(sensor['attributes']['items'],**context)
-    assert len(items)==2 and items[0]['media_content_id']=='favorite_a' and items[1]['thumbnail']==''
-    condition=env.from_string(recipe['conditions'][0]['value_template'])
-    assert condition.render(has_value=lambda _:True) is True
-    assert condition.render(has_value=lambda _:False) is False
     script=load((ROOT/'examples/sonos-toggle-member.yaml').read_text())['script']['player_a_toggle_member']
     assert script['fields']['member']['required'] is True and script['mode']=='queued'
     variables=script['sequence'][0]['variables'];assert variables['coordinator']=='media_player.player_a'
@@ -191,7 +165,7 @@ def external_recipes():
     assert choice['sequence'][0]['action']=='media_player.unjoin'
     join=script['sequence'][1]['default'][0]; assert join['action']=='media_player.join'
     assert env.from_string(join['data']['group_members']).render(member='media_player.player_c')==['media_player.player_c']
-    return items
+    return []
 
 STATES={
  'light.white_a':{'state':'on','attributes':{'brightness':128,'color_temp_kelvin':3000,'supported_color_modes':['color_temp'],'min_color_temp_kelvin':1800,'max_color_temp_kelvin':6535}},
@@ -208,7 +182,6 @@ STATES={
  'input_number.preset_a_hue':{'state':'30','attributes':{}},
  'input_number.preset_a_saturation':{'state':'80','attributes':{}},
  'sensor.favorites_a':{'state':'2','attributes':{'items':{'favorite_a':'Station A','favorite_b':'Station B'}}},
- 'sensor.favorites_cache_a':{'state':'2','attributes':{'items':[]}},
 }
 for entity,state in STATES.items():state['entity_id']=entity
 
@@ -219,13 +192,24 @@ class Examples(BROWSER.Cubes):
         self.page.evaluate('states=>pushStates(Object.entries(states).map(([id,s])=>[id,s.state,s.attributes]))',STATES)
     def control_example(self,name):
         self.page.evaluate('config=>makeControl(config)',self.examples[name]);self.settle()
+    def test_docs_presentation_example_live_colors_and_action(self):
+        config=load((ROOT/'examples/presentation-light.yaml').read_text())
+        self.hub(config)
+        fills=self.controls().evaluate_all('(els)=>els.map(e=>e._model.fill)')
+        self.assertEqual(fills[0]['type'],'radial')
+        self.assertEqual(fills[1],{'type':'solid','center':'#203040'})
+        self.activate(self.controls().first.locator('.interaction-surface'))
+        self.assertEqual(self.page.evaluate('calls'),[['homeassistant','toggle',{}, {'entity_id':'light.zone_a'}]])
+        self.page.evaluate("pushState('light.zone_a','off',{supported_color_modes:['hs']})")
+        self.assertEqual(self.controls().first.evaluate('(e)=>e._model.fill.type'),'solid')
+        self.capture('docs-shared-presentation-example')
     def test_docs_basic_hub_and_auto_tables(self):
         self.hub(self.examples['hub.yaml']);self.assert_visible_unique_cells(3)
         for count,without,with_logo in self.auto:
             actual=self.page.evaluate('([n,logo])=>hub._hubSlots(n,logo)',[count,False]);self.assertEqual(actual,without)
             self.assertEqual(self.page.evaluate('n=>hub._shouldShowLogo.call({config:{items:Array.from({length:n},()=>({})),logo:"auto"}})',count),2<=count<=6)
             if with_logo:self.assertEqual(self.page.evaluate('n=>hub._hubSlots(n,true)',count),with_logo)
-        self.activate(self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface'))
+        self.activate(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="1"] .interaction-surface'))
         self.assertEqual(self.page.evaluate('calls.at(-1)'),['homeassistant','toggle',{}, {'entity_id':'light.zone_a'}])
         self.capture('docs-basic-hub')
     def test_docs_dynamic_hub(self):
@@ -242,12 +226,12 @@ class Examples(BROWSER.Cubes):
         self.control_example('control-light.yaml')
         launcher=self.page.locator('#anchor .interaction-surface');self.assertEqual(launcher.evaluate('(el)=>el.getBoundingClientRect().width'),82)
         self.hold_input(launcher)
-        self.page.wait_for_function('view.querySelector("honeycomb-menu")?.buttons?.length===6')
+        self.page.wait_for_function('view.querySelector(":is(honeycomb-menu-ng,honeycomb-menu)")?.buttons?.length===6')
         # DOM ring indices are zero-based: physical preset slot 2 is data slot 1.
-        preset=self.page.locator('honeycomb-menu [data-honeycomb-slot="1"] .interaction-surface')
+        preset=self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="1"] .interaction-surface')
         self.activate(preset);self.assertEqual(self.page.evaluate('calls.at(-1)'),['light','turn_on',{'brightness_pct':60},{'entity_id':'light.zone_a'}])
         self.hold_input(preset);self.assertEqual(self.page.evaluate('calls.at(-1)'),['number','set_value',{'value':50},{'entity_id':'number.relay_a_brightness'}])
-        color=self.page.locator('honeycomb-menu [data-honeycomb-slot="3"] .interaction-surface')
+        color=self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="3"] .interaction-surface')
         self.hold_input(color);self.assertEqual(self.page.evaluate('calls.slice(-2).map(c=>c[0])'),['input_number','input_number'])
         self.capture('docs-control-light')
     def test_docs_kelvin_example(self):
@@ -259,35 +243,35 @@ class Examples(BROWSER.Cubes):
         self.hold_input(self.zoom_cell(8));self.settle();self.assertEqual(self.kelvin_palette()[1],original[1])
         self.assertEqual(self.page.evaluate('calls.length'),0)
         self.zoom_tap(8);self.assertEqual(self.page.evaluate('calls.at(-1)'),['light','turn_on',{'color_temp_kelvin':original[1]},{'entity_id':'light.white_a'}])
-        self.activate(self.page.locator('honeycomb-menu .center-item .interaction-surface'));self.settle();self.assertEqual(self.kelvin_palette(),original)
+        self.activate(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .center-item .interaction-surface'));self.settle();self.assertEqual(self.kelvin_palette(),original)
         self.capture('docs-kelvin-control')
     def test_docs_sonos(self):
         self.hub(self.examples['sonos.yaml']);self.assert_visible_unique_cells(1)
-        self.hold_input(self.page.locator('honeycomb-menu .interaction-surface'))
+        self.hold_input(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .interaction-surface'))
         self.page.wait_for_function('hub._menuContext.stack.length===1')
-        self.activate(self.page.locator('honeycomb-menu [aria-label="Join"]'))
+        self.activate(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Join"]'))
         self.page.wait_for_function('hub._menuContext.stack.length===2')
-        self.activate(self.page.locator('honeycomb-menu [data-honeycomb-slot="6"] .interaction-surface'))
+        self.activate(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="6"] .interaction-surface'))
         self.assertEqual(self.page.evaluate('calls.at(-1)'),['script','player_a_toggle_member',{'member':'media_player.player_b'},{}])
         self.back();self.page.wait_for_function('hub._menuContext.stack.length===1')
-        self.activate(self.page.locator('honeycomb-menu [aria-label="Radio"]'))
+        self.activate(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Radio"]'))
         self.page.wait_for_function('hub._menuContext.stack.length===2')
-        self.activate(self.page.locator('honeycomb-menu [data-honeycomb-slot="6"] .interaction-surface'))
+        self.activate(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="6"] .interaction-surface'))
         self.assertEqual(self.page.evaluate('calls.at(-1)'),['media_player','play_media',{'media_content_id':'favorite_a','media_content_type':'favorite_item_id'},{'entity_id':'media_player.player_a'}])
         self.capture('docs-sonos')
     def test_docs_onoff_light(self):
         self.control_example('onoff-light.yaml')
         launcher=self.page.locator('#anchor .interaction-surface')
         self.activate(launcher);self.hold_input(launcher)
-        self.assertEqual(self.page.locator('honeycomb-menu').count(),0)
+        self.assertEqual(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu)').count(),0)
         self.assertEqual(self.page.evaluate('calls[0]'),['homeassistant','toggle',{}, {'entity_id':'light.switch_a'}])
         self.capture('docs-onoff')
     def test_docs_classic_popup(self):
         config=self.examples['classic-popup.yaml']
         self.page.evaluate('config=>{const el=document.createElement("button");el.textContent="Light A";el.style.cssText="position:absolute;left:120px;top:280px";el.addEventListener("click",()=>el.dispatchEvent(new CustomEvent("ll-custom",{detail:config.hold_action,bubbles:true,composed:true})));document.body.append(el);}',config)
         self.activate(self.page.locator('button',has_text='Light A'))
-        self.page.wait_for_function('view.querySelector("honeycomb-menu")')
-        self.activate(self.page.locator('honeycomb-menu [data-honeycomb-slot="0"] .interaction-surface'))
+        self.page.wait_for_function('view.querySelector(":is(honeycomb-menu-ng,honeycomb-menu)")')
+        self.activate(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="0"] .interaction-surface'))
         self.assertEqual(self.page.evaluate('calls.at(-1)'),['light','turn_on',{}, {'entity_id':'light.zone_a'}])
         self.capture('docs-classic')
 
@@ -298,7 +282,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:
@@ -321,14 +305,14 @@ def main():
         try:card(invalid,'negative schema check')
         except AssertionError:pass
         else:raise AssertionError(f'Accepted unsupported key {key}')
-    STATES['sensor.favorites_cache_a']['attributes']['items']=external_recipes()
+    external_recipes()
     link_count=links()
     payload={'cards':cards,'examples':examples,'states':STATES}
     with tempfile.NamedTemporaryFile(mode='w',suffix='.json') as output:
         json.dump(payload,output);output.flush()
         subprocess.run(['node','test/docs/contracts.js',output.name],check=True)
     complete=sum('(reference context)' not in card['source'] for card in cards)
-    print(f'Documentation validation: {yaml_count} YAML blocks parsed, {complete} complete cards + {len(cards)-complete} contextual fragments checked, {link_count} local links/anchors resolved, external cache/Join Jinja exercised',flush=True)
+    print(f'Documentation validation: {yaml_count} YAML blocks parsed, {complete} complete cards + {len(cards)-complete} contextual fragments checked, {link_count} local links/anchors resolved, optional Join Jinja exercised; native-only favorites contract checked',flush=True)
     table=(ROOT/'README.md').read_text().split('<!-- auto-slots:start -->')[1].split('<!-- auto-slots:end -->')[0]
     Examples.auto=[]
     for count,without,with_logo in re.findall(r'^\| (\d+) \| `([\d,]+)` \| ([^\n]+)',table,re.M):

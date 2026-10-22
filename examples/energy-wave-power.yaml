@@ -1,0 +1,60 @@
+# Synthetic renderer demonstration. No hardware, helpers or HA service calls.
+# Total is 3 kW + 7 kW. Individual values are not added to total again.
+type: custom:honeycomb-persistent-hub
+size: 82
+logo: false
+items:
+  - type: generic
+    name: Total power
+    label: Synthetic 10 kW
+    icon: mdi:flash
+    energy_wave:
+      active: true
+      available: true
+      fault: false
+      power_w: 10000
+      speed_mode: power
+      max_power_w: 19400
+      min_cycle_ms: 900
+      max_cycle_ms: 2200
+    tap_action: {action: none}
+    hold_action: {action: none}
+  - type: generic
+    name: Charger 1
+    label: Synthetic 3 kW
+    icon: mdi:flash
+    energy_wave:
+      active: true
+      available: true
+      fault: false
+      power_w: 3000
+      speed_mode: power
+      max_power_w: 11000
+    tap_action: {action: none}
+    hold_action: {action: none}
+  - type: generic
+    name: Charger 2
+    label: Synthetic 7 kW
+    icon: mdi:flash
+    energy_wave:
+      active: true
+      available: true
+      fault: false
+      power_w: 7000
+      speed_mode: power
+      max_power_w: 11000
+    tap_action: {action: none}
+    hold_action: {action: none}
+  - type: generic
+    name: Fixed speed
+    label: Synthetic 1 kW
+    icon: mdi:flash
+    energy_wave:
+      active: true
+      available: true
+      fault: false
+      power_w: 1000
+      speed_mode: fixed
+      cycle_ms: 1400
+    tap_action: {action: none}
+    hold_action: {action: none}

@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, svg } from 'lit';
 import { fireEvent, provideHass, getTemplateOrValue, createCard } from "./helpers.js";
 
 import { styleMap } from 'lit/directives/style-map.js';
@@ -8,6 +8,11 @@ const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const layoutCore = require('./core/layout.js');
+const cubePresentation = require('./core/cube-presentation.js');
+const imageSizing = require('./core/image-sizing.js');
+const energyWave = require('./core/energy-wave.js');
+let nextFillId=0;
+const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-mix(in srgb, red 80%, black)');
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
@@ -31,6 +36,7 @@ class CubeElement extends LitElement
     constructor()
     {
         super();
+        this._fillId=`honeycomb-ng-fill-${++nextFillId}`;
         this._hass = null;
         this.config = null;
         this.size = 82;
@@ -57,7 +63,7 @@ class CubeElement extends LitElement
             }
 
             .persistent-center {
-                filter: drop-shadow(2px 4px 3px rgba(0,0,0,.76));
+                filter: drop-shadow(calc(var(--honeycomb-persistent-size,82px) / 82 * 2) calc(var(--honeycomb-persistent-size,82px) / 82 * 4) calc(var(--honeycomb-persistent-size,82px) / 82 * 3) rgba(0,0,0,.76));
                 position: relative;
                 width: 100%;
                 height: calc(var(--honeycomb-persistent-size, 82px) * 1.1547);
@@ -73,6 +79,10 @@ class CubeElement extends LitElement
                 pointer-events: none;
                 z-index: 0;
             }
+            .energy-contour { transform-box:view-box;transform-origin:50% 50%;opacity:0; }
+            :host([energy-wave-running]) .energy-contour { animation:honeycomb-ng-energy 3s ease-out infinite; }
+            @keyframes honeycomb-ng-energy { 0% {transform:scale(.12);opacity:0} 25% {opacity:.32} 100% {transform:scale(1.4);opacity:0} }
+            @media(prefers-reduced-motion:reduce) { .energy-contour {animation:none!important;opacity:0!important} }
 
             .hex-polygon {
                 vector-effect: non-scaling-stroke;
@@ -130,7 +140,7 @@ class CubeElement extends LitElement
                 object-fit: contain;
                 overflow: visible;
                 transform-origin: center;
-                filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+                filter: drop-shadow(0 calc(var(--honeycomb-persistent-size,82px) / 82) calc(var(--honeycomb-persistent-size,82px) / 82) rgba(0, 0, 0, 0.18));
             }
 
             .bee-icon.flap {
@@ -152,6 +162,7 @@ class CubeElement extends LitElement
                 }
             }
             ha-icon {
+                --mdc-icon-size: calc(var(--honeycomb-persistent-size,82px) / 82 * 24);
                 width: 34%;
                 height: 34%;
                 color: inherit;
@@ -160,11 +171,11 @@ class CubeElement extends LitElement
             .content.has-secondary ha-icon {
                 width: 30%;
                 height: 30%;
-                transform: translateY(-2px);
+                transform: translateY(calc(var(--honeycomb-persistent-size,82px) / 82 * -2));
             }
 
             .secondary {
-                margin-top: 2px;
+                margin-top: calc(var(--honeycomb-persistent-size,82px) / 82 * 2);
                 font-size: calc(var(--honeycomb-persistent-size, 82px) * 0.16);
                 font-weight: 650;
                 line-height: 1;
@@ -183,7 +194,7 @@ class CubeElement extends LitElement
         if (!this._presentationDependencies) this._presentationDependencies = presentationDependencies(this.config);
         if (!this._presentationDependencies.wildcard) {
             const snapshot = presentationSnapshot(obj, this._presentationDependencies);
-            if (snapshot === this._entitySnapshot) return;
+            if (snapshot === this._entitySnapshot && presentationUpdates.connectionKey(obj) === this._observerConnection) return;
             this._entitySnapshot = snapshot;
         }
         this._updatePresentation();
@@ -215,9 +226,23 @@ class CubeElement extends LitElement
         } catch (_) { return fallback; }
     }
 
+    _syncPresentationObserver()
+    {
+        const module = this.isConnected && moduleRegistry.resolvePresentation(this.config && this.config.mode);
+        const observe = module && module.presentation.observe;
+        if (observe !== this._observerFactory) {
+            if (this._moduleObserver) this._moduleObserver.dispose();
+            this._observerFactory = observe;
+            this._moduleObserver = observe ? observe(() => this._updatePresentation()) : null;
+        }
+        this._observerConnection = presentationUpdates.connectionKey(this.hass);
+        if (this._moduleObserver) this._moduleObserver.update(this.hass,this.config);
+    }
+
     _updatePresentation()
     {
         if (!this.config) return;
+        this._syncPresentationObserver();
         const key=this.isConnected && this.config._sleep ? presentationUpdates.connectionKey(this.hass) : null;
         if (key!==this._localPresentationKey) {
             if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
@@ -243,13 +268,30 @@ class CubeElement extends LitElement
         if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
         const secondary = this.config.label !== undefined && this.config.show_label !== false
             ? this._value(this.config.label) : presentation.secondary;
-        const model = {colors, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
-            name:this.config.show_name ? this._value(this.config.name) : '',
+        const fill=cubePresentation.resolveFill({colors,active:presentation.active===true,
+            decorative:this.config._decorative_logo===true,
+            gradient:this._value(configured.fill_gradient,undefined),
+            explicitCenter:!!(configured.center && this._value(configured.center)!=='auto'),
+            customBackground:!!(card.background || card['background-color'] || this.config.background),
+            disabled:!!(this.config.disabled || presentation.disabled),
+            colorMix:supportsColorMix});
+        const model = {colors, fill, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
+            name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
             icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
-            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(colors.center)),
+            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
+        const wave=this.config.energy_wave;
+        const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
+        const state=this._entityState();
+        const timing=energyWave.timing(normalized);
+        const waveColor=wave && energyWave.resolveColor(normalized,colors.inner);
+        const waveEnabled=!!waveColor && !!timing && !model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
+        if(waveEnabled){model.energyWave=true;model.energyWaveColor=waveColor;}
+        if(waveEnabled && this.isConnected && !this._waveCleanup)this._waveCleanup=energyWave.attach(this);
+        if(waveEnabled && this._waveCleanup)energyWave.setCycle(this,timing.cycleMs);
+        else if((!waveEnabled || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
         // Display refresh only. The backend/device owns expiry; this never calls HA.
         const refreshAt=presentation.refreshAt || null;
         if (refreshAt!==this._presentationRefreshAt || !this.isConnected) {
@@ -313,10 +355,7 @@ class CubeElement extends LitElement
                 center_color: '#202224',
                 preview_color: null
             },
-            border: {
-                outer_width: 3,
-                inner_width: 3
-            }
+            border: {}
         });
 
 
@@ -334,9 +373,9 @@ class CubeElement extends LitElement
         }
 
         this.config = next;
-        this.size = Number(next.size);
-        if (!Number.isFinite(this.size) || this.size <= 0) throw new Error('Cube size must be a positive finite number.');
+        this.size = imageSizing.numericSize(next.size);
         this.style.setProperty('--honeycomb-persistent-size', `${this.size}px`);
+        this._syncImageSizing();
 
         this._updatePresentation();
         this.requestUpdate();
@@ -345,6 +384,7 @@ class CubeElement extends LitElement
     connectedCallback()
     {
         super.connectedCallback();
+        this._syncImageSizing();
         this._updatePresentation();
         const host = this.getRootNode().host;
         if (!host || !host._menuContext) {
@@ -355,6 +395,11 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        if(this._waveCleanup)this._waveCleanup();this._waveCleanup=null;
+        if(this._imageSizingCleanup)this._imageSizingCleanup();
+        this._imageSizingCleanup=null;
+        if (this._moduleObserver) this._moduleObserver.dispose();
+        this._moduleObserver=null;this._observerFactory=null;this._observerConnection=null;
         if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
         this._localPresentationUnsubscribe=null;this._localPresentationKey=null;
         clearTimeout(this._presentationTimer);this._presentationTimer=null;this._presentationRefreshAt=null;
@@ -370,6 +415,29 @@ class CubeElement extends LitElement
     getCardSize()
     {
         return 1;
+    }
+
+    _syncImageSizing()
+    {
+        if(this._imageSizingCleanup){this._imageSizingCleanup();this._imageSizingCleanup=null;}
+        if(this.config && this.config.size==='auto' && this.isConnected){
+            if(this._imageOriginalTranslate===undefined)this._imageOriginalTranslate=this.style.translate;
+            this._imageSizingCleanup=imageSizing.observeImage(this,({size,dx,dy,visible=true})=>{
+                if(!this.isConnected || this.config.size!=='auto')return;
+                // Preserve the HA -50% transform. Correct only auto percentage anchors.
+                if(!this._imageOriginalTranslate){const translate=dx||dy?`${dx}px ${dy}px`:'';if(this.style.translate!==translate)this.style.translate=translate;}
+                this._imageFrameVisible=visible;
+                const menu=this._menuContext && this._menuContext.honeycomb || this._autoSizedMenu;
+                if(menu && menu.isConnected)menu.style.visibility=visible?'':'hidden';
+                if(Math.abs(this.size-size)<.001)return;
+                this.size=size;this._anchorRenderedSize=null;
+                this.style.setProperty('--honeycomb-persistent-size',`${size}px`);
+                if(menu && menu.isConnected && !menu.closing && this.config.match_anchor_size!==false)menu.resizeCubes(size);
+                this.requestUpdate();
+            });
+        }else if(this._imageOriginalTranslate!==undefined){
+            this.style.translate=this._imageOriginalTranslate;this._imageOriginalTranslate=undefined;
+        }
     }
 
     _entityState()
@@ -703,20 +771,20 @@ class CubeElement extends LitElement
         const host = root && root.host ? root.host : null;
         const context = host && host._menuContext ? host._menuContext : null;
 
-        if( context && typeof window.honeycomb_menu_in_context === 'function' )
-            return window.honeycomb_menu_in_context(context, menu);
+        if( context && typeof window.honeycombNG.openInContext === 'function' )
+            return window.honeycombNG.openInContext(context, menu);
 
-        if( typeof window.honeycomb_menu !== 'function' )
+        if( typeof window.honeycombNG.open !== 'function' )
             return null;
 
-        return window.honeycomb_menu(menu);
+        return window.honeycombNG.open(menu);
     }
 
     _openMenu()
     {
         const menu = this._persistentMenuConfig();
 
-        if( ! menu || typeof window.honeycomb_menu !== 'function' )
+        if( ! menu || typeof window.honeycombNG.open !== 'function' )
             return;
 
         const rect = this.getBoundingClientRect();
@@ -739,6 +807,11 @@ class CubeElement extends LitElement
         const owner = root && root.host;
         const isMenuItem = owner && owner._menuContext;
         const openedMenu = this._openHoneycombMenu(menu);
+        if(openedMenu && this.config.size==='auto'){
+            this._autoSizedMenu=openedMenu;
+            if(this._imageFrameVisible===false)openedMenu.style.visibility='hidden';
+            openedMenu.addEventListener('honeycomb-ng-closed',()=>{if(this._autoSizedMenu===openedMenu)this._autoSizedMenu=null;},{once:true});
+        }
 
         // Only dashboard launchers need to hide behind an overlay. Menu-owned
         // cells are reused across in-place navigation: hiding one here also
@@ -754,7 +827,7 @@ class CubeElement extends LitElement
                     this.style.visibility = '';
                 };
 
-                openedMenu.addEventListener('closed', restore, { once: true });
+                openedMenu.addEventListener('honeycomb-ng-closed', restore, { once: true });
             }
         }
 
@@ -790,7 +863,7 @@ class CubeElement extends LitElement
         if (owner && owner._menuContext) {
             if (this.config.autoclose && !name.startsWith('honeycomb-') && name !== 'none' &&
                 !(action.honeycomb_menu || action.honeycomb_nested_menu))
-                window.honeycomb_menu_context_close(owner._menuContext);
+                window.honeycombNG.closeInContext(owner._menuContext);
             else if (owner._resetIdleTimeout) owner._resetIdleTimeout();
         }
     }
@@ -813,7 +886,7 @@ class CubeElement extends LitElement
             this._openHoneycombMenu(nested);
             return;
         }
-        if (actionName === 'honeycomb-close') { window.honeycomb_menu_context_close(context); return; }
+        if (actionName === 'honeycomb-close') { window.honeycombNG.closeInContext(context); return; }
         if (customActionRegistry.has(actionName)) {
             const sourceConfig=this.config, sourceMenu=context && context.currentConfig;
             const sourceHost=this.getRootNode().host;
@@ -854,10 +927,10 @@ class CubeElement extends LitElement
             const host = root && root.host ? root.host : null;
             const context = host && host._menuContext ? host._menuContext : null;
 
-            if( context && typeof window.honeycomb_menu_context_back === 'function' )
-                window.honeycomb_menu_context_back(context);
-            else if( typeof window.honeycomb_menu_back === 'function' )
-                window.honeycomb_menu_back();
+            if( context && typeof window.honeycombNG.backInContext === 'function' )
+                window.honeycombNG.backInContext(context);
+            else if( typeof window.honeycombNG.back === 'function' )
+                window.honeycombNG.back();
             return;
         }
 
@@ -865,7 +938,7 @@ class CubeElement extends LitElement
             history.pushState(null,'',action.navigation_path); fireEvent(window,'location-changed',{replace:false}); return;
         }
         if (actionName === 'url') { window.open(action.url_path,'_blank','noopener'); return; }
-        if (actionName === 'fire-dom-event') { fireEvent(this,'ll-custom',action); return; }
+        if (actionName === 'fire-dom-event') { fireEvent(this,'ll-custom', action.honeycomb_menu ? {...action,honeycomb_ng_menu:action.honeycomb_menu,honeycomb_menu:undefined} : action); return; }
         if( actionName === 'toggle' )
         {
             if (!this.config.entity) return;
@@ -924,8 +997,12 @@ class CubeElement extends LitElement
     {
         if (!this.config || !this._model) return html``;
         const m = this._model;
-        const innerScale = Math.max(.55, 1-m.outer*2/this.size);
-        const centerScale = Math.max(.45, innerScale-m.inner*2/this.size);
+        // Default widths are design pixels at 82; explicit numeric widths stay pixels.
+        const border=this.config.border || {};
+        const outer=border.outer_width===undefined?m.outer*this.size/82:m.outer;
+        const inner=border.inner_width===undefined?m.inner*this.size/82:m.inner;
+        const innerScale = Math.max(.55, 1-outer*2/this.size);
+        const centerScale = Math.max(.45, innerScale-inner*2/this.size);
         const points = layoutCore.persistentHexPoints('cell');
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
@@ -934,12 +1011,17 @@ class CubeElement extends LitElement
         this._externalContent = !!external;
         return html`<div class="persistent-center" style="--honeycomb-persistent-size:${this.size}px;--honeycomb-persistent-foreground:${m.foreground}">
             <svg class="hex-svg" viewBox="0 0 100 115.47" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                ${m.fill.type==='radial' ? svg`<defs><radialGradient id=${this._fillId} cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color=${m.fill.center}></stop><stop offset="100%" stop-color=${m.fill.edge}></stop>
+                </radialGradient></defs>` : ''}
                 <polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>
                 <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
                     <polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>
                 </g>
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-fill" points=${points} fill=${m.colors.center}></polygon>
+                    <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
+                    ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
+                    <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
             </svg>
             <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>
@@ -973,6 +1055,7 @@ class CubeElement extends LitElement
 
     updated()
     {
+        if(this._waveCleanup)energyWave.sync(this);
         const target = this.shadowRoot.querySelector('.external-content');
         if (target && !this._contentCard) {
             const type=this.config.type && !['custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type) ? this.config.type : 'custom:button-card';

@@ -1,0 +1,16 @@
+type: custom:honeycomb-persistent-hub
+logo: false
+items:
+  - type: light
+    entity: light.zone_a
+    name: Light A
+    colors:
+      fill_gradient:
+        type: radial
+        darken: 0.2
+  - type: light
+    entity: light.zone_b
+    name: Light B
+    colors:
+      center: "#203040"
+      fill_gradient: false

@@ -1,3 +1,9 @@
+<p align="right">
+  <a href="https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/latest">
+    <img alt="Latest stable version" src="https://img.shields.io/github/v/release/NicolaiTandrup/honeycomb-menu-ng?label=stable&amp;color=2ea44f">
+  </a>
+</p>
+
 <p align="center">
   <img src="assets/honeycomb-menu-ng-logo.png" width="220" alt="Honeycomb Menu NG">
 </p>
@@ -13,16 +19,14 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.7.1 Stable.** Promotes the exact cumulative beta.8 functionality approved
-> by the owner in real Home Assistant. Includes Sonos alignment, station artwork
-> and colors, Join grouping/navigation, native no-helper Sleep Timer, recursive
-> Light Color/Kelvin zoom, clean White swatches and the graphical layout model.
-> Radio/Join/Sleep replace sibling views and inherit idle-close (8 seconds default).
-> [Download v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1)
-> · [release notes](RELEASE_NOTES.md) · [Sonos guide](docs/SONOS_MODULE.md)
-> · [Light guide](docs/LIGHT_MODULE.md). No runtime changes from approved beta.8;
-> the stable bundle adds only a version comment. Shared 82 CSS-px geometry and
-> dynamic visibility/placement are preserved. Car/Charger and Climate remain excluded.
+> **v1.8.0 stable candidate — not published.** Prepared from owner-tested
+> [beta.7](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.0-beta.7)
+> with identical runtime source. Latest public stable remains
+> [v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1).
+> The owner is the sole current user, already migrated to the 1.8 track, and
+> has accepted beta.7 in real Home Assistant. Read the
+> [candidate audit and release gates](docs/V1_8_RELEASE_CANDIDATE.md).
+> Owner acceptance of beta functionality does not authorize merging or publication.
 
 ## What you can build
 
@@ -102,32 +106,37 @@ current coordinate tables, not inferred from button order.
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
 
+### Canonical visual baseline: Light module
+
+**All modules use the existing Light module as their graphical baseline** — Sonos/Media, Climate, Car, Charger and future modules. Keep consistent 82px hex cube geometry, cube fill/inner/outer border layers, icon and label placement, typography, spacing and nested-menu navigation. Module-specific behavior and colors may differ, but modules must not introduce their own competing layout styles. Follow the [shared visual design contract](docs/TERMINOLOGY.md#shared-visual-design-contract--light-is-the-canonical-reference) and compare new module screens side by side against Light on desktop and mobile.
+
 ### Naming standard: menu rings vs cube borders
+
+![Menu rings and the visual layers of one cube](docs/assets/menu-rings-vs-cube-borders.svg)
 
 When reporting layouts or visual bugs, distinguish **menu geometry** (multiple
 cells) from the **visual layers of one cube**:
 
-| Danish | English | Refers to |
-|---|---|---|
-| **Centerkube** | Center cube | Physical **slot 0** |
-| **Indre menuring** | Inner menu ring | Separate menu cubes in **slots 1–6** |
-| **Ydre menuring** | Outer menu ring | Separate menu cubes in **slots 7–18** |
-| **Kubefyld** | Cube fill / center fill | Background **inside one cube** (`colors.center`) |
-| **Inderkant** | Inner border | The **inner border of one cube** (`colors.inner_border`) |
-| **Yderkant** | Outer border | The **outer border of one cube** (`colors.outer_border`) |
-| **Hub-kube** | Persistent Hub launcher | Always-visible dashboard launcher; **not automatically slot 0** |
-| **Modulkube** | Module launcher | Cube in Hub menu opening a module |
-| **Promoveret centerkube** | Promoted center cube | Selected module shown at slot 0 of its submenu |
+| Term | Refers to |
+|---|---|
+| **Center cube** | Physical **slot 0** |
+| **Inner menu ring** | Separate menu cubes in **slots 1–6** |
+| **Outer menu ring** | Separate menu cubes in **slots 7–18** |
+| **Cube fill / center fill** | Background **inside one cube** (`colors.center`) |
+| **Inner border** | The **inner border of one cube** (`colors.inner_border`) |
+| **Outer border** | The **outer border of one cube** (`colors.outer_border`) |
+| **Persistent Hub launcher** | Always-visible dashboard launcher; **not automatically slot 0** |
+| **Module launcher** | Cube in Hub menu opening a module |
+| **Promoted center cube** | Selected module shown at slot 0 of its submenu |
 
-Other agreed terms include **kubeikon** (cube icon), **kubelogo**
-(cube artwork), **kubetekst** (cube label), **tilbagekube** (back cube),
-**funktionskube** (action cube), and **favoritkube** (favorite cube).
+Other agreed terms include **cube icon**, **cube artwork**, **cube label**,
+**back cube**, **action cube**, and **favorite cube**.
 
-**Never use unqualified “inderring” or “yderring” for a cube border.**
-Use **menuring** for the spatial arrangement of separate cubes and
-**inderkant/yderkant** for the visual layers of one cube.
+**Avoid ambiguous references to an “inner ring” or “outer ring.”**
+Use **menu ring** for the spatial arrangement of separate cubes and
+**inner border / outer border** for the visual layers of one cube.
 
-The complete bilingual glossary, role distinctions, examples and Classic-menu
+The complete layout glossary, role distinctions, examples and Classic-menu
 exceptions are in **[Layout terminology](docs/TERMINOLOGY.md)**.
 
 The current Hub renderer supports **217 physical positions including center**.
@@ -291,24 +300,30 @@ take precedence over Kelvin for slot 4. [Light reference](docs/LIGHT_MODULE.md).
 
 ### Sonos and external HA setup
 
-Group volume works natively using `group_members`; no volume scripts are required.
-Radio needs the official Sonos favorites entity enabled in HA (often disabled by
-default). Supply its actual ID via `favorites_sensor`. An optional external
-[cache sensor](examples/sonos-favorites-cache.yaml) adds artwork; it does not supply
-playback IDs. The current beta discovers Sonos rooms and groups natively;
-`members` and an external [toggle script](examples/sonos-toggle-member.yaml) remain
-optional overrides. Slot 4 opens native Sleep choices using official
-[Sonos device actions](docs/SONOS_SLEEP_TIMER.md), with no helper/script setup. Browse is an explicit custom navigation
-choice rather than a default Sonos control.
-The [complete Sonos example](examples/v1.7/sonos.yaml) and
-[AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)
-explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_MODULE.md).
+Group volume, room discovery/Join and native device Sleep need no helper scripts.
+Radio still needs HA's **official native Sonos favorites entity** enabled; supply
+its actual ID with `favorites_sensor` (default `sensor.sonos_favorites`).
 
-Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
+**Breaking change in v1.8.0-beta.4:** supported read-only HA Browse Media is now
+Sonos's default and only favorite-artwork/metadata provider. Remove
+`favorites_cache_sensor` from dashboard YAML and remove the custom favorites-cache
+template definition/refresh automation previously used only for Honeycomb. Keep
+unrelated templates and the **native** favorites entity. No legacy sensor lookup,
+autodetection, fallback or compatibility shim remains, even if the entity exists.
+Browse errors safely show icon/text. No special artwork option or backend install.
+The owner has already migrated and selected the v1.8.0 release track. Existing
+tagged v1.7.1 remains unchanged; no legacy cache functionality is restored.
+
+See [complete native examples, migration and DevTools proof](docs/SONOS_NATIVE_FAVORITES.md),
+[Sonos reference](docs/SONOS_MODULE.md), [native Sleep](docs/SONOS_SLEEP_TIMER.md)
+and [the complete card](examples/v1.7/sonos.yaml). `members` and a custom
+[toggle script](examples/sonos-toggle-member.yaml) remain optional grouping overrides.
+
+Sonos inner slots are **1 Radio,
 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
 room membership or an explicit setup/availability state. Radio's outer submenu
 retains its ordering, artwork and playback, with new stable favorite accent rings.
-A reliably identified favorite can provide cached launcher artwork and playing
+A reliably identified favorite can provide native launcher artwork and playing
 color; pause/stop remains neutral. See [matching limits and styling precedence](docs/SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
 
 ## Actions, appearance and navigation
@@ -331,7 +346,7 @@ color; pause/stop remains neutral. See [matching limits and styling precedence](
 
 If nothing renders, check both module resources, version/cache, browser errors and
 entity IDs. For missing favorites check the official sensor; for missing artwork
-check cache data/refresh and browser access to thumbnail URLs. Join needs its
+check native Browse Media responses/permissions and browser access to thumbnail URLs. Join needs its
 script and candidate list. A hidden hard item intentionally leaves a hole.
 
 - [Versioned AI setup guide and six tested YAML examples](docs/AI_SETUP.md)
@@ -348,9 +363,52 @@ installation-time validation.
 
 Stable releases use the exact tested master commit, matching metadata, tag, bundle,
 checksums and HACS asset. See the [publication and verification guide](docs/RELEASING.md).
-Release retention is **disabled for v1.7.0**: the owner verified
-`RELEASE_RETENTION_ENABLED=false`, and this publication's retention report is forced
-read-only. All v0/v1 stable releases and v1.7 prereleases are retained. Before any
-future activation, review a fresh [retention dry-run](docs/RELEASE_RETENTION.md).
+Release retention remains **disabled**: the owner verified
+`RELEASE_RETENTION_ENABLED=false`; the stable publisher forces its retention report
+read-only. This preparation never changes settings or deletes Release records.
+Before any future activation, review a fresh [retention dry-run](docs/RELEASE_RETENTION.md).
 Deleting a Release record removes its uploaded assets; its Git tag and tagged
 source remain. Tags, branches and source history are never cleanup targets.
+
+Candidate reference: [v1.8 runtime namespace and mixed-install routing](docs/NG_RUNTIME.md).
+Stable v1.7.1 remains published and unchanged until separate owner approval.
+
+The v1.8.0 candidate includes [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and the omitted fixed-82 default stay unchanged.
+
+### Floorplan sizing in v1.8.0-beta.6
+
+For a persistent Hub or Control inside `picture-elements`, opt in with
+`size: auto`. A floorplan displayed at 50% of its reference design width gets
+41px cubes; 75% gets61.5px. Reference defaults to1536 CSS pixels; set
+`auto_reference_width` to your intended normal display width. Existing numeric sizes stay fixed. No detectable image
+means a harmless 82px fallback. See [complete copy/paste YAML, coordinate-frame
+support and touch-size limits](docs/FLOORPLAN_SIZING.md).
+
+The [synthetic charging-pulse demo](examples/energy-wave.yaml) uses the shared
+renderer without a charger or service call. Charger, Climate and Car modules
+remain future releases. [HACS listing readiness](docs/HACS_SUBMISSION.md) is
+separate from installing this beta as a custom repository.
+
+### v1.8.0-beta.6: corrected auto reference and power pulse speed
+
+`size: auto` uses a stable **display/design reference width**, default1536 CSS
+pixels. Use `auto_reference_width: 1500` for82px at a1500px displayed floorplan,
+41px at750px. High-resolution source images no longer make cubes start tiny.
+This corrects beta.5; numeric60/82 and omitted fixed82 remain. Read the
+[complete floorplan YAML and migration](docs/FLOORPLAN_SIZING.md).
+
+The [power-speed demo](examples/energy-wave-power.yaml) keeps true hexagonal
+geometry and adds bounded power/fixed speed with phase-preserving smooth rate
+changes. It requires no charger or service call. Existing energy_wave settings
+retain their three-second cycle. [Rate settings and real sensor mapping](docs/ENERGY_WAVE.md).
+The owner-approved40% and logo gradients, native Sonos and other modules remain.
+
+### v1.8.0-beta.7: energy-wave contour color (#119)
+
+The scoped beta.6 follow-up makes the pulse inherit the cube's resolved inner
+border, including live Light/Sonos colors and user overrides. Optional
+`energy_wave.color: '#00bfff'` changes only the contour. Existing gradients,
+six-sided geometry, power/fixed speed and sizing stay unchanged. Try the
+[complete synthetic green/blue demo](examples/energy-wave-color.yaml) and read
+the [color and template rules](docs/ENERGY_WAVE.md#contour-color--v180-beta7).
+This setting starts in beta.7; published beta.6 remains immutable.

@@ -6,7 +6,7 @@ class XYPad extends LitElement
 {
     static get is()
     {
-        return 'xy-pad';
+        return 'honeycomb-ng-xy-pad';
     }
 
     static get properties()
@@ -132,11 +132,11 @@ class XYPad extends LitElement
         this.active = true;
         this.style.zIndex = 100;
 
-        this.dispatchEvent( this.__constructEvent('drag-start') );
+        this.dispatchEvent( this.__constructEvent('honeycomb-ng-drag-start') );
 
         if( this.config.repeat )
             this._interval = setInterval(e => {
-                this.dispatchEvent( this.__constructEvent('drag-interval') );
+                this.dispatchEvent( this.__constructEvent('honeycomb-ng-drag-interval') );
             }, this.config.repeat);
     }
 
@@ -149,7 +149,7 @@ class XYPad extends LitElement
 
         this.joystick.style.transform = `translate3d(${this._current.x}px, ${this._current.y}px, 0)`;
 
-        this.dispatchEvent( this.__constructEvent('drag') );
+        this.dispatchEvent( this.__constructEvent('honeycomb-ng-drag') );
     }
 
     _handleOnDrag(e)
@@ -171,7 +171,7 @@ class XYPad extends LitElement
 
     _handleOnDragEnd(e)
     {
-        this.dispatchEvent( this.__constructEvent('drag-end') );
+        this.dispatchEvent( this.__constructEvent('honeycomb-ng-drag-end') );
         this._reset();
     }
 

@@ -1,3 +1,4 @@
+import './runtime.js';
 const isString = require('lodash/isString');
 
 export function fireEvent( _node, _event, _detail = {}, _options = {})
@@ -124,15 +125,15 @@ export function lovelace_config()
 export function honeycomb_menu_templates()
 {
     // Store to a gloval variable to skip dom traversion
-    if( window.honeycomb_menu_templates )
-        return window.honeycomb_menu_templates;
+    if( window.honeycombNG.templates )
+        return window.honeycombNG.templates;
     
     let lconfig = lovelace_config();
 
     if( ! lconfig )
         return null;
 
-    window.honeycomb_menu_templates = lconfig.honeycomb_menu_templates || {};
+    window.honeycombNG.templates = lconfig.honeycomb_menu_templates || {};
     
     if( ! lconfig.honeycomb_menu_templates )
         return null;

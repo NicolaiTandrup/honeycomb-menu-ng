@@ -230,12 +230,12 @@ function openHoneycombMenu(context, config)
 };
 
 
-window.honeycomb_menu = (config) => openHoneycombMenu(manager, config);
+window.honeycombNG.open = (config) => openHoneycombMenu(manager, config);
 
-window.honeycomb_menu_create_context = () =>
+window.honeycombNG.createContext = () =>
     navigationCore.createMenuContext({ local: true });
 
-window.honeycomb_menu_in_context = (context, config) => {
+window.honeycombNG.openInContext = (context, config) => {
     if( ! context || typeof context !== 'object' )
         return openHoneycombMenu(manager, config);
 
@@ -251,21 +251,21 @@ window.addEventListener('blur', () => {
     let view = null;
     // Honeycomb can remain loaded after navigation away from Lovelace.
     try { view = lovelace_view(); } catch (_) { /* No active dashboard. */ }
-    if (view) view.querySelectorAll('honeycomb-menu').forEach(menu => contexts.add(menu._menuContext || manager));
+    if (view) view.querySelectorAll('honeycomb-menu-ng').forEach(menu => contexts.add(menu._menuContext || manager));
     for (const context of contexts) {
         context.pointers.clear();
         for (const item of [...context.pendingActions]) item._cancelGesture();
         if (context.honeycomb) {
             context.honeycomb._dragPointerActive = false;
             context.honeycomb._dragPointerId = null;
-            context.honeycomb.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control').forEach(item => item._cancelGesture());
+            context.honeycomb.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control').forEach(item => item._cancelGesture());
         }
         notifyContext(context);
     }
     manager.pointerOwners.clear(); manager.pointerDown = false; manager.pointerId = null;
 });
 
-window.honeycomb_menu_context_update_base = (context, config) => {
+window.honeycombNG.updateBase = (context, config) => {
     if (!context || !context.honeycomb || context.honeycomb.closing || context.stack.length || !navigationCore.isHubRoot(context.currentConfig)) return false;
     const prepared = prepareMenuConfig(config);
     context.currentConfig = merge({}, prepared);
@@ -274,14 +274,19 @@ window.honeycomb_menu_context_update_base = (context, config) => {
 };
 
 document.body.addEventListener("ll-custom", e => {
-    if(e.detail.honeycomb_menu)
+    const detail = e.detail || {};
+    // Ambiguous external legacy events belong to original when it is loaded.
+    // NG-owned actions use the explicit key; NG-only dashboards keep old YAML.
+    const ownConfig = detail.honeycomb_ng_menu;
+    const legacyConfig = !customElements.get('honeycomb-menu') && detail.honeycomb_menu;
+    if(ownConfig || legacyConfig)
     {
-        const nestedConfig = merge({}, e.detail.honeycomb_menu);
+        const nestedConfig = merge({}, ownConfig || legacyConfig);
         const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
         const sourceMenu = path.find(node =>
             node &&
             node.tagName &&
-            node.tagName.toLowerCase() === 'honeycomb-menu'
+            node.tagName.toLowerCase() === 'honeycomb-menu-ng'
         );
         const context = sourceMenu && sourceMenu._menuContext
             ? sourceMenu._menuContext
@@ -295,7 +300,7 @@ document.body.addEventListener("ll-custom", e => {
             const sourceItem = path.find(node =>
                 node &&
                 node.tagName &&
-                node.tagName.toLowerCase() === 'honeycomb-menu-item'
+                node.tagName.toLowerCase() === 'honeycomb-menu-ng-item'
             );
 
             if( sourceItem && typeof sourceItem.getBoundingClientRect === 'function' )
@@ -325,7 +330,7 @@ function showHoneycombMenu( _config, options = {} )
     if( previous )
         previous.close();
 
-    const menu = document.createElement('honeycomb-menu');
+    const menu = document.createElement('honeycomb-menu-ng');
     menu._menuContext = context;
     context.honeycomb = menu;
     context.currentConfig = merge({}, _config);
@@ -340,7 +345,7 @@ function showHoneycombMenu( _config, options = {} )
         : manager.position.y;
 
     menu.display( lovelace_view(), anchorX, anchorY );
-    menu.addEventListener('closing', e => {
+    menu.addEventListener('honeycomb-ng-closing', e => {
         if( context.honeycomb === menu )
             context.honeycomb = null;
     });
@@ -421,11 +426,11 @@ function honeycombDispose(context = manager)
         menu.remove();
 }
 
-window.honeycomb_menu_back = () => honeycombBack(manager);
-window.honeycomb_menu_close = () => honeycombClose(manager);
-window.honeycomb_menu_context_back = context => honeycombBack(context || manager);
-window.honeycomb_menu_context_close = context => honeycombClose(context || manager);
-window.honeycomb_menu_context_dispose = context => honeycombDispose(context || manager);
+window.honeycombNG.back = () => honeycombBack(manager);
+window.honeycombNG.close = () => honeycombClose(manager);
+window.honeycombNG.backInContext = context => honeycombBack(context || manager);
+window.honeycombNG.closeInContext = context => honeycombClose(context || manager);
+window.honeycombNG.disposeContext = context => honeycombDispose(context || manager);
 
 function traverseConfigs( _config, _buttons )
 {
@@ -479,7 +484,7 @@ class HoneycombMenu extends LitElement
 {
     static get is()
     {
-        return 'honeycomb-menu';
+        return 'honeycomb-menu-ng';
     }
 
     static get properties()
@@ -621,14 +626,14 @@ class HoneycombMenu extends LitElement
                 height: var(--container-height);
                 pointer-events: none;
             }
-            honeycomb-menu-item {
+            honeycomb-menu-ng-item {
                 position: absolute;
                 pointer-events: all;
                 box-sizing: border-box;
                 width: var(--item-size);
                 padding: 0;
             }
-            honeycomb-menu-item.center-item,
+            honeycomb-menu-ng-item.center-item,
             honeycomb-persistent-control.center-item {
                 z-index: 2;
             }
@@ -639,40 +644,40 @@ class HoneycombMenu extends LitElement
                 pointer-events: all;
                 box-sizing: border-box;
             }
-            honeycomb-menu-item.center-item.center-auto-style {
+            honeycomb-menu-ng-item.center-item.center-auto-style {
                 filter: brightness(var(--honeycomb-center-brightness, 1.25));
             }
-            honeycomb-menu-item.drag-hover {
+            honeycomb-menu-ng-item.drag-hover {
                 filter: brightness(1.18);
                 transform: scale3d(1.08, 1.08, 1.08);
                 z-index: 3;
             }
-            honeycomb-menu-item.center-item.center-auto-style.drag-hover {
+            honeycomb-menu-ng-item.center-item.center-auto-style.drag-hover {
                 filter: brightness(calc(var(--honeycomb-center-brightness, 1.25) * 1.18));
             }
-            honeycomb-menu-item,
+            honeycomb-menu-ng-item,
             honeycomb-persistent-control.ring-item,
-            xy-pad {
+            honeycomb-ng-xy-pad {
                 animation-duration: 0.5s;
                 animation-fill-mode: both;
                 animation-name: zoomIn;
             }
-            :host([closing]) honeycomb-menu-item,
+            :host([closing]) honeycomb-menu-ng-item,
             :host([closing]) honeycomb-persistent-control.ring-item,
-            :host([closing]) xy-pad {
+            :host([closing]) honeycomb-ng-xy-pad {
                 animation-name: zoomOut;
             }
-            :host([closing]) honeycomb-menu-item[selected] {
+            :host([closing]) honeycomb-menu-ng-item[selected] {
                 animation-duration: 0.75s;
                 animation-name: bounceOut;
             }
-            :host([no-animation]) honeycomb-menu-item,
+            :host([no-animation]) honeycomb-menu-ng-item,
             :host([no-animation]) honeycomb-persistent-control.ring-item,
-            :host([no-animation]) xy-pad {
+            :host([no-animation]) honeycomb-ng-xy-pad {
                 animation: none !important;
                 animation-delay: 0ms !important;
             }
-            xy-pad {
+            honeycomb-ng-xy-pad {
                 width: var(--container-width);
                 height: var(--container-height);
             }`;
@@ -689,17 +694,17 @@ class HoneycombMenu extends LitElement
             `}
 
             ${(this.config.xy_pad) ? html`
-                <xy-pad
+                <honeycomb-ng-xy-pad
                     style="animation-delay: ${this._computeAnimateDelay(1)};"
                     .hass=${this.hass}
                     .config=${this.config.xy_pad}
                     .size=${this._computeXYPadSize()}
                     .clampX=${this._computeXYPadClamp()}
                     .clampY=${this._computeXYPadClamp()}
-                    @drag=${this._handleXYPad}
-                    @drag-interval=${this._handleXYPad}
-                    @drag-end=${this._handleXYPad}>
-                </xy-pad>`:''}
+                    @honeycomb-ng-drag=${this._handleXYPad}
+                    @honeycomb-ng-drag-interval=${this._handleXYPad}
+                    @honeycomb-ng-drag-end=${this._handleXYPad}>
+                </honeycomb-ng-xy-pad>`:''}
 
             <div id="honeycombs" class="honeycombs">
                 ${this.config.persistent_center ? html`
@@ -716,7 +721,7 @@ class HoneycombMenu extends LitElement
                         .size=${this.sizes.item}>
                     </honeycomb-persistent-control>
                 ` : (centerConfig ? html`
-                    <honeycomb-menu-item
+                    <honeycomb-menu-ng-item
                         class="center-item ${this._centerUseFilterFallback ? 'center-auto-style' : ''} ${this._dragHoverSlot === -2 ? 'drag-hover' : ''}"
                         data-honeycomb-slot="center"
                         data-honeycomb-id=${centerConfig._hub_item_id || ''}
@@ -731,7 +736,7 @@ class HoneycombMenu extends LitElement
                         .size=${this.sizes.item}
                         .config=${centerConfig}
                         @action=${this._handleItemAction}>
-                    </honeycomb-menu-item>
+                    </honeycomb-menu-ng-item>
                 ` : '')}
 
                 ${this.buttons.map((v, i) => {
@@ -744,7 +749,7 @@ class HoneycombMenu extends LitElement
                         return '';
 
                     return html`
-                        <honeycomb-menu-item
+                        <honeycomb-menu-ng-item
                             class="${this._dragHoverSlot === i ? 'drag-hover' : ''}"
                             data-honeycomb-slot="${i}"
                             data-honeycomb-id=${v._hub_item_id || ''}
@@ -759,7 +764,7 @@ class HoneycombMenu extends LitElement
                             .size=${this.sizes.item}
                             .config=${this._computeItemConfig(v)}
                             @action=${this._handleItemAction}>
-                        </honeycomb-menu-item>
+                        </honeycomb-menu-ng-item>
                     `;
                 })}
             </div>`;
@@ -768,7 +773,7 @@ class HoneycombMenu extends LitElement
     set hass(value)
     {
         this._hass=value;
-        if (this.shadowRoot) this.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control,xy-pad')
+        if (this.shadowRoot) this.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control,honeycomb-ng-xy-pad')
             .forEach(item=>{item.hass=value;});
     }
     get hass() { return this._hass; }
@@ -891,6 +896,21 @@ class HoneycombMenu extends LitElement
         this.requestUpdate();
     }
 
+    // Geometry-only refresh: do not reset idle, rebuild navigation, or reopen actions.
+    resizeCubes(size)
+    {
+        if(this.closing || !Number.isFinite(size) || size<=0)return;
+        const ratio=size/this.sizes.item;
+        this.sizes={item:size,containerWidth:this.sizes.containerWidth*ratio,containerHeight:this.sizes.containerHeight*ratio};
+        const context=this._menuContext;
+        const update=config=>{if(!config)return;config.size=size*3.586;if(config.persistent_center)config.persistent_center.size=size;};
+        update(this.config);
+        if(context){update(context.currentConfig);for(const entry of context.stack)update(entry.config || entry);}
+        this._setCssVars();
+        if(this._anchorX!==null && this._anchorY!==null)this._setPosition(this._anchorX,this._anchorY);
+        this.requestUpdate();
+    }
+
     firstUpdated()
     {
         this._setCssVars();
@@ -932,8 +952,8 @@ class HoneycombMenu extends LitElement
         document.removeEventListener('pointerup', this._boundPointerUp, true);
         document.removeEventListener('pointercancel', this._boundPointerUp, true);
 
-        if (this.config.animate === false) { fireEvent(this,'closing',{item:_item}); this.dispose(); fireEvent(this,'closed',{item:_item}); return; }
-        const items = this.shadowRoot.querySelectorAll('honeycomb-menu-item,honeycomb-persistent-control');
+        if (this.config.animate === false) { fireEvent(this,'honeycomb-ng-closing',{item:_item}); this.dispose(); fireEvent(this,'honeycomb-ng-closed',{item:_item}); return; }
+        const items = this.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control');
         let ele = _item || items[items.length - 1];
 
         if( _item )
@@ -942,7 +962,7 @@ class HoneycombMenu extends LitElement
             _item.style.animationDelay = this._computeAnimateDelay(3);
         }
 
-        fireEvent(this, 'closing', { item: _item });
+        fireEvent(this, 'honeycomb-ng-closing', { item: _item });
 
         const shade = this.shadowRoot.querySelector('#shade');
         if( shade )
@@ -956,13 +976,13 @@ class HoneycombMenu extends LitElement
         {
             ele.addEventListener('animationend', e => {
                 this.remove();
-                fireEvent(this, 'closed', { item: _item });
+                fireEvent(this, 'honeycomb-ng-closed', { item: _item });
             });
         }
         else
         {
             this.remove();
-            fireEvent(this, 'closed', { item: _item });
+            fireEvent(this, 'honeycomb-ng-closed', { item: _item });
         }
     }
 
@@ -1254,10 +1274,10 @@ class HoneycombMenu extends LitElement
             : 1.25;
         this.style.setProperty('--honeycomb-center-brightness', `${centerBrightnessFactor}`);
 
-        this._setCssVarProperty('--paper-item-icon-color', '--honeycomb-menu-icon-color');
-        this._setCssVarProperty('--paper-item-icon-active-color', '--honeycomb-menu-icon-active-color');
-        this._setCssVarProperty('--ha-card-background', '--honeycomb-menu-background-color');
-        this._setCssVarProperty('--ha-card-active-background', '--honeycomb-menu-active-background-color');
+        this._setCssVarProperty('--paper-item-icon-color', '--honeycomb-menu-ng-icon-color');
+        this._setCssVarProperty('--paper-item-icon-active-color', '--honeycomb-menu-ng-icon-active-color');
+        this._setCssVarProperty('--ha-card-background', '--honeycomb-menu-ng-background-color');
+        this._setCssVarProperty('--ha-card-active-background', '--honeycomb-menu-ng-active-background-color');
     }
 
     _handleShadeClick(e)
@@ -1378,7 +1398,7 @@ class HoneycombMenu extends LitElement
 
         while( element && element !== this.shadowRoot )
         {
-            if( element.tagName && ['honeycomb-menu-item','honeycomb-persistent-control'].includes(element.tagName.toLowerCase()) )
+            if( element.tagName && ['honeycomb-menu-ng-item','honeycomb-persistent-control'].includes(element.tagName.toLowerCase()) )
                 return element;
 
             element = element.parentElement;
@@ -1540,11 +1560,11 @@ class HoneycombMenu extends LitElement
         if( ! isString(_item.config.audio) )
             return;
 
-        let audio_ele = document.querySelector('#honeycomb-audio');
+        let audio_ele = document.querySelector('#honeycomb-ng-audio');
         if( ! audio_ele )
         {
             audio_ele = document.createElement('audio');
-            audio_ele.id = 'honeycomb-audio';
+            audio_ele.id = 'honeycomb-ng-audio';
             document.querySelector("home-assistant").append(audio_ele);
         }
         audio_ele.src = _item.config.audio;
@@ -1553,8 +1573,8 @@ class HoneycombMenu extends LitElement
 
     _handleXYPad(e)
     {
-        if( (this.config.xy_pad.on_release && e.type != 'drag-end') ||
-            (this.config.xy_pad.repeat && e.type != 'drag-interval')
+        if( (this.config.xy_pad.on_release && e.type != 'honeycomb-ng-drag-end') ||
+            (this.config.xy_pad.repeat && e.type != 'honeycomb-ng-drag-interval')
         ) return;
 
         ['x', 'y'].forEach( axis => {

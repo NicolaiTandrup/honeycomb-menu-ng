@@ -1,0 +1,42 @@
+# v1.8.0-beta.7: synthetic, no device/helpers/services.
+type: custom:honeycomb-persistent-hub
+size: 82
+logo: false
+items:
+  - type: generic
+    slot: 0
+    name: Green
+    label: Demo 7 kW
+    icon: mdi:flash
+    background: '#116644'
+    colors:
+      center: '#116644'
+      inner_border: '#22cc88'
+    energy_wave:
+      active: true
+      available: true
+      fault: false
+      power_w: 7000
+      speed_mode: power
+      max_power_w: 19400
+    tap_action: {action: none}
+    hold_action: {action: none}
+  - type: generic
+    slot: 1
+    name: Blue
+    label: Demo 7 kW
+    icon: mdi:flash
+    background: '#116644'
+    colors:
+      center: '#116644'
+      inner_border: '#22cc88'
+    energy_wave:
+      active: true
+      available: true
+      fault: false
+      power_w: 7000
+      speed_mode: power
+      max_power_w: 19400
+      color: '#00bfff'
+    tap_action: {action: none}
+    hold_action: {action: none}
