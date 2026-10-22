@@ -77,11 +77,11 @@ def item(value,where):
 def card(config,where):
     assert isinstance(config,dict),where
     if config['type']=='custom:honeycomb-persistent-hub':
-        known(config,{'type','name','size','logo','items','auto_open','menu','style'},where)
+        known(config,{'type','name','size','logo','items','auto_open','menu','style','auto_reference_width'},where)
         for i,value in enumerate(config['items']): item(value,f'{where} item {i}')
     elif config['type']=='custom:honeycomb-persistent-control':
-        known(config,SHARED|SONOS|{'type','module','size','style'},where)
-        item({k:v for k,v in config.items() if k not in ('type','size','style')},where)
+        known(config,SHARED|SONOS|{'type','module','size','style','auto_reference_width'},where)
+        item({k:v for k,v in config.items() if k not in ('type','size','style','auto_reference_width')},where)
     elif config['type']=='button':
         known(config,{'type','entity','name','hold_action'},where)
         menu=config['hold_action']['honeycomb_menu']
@@ -282,7 +282,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:

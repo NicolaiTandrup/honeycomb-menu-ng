@@ -637,7 +637,7 @@ For v1.8 beta.2 only, see the [shared presentation contract](CUBE_PRESENTATION.m
 ## v1.8.0-beta.5 sizing and energy capability
 
 For persistent Hub/Control, `size: auto` derives 82 × displayed floorplan image
-width / intrinsic image width, entering the existing numeric geometry engine.
+width / reference display width (auto_reference_width, default1536), entering the existing numeric geometry engine.
 Use only inside a standard picture-elements image frame; safe fixed-82 fallback
 otherwise. Numeric size remains fixed; omitted size remains fixed 82. Do not
 invent responsive_scale/global configuration or another CSS transform. Percent
@@ -652,3 +652,23 @@ Use the [synthetic no-service demo](../examples/energy-wave.yaml) and
 [state/performance contract](ENERGY_WAVE.md). Normal inactive fills stay solid.
 The decorative Hub logo alone has state-independent depth; explicit fill
 overrides remain available. See [shared presentation](CUBE_PRESENTATION.md).
+
+## v1.8.0-beta.6 correction: display reference and wave rate
+
+Beta.5 natural-image scaling is superseded. Persistent size:auto now uses
+82 × actual rendered image width / auto_reference_width. The optional literal
+positive reference defaults to1536 CSS pixels and stays identical across clients.
+For a1500px design set auto_reference_width:1500 on each overlay. Never derive
+reference from raster pixels or each client's first frame. Numeric size and
+omitted fixed82 remain unchanged. See [complete YAML](FLOORPLAN_SIZING.md).
+
+Energy speed settings: literal speed_mode power/fixed; fixed cycle_ms defaults
+to3000 for compatibility. Power mode requires max_power_w per cube, with optional
+min_cycle_ms900/max_cycle_ms2200. Numeric limits500–10000ms, min<=max; mutually
+exclusive power/fixed settings. Power mode interpolates slow→fast linearly by
+clamped measured watts / explicit peak. 19400W is an aggregate example only,
+11000W an individual example. New numeric fields accept existing HA JS templates;
+invalid runtime values fail static. Never emit Jinja or arbitrary CSS as speed.
+A shared350ms playback-rate transition preserves animation identity/phase; no
+per-cube polling or HA service. [No-hardware full demo](../examples/energy-wave-power.yaml).
+Preserve all health/reduced-motion/visibility gates, 40% gradients and Sonos.

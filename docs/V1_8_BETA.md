@@ -72,3 +72,20 @@ Test numeric versus auto image ratios and touch targets, Light zoom/presets,
 Sonos artwork/Radio/Join/Sleep/Back, reduced-motion and tab/offscreen wave gates.
 Master/v1.7.1 and previous releases stay unchanged. Stable still requires owner
 real-HA approval and explicit namespace/SemVer migration review.
+
+## Cumulative beta.6
+
+Starts at published beta.5 `ece8f9e5af7e92b1629cfe164cf000028b0b1068`.
+Corrects size:auto baseline to a stable display reference, default1536 CSS pixels
+or explicit auto_reference_width. Source bitmap resolution no longer sets cube
+size. Adds explicit power/fixed speed for the existing hex pulse, with bounded
+phase-preserving playback-rate transitions and all health/motion/visibility gates.
+Old energy_wave settings retain a3000ms fixed cycle. The owner-approved40%
+gradient and decorative logo gradient remain exactly the beta.5 implementation.
+
+HACS Redownload → Show beta versions → v1.8.0-beta.6 → hard-refresh. Read
+[FLOORPLAN_SIZING.md](FLOORPLAN_SIZING.md) and [ENERGY_WAVE.md](ENERGY_WAVE.md)
+for complete synthetic YAML, migration, mapping and acceptance checks. Keep
+#115/#117 open until owner real-HA tests. No stable/master/retention change or
+future Charger/Climate/Car module. Official HACS listing and stable/SemVer
+approval remain separate owner gates.

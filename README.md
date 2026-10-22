@@ -376,11 +376,12 @@ Development: [v1.8 beta runtime namespace and mixed-install routing](docs/NG_RUN
 
 The v1.8.0-beta.5 candidate adds [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and the omitted fixed-82 default stay unchanged.
 
-### Floorplan sizing in v1.8.0-beta.5
+### Floorplan sizing in v1.8.0-beta.6
 
 For a persistent Hub or Control inside `picture-elements`, opt in with
-`size: auto`. A floorplan displayed at 50% of its intrinsic width gets 41px
-cubes; 75% gets 61.5px. Existing numeric sizes stay fixed. No detectable image
+`size: auto`. A floorplan displayed at 50% of its reference design width gets
+41px cubes; 75% gets61.5px. Reference defaults to1536 CSS pixels; set
+`auto_reference_width` to your intended normal display width. Existing numeric sizes stay fixed. No detectable image
 means a harmless 82px fallback. See [complete copy/paste YAML, coordinate-frame
 support and touch-size limits](docs/FLOORPLAN_SIZING.md).
 
@@ -388,3 +389,17 @@ The [synthetic charging-pulse demo](examples/energy-wave.yaml) uses the shared
 renderer without a charger or service call. Charger, Climate and Car modules
 remain future releases. [HACS listing readiness](docs/HACS_SUBMISSION.md) is
 separate from installing this beta as a custom repository.
+
+### v1.8.0-beta.6: corrected auto reference and power pulse speed
+
+`size: auto` uses a stable **display/design reference width**, default1536 CSS
+pixels. Use `auto_reference_width: 1500` for82px at a1500px displayed floorplan,
+41px at750px. High-resolution source images no longer make cubes start tiny.
+This corrects beta.5; numeric60/82 and omitted fixed82 remain. Read the
+[complete floorplan YAML and migration](docs/FLOORPLAN_SIZING.md).
+
+The [power-speed demo](examples/energy-wave-power.yaml) keeps true hexagonal
+geometry and adds bounded power/fixed speed with phase-preserving smooth rate
+changes. It requires no charger or service call. Existing energy_wave settings
+retain their three-second cycle. [Rate settings and real sensor mapping](docs/ENERGY_WAVE.md).
+The owner-approved40% and logo gradients, native Sonos and other modules remain.
