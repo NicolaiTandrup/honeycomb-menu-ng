@@ -97,6 +97,8 @@ class CubeElement extends LitElement
             .external-content > * { height:100%; }
             .primary { font-size:calc(var(--honeycomb-persistent-size,82px)*.16);font-weight:650;line-height:1.1; }
             .primary,.secondary { max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+            .tertiary { max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                font-size:calc(var(--honeycomb-persistent-size,82px)*.11);line-height:1.1;margin-top:calc(var(--honeycomb-persistent-size,82px)/82*2); }
             .content.has-primary.has-secondary .secondary { font-size:calc(var(--honeycomb-persistent-size,82px)*.12); }
             .content.has-primary ha-icon { width:30%;height:30%; }
             .interaction-surface:focus-visible { outline:2px solid var(--primary-color,#2196f3);outline-offset:-5px; }
@@ -275,14 +277,14 @@ class CubeElement extends LitElement
             customBackground:!!(card.background || card['background-color'] || this.config.background),
             disabled:!!(this.config.disabled || presentation.disabled),
             colorMix:supportsColorMix});
-        const model = {colors, fill, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
+        const model = {colors, fill, secondary, tertiary:presentation.tertiary, ariaLabel:presentation.ariaLabel, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
             icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
             foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
-        const wave=this.config.energy_wave;
+        const wave=presentation.energyWave === false || this.config.energy_wave === false ? false : presentation.energyWave || this.config.energy_wave;
         const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
         const state=this._entityState();
         const timing=energyWave.timing(normalized);
@@ -294,11 +296,11 @@ class CubeElement extends LitElement
         else if((!waveEnabled || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
         // Display refresh only. The backend/device owns expiry; this never calls HA.
         const refreshAt=presentation.refreshAt || null;
-        if (refreshAt!==this._presentationRefreshAt || !this.isConnected) {
+        if (refreshAt!==this._presentationRefreshAt || !this.isConnected || refreshAt && !this._presentationTimer) {
             clearTimeout(this._presentationTimer);this._presentationTimer=null;
             this._presentationRefreshAt=refreshAt;
             if (refreshAt && this.isConnected) this._presentationTimer=setTimeout(()=>{
-                this._presentationRefreshAt=null;this._updatePresentation();
+                this._presentationTimer=null;this._presentationRefreshAt=null;this._updatePresentation();
             },Math.max(100,refreshAt-Date.now()));
         }
         const signature = JSON.stringify(model);
@@ -1036,9 +1038,10 @@ class CubeElement extends LitElement
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
                 ${m.name ? html`<div class="primary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'n':undefined,...m.nameStyle})}>${m.name}</div>` : ''}
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
+                ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
             </div>`}
             ${this.config.interactive !== false && !this.config.disabled ? html`
-            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
                 @keydown=${e=>{
                     const zoom=(this.config.hold_action && ['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action)) ||
                         (this.config.tap_action && this.config.tap_action.action==='honeycomb-light-kelvin-apply');

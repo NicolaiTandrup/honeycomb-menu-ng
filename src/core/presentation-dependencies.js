@@ -2,6 +2,7 @@
 // existing JS templates/custom content remain conservative, never guessed from
 // a partial JS parser (which could miss computed entity IDs or user context).
 const KEYS = ['name','label','icon','colors','border','styles','background','foreground','variables','custom_fields','energy_wave'];
+const {moduleRegistry}=require('../modules/index');
 function presentationDependencies(config) {
     let wildcard = !!config.custom_fields;
     const visit = value => {
@@ -9,10 +10,13 @@ function presentationDependencies(config) {
         else if (value && typeof value === 'object') Object.values(value).forEach(visit);
     };
     for (const key of KEYS) visit(config[key]);
-    return {wildcard, entity:config.entity, sonos:['sonos','sonos-favorite'].includes(config.mode) ? config._sonos : null,
+    const module=moduleRegistry.resolvePresentation(config.mode);
+    const snapshot=module && module.presentation.snapshot;
+    return {wildcard, snapshot:snapshot ? hass=>snapshot(hass,config) : null, entity:config.entity, sonos:['sonos','sonos-favorite'].includes(config.mode) ? config._sonos : null,
         sonosPlayer:config.mode==='sonos-favorite' ? (config._sonos || {}).player : config.entity, sleep:config._sleep};
 }
 function presentationSnapshot(hass, dependency) {
+    if (dependency.snapshot) return dependency.snapshot(hass);
     const entity = (hass && hass.states || {})[dependency.entity];
     if (dependency.sleep) {
         const states=hass && hass.states || {};
