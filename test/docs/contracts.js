@@ -102,3 +102,15 @@ for(const text of ['only','Remove every `favorites_cache_sensor`','official nati
  assert.ok(nativeGuide.includes(text),`Native favorites migration guide: ${text}`);
 assert.ok(!fs.existsSync('examples/sonos-favorites-cache.yaml'));
 for(const entry of input.cards) assert.ok(!JSON.stringify(entry.config).includes('favorites_cache_sensor'));
+// The anatomy diagram uses the same coordinates, without rotating/mirroring slots.
+const anatomy=fs.readFileSync('docs/assets/menu-rings-vs-cube-borders.svg','utf8');
+assert.match(anatomy,/aria-labelledby="title description"/);
+const anatomyCells=[...anatomy.matchAll(/data-slot="(\d+)" data-x="([\d.]+)" data-y="([\d.]+)"/g)];
+assert.equal(anatomyCells.length,19);
+for(const [,slot,x,y] of anatomyCells){
+    const p=+slot===0?layout.sceneCenter(2):layout.buttonPosition(+slot-1,{inner:true,outer:true,radius:2});
+    assert.equal(+x,p.x);assert.equal(+y,p.y);
+}
+assert.ok(readme.includes('Latest stable version'));
+assert.ok(readme.includes('Canonical visual baseline: Light module'));
+assert.ok(terms.includes('Shared visual design contract'));

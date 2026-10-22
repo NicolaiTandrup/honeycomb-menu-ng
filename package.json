@@ -15,10 +15,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "github.com:NicolaiTandrup/honeycomb-menu-ng"
+    "url": "git+https://github.com/NicolaiTandrup/honeycomb-menu-ng.git"
   },
   "author": "Nicolai Tandrup",
-  "license": "GPLv3",
+  "license": "GPL-3.0-or-later",
   "devDependencies": {
     "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11"

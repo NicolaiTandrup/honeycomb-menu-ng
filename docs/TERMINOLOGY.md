@@ -66,6 +66,20 @@ The Hub's own **persistent launcher**, the **module launcher inside the Hub menu
 
 **Unambiguous issue wording:** specify (1) which menu level, (2) which cube role, (3) which physical slot, (4) whether a requested color change targets the **cube fill**, **inner border**, **outer border**, or a **different menu cube**, and (5) expected playing/paused/on/off behavior.
 
+## Shared visual design contract — Light is the canonical reference
+
+**OWNER DECISION:** The existing **Light module** defines the visual baseline for **every Honeycomb module**, including Sonos/Media, Climate, Car, Charger and future modules. This is a shared presentation contract, not an instruction to copy Light-specific behaviors or capabilities.
+
+- Reuse the same **82px cube geometry**, hex shape, consistent cube fill / inner border / outer border layering, visual weight and interactive feedback.
+- Follow Light's **icon/artwork size and positioning**, primary/secondary label typography, alignment, line height, vertical balance, padding, icon-to-text gaps and text-overflow behavior. When module artwork/metrics differ, adjust against Light's reference rather than inventing a competing layout model.
+- Retain the same **physical slot conventions**, center anchoring, nested menu navigation, Back behavior, gestures and state presentation principles through the shared renderer.
+- Module-specific states, colors, labels, imagery and actions are allowed **within** the baseline. Color cues for charging, media playback, etc. must be explicit and should not silently change structural layout, cube sizing or font hierarchy.
+- **Single source of truth:** prefer a reusable shared renderer/presentation primitive or shared design tokens over copying per-module pixel offsets. Avoid parallel module-specific CSS rules that drift from Light.
+- Before adding or changing a module, include **side-by-side Light-versus-module screenshots** for representative states in both desktop and mobile/touch viewports, plus regression tests for text/icon centering and clipping.
+- Preserve Light's currently working presentation. Do not impose vendor-specific Tesla, Easee or Sonos semantics on the base Light module.
+
+This convention applies to both standalone Control and the persistent Hub, regardless of which integration supplies state and actions.
+
 ## 5. Classic menu caveat
 
 Classic popups have different conventions: their center is `center_button`, not Hub `slot: 0`. Classic `position: 0` means the first ring position, and classic `size` defaults to a scene extent rather than the Hub/Control's 82 CSS-px cell. See [Classic menu](CLASSIC_MENU.md). Do not translate Hub slot meanings blindly to Classic.
