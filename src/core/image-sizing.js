@@ -36,18 +36,18 @@ function observeImage(host,notify) {
     let record=records.get(card);
     if(!record){record=createRecord(card);records.set(card,record);activeRecords++;}
     record.clients.set(host,notify);record.watchClient(host);record.schedule();
-    return ()=>{record.clients.delete(host);if(!record.clients.size){record.dispose();records.delete(card);activeRecords--;}};
+    return ()=>{record.clients.delete(host);if(!record.clients.size){record.dispose();records.delete(card);activeRecords--;}else record.rewatch();};
 }
 function createRecord(card){
     const clients=new Map();let raf=null,image=null,root=null,imageHost=null;
     const schedule=()=>{if(raf===null)raf=requestAnimationFrame(measure);};
     const resize=new ResizeObserver(schedule),mutation=new MutationObserver(schedule);
     const observed=new Set();
-    function watch(){
+    function watch(force=false){
         const nextRoot=card.shadowRoot && card.shadowRoot.querySelector('#root');
         const nextHost=nextRoot && [...nextRoot.children].find(n=>n.localName==='hui-image');
         const next=nextHost && nextHost.shadowRoot && nextHost.shadowRoot.querySelector('img#image');
-        if(nextRoot===root && nextHost===imageHost && next===image)return;
+        if(!force && nextRoot===root && nextHost===imageHost && next===image)return;
         if(image)image.removeEventListener('load',schedule);
         root=nextRoot;imageHost=nextHost;image=next;resize.disconnect();mutation.disconnect();observed.clear();
         for(const node of [card,card.shadowRoot,root,imageHost,imageHost && imageHost.shadowRoot,image]){
@@ -64,7 +64,7 @@ function createRecord(card){
         if(image && image.complete && image.naturalWidth && root){
             rect=image.getBoundingClientRect();rootRect=root.getBoundingClientRect();
             const style=getComputedStyle(image);
-            // Reject borders/padding, rotation/skew/mirroring and nonuniform ancestor scale.
+            // Reject borders/padding, CSS scaling/rotation/skew/mirroring.
             let supported=['paddingLeft','paddingRight','paddingTop','paddingBottom','borderLeftWidth','borderTopWidth','borderRightWidth','borderBottomWidth'].every(k=>parseFloat(style[k])===0);
             for(let n=image;n && supported;n=composedParent(n)){
                 const t=getComputedStyle(n).transform;
@@ -79,8 +79,8 @@ function createRecord(card){
                 // Percentages are interpreted in the actual image frame, once.
                 if(host.offsetParent===root && /^[-\d.]+%$/.test(left)&&/^[-\d.]+%$/.test(top)){
                     const x=parseFloat(left)/100,y=parseFloat(top)/100;
-                    dx=rect.left+frame.x+x*frame.width-(rootRect.left+x*rootRect.width);
-                    dy=rect.top+frame.y+y*frame.height-(rootRect.top+y*rootRect.height);
+                    dx=rect.left+frame.x+x*frame.width-(rootRect.left+root.clientLeft+x*root.clientWidth);
+                    dy=rect.top+frame.y+y*frame.height-(rootRect.top+root.clientTop+y*root.clientHeight);
                 }
             }
             const bounds=card.getBoundingClientRect();
@@ -90,6 +90,6 @@ function createRecord(card){
     resize.observe(card);mutation.observe(card,{childList:true});
     if(card.shadowRoot)mutation.observe(card.shadowRoot,{childList:true,subtree:true});
     window.addEventListener('resize',schedule);document.addEventListener('visibilitychange',schedule);
-    return {clients,schedule,watchClient,dispose(){if(raf!==null)cancelAnimationFrame(raf);resize.disconnect();mutation.disconnect();if(image)image.removeEventListener('load',schedule);window.removeEventListener('resize',schedule);document.removeEventListener('visibilitychange',schedule);}};
+    return {clients,schedule,watchClient,rewatch:()=>watch(true),dispose(){if(raf!==null)cancelAnimationFrame(raf);resize.disconnect();mutation.disconnect();if(image)image.removeEventListener('load',schedule);window.removeEventListener('resize',schedule);document.removeEventListener('visibilitychange',schedule);}};
 }
 module.exports={numericSize,imageFrame,observeImage,pictureCard,diagnostics:()=>({imageObservers:activeRecords})};
