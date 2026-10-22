@@ -1,3 +1,41 @@
+# v1.8.0 — Stable
+
+Promotes the complete owner-tested cumulative v1.8.0-beta.7 functionality.
+Runtime source, dependencies, HACS identity and executable bundle body are
+unchanged; only the deterministic version banner changes in the JavaScript.
+
+- NG-owned runtime namespace and API, with original Honeycomb coexistence in
+  either load order. Persistent Hub/Control names and module resource stay the same.
+- One shared 82px renderer with Light as the visual reference, 40% active fill
+  depth, decorative logo gradient, independent borders and solid inactive fills.
+- Native-only Sonos Browse Media favorite metadata/artwork, verified station
+  recognition and live launcher/promoted-center updates. Radio ordering/playback,
+  Join/grouping, native no-helper Sleep Timer and sibling navigation are retained.
+- Floorplan `size: auto` using actual rendered image bounds and a stable display
+  reference; optional `auto_reference_width` defaults to1536 CSS pixels. Fixed
+  numeric sizes and omitted82 remain fixed; no duplicate sizing engine.
+- Genuine six-sided outward energy contour with optional fixed/power-proportional
+  speed, smooth phase-preserving updates, resolved inner-border color by default
+  and optional `energy_wave.color`. Explicit health/power, reduced-motion,
+  visibility, lifecycle and bounded animation budgets remain mandatory.
+- Light brightness, recursive Hue/Kelvin zoom, presets, generic Media, dynamic
+  visibility/placement, nested Back/idle, drag-select, classic menus and touch
+  behavior are preserved. Charger, Climate and Car modules remain future work.
+
+The sole owner/user already uses the1.8 track and reports successful real-HA
+beta.7 acceptance. [Candidate audit/checklist](docs/V1_8_RELEASE_CANDIDATE.md),
+[runtime API](docs/NG_RUNTIME.md), [native Sonos](docs/SONOS_NATIVE_FAVORITES.md),
+[sizing](docs/FLOORPLAN_SIZING.md), [pulse configuration](docs/ENERGY_WAVE.md).
+
+HACS custom repository and root `honeycomb-menu-ng.js` asset are unchanged.
+After verified publication, redownload stable and hard-refresh all clients;
+beta users may disable Show beta versions. Keep one NG module resource. Official
+HACS catalog admission remains separate. Existing image-frame/fallback/touch-size,
+browser color support, power normalization and native Sonos/Sleep limits remain.
+All previous releases/assets/tags/history and retention settings are preserved.
+
+---
+
 # v1.7.1 — Stable
 
 ## v1.8.0-beta.7 — resolved energy-wave contour color

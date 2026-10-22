@@ -19,16 +19,14 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.7.1 Stable.** Promotes the exact cumulative beta.8 functionality approved
-> by the owner in real Home Assistant. Includes Sonos alignment, station artwork
-> and colors, Join grouping/navigation, native no-helper Sleep Timer, recursive
-> Light Color/Kelvin zoom, clean White swatches and the graphical layout model.
-> Radio/Join/Sleep replace sibling views and inherit idle-close (8 seconds default).
-> [Download v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1)
-> · [release notes](RELEASE_NOTES.md) · [Sonos guide](docs/SONOS_MODULE.md)
-> · [Light guide](docs/LIGHT_MODULE.md). No runtime changes from approved beta.8;
-> the stable bundle adds only a version comment. Shared 82 CSS-px geometry and
-> dynamic visibility/placement are preserved. Car/Charger and Climate remain excluded.
+> **v1.8.0 stable candidate — not published.** Prepared from owner-tested
+> [beta.7](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.0-beta.7)
+> with identical runtime source. Latest public stable remains
+> [v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1).
+> The owner is the sole current user, already migrated to the 1.8 track, and
+> has accepted beta.7 in real Home Assistant. Read the
+> [candidate audit and release gates](docs/V1_8_RELEASE_CANDIDATE.md).
+> Owner acceptance of beta functionality does not authorize merging or publication.
 
 ## What you can build
 
@@ -313,15 +311,15 @@ template definition/refresh automation previously used only for Honeycomb. Keep
 unrelated templates and the **native** favorites entity. No legacy sensor lookup,
 autodetection, fallback or compatibility shim remains, even if the entity exists.
 Browse errors safely show icon/text. No special artwork option or backend install.
-The owner approved this for beta.4; SemVer breaking/stable-major review remains
-required before any stable promotion. v1.7.1 stable is unchanged.
+The owner has already migrated and selected the v1.8.0 release track. Existing
+tagged v1.7.1 remains unchanged; no legacy cache functionality is restored.
 
 See [complete native examples, migration and DevTools proof](docs/SONOS_NATIVE_FAVORITES.md),
 [Sonos reference](docs/SONOS_MODULE.md), [native Sleep](docs/SONOS_SLEEP_TIMER.md)
 and [the complete card](examples/v1.7/sonos.yaml). `members` and a custom
 [toggle script](examples/sonos-toggle-member.yaml) remain optional grouping overrides.
 
-Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
+Sonos inner slots are **1 Radio,
 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
 room membership or an explicit setup/availability state. Radio's outer submenu
 retains its ordering, artwork and playback, with new stable favorite accent rings.
@@ -365,16 +363,17 @@ installation-time validation.
 
 Stable releases use the exact tested master commit, matching metadata, tag, bundle,
 checksums and HACS asset. See the [publication and verification guide](docs/RELEASING.md).
-Release retention is **disabled for v1.7.0**: the owner verified
-`RELEASE_RETENTION_ENABLED=false`, and this publication's retention report is forced
-read-only. All v0/v1 stable releases and v1.7 prereleases are retained. Before any
-future activation, review a fresh [retention dry-run](docs/RELEASE_RETENTION.md).
+Release retention remains **disabled**: the owner verified
+`RELEASE_RETENTION_ENABLED=false`; the stable publisher forces its retention report
+read-only. This preparation never changes settings or deletes Release records.
+Before any future activation, review a fresh [retention dry-run](docs/RELEASE_RETENTION.md).
 Deleting a Release record removes its uploaded assets; its Git tag and tagged
 source remain. Tags, branches and source history are never cleanup targets.
 
-Development: [v1.8 beta runtime namespace and mixed-install routing](docs/NG_RUNTIME.md). Stable v1.7.1 is unchanged.
+Candidate reference: [v1.8 runtime namespace and mixed-install routing](docs/NG_RUNTIME.md).
+Stable v1.7.1 remains published and unchanged until separate owner approval.
 
-The v1.8.0-beta.5 candidate adds [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and the omitted fixed-82 default stay unchanged.
+The v1.8.0 candidate includes [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and the omitted fixed-82 default stay unchanged.
 
 ### Floorplan sizing in v1.8.0-beta.6
 

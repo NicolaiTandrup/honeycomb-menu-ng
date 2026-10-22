@@ -1,6 +1,6 @@
-# Native Sonos Favorites — v1.8.0-beta.4
+# Native Sonos Favorites — v1.8.0 candidate
 
-**Breaking beta migration:** Home Assistant Browse Media is now the **only** Sonos
+**Breaking migration from v1.7.1:** Home Assistant Browse Media is now the **only** Sonos
 favorite artwork/metadata enrichment path. There is no opt-in switch, template
 sensor autodetection or legacy fallback, even when an old cache entity exists.
 The official native favorites sensor remains the source of IDs and ordering.
@@ -18,14 +18,13 @@ The official native favorites sensor remains the source of IDs and ordering.
 3. Enable the official Sonos favorites entity (often disabled by default), and
    confirm its actual ID. The default is `sensor.sonos_favorites`; specify a
    different actual entity with `favorites_sensor` if necessary.
-4. Install beta.4, hard-refresh all dashboard clients and verify Browse Media
+4. After owner-authorized publication, install the approved version, hard-refresh all dashboard clients and verify Browse Media
    responses/artwork. No new template, helper, script, automation or backend needed.
 
-This intentionally removes legacy cache compatibility, as explicitly approved by
-the owner for beta.4. The prerelease remains `v1.8.0-beta.4` for this approved test
-train. **Removing a public configuration option is a breaking API change under
-SemVer:** a major-version/stable compatibility decision must be reviewed before
-any stable promotion. This beta is not stable approval and never changes master.
+The owner approved and tested the native-only behavior, is the sole current user
+and has already migrated to the 1.8 track. The selected release is v1.8.0; no
+additional SemVer migration decision is pending. This candidate is not publication
+approval and leaves master unchanged.
 Previous tagged releases retain their original cache support/documentation.
 
 ## Copy, replace IDs, test
@@ -76,7 +75,7 @@ explicitly selects the generic player module instead.
   format is parsed conservatively. Ambiguous names, arbitrary track titles and
   unknown stream URLs never identify a station; no URI guessing or learning.
 - Known artwork/accent updates the Hub launcher and promoted Sonos center live.
-  Playing fill follows the station inner-border color and beta.3's 30% darker edge.
+  Playing fill follows the station inner-border color and the approved 40% darker edge.
   Paused/idle remains solid neutral while reliable artwork/accent may remain.
   Radio order, twelve choices and playback actions are unchanged. The shared image
   error path restores icon/title on broken images, including Radio. Normal Sonos
@@ -129,4 +128,5 @@ sentinel test prove isolation in automated tests.
 
 Synthetic unit/browser CI verifies client contracts, not physical Sonos/HA or
 all tablet hardware. Real owner beta testing and explicit approval remain required
-before stable. No beta.5 is published proactively.
+before stable. The owner reports successful beta.7 real-HA testing; merging and
+publication still require separate explicit approval.

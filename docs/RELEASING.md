@@ -2,10 +2,13 @@
 
 Every stable version requires a HACS-installable beta and explicit owner approval
 after real Home Assistant testing. Green synthetic CI alone is insufficient.
-For v1.7.1, the approval is [Issue #102](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/102)
-and the exact public beta is v1.7.1-beta.8 at
-`c1cdd390bed1c1acfc22b314807ce63050e43248`. Its SHA256 is
-`4cb42226324fb001d54c527d63170bfff16b8baabb880d94610b61fa037fbfb5` (196186 bytes).
+The proposed v1.8.0 candidate pins public beta.7 at
+`58e26543f13020912e6188a75863ecf06a2a2df4`, SHA256
+`6d7f78acdb3c40e939cf64523b5813ff9a4d55cfb3e1dd30f147e9b9986b1f8c`
+(218407 bytes). Owner real-HA acceptance is reported in the preparation request;
+it is **not authorization to merge or publish**. The
+[candidate checklist](V1_8_RELEASE_CANDIDATE.md) must be reviewed first.
+The owner is the sole user, already migrated, and has selected the v1.8.0 track.
 
 ## Reviewed candidate provenance
 
@@ -91,8 +94,9 @@ all previous releases/assets/tags/branches; only the authorized master merge and
 new promotion branch/tag may change refs. Inspect the dry-run/cleanup-skipped result.
 Close the release-tracking issue only after successful independent verification.
 
-Browser QA uses the repository Playwright harness at 1100×900 and 390×844 touch
-(Browser plugin unavailable), with synthetic HA. Physical HA approval for beta.8
-is recorded in #102; automated tests additionally verify page identity, content,
-console/overlay health, interactions and screenshots. HACS users can select stable
-v1.7.1 without enabling beta versions, retain the module resource and hard-refresh.
+Browser QA uses the repository Playwright harness at desktop/tablet/mobile sizes
+(Browser plugin unavailable), with synthetic HA. Automated tests verify page
+identity, content, console/overlay health, interactions and screenshots. HACS
+users keep the same repository/module resource. Stable users select the new
+verified stable with beta versions off; prerelease users redownload the stable
+version, disable beta versions if desired and hard-refresh all clients.

@@ -1,9 +1,13 @@
 # AI configuration guide
 
-**VERSION CONTRACT:** v1.7.1 Stable functionality remains supported. This branch
-adds v1.8.0-beta.1 runtime namespace isolation, beta.2 shared presentation,
-beta.5 default 40% active-gradient edge, decorative logo gradient, image-aligned `size: auto` and normalized hexagonal energy overlay and **beta.4 native-only Sonos favorites (breaking migration)**.
-These are prerelease capabilities, not stable v1.8 approval. See [runtime migration](NG_RUNTIME.md),
+**VERSION CONTRACT:** this is the proposed v1.8.0 stable candidate on exact
+owner-tested v1.8.0-beta.7 runtime. It is not published; latest stable remains
+v1.7.1. The sole owner/user has already migrated to the 1.8 track and selected
+v1.8.0. No separate legacy migration guide or compatibility shim is required.
+See the [candidate audit/publication gates](V1_8_RELEASE_CANDIDATE.md). Features include namespace
+isolation, one shared renderer, 40% active/logo gradients, reference-display
+autosizing, fixed numeric sizes, true hex pulse, power/fixed speed and resolved
+inner-border/default or optional explicit pulse color. See [runtime API](NG_RUNTIME.md),
 [shared presentation](CUBE_PRESENTATION.md) and [native favorites](SONOS_NATIVE_FAVORITES.md).
 No Car/Charger/Climate, backend helper or retention activation is included.
 All prior Sonos Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior
@@ -207,9 +211,9 @@ and exclusive refresh triggers/automation themselves, retaining unrelated templa
 and the **native** favorites entity. Do not mutate live HA config for them.
 
 [Exact migration and copy/paste Hub/Control cards](SONOS_NATIVE_FAVORITES.md).
-The owner explicitly accepts this breaking beta.4 change; a SemVer major/stable
-compatibility decision must be reviewed before stable. Do not claim v1.7.1 stable
-supports this new default. Historical tagged versions document their original setup.
+The sole owner/user has already migrated and selected the v1.8.0 track. Do not
+claim v1.7.1 supports this new default. Historical tagged versions retain their
+original setup; no compatibility shim or additional migration guide is requested.
 
 Read-only `media_player/browse_media` traverses `favorites` and returned
 `favorites_folder` IDs for `favorite_item_id` metadata. Official map remains
@@ -630,7 +634,9 @@ that validation; #83/#92/#93/#87/#86 are excluded.
 
 ## v1.8 beta runtime identity
 
-The namespace milestone preserves persistent Hub/Control YAML. See [NG runtime API](NG_RUNTIME.md) for explicit mixed-install popup routing and JavaScript API migration. This is beta-only; stable v1.7.1 remains the functional baseline.
+The candidate preserves persistent Hub/Control YAML. See [NG runtime API](NG_RUNTIME.md)
+for explicit mixed-install popup routing and current JavaScript names. Public stable
+remains v1.7.1 until separately authorized publication; candidate functionality is beta.7.
 
 For v1.8 beta.2 only, see the [shared presentation contract](CUBE_PRESENTATION.md) and [validated example](../examples/presentation-light.yaml). Existing explicit center colors remain solid; no new domain actions are added.
 

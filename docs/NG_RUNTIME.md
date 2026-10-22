@@ -1,8 +1,9 @@
-# NG runtime API v1 — v1.8.0 beta
+# NG runtime API v1 — v1.8.0 candidate
 
-The installable v1.8 namespace milestone is based on approved stable v1.7.1.
-Light remains the visual baseline; this slice changes runtime identity, **not**
-cube presentation, gradients, geometry, navigation or domain behavior.
+Introduced in beta.1, this API is part of the owner-tested cumulative beta.7
+source for the proposed stable candidate. The namespace slice preserves YAML
+card identity; the full candidate also contains the approved shared presentation.
+The rename map below documents the current API; the owner already uses this track.
 
 | v1.7 internal/global name | NG-owned name |
 |---|---|

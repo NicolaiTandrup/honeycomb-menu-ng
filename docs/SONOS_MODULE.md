@@ -1,10 +1,10 @@
 # Sonos module
 
-**v1.8.0-beta.4:** Sonos uses native HA Browse Media for favorite artwork by default.
+**v1.8.0 candidate (introduced in beta.4):** Sonos uses native HA Browse Media for favorite artwork by default.
 The former template cache and `favorites_cache_sensor` option are removed.
 [Migration, complete examples, limits and verification](SONOS_NATIVE_FAVORITES.md).
-This is an owner-approved breaking beta change; stable SemVer/major-version review
-is still required. Stable v1.7.1 and every previous release remain unchanged.
+The sole owner/user has already migrated and selected the v1.8.0 release track.
+Stable v1.7.1 and every previous release remain unchanged during preparation.
 
 ## Default detail layout
 
