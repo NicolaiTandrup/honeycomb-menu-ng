@@ -3,6 +3,7 @@ const energyWave=require('./energy-wave');
 const {referenceWidth}=require('./image-sizing');
 const merge = require('lodash/merge');
 const { moduleRegistry } = require('../modules/index.js');
+const chargerConfig=require('../modules/charger/config');
 
 function rejectRemovedSonosOptions(config)
 {
@@ -46,7 +47,9 @@ function validateCubeConfig(config, {hubItems = false, placement = false} = {})
     if (!placement && (config.visibility !== undefined || config.slot_mode === 'priority'))
         throw new Error('Dynamic visibility and priority placement are supported only on Hub items.');
     validateGradient(config.colors && config.colors.fill_gradient);
-    energyWave.validate(config.energy_wave);
+    chargerConfig.validate(config);
+    if (config._charger || ['charger','charging-hub'].includes(config.type) || ['charger','charging-hub'].includes(config.module)) chargerConfig.waveOptions(config.energy_wave);
+    else energyWave.validate(config.energy_wave);
     referenceWidth(config.auto_reference_width);
     if (Array.isArray(config)) {
         config.forEach(value => { if (value && typeof value === 'object') validateCubeConfig(value, {placement}); });

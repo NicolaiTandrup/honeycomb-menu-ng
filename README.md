@@ -19,14 +19,12 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.8.0 stable candidate — not published.** Prepared from owner-tested
-> [beta.7](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.0-beta.7)
-> with identical runtime source. Latest public stable remains
-> [v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1).
-> The owner is the sole current user, already migrated to the 1.8 track, and
-> has accepted beta.7 in real Home Assistant. Read the
-> [candidate audit and release gates](docs/V1_8_RELEASE_CANDIDATE.md).
-> Owner acceptance of beta functionality does not authorize merging or publication.
+> **Latest stable: [v1.8.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.1).**
+> This maintenance release preserves the owner-tested v1.8.0 runtime. NG includes
+> the shared renderer, native Sonos Favorites, responsive sizing and hexagonal
+> power-sensitive pulse. Official HACS validation has passed; catalog inclusion
+> is still pending. Continue using the HACS custom-repository installation below.
+> [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
 ## What you can build
 
@@ -36,8 +34,18 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Car/Charger modules and charging automation are not implemented. Honeycomb calls
-configured HA actions; device automation belongs in Home Assistant.
+Car and Climate modules are not implemented. Charging automation remains external.
+The generic Charger module below is **v1.9.0-beta.1 only**, not part of v1.8.1 stable.
+Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
+
+Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
+is unchanged from these verified v1.8.0 captures):
+
+<img src="docs/assets/screenshots/stable-light.png" width="260" alt="Synthetic Light menu with brightness and preset controls">
+<img src="docs/assets/screenshots/stable-kelvin.png" width="260" alt="Synthetic Light White palette with twelve filled Kelvin swatches">
+
+[Capture provenance](docs/assets/screenshots/stable-provenance.json). Charger is not
+part of v1.8.1 stable.
 
 ## Install and update
 
@@ -65,6 +73,25 @@ resources:
 After updating, reload the browser/app and hard-refresh if cached JavaScript persists.
 Check the installed release and resource URL before changing YAML. Installing a stable
 release does not make newer beta-only options available.
+
+## Charger beta: complete dashboards
+
+**v1.9.0-beta.1 prerelease only.** A generic Charger/Easee module shares the same
+82px renderer, gradients, sizing and power-sensitive hexagonal pulse. A Charging
+Hub sums fresh verified power and physically connected cars; named chargers open
+fixed detail menus. Permission and permanent-lock controls require deliberate taps
+on verified HA switches. Opening/Back/state updates never issue charging commands.
+
+- [Complete one-Easee dashboard](examples/charger-easee.yaml), with no vehicle feed.
+- [Complete two-charger dashboard](examples/charger-multi.yaml), with optional
+  external vehicle associations; it also works when that sensor is absent.
+- [Installation, entity checklist, source-backed capabilities and safe HA tests](docs/CHARGER_MODULE.md).
+
+All example IDs and screenshots are synthetic replacement points. Replace them
+with your actual integration entities. HACS prereleases must be enabled and the
+beta selected explicitly; v1.8.1 remains latest stable. No real hardware/Node-RED
+changes were performed by synthetic validation. Car identification, schedules,
+load balancing and optimization remain external; the Car module is future work.
 
 ## Start in 60 seconds
 

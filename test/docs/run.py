@@ -30,12 +30,16 @@ Loader.add_constructor('!include',lambda loader,node:loader.construct_scalar(nod
 Loader.add_constructor('!include_dir_named',lambda loader,node:loader.construct_scalar(node))
 # Reject duplicate keys, including accidental duplicate template:/script: wrappers.
 def mapping(loader,node,deep=False):
-    result={}
-    for key,value in node.value:
+    explicit=set()
+    for key,_ in node.value:
+        if key.tag=='tag:yaml.org,2002:merge':continue
         k=loader.construct_object(key,deep=deep)
-        assert k not in result,f'duplicate YAML key: {k}'
-        result[k]=loader.construct_object(value,deep=deep)
-    return result
+        assert k not in explicit,f'duplicate YAML key: {k}'
+        explicit.add(k)
+    # YAML merge aliases deliberately allow explicit keys to override inherited
+    # defaults. Check actual duplicate source keys before flattening those merges.
+    loader.flatten_mapping(node)
+    return {loader.construct_object(key,deep=deep):loader.construct_object(value,deep=deep) for key,value in node.value}
 Loader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,mapping)
 def load(text): return yaml.load(text,Loader=Loader)
 def blocks(text):
@@ -43,7 +47,8 @@ def blocks(text):
 
 SHARED=set('entity name label icon show_name show_label show_icon energy_wave background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
 SONOS=set('favorites_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
-ITEM=SHARED|SONOS|set('type module slot slot_mode visibility show persistent'.split())
+CHARGER=set('provider entities device_id discover max_age association chargers'.split())
+ITEM=SHARED|SONOS|CHARGER|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
     assert isinstance(value,dict),where
     assert not set(value)-allowed,f'{where}: unsupported example keys {set(value)-allowed}'
@@ -59,8 +64,16 @@ def actions(obj):
             actions(value)
 def item(value,where):
     known(value,ITEM,where)
-    assert value.get('module',value.get('type')) in ('light','sonos','media','generic'),where
-    if value.get('module',value.get('type'))!='generic' or 'entity' in value:assert re.fullmatch(r'\w+\.\w+',value['entity']),where
+    module=value.get('module',value.get('type'))
+    assert module in ('light','sonos','media','generic','charger','charging-hub'),where
+    if module=='charging-hub':
+        assert isinstance(value.get('chargers'),list),where
+        for member in value['chargers']:item(member,where+' aggregate member')
+    elif module!='generic' or 'entity' in value:assert re.fullmatch(r'\w+\.\w+',value['entity']),where
+    if module=='charger':
+        assert value.get('provider','generic') in ('easee','generic'),where
+        if 'entities' in value:known(value['entities'],set('status power enabled online connected session_energy physical_lock permanent_lock current limit'.split()),where)
+        if 'association' in value:known(value['association'],{'entity','charger_key','max_age'},where)
     if 'slot_mode' in value: assert value['slot_mode'] in ('hard','soft','priority')
     if value.get('slot_mode')=='priority': assert 'slot' in value
     if 'slot' in value: assert type(value['slot']) is int and 0<=value['slot']<=216
@@ -80,7 +93,7 @@ def card(config,where):
         known(config,{'type','name','size','logo','items','auto_open','menu','style','auto_reference_width'},where)
         for i,value in enumerate(config['items']): item(value,f'{where} item {i}')
     elif config['type']=='custom:honeycomb-persistent-control':
-        known(config,SHARED|SONOS|{'type','module','size','style','auto_reference_width'},where)
+        known(config,SHARED|SONOS|CHARGER|{'type','module','size','style','auto_reference_width'},where)
         item({k:v for k,v in config.items() if k not in ('type','size','style','auto_reference_width')},where)
     elif config['type']=='button':
         known(config,{'type','entity','name','hold_action'},where)
@@ -99,7 +112,7 @@ def fragment(config,where):
     elif 'homeassistant' in config:
         assert config=={'homeassistant':{'packages':'packages'}},where
     elif 'type' in config:
-        if config['type'] in ('light','sonos','media','generic'):
+        if config['type'] in ('light','sonos','media','generic','charger','charging-hub'):
             return {'type':'custom:honeycomb-persistent-hub','items':[config]}
         if config['type']=='picture-elements':
             known(config,{'type','image','elements'},where)
@@ -284,6 +297,16 @@ def main():
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
     for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
+    for name,count in [('charger-easee.yaml',1),('charger-multi.yaml',2)]:
+        dashboard=load((ROOT/'examples'/name).read_text())
+        assert dashboard['views'][0]['panel'] is True
+        picture=dashboard['views'][0]['cards'][0]
+        assert picture['type']=='picture-elements' and picture['image'].startswith('data:image/svg+xml,')
+        hub=picture['elements'][0]
+        assert len(hub['items'])==count+1 and hub['items'][0]['type']=='charging-hub'
+        assert len(hub['items'][0]['chargers'])==count
+        assert all(a=={k:v for k,v in b.items() if k!='slot'} for a,b in zip(hub['items'][0]['chargers'],hub['items'][1:]))
+        cards.append({'source':f'examples/{name} (complete dashboard)','config':hub})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:
         for index,block in enumerate(blocks(file.read_text())):
