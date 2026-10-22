@@ -41,3 +41,13 @@ No master merge or stable publication is authorized by beta testing.
 ## beta.2 candidate — cumulative presentation
 
 Includes beta.1 namespace isolation plus shared static active gradients and bounded artwork layout. See [CubePresentation](CUBE_PRESENTATION.md). No charging animation or research module is shipped. Compare active RGB/Kelvin Light, playing/paused Sonos, independent borders, explicit center/solid/edge settings and mobile text/artwork legibility. Run the complete beta.1 checklist too; stable requires owner real HA approval.
+
+## Cumulative beta.3 and beta.4
+
+Beta.3 calibrates the shared active fill edge to 30% default darkening; explicit
+20% settings remain 20%, center equals inner border and inactive fills remain solid.
+Beta.4 includes exact tested beta.3 ancestry plus optional [native Sonos favorite
+metadata](SONOS_NATIVE_FAVORITES.md), enabled with `favorites_browse: true`.
+Configured cache data wins. No mandatory template YAML or backend integration.
+Both releases remain immutable prereleases; master/v1.7.1 stable are unchanged.
+Beta.5 is reserved for actionable owner HA findings; no automatic stable promotion.

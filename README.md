@@ -304,6 +304,12 @@ The [complete Sonos example](examples/v1.7/sonos.yaml) and
 [AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)
 explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_MODULE.md).
 
+**v1.8.0-beta.4 optional setup:** add `favorites_browse: true` to a Sonos item or
+Control to retrieve thumbnails through HA Browse Media without `templates.yaml`.
+The enabled official favorites sensor remains required; existing configured cache
+data wins and only missing metadata is supplemented. No backend is installed.
+See [copy/paste examples, limits and fallbacks](docs/SONOS_NATIVE_FAVORITES.md).
+
 Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
 room membership or an explicit setup/availability state. Radio's outer submenu

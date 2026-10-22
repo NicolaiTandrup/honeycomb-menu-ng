@@ -1,14 +1,13 @@
 # AI configuration guide
 
-**SUPPORTED AS OF v1.7.1 Stable.** Includes the v1.7.0 shared Hub/Control and
-visibility/placement architecture plus all owner-approved cumulative beta.8
-functionality (`c1cdd390bed1c1acfc22b314807ce63050e43248`, Issue #102). Sonos slots,
-native no-helper Sleep, Radio artwork/cache compatibility, sibling navigation and
-recursive Light Hue/Kelvin zoom described in the versioned sections below are now
-stable. Historical beta headings identify when a capability was introduced; they
-are not a request to install an obsolete beta. Package/release metadata is `1.7.1`,
-stable. Car/Charger, Climate and unfinished #92/#93/#87/#86 remain excluded; #83
-retention is independent and disabled. No runtime code from v1.6 is imported.
+**VERSION CONTRACT:** v1.7.1 Stable functionality remains supported. This branch
+adds v1.8.0-beta.1 runtime namespace isolation, beta.2 shared presentation,
+beta.3 default 30% active-gradient edge and **beta.4 optional native Sonos favorites**.
+These are prerelease capabilities, not stable v1.8 approval. See [runtime migration](NG_RUNTIME.md),
+[shared presentation](CUBE_PRESENTATION.md) and [native favorites](SONOS_NATIVE_FAVORITES.md).
+No Car/Charger/Climate, backend helper or retention activation is included.
+All prior Sonos Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior
+remains supported. No runtime code from v1.6 is imported.
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute
@@ -27,7 +26,7 @@ Ask for actual IDs or omit optional features. Public examples must remain synthe
    Sonos merely from a `media_player` domain. Hub bare `type: media` is a legacy Sonos
    alias; use `type: media` with `module: media` for generic media.
 4. Request optional IDs only when needed: writable numeric preset values for Light;
-   enabled favorites sensor for Radio; cache sensor for artwork; Join script and
+   enabled favorites sensor for Radio; optional cache sensor or beta.4 native browsing for artwork; Join script and
    candidate players for grouping. Native group volume needs no scripts.
 5. For a Hub, choose branding and placement. Prefer established automatic hard
    positions for static layouts. Use explicit hard slots for reservations, priority
@@ -52,7 +51,7 @@ is not proof that a feature exists. Do not invent keys such as `visible_when`,
 | Shared presentation | `name`, `label`, `icon` strings/templates; `show_name`, `show_label`, `show_icon` booleans/templates; `background`, `foreground`; `colors`; `border`; `styles`; `variables`; `custom_fields`; `interactive`; `off`; `active_color`; `show_brightness`, `show_volume`. |
 | Shared interaction | `tap_action`, `hold_action`, `double_tap_action` action objects; `hold_time` ms (default 500, minimum 250); `autoclose`; `audio`. Optional `menu` overrides the module menu; advanced Hub `persistent` overrides its compiled launcher. |
 | Light options | `presets.brightness: {entity, default?}`; `presets.kelvin: {entity, default?}`; `presets.color: {hue_entity, saturation_entity}`. See units and capability precedence below. |
-| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`. Sleep in beta.6 needs no configuration or helpers. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
+| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `favorites_browse: true|false` (beta.4+, opt-in); `toggle_member_script`; `members: [{entity, name?, icon?}]`. Sleep in beta.6 needs no configuration or helpers. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
 
 Presentation keys pass through the shared engine; `styles` uses button-card-style
 lists under `card`, `icon`, `name`, `label`, `grid`. Domain defaults can hide names
@@ -196,6 +195,16 @@ passive slot 3; explicitly `[onoff]` has no detail menu. Never infer `[onoff]` j
 from missing attributes on an unavailable entity. [Light details](LIGHT_MODULE.md).
 
 ### Sonos Radio and artwork cache
+
+**v1.8.0-beta.4+:** use `favorites_browse: true` on a Sonos Hub item or Control to
+retrieve metadata through read-only HA Browse Media with no template setup.
+The official FV map remains required; configured cache entries win, missing
+fields alone are supplemented. Default is absent/false. See [the exact provider
+contract and complete cards](SONOS_NATIVE_FAVORITES.md): strict matching, per-tab
+bounded cache/dedup, timeout/reconnect/group guards and safe icon fallback. Never
+invent a stream URI mapping, sensor or backend helper. The steps below describe
+the still-supported **optional external template cache**, not a native-mode prerequisite.
+
 
 1. Install/configure official HA Sonos. Enable its favorites entity (usually
    disabled by default); collect its **actual** ID for `favorites_sensor`.

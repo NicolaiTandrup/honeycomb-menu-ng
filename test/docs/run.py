@@ -42,7 +42,7 @@ def blocks(text):
     return re.findall(r'^(?:```|~~~)yaml\s*\n(.*?)^(?:```|~~~)\s*$',text,re.M|re.S)
 
 SHARED=set('entity name label icon show_name show_label show_icon background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
-SONOS=set('favorites_sensor favorites_cache_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
+SONOS=set('favorites_browse favorites_sensor favorites_cache_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
 ITEM=SHARED|SONOS|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
     assert isinstance(value,dict),where
@@ -70,6 +70,7 @@ def item(value,where):
             known(preset,{'hue_entity','saturation_entity'} if key=='color' else {'entity','default'},where)
             for k,v in preset.items():
                 if k!='default': assert re.fullmatch(r'(number|input_number)\.\w+',v)
+    if 'favorites_browse' in value: assert type(value['favorites_browse']) is bool
     if 'members' in value:
         for member in value['members']: known(member,{'entity','name','icon'},where)
     if 'colors' in value: known(value['colors'],{'center','inner_border','outer_border','unavailable','fill_gradient'},where)
@@ -309,7 +310,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:

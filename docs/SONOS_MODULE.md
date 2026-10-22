@@ -394,3 +394,11 @@ it cannot extend the last interaction's deadline or resurrect a submenu after
 switching, Back, idle-close or disposal. A stale request cannot suppress a fresh
 request after navigation. No geometry, station matching, favorites/cache, native
 Sonos service, artwork or layout changes are part of this navigation fix.
+
+## v1.8.0-beta.4: optional no-template favorites
+
+Set `favorites_browse: true` on a Sonos item/Control to supplement missing cache
+metadata through read-only HA Browse Media. The official favorites sensor remains
+required; valid existing cache fields win. This option defaults off; existing
+templates/configuration stay supported. No backend/helper/automation is installed.
+See [complete configuration, matching limits, lifecycle and tests](SONOS_NATIVE_FAVORITES.md).

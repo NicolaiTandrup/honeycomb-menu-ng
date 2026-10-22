@@ -1,5 +1,7 @@
 const {artworkLayout}=require('../../core/cube-presentation');
 const media = require('../media/presentation.js');
+const {validThumbnail} = require('./artwork');
+const nativeFavorites = require('./native-favorites');
 const { buildColorPaletteButtons } = require('../light/controls.js');
 
 // Reuse the actual Light wheel; IDs, never favorite-list positions, select a hue.
@@ -29,13 +31,8 @@ function accentTemplate(sensor, index)
 }
 function settings(item)
 {
-    return {favorites:item.favorites_sensor || 'sensor.sonos_favorites',cache:item.favorites_cache_sensor || 'sensor.sonos_favorites_cache',activeFallback:(item.persistent || {}).active_color || item.active_color || item.color || null};
-}
-function validThumbnail(value)
-{
-    // Browser loading still verifies availability; reject executable/ambiguous URLs.
-    if (typeof value !== 'string' || /[\s"'<>\\]/.test(value)) return false;
-    return /^https?:\/\/[^/]+/i.test(value) || /^\/(?!\/)/.test(value) || /^data:image\/(png|jpeg|webp|gif);base64,[a-z0-9+/]+=*$/i.test(value);
+    if (item.favorites_browse !== undefined && typeof item.favorites_browse !== 'boolean') throw new Error('favorites_browse must be true or false.');
+    return {...(item.favorites_browse === true ? {browse:true,player:item.entity} : {}),favorites:item.favorites_sensor || 'sensor.sonos_favorites',cache:item.favorites_cache_sensor || 'sensor.sonos_favorites_cache',activeFallback:(item.persistent || {}).active_color || item.active_color || item.color || null};
 }
 // Compare metadata, never arbitrary track titles. Preserve punctuation and
 // diacritics; case/Unicode composition/whitespace carry no station identity.
@@ -64,9 +61,9 @@ function inspectFavorite(hass, config)
     const id=(effective.attributes || {}).media_content_id;
     if (typeof id!=='string' || !id) return done('playback_id_missing');
     diagnostics.radio_transport=/^(x-sonosapi-(?:hls|radio|stream):|x-rincon-mp3radio:)/i.test(id);
-    if (['unknown','unavailable'].includes((states[options.favorites] || {}).state) || ['unknown','unavailable'].includes((states[options.cache] || {}).state)) return done('favorites_or_cache_unavailable');
+    if (['unknown','unavailable'].includes((states[options.favorites] || {}).state) || !options.browse && ['unknown','unavailable'].includes((states[options.cache] || {}).state)) return done('favorites_or_cache_unavailable');
     const favorites=(states[options.favorites] && states[options.favorites].attributes || {}).items;
-    const cache=(states[options.cache] && states[options.cache].attributes || {}).items;
+    const cache=options.browse ? nativeFavorites.cacheItems(hass,config) : (states[options.cache] && states[options.cache].attributes || {}).items;
     diagnostics.favorites_present=!!favorites && !Array.isArray(favorites) && typeof favorites==='object';
     diagnostics.cache_present=Array.isArray(cache);
     if (!diagnostics.favorites_present || !diagnostics.cache_present) return done('favorites_or_cache_missing');
@@ -107,7 +104,7 @@ function inspectFavorite(hass, config)
     const favorite=candidates[0];diagnostics.artwork_valid=validThumbnail(favorite.thumbnail);
     if (!diagnostics.artwork_valid) return done('artwork_missing_or_invalid');
     return done('recognized',{id:favorite.media_content_id,url:favorite.thumbnail,color:accentColor(favorite.media_content_id,Object.keys(favorites)),
-        key:JSON.stringify([options.cache,cache,favorite.media_content_id]),playing:selected.state==='playing' && effective.state==='playing'});
+        key:JSON.stringify([options.cache,cache,favorite.media_content_id,...(options.browse ? [nativeFavorites.provider.peek(hass,config).version] : [])]),playing:selected.state==='playing' && effective.state==='playing'});
 }
 function recognizedFavorite(hass, config)
 {
@@ -119,7 +116,7 @@ function diagnostics({hass,config,runtime={}})
 {
     const inspected=inspectFavorite(hass,config), favorite=inspected.favorite;
     const result=resolve({hass,config,state:(hass && hass.states || {})[config.entity],runtime});
-    return {...inspected.diagnostics,artwork_load_failed:!!favorite && favorite.key===runtime.failedArtworkKey,
+    return {...inspected.diagnostics,...(config._sonos && config._sonos.browse ? {browse:nativeFavorites.provider.peek(hass,config).status} : {}),artwork_load_failed:!!favorite && favorite.key===runtime.failedArtworkKey,
         presentation:result.artwork ? (favorite.playing ? 'station_playing' : 'station_inactive') : 'standard_or_override',
         explicit_center_color:!!(config.colors && config.colors.center && config.colors.center!=='auto'),
         explicit_inner_color:!!(config.colors && config.colors.inner_border && config.colors.inner_border!=='auto')};

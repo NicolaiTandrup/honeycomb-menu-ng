@@ -71,3 +71,15 @@ Screenshots require owner night-time/mobile visual review before stable.
 
 Charging-wave work is a separate research primitive; no Charger/Climate/Car
 module or experimental animation is bundled in this candidate.
+
+## Optional module data lifecycle (v1.8.0-beta.4)
+
+A module presentation adapter may provide `observe(notify)`, returning
+`{update(hass, config), dispose()}`. The existing cube controller updates that
+observer on relevant state/config/connection changes and disposes it on removal
+or module change. An asynchronous notification resolves the current presentation;
+it never opens menus, resets idle timers or changes placement. Modules own their
+read-only metadata and cancellation guards; the renderer owns no Sonos browsing.
+An optional resolved `name` replaces the primary text (empty while Radio artwork
+is shown); absent keeps ordinary configured labels. The existing shared artwork
+image/error path and 82px geometry are reused. No additional renderer or polling.

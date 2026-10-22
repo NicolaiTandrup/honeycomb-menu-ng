@@ -1,11 +1,14 @@
-const { accentTemplate } = require('./station.js');
+const { accentTemplate,settings } = require('./station.js');
+const {validThumbnail} = require('./artwork');
+const {cacheItems,provider} = require('./native-favorites');
+const {artworkLayout} = require('../../core/cube-presentation');
 
 function buildRadioMenu(item)
 {
     const favorites = item.favorites_sensor || 'sensor.sonos_favorites';
     const cache = item.favorites_cache_sensor || 'sensor.sonos_favorites_cache';
 
-    return {
+    const menu = {
         entity: item.entity,
         nested_expand: true,
         inherit_inner: true,
@@ -91,8 +94,33 @@ function buildRadioMenu(item)
             }
         }))
     };
+    if (item.favorites_browse === true) {
+        for (const [index,button] of menu.buttons.entries()) {
+            button.mode = 'sonos-favorite';
+            button._sonos = settings(item);
+            button._favoriteIndex = index;
+            // Use the existing image/error renderer for opt-in thumbnails. A
+            // failed image restores the normal radio icon/name, never a blank face.
+            button.styles.card = button.styles.card.filter(rule => !Object.prototype.hasOwnProperty.call(rule,'background-image'));
+            for (const part of ['icon','name']) button.styles[part] = button.styles[part].filter(rule => !Object.prototype.hasOwnProperty.call(rule,'display'));
+        }
+    }
+    return menu;
+}
+
+function resolveFavorite({hass,config,runtime={}})
+{
+    const options = config._sonos || settings({}), states = hass && hass.states || {};
+    const map = (states[options.favorites] && states[options.favorites].attributes || {}).items || {};
+    const id = Object.keys(map)[config._favoriteIndex];
+    const matches = cacheItems(hass,config).filter(item => item && item.media_content_id === id);
+    const favorite = matches.length === 1 ? matches[0] : null;
+    const key = JSON.stringify([id,favorite,provider.peek(hass,config).version]);
+    const usable = favorite && validThumbnail(favorite.thumbnail) && key !== runtime.failedArtworkKey;
+    return {colors:{center:'rgba(52, 66, 78, 0.92)',inner:'#34383d',outer:'#34383d'},secondary:null,
+        ...(usable ? {name:'',artwork:{url:favorite.thumbnail,key,style:{...artworkLayout({scale:56/62}),top:'22%'}}} : {})};
 }
 
 module.exports = {
-    buildRadioMenu
+    buildRadioMenu, resolveFavorite
 };
