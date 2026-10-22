@@ -32,7 +32,7 @@ FLOORPLAN='''async(config)=>{
 
 class Beta5(Cubes):
  def floor(self,options=None):
-  config={'size':'auto','logo':'auto','items':[{'type':'light','entity':'light.zone_a'},{'type':'media','entity':'media_player.player_a'}]}
+  config={'size':'auto','auto_reference_width':640,'logo':'auto','items':[{'type':'light','entity':'light.zone_a'},{'type':'media','entity':'media_player.player_a'}]}
   config.update(options or {});self.page.evaluate(FLOORPLAN,config)
   
   if config.get('type')!='custom:honeycomb-persistent-control':self.page.wait_for_function('hub._hubMenu?.shadowRoot.querySelector("#honeycombs")')
@@ -56,7 +56,7 @@ class Beta5(Cubes):
  def test_contain_cover_offsets_and_nonuniform_fallback(self):
   self.floor();self.resize(400,400)
   # Centered image has y letterbox; percentages must map into actual pixels.
-  self.page.evaluate("hub.remove();hub=addOverlay({size:'auto',logo:false,items:[{type:'light',entity:'light.zone_a'}]},'25%','25%')")
+  self.page.evaluate("hub.remove();hub=addOverlay({size:'auto',auto_reference_width:640,logo:false,items:[{type:'light',entity:'light.zone_a'}]},'25%','25%')")
   self.page.wait_for_timeout(120);r=self.measured();left,top=self.page.evaluate('(()=>{let r=floorImage.getBoundingClientRect();return [r.left,r.top]})()')
   self.assertAlmostEqual(r['size'],51.25);self.assertAlmostEqual(r['center'],left+100,delta=.2);self.assertAlmostEqual(r['y'],top+137.5,delta=.2)
   self.capture('auto-contain-letterbox')
@@ -65,16 +65,16 @@ class Beta5(Cubes):
   self.capture('auto-cover-crop')
   self.page.evaluate("floorImage.style.objectFit='fill'");self.page.wait_for_timeout(100);self.assertEqual(self.measured()['size'],82);self.assertEqual(self.measured()['translate'],'')
  def test_two_overlays_shared_observer_hidden_reconnect_image_change(self):
-  self.floor();self.page.evaluate("window.second=addOverlay({size:'auto',logo:false,items:[{type:'light',entity:'light.zone_a'}]},'70%','60%')")
+  self.floor();self.page.evaluate("window.second=addOverlay({size:'auto',auto_reference_width:640,logo:false,items:[{type:'light',entity:'light.zone_a'}]},'70%','60%')")
   self.resize(320,200);self.assertEqual(self.page.evaluate('second.size'),41)
   for _ in range(5):
-   self.page.evaluate("second.remove();second=addOverlay({size:'auto',logo:false,items:[{type:'light',entity:'light.zone_a'}]},'70%','60%')")
+   self.page.evaluate("second.remove();second=addOverlay({size:'auto',auto_reference_width:640,logo:false,items:[{type:'light',entity:'light.zone_a'}]},'70%','60%')")
    self.page.wait_for_timeout(30)
   count=self.page.evaluate("obs.filter(o=>o.key==='ResizeObserver'&&o.instance.nodes.has(floor)).length");self.assertEqual(count,1)
   self.page.evaluate("floor.style.display='none'");self.page.wait_for_timeout(80);self.assertEqual(self.page.evaluate('hub.size'),82);self.assertEqual(self.page.evaluate('hub._hubMenu.style.visibility'),'hidden')
   self.page.evaluate("floor.style.display='block'");self.page.wait_for_timeout(80);self.assertEqual(self.page.evaluate('hub.size'),41)
   self.page.evaluate("floorImage.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"200\"><rect width=\"320\" height=\"200\" fill=\"gray\"/></svg>')")
-  self.page.wait_for_function('hub.size===82&&second.size===82')
+  self.page.wait_for_function('hub.size===41&&second.size===41')
   for i in range(5):
    self.page.evaluate('hub.remove();second.remove()');self.page.wait_for_timeout(20)
    self.assertEqual(self.page.evaluate('obs.reduce((n,o)=>n+o.instance.nodes.size,0)'),0)
@@ -100,7 +100,7 @@ class Beta5(Cubes):
   self.assertEqual(self.page.evaluate('hub.size'),41)
   self.hold_input(self.page.locator('honeycomb-persistent-control#anchor .interaction-surface') if self.page.locator('#anchor').count() else self.page.locator('hui-picture-elements-card honeycomb-persistent-control .interaction-surface'))
   self.settle();self.resize(480,300);self.assertEqual(self.page.evaluate('hub._autoSizedMenu.sizes.item'),61.5)
-  self.page.evaluate("hub.remove();floor.remove();makeControl({size:'auto',module:'light',entity:'light.zone_a'})")
+  self.page.evaluate("hub.remove();floor.remove();makeControl({size:'auto',auto_reference_width:640,module:'light',entity:'light.zone_a'})")
   self.assertEqual(self.page.evaluate('control.size'),82)
  def test_numeric_equivalence_sidebar_orientation_and_idle_not_reset(self):
   self.floor({'logo':False,'items':[{'type':'light','entity':'light.zone_a'}]})
@@ -108,7 +108,7 @@ class Beta5(Cubes):
   def metrics():return self.page.locator('honeycomb-menu-ng .center-item').evaluate('(el)=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height,inner:el.shadowRoot.querySelector(".hex-inner").parentElement.getAttribute("transform"),content:getComputedStyle(el.shadowRoot.querySelector(".content")).fontSize})')
   automatic=metrics();self.page.evaluate("hub.remove();hub=addOverlay({size:60,logo:false,items:[{type:'light',entity:'light.zone_a'}]})")
   self.page.wait_for_function('hub._hubMenu?.shadowRoot.querySelector("#honeycombs")');self.settle();fixed=metrics();self.assertAlmostEqual(fixed['w'],automatic['w'],delta=.03);self.assertAlmostEqual(fixed['h'],automatic['h'],delta=.03);self.assertEqual(fixed['content'],automatic['content'])
-  self.page.evaluate("hub.remove();hub=addOverlay({size:'auto',logo:false,items:[{type:'light',entity:'light.zone_a'}]})")
+  self.page.evaluate("hub.remove();hub=addOverlay({size:'auto',auto_reference_width:640,logo:false,items:[{type:'light',entity:'light.zone_a'}]})")
   self.page.wait_for_function('hub._hubMenu?.shadowRoot.querySelector("#honeycombs")')
   self.page.set_viewport_size({'width':844,'height':600});self.resize(480,300);self.assertAlmostEqual(self.measured()['size'],61.5)
   self.page.evaluate("floor.style.marginLeft='100px'");self.page.wait_for_timeout(80)
@@ -120,7 +120,7 @@ class Beta5(Cubes):
  def test_auto_two_hubs_sonos_artwork_logo_and_wave(self):
   self.station_hub();self.page.evaluate('hub.remove()')
   self.floor({'logo':'auto','items':[{'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites'}, {'type':'generic','name':'Energy demo','energy_wave':{'active':True,'available':True,'fault':False,'power_w':1200},'tap_action':{'action':'none'}}]})
-  self.page.evaluate("window.second=addOverlay({size:'auto',logo:false,items:[{type:'light',entity:'light.zone_a'}]},'75%','65%')")
+  self.page.evaluate("window.second=addOverlay({size:'auto',auto_reference_width:640,logo:false,items:[{type:'light',entity:'light.zone_a'}]},'75%','65%')")
   self.resize(480,300);self.page.wait_for_function('!!hub._hubMenu.shadowRoot.querySelector(".station-artwork") || [...hub._hubMenu.shadowRoot.querySelectorAll("honeycomb-menu-ng-item")].some(c=>c.shadowRoot.querySelector(".station-artwork"))')
   self.page.emulate_media(reduced_motion='reduce');self.capture('auto-multiple-logo-native-artwork-wave')
   self.assertEqual(self.page.evaluate('second.size'),61.5)
@@ -129,7 +129,7 @@ class Beta5(Cubes):
   document=Path('docs/FLOORPLAN_SIZING.md').read_text();config=yaml.safe_load(re.search(r'```yaml\n(.*?)```',document,re.S).group(1))
   self.station_hub();self.page.evaluate('hub.remove()');self.page.evaluate("pushState('sensor.favorites_a','2',{items:{favorite_a:'Station A',favorite_b:'Station B'}})")
   self.page.evaluate(FLOORPLAN,config['elements'][0]);self.page.evaluate('config=>window.second=addOverlay(config)',config['elements'][1]);self.resize(320,200)
-  self.assertEqual(self.page.evaluate('[hub.size,second.size]'),[41,41]);self.capture('documented-floorplan-auto')
+  reference=config['elements'][0].get('auto_reference_width',1536);self.assertEqual(self.page.evaluate('[hub.size,second.size]'),[82*320/reference]*2);self.capture('documented-floorplan-auto')
   self.page.evaluate('hub.remove();second.remove();floor.remove()')
   demo=yaml.safe_load(Path('examples/energy-wave.yaml').read_text());self.hub(demo);self.settle()
   self.assertEqual(self.page.locator('honeycomb-menu-ng .energy-contour').count(),1);self.assertEqual(self.page.evaluate('calls.length'),0);self.capture('documented-synthetic-energy')

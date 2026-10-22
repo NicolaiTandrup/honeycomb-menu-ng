@@ -1,5 +1,6 @@
 const {validateGradient}=require('./cube-presentation');
 const energyWave=require('./energy-wave');
+const {referenceWidth}=require('./image-sizing');
 const merge = require('lodash/merge');
 const { moduleRegistry } = require('../modules/index.js');
 
@@ -46,6 +47,7 @@ function validateCubeConfig(config, {hubItems = false, placement = false} = {})
         throw new Error('Dynamic visibility and priority placement are supported only on Hub items.');
     validateGradient(config.colors && config.colors.fill_gradient);
     energyWave.validate(config.energy_wave);
+    referenceWidth(config.auto_reference_width);
     if (Array.isArray(config)) {
         config.forEach(value => { if (value && typeof value === 'object') validateCubeConfig(value, {placement}); });
         return;

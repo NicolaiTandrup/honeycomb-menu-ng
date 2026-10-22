@@ -1,5 +1,14 @@
 // Auto is an input to the existing numeric geometry engine, never a CSS scale.
 const DEFAULT_SIZE=82;
+// A design/display width, never the raster's pixel resolution or client startup width.
+const DEFAULT_REFERENCE_WIDTH=1536;
+function referenceWidth(value) {
+    if(value===undefined)return DEFAULT_REFERENCE_WIDTH;
+    if(typeof value!=='number' || !Number.isFinite(value) || value<=0)
+        throw new Error('auto_reference_width must be a positive finite CSS-pixel number.');
+    return value;
+}
+function effectiveSize(frame,reference=DEFAULT_REFERENCE_WIDTH){return frame?DEFAULT_SIZE*frame.width/referenceWidth(reference):DEFAULT_SIZE;}
 function numericSize(value) {
     if(value==='auto' || value===undefined)return DEFAULT_SIZE;
     const size=Number(value);
@@ -84,7 +93,7 @@ function createRecord(card){
                 }
             }
             const bounds=card.getBoundingClientRect();
-            callback({size:frame?82*frame.scale:82,dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
+            callback({size:effectiveSize(frame,(host.config || {}).auto_reference_width),dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
         }
     }
     resize.observe(card);mutation.observe(card,{childList:true});
@@ -92,4 +101,4 @@ function createRecord(card){
     window.addEventListener('resize',schedule);document.addEventListener('visibilitychange',schedule);
     return {clients,schedule,watchClient,rewatch:()=>watch(true),dispose(){if(raf!==null)cancelAnimationFrame(raf);resize.disconnect();mutation.disconnect();if(image)image.removeEventListener('load',schedule);window.removeEventListener('resize',schedule);document.removeEventListener('visibilitychange',schedule);}};
 }
-module.exports={numericSize,imageFrame,observeImage,pictureCard,diagnostics:()=>({imageObservers:activeRecords})};
+module.exports={numericSize,imageFrame,effectiveSize,referenceWidth,DEFAULT_REFERENCE_WIDTH,observeImage,pictureCard,diagnostics:()=>({imageObservers:activeRecords})};
