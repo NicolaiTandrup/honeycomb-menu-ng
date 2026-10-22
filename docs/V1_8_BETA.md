@@ -9,7 +9,8 @@ for exact names and mixed-install popup disambiguation. Hub/Control YAML is unch
 
 Default active gradients, bounded presentation overrides and the future charging
 wave are **not implemented in beta.1**. Sonos Favorites research is not bundled;
-existing configured favorites/cache sensors keep working. No Charger/Climate/Car
+existing configured favorites/cache sensors keep working **in beta.1–beta.3 only**;
+beta.4 removes template-cache support as described below. No Charger/Climate/Car
 module or backend integration is installed.
 
 HACS: enable beta versions, redownload Honeycomb Menu NG, select the published
@@ -26,7 +27,7 @@ Owner checklist:
   classic API/event opens its own menu; no duplicate registrations/global overwrite.
 - Light RGB/Kelvin state, on/off, brightness/presets and both recursive zooms;
   tap applies once, hold changes no device state, Back restores exact palettes.
-- Sonos playing/paused artwork/volume, favorite order/playback, live station/cache
+- Sonos playing/paused artwork/volume, favorite order/playback, live station/Browse
   updates, Join discovery/grouping and sibling navigation/idle-close.
 - Native Sonos Sleep leader/follower/cancel, browser closure/reload and HA restart
   expectations; remaining labels are estimates, never device readback.
@@ -41,3 +42,15 @@ No master merge or stable publication is authorized by beta testing.
 ## beta.2 candidate — cumulative presentation
 
 Includes beta.1 namespace isolation plus shared static active gradients and bounded artwork layout. See [CubePresentation](CUBE_PRESENTATION.md). No charging animation or research module is shipped. Compare active RGB/Kelvin Light, playing/paused Sonos, independent borders, explicit center/solid/edge settings and mobile text/artwork legibility. Run the complete beta.1 checklist too; stable requires owner real HA approval.
+
+## Cumulative beta.3 and beta.4
+
+Beta.3 calibrates the shared active fill edge to 30% default darkening; explicit
+20% settings remain 20%, center equals inner border and inactive fills remain solid.
+Beta.4 includes exact tested beta.3 ancestry plus [native Sonos favorite
+metadata](SONOS_NATIVE_FAVORITES.md) as the default and only enrichment provider.
+Legacy template-cache support is removed; migrate before upgrading. No template
+YAML or backend integration is needed. This owner-approved breaking beta change
+requires a SemVer major/stable compatibility review before promotion.
+Both releases remain immutable prereleases; master/v1.7.1 stable are unchanged.
+Beta.5 is reserved for actionable owner HA findings; no automatic stable promotion.

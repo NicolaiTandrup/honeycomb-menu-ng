@@ -39,7 +39,6 @@ items:
     group_volume_up_script: script.sonos_drivhus_group_volume_up
     toggle_member_script: script.sonos_drivhus_toggle_member
     favorites_sensor: sensor.sonos_favorites
-    favorites_cache_sensor: sensor.sonos_favorites_cache
     members:
       - entity: media_player.tv_stue
         name: TV Stue

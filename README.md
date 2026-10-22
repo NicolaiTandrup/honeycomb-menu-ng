@@ -291,24 +291,30 @@ take precedence over Kelvin for slot 4. [Light reference](docs/LIGHT_MODULE.md).
 
 ### Sonos and external HA setup
 
-Group volume works natively using `group_members`; no volume scripts are required.
-Radio needs the official Sonos favorites entity enabled in HA (often disabled by
-default). Supply its actual ID via `favorites_sensor`. An optional external
-[cache sensor](examples/sonos-favorites-cache.yaml) adds artwork; it does not supply
-playback IDs. The current beta discovers Sonos rooms and groups natively;
-`members` and an external [toggle script](examples/sonos-toggle-member.yaml) remain
-optional overrides. Slot 4 opens native Sleep choices using official
-[Sonos device actions](docs/SONOS_SLEEP_TIMER.md), with no helper/script setup. Browse is an explicit custom navigation
-choice rather than a default Sonos control.
-The [complete Sonos example](examples/v1.7/sonos.yaml) and
-[AI prerequisite checklist](docs/AI_SETUP.md#external-home-assistant-prerequisites)
-explain setup, data shapes, includes and refresh. [Sonos reference](docs/SONOS_MODULE.md).
+Group volume, room discovery/Join and native device Sleep need no helper scripts.
+Radio still needs HA's **official native Sonos favorites entity** enabled; supply
+its actual ID with `favorites_sensor` (default `sensor.sonos_favorites`).
+
+**Breaking change in v1.8.0-beta.4:** supported read-only HA Browse Media is now
+Sonos's default and only favorite-artwork/metadata provider. Remove
+`favorites_cache_sensor` from dashboard YAML and remove the custom favorites-cache
+template definition/refresh automation previously used only for Honeycomb. Keep
+unrelated templates and the **native** favorites entity. No legacy sensor lookup,
+autodetection, fallback or compatibility shim remains, even if the entity exists.
+Browse errors safely show icon/text. No special artwork option or backend install.
+The owner approved this for beta.4; SemVer breaking/stable-major review remains
+required before any stable promotion. v1.7.1 stable is unchanged.
+
+See [complete native examples, migration and DevTools proof](docs/SONOS_NATIVE_FAVORITES.md),
+[Sonos reference](docs/SONOS_MODULE.md), [native Sleep](docs/SONOS_SLEEP_TIMER.md)
+and [the complete card](examples/v1.7/sonos.yaml). `members` and a custom
+[toggle script](examples/sonos-toggle-member.yaml) remain optional grouping overrides.
 
 Issue #90 development patch (target v1.7.1): Sonos inner slots become **1 Radio,
 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
 room membership or an explicit setup/availability state. Radio's outer submenu
 retains its ordering, artwork and playback, with new stable favorite accent rings.
-A reliably identified favorite can provide cached launcher artwork and playing
+A reliably identified favorite can provide native launcher artwork and playing
 color; pause/stop remains neutral. See [matching limits and styling precedence](docs/SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
 
 ## Actions, appearance and navigation
@@ -331,7 +337,7 @@ color; pause/stop remains neutral. See [matching limits and styling precedence](
 
 If nothing renders, check both module resources, version/cache, browser errors and
 entity IDs. For missing favorites check the official sensor; for missing artwork
-check cache data/refresh and browser access to thumbnail URLs. Join needs its
+check native Browse Media responses/permissions and browser access to thumbnail URLs. Join needs its
 script and candidate list. A hidden hard item intentionally leaves a hole.
 
 - [Versioned AI setup guide and six tested YAML examples](docs/AI_SETUP.md)

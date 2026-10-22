@@ -2,10 +2,20 @@ const {validateGradient}=require('./cube-presentation');
 const merge = require('lodash/merge');
 const { moduleRegistry } = require('../modules/index.js');
 
+function rejectRemovedSonosOptions(config)
+{
+    if (config.favorites_cache_sensor !== undefined)
+        throw new Error('favorites_cache_sensor was removed in v1.8.0-beta.4. Remove this option and the custom favorites-cache template; Sonos now uses native Browse Media.');
+    if (config.favorites_browse !== undefined)
+        throw new Error('favorites_browse is not configurable: native Browse Media is now the only Sonos metadata source. Remove this option.');
+}
+
 // Domain adapters return data. Geometry, rendering and gestures never belong
 // to a module. Both public entry points use this exact compilation boundary.
 function buildCubeConfig(item, hass, index = 0, slot = 0)
 {
+    rejectRemovedSonosOptions(item);
+    rejectRemovedSonosOptions(item.persistent || {});
     if (item.module && !moduleRegistry.get(item.module)) throw new Error(`Unknown Honeycomb module: ${item.module}`);
     const module = moduleRegistry.resolve(item, hass);
     const submenu = item.menu !== undefined ? merge({}, item.menu)
@@ -30,6 +40,7 @@ function buildCubeConfig(item, hass, index = 0, slot = 0)
 function validateCubeConfig(config, {hubItems = false, placement = false} = {})
 {
     if (!config || typeof config !== 'object') throw new Error('A Honeycomb configuration is required.');
+    rejectRemovedSonosOptions(config);
     if (!placement && (config.visibility !== undefined || config.slot_mode === 'priority'))
         throw new Error('Dynamic visibility and priority placement are supported only on Hub items.');
     validateGradient(config.colors && config.colors.fill_gradient);
@@ -38,7 +49,7 @@ function validateCubeConfig(config, {hubItems = false, placement = false} = {})
         return;
     }
     for (const key of ['items','buttons','menu','tap_action','hold_action',
-        'double_tap_action','honeycomb_menu','honeycomb_nested_menu']) {
+        'double_tap_action','honeycomb_menu','honeycomb_nested_menu','persistent']) {
         const value = config[key];
         if (value && typeof value === 'object') validateCubeConfig(value, {placement:hubItems && key === 'items'});
     }

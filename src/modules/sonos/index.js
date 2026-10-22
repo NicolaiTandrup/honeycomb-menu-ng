@@ -3,7 +3,8 @@ const station = require('./station.js');
 const sleep = require('./sleep.js');
 const { registerActions } = require('./grouping.js');
 const { sonosButtonStyles } = require('./presentation.js');
-const { buildRadioMenu } = require('./favorites.js');
+const { buildRadioMenu,resolveFavorite } = require('./favorites.js');
+const {provider} = require('./native-favorites');
 
 function actionForScript(script, fallbackService, entity)
 {
@@ -176,8 +177,8 @@ module.exports = {
     aliases: ['media-sonos'],
     priority: 400,
     launcherKind: 'persistent',
-    persistentModes: ['sonos','sonos-sleep'],
-    presentation: {resolve:context=>context.config.mode==='sonos-sleep' ? sleep.resolve(context) : station.resolve(context),
+    persistentModes: ['sonos','sonos-sleep','sonos-favorite'],
+    presentation: {observe:notify=>provider.observe(notify),resolve:context=>context.config.mode==='sonos-sleep' ? sleep.resolve(context) : context.config.mode==='sonos-favorite' ? resolveFavorite(context) : station.resolve(context),
         diagnostics:context=>context.config.mode==='sonos-sleep' ? {ready:sleep.status(context.hass,context.config._sleep || {}).ready} : station.diagnostics(context)},
 
     // Backwards compatible: existing type: media continues to mean the

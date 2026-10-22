@@ -8,6 +8,7 @@ h1{font-size:18px;margin:18px} #anchor{position:absolute;left:160px;top:260px}
 <h1>Honeycomb shared cube test</h1><home-assistant></home-assistant>
 <script src="/mdi-icons.js"></script>
 <script>
+window.nativeFavoritesOnly=false;
 window.calls=[]; window.moreInfo=[];
 window.hass={states:{
  'light.zone_a':{entity_id:'light.zone_a',state:'on',attributes:{brightness:128,rgb_color:[255,128,0],color_temp_kelvin:2700,min_color_temp_kelvin:2200,max_color_temp_kelvin:6500,supported_color_modes:['hs','color_temp']}},
@@ -21,8 +22,23 @@ window.hass={states:{
 user:{name:'Test'},callService:(...args)=>{calls.push(args);return Promise.resolve()}};
 const root=document.querySelector('home-assistant'); root.hass=hass;
 const clients=new Set(); root.provideHass=element=>{clients.add(element);element.hass=hass};
-window.pushStates=updates=>{for(const [entity,state,attributes] of updates)hass.states[entity]={entity_id:entity,state,attributes:attributes||{}};for(const client of clients)if(client.isConnected)client.hass=hass};
+window.pushStates=updates=>{for(const [entity,state,attributes] of updates){hass.states[entity]={entity_id:entity,state,attributes:attributes||{}};if(window.nativeFavoritesOnly && entity==='sensor.favorites_cache'){window.testBrowseItems=attributes?.items||[];window.fixtureMetadataChanged=true;}}for(const client of clients)if(client.isConnected)client.hass=hass;if(window.fixtureMetadataChanged && hass.connection===window.fixtureBrowseConnection){window.fixtureMetadataChanged=false;hass.connection.dispatchEvent(new Event('ready'));}};
 window.pushState=(entity,state,attributes)=>pushStates([[entity,state,attributes]]);
+// Historical regression recipes feed their old synthetic metadata into a real
+// Browse Media response for the new bundle. Production never reads that entity.
+// Dedicated native_favorites.py uses an independent WS mock and hostile cache
+// sentinels/Proxy guards; it does not use this historical fixture adapter.
+window.testBrowseItems=[];window.fixtureBrowseCalls=[];
+if(window.nativeFavoritesOnly){
+ const connection=new EventTarget();connection.connected=true;
+ connection.sendMessagePromise=async request=>{
+  fixtureBrowseCalls.push(request);
+  if(request.type!=='media_player/browse_media')throw new Error('Unexpected fixture WS command');
+  return request.media_content_type==='favorites'?{children:[{media_content_type:'favorites_folder',media_content_id:'object.item.audioItem.audioBroadcast'}]}:
+   {children:testBrowseItems.map(item=>({...item,title:item.title??hass.states['sensor.favorites']?.attributes.items?.[item.media_content_id]??'',media_content_type:item.media_content_type||'favorite_item_id'}))};
+ };hass.connection=window.fixtureBrowseConnection=connection;
+}
+
 window.providedClients=clients;
 function shadow(parent,tag){const el=document.createElement(tag);parent.append(el);return el.attachShadow({mode:'open'})}
 const main=shadow(root.attachShadow({mode:'open'}),'home-assistant-main');

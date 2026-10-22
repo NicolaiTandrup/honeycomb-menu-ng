@@ -187,7 +187,7 @@ class CubeElement extends LitElement
         if (!this._presentationDependencies) this._presentationDependencies = presentationDependencies(this.config);
         if (!this._presentationDependencies.wildcard) {
             const snapshot = presentationSnapshot(obj, this._presentationDependencies);
-            if (snapshot === this._entitySnapshot) return;
+            if (snapshot === this._entitySnapshot && presentationUpdates.connectionKey(obj) === this._observerConnection) return;
             this._entitySnapshot = snapshot;
         }
         this._updatePresentation();
@@ -219,9 +219,23 @@ class CubeElement extends LitElement
         } catch (_) { return fallback; }
     }
 
+    _syncPresentationObserver()
+    {
+        const module = this.isConnected && moduleRegistry.resolvePresentation(this.config && this.config.mode);
+        const observe = module && module.presentation.observe;
+        if (observe !== this._observerFactory) {
+            if (this._moduleObserver) this._moduleObserver.dispose();
+            this._observerFactory = observe;
+            this._moduleObserver = observe ? observe(() => this._updatePresentation()) : null;
+        }
+        this._observerConnection = presentationUpdates.connectionKey(this.hass);
+        if (this._moduleObserver) this._moduleObserver.update(this.hass,this.config);
+    }
+
     _updatePresentation()
     {
         if (!this.config) return;
+        this._syncPresentationObserver();
         const key=this.isConnected && this.config._sleep ? presentationUpdates.connectionKey(this.hass) : null;
         if (key!==this._localPresentationKey) {
             if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
@@ -254,7 +268,7 @@ class CubeElement extends LitElement
             disabled:!!(this.config.disabled || presentation.disabled),
             colorMix:supportsColorMix});
         const model = {colors, fill, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
-            name:this.config.show_name ? this._value(this.config.name) : '',
+            name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
             icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
             foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
@@ -365,6 +379,8 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        if (this._moduleObserver) this._moduleObserver.dispose();
+        this._moduleObserver=null;this._observerFactory=null;this._observerConnection=null;
         if (this._localPresentationUnsubscribe) this._localPresentationUnsubscribe();
         this._localPresentationUnsubscribe=null;this._localPresentationKey=null;
         clearTimeout(this._presentationTimer);this._presentationTimer=null;this._presentationRefreshAt=null;

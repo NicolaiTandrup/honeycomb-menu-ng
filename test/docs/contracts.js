@@ -95,3 +95,10 @@ for(const text of ['min_color_temp_kelvin','max_color_temp_kelvin','Shift+Enter'
     assert.ok(kelvinGuide.toLowerCase().includes(text.toLowerCase()),`Kelvin guide: ${text}`);
 const white=buildCubeConfig(input.examples['kelvin-light.yaml'],hass);
 assert.equal(white.entity,'light.white_a');assert.equal(white.face_mode,'cell');
+
+// Current public examples must never recommend the removed template cache.
+const nativeGuide=fs.readFileSync('docs/SONOS_NATIVE_FAVORITES.md','utf8');
+for(const text of ['only','Remove every `favorites_cache_sensor`','official native','SemVer','WebSocket','media_player/browse_media'])
+ assert.ok(nativeGuide.includes(text),`Native favorites migration guide: ${text}`);
+assert.ok(!fs.existsSync('examples/sonos-favorites-cache.yaml'));
+for(const entry of input.cards) assert.ok(!JSON.stringify(entry.config).includes('favorites_cache_sensor'));

@@ -41,12 +41,11 @@ domains, exclusive brightness visibility, automatic tables, favorites playback,
 Join script data and the classic event path. Existing core/browser suites cover
 additional module/capability, navigation, collision and interaction combinations.
 
-External [cache](../examples/sonos-favorites-cache.yaml) and
-[Join](../examples/sonos-toggle-member.yaml) recipes are parsed and their action
-wiring/Jinja output exercised with synthetic browse/group data. This **does not
-run Home Assistant's configuration validator or test physical devices**. After
-substituting actual IDs, the installer must check HA configuration, reload recipes,
-verify resulting entity IDs and integration actions, and test on their dashboard.
+The optional [Join script](../examples/sonos-toggle-member.yaml) is parsed and
+its action/Jinja wiring exercised with synthetic grouping data. Native favorites
+Browse Media now requires no external cache recipe; [migrate removed cache setup](SONOS_NATIVE_FAVORITES.md).
+These checks do not run HA's configuration validator or test physical devices.
+After substituting actual IDs, test the real dashboard/integration behavior.
 
 Top-level `examples/persistent-hub.yaml` and `examples/light-presets.yaml` point to
 the current contracts. Older version-prefixed example files are historical material,

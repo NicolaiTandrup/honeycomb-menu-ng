@@ -1,14 +1,13 @@
 # AI configuration guide
 
-**SUPPORTED AS OF v1.7.1 Stable.** Includes the v1.7.0 shared Hub/Control and
-visibility/placement architecture plus all owner-approved cumulative beta.8
-functionality (`c1cdd390bed1c1acfc22b314807ce63050e43248`, Issue #102). Sonos slots,
-native no-helper Sleep, Radio artwork/cache compatibility, sibling navigation and
-recursive Light Hue/Kelvin zoom described in the versioned sections below are now
-stable. Historical beta headings identify when a capability was introduced; they
-are not a request to install an obsolete beta. Package/release metadata is `1.7.1`,
-stable. Car/Charger, Climate and unfinished #92/#93/#87/#86 remain excluded; #83
-retention is independent and disabled. No runtime code from v1.6 is imported.
+**VERSION CONTRACT:** v1.7.1 Stable functionality remains supported. This branch
+adds v1.8.0-beta.1 runtime namespace isolation, beta.2 shared presentation,
+beta.3 default 30% active-gradient edge and **beta.4 native-only Sonos favorites (breaking migration)**.
+These are prerelease capabilities, not stable v1.8 approval. See [runtime migration](NG_RUNTIME.md),
+[shared presentation](CUBE_PRESENTATION.md) and [native favorites](SONOS_NATIVE_FAVORITES.md).
+No Car/Charger/Climate, backend helper or retention activation is included.
+All prior Sonos Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior
+remains supported. No runtime code from v1.6 is imported.
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute
@@ -27,7 +26,7 @@ Ask for actual IDs or omit optional features. Public examples must remain synthe
    Sonos merely from a `media_player` domain. Hub bare `type: media` is a legacy Sonos
    alias; use `type: media` with `module: media` for generic media.
 4. Request optional IDs only when needed: writable numeric preset values for Light;
-   enabled favorites sensor for Radio; cache sensor for artwork; Join script and
+   enabled favorites sensor for Radio; native Browse Media for artwork (beta.4+); Join script and
    candidate players for grouping. Native group volume needs no scripts.
 5. For a Hub, choose branding and placement. Prefer established automatic hard
    positions for static layouts. Use explicit hard slots for reservations, priority
@@ -52,7 +51,7 @@ is not proof that a feature exists. Do not invent keys such as `visible_when`,
 | Shared presentation | `name`, `label`, `icon` strings/templates; `show_name`, `show_label`, `show_icon` booleans/templates; `background`, `foreground`; `colors`; `border`; `styles`; `variables`; `custom_fields`; `interactive`; `off`; `active_color`; `show_brightness`, `show_volume`. |
 | Shared interaction | `tap_action`, `hold_action`, `double_tap_action` action objects; `hold_time` ms (default 500, minimum 250); `autoclose`; `audio`. Optional `menu` overrides the module menu; advanced Hub `persistent` overrides its compiled launcher. |
 | Light options | `presets.brightness: {entity, default?}`; `presets.kelvin: {entity, default?}`; `presets.color: {hue_entity, saturation_entity}`. See units and capability precedence below. |
-| Sonos options | `active_color`; `favorites_sensor`; `favorites_cache_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`. Sleep in beta.6 needs no configuration or helpers. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
+| Sonos options | `active_color`; `favorites_sensor`; `toggle_member_script`; `members: [{entity, name?, icon?}]`. Sleep in beta.6 needs no configuration or helpers. Legacy `group_volume_down_script` / `group_volume_up_script` are supported but unnecessary for native group volume. |
 
 Presentation keys pass through the shared engine; `styles` uses button-card-style
 lists under `card`, `icon`, `name`, `label`, `grid`. Domain defaults can hide names
@@ -195,56 +194,34 @@ Lights or 12 Kelvin steps for temperature-only Lights. Brightness-only keeps a
 passive slot 3; explicitly `[onoff]` has no detail menu. Never infer `[onoff]` just
 from missing attributes on an unavailable entity. [Light details](LIGHT_MODULE.md).
 
-### Sonos Radio and artwork cache
+### Sonos Radio and native metadata — beta.4 breaking contract
 
-1. Install/configure official HA Sonos. Enable its favorites entity (usually
-   disabled by default); collect its **actual** ID for `favorites_sensor`.
-   Default compatibility IDs are `sensor.sonos_favorites` and
-   `sensor.sonos_favorites_cache`, but examples use explicit synthetic IDs.
-2. Base favorites **must** expose `attributes.items` as a map of favorite ID to
-   title. Order is the map's key order; at most 12 entries are displayed.
-3. For artwork only, adapt [the HA cache recipe](../examples/sonos-favorites-cache.yaml):
-   replace every `media_player.player_a` with one real reference Sonos player and
-   `sensor.favorites_a` with the enabled favorites entity. The recipe calls the
-   existing HA `media_player.browse_media` action, with `favorites_folder` /
-   `object.item.audioItem.audioBroadcast`, capturing its response. This is external
-   HA Browse Media functionality; verify the action/response on the actual player.
-4. The trigger-based template creates **Favorites Cache A**. Confirm its registered
-   entity ID; `sensor.favorites_cache_a` in the example is not a promise of registry
-   naming. Set `favorites_cache_sensor` to the actual ID.
+Use the official Sonos favorites entity for IDs/order (`favorites_sensor`, default
+`sensor.sonos_favorites`); it is often disabled by default in HA. Its
+`attributes.items` must be an ID→title map, normally FV IDs. Browse Media is now
+**default and the only metadata provider**, with no artwork option, backend or
+template setup. Never generate `favorites_cache_sensor` or `favorites_browse`:
+removed options produce migration errors. Never read/fall back to a custom cache
+sensor even if present. Users must remove old custom favorites-cache template
+and exclusive refresh triggers/automation themselves, retaining unrelated templates
+and the **native** favorites entity. Do not mutate live HA config for them.
 
-Data contract (illustrative JSON **state attributes**, not card YAML):
+[Exact migration and copy/paste Hub/Control cards](SONOS_NATIVE_FAVORITES.md).
+The owner explicitly accepts this breaking beta.4 change; a SemVer major/stable
+compatibility decision must be reviewed before stable. Do not claim v1.7.1 stable
+supports this new default. Historical tagged versions document their original setup.
 
-```json
-{
-  "sensor.favorites_a": {
-    "items": {"favorite_a": "Station A", "favorite_b": "Station B"}
-  },
-  "sensor.favorites_cache_a": {
-    "items": [{"title": "Station A", "media_content_id": "favorite_a",
-      "media_content_type": "favorite_item_id", "thumbnail": ""}]
-  }
-}
-```
+Read-only `media_player/browse_media` traverses `favorites` and returned
+`favorites_folder` IDs for `favorite_item_id` metadata. Official map remains
+authoritative; browse does not supply arbitrary stream mappings or populate an
+absent map. Require matching ID/title and strict unique station-channel corroboration;
+never infer from arbitrary track titles or ambiguous names/URLs. Failure means
+normal icon/title. Metadata/known station artwork updates live on both Hub launcher
+and promoted center; list/count changes still require reopening Radio.
 
-The cache's `items` is a **list of dictionaries**. Artwork matches by exact
-`media_content_id`, never by display title. A nonempty `thumbnail` replaces the
-radio icon/text with artwork. Use the real thumbnail returned by HA, accessible
-to the dashboard browser; do not invent an artwork service/URL. Empty/missing
-cache falls back to icon/title. Playback always uses the **base favorites ID**
-with `media_player.play_media`, type `favorite_item_id`; cache alone cannot populate
-Radio or supply playback IDs.
-
-Beta.2's optional cache recipe configures eligible `cache_players` once, in order;
-they must share a favorites library. It chooses the first available player on
-refresh, including HA start, favorites changes, the manual refresh event and the
-15-minute fallback. No source/base value means skip; `source_player` and
-`cache_version` provide diagnostics. Existing four-field templates stay supported.
-Radio count/list changes require reopening; current artwork/state updates live.
-
-Install the complete recipe under `template:` in `configuration.yaml`. If already
-using `template: !include templates.yaml`, copy only the `- triggers:` list item
-and below into that include. Merge lists; do not duplicate top-level `template:` keys.
+Per-tab connection-scoped cache is bounded/deduplicated, with operation deadlines,
+shared expiry refresh and reconnect/group/disposal guards; no per-cube polling.
+See the provider guide for exact limits, finite diagnostics and sanitized WS evidence.
 
 ### Sonos Join and native volume
 
@@ -392,7 +369,6 @@ items:
     name: Player A
     active_color: "#00bcd4"
     favorites_sensor: sensor.favorites_a
-    favorites_cache_sensor: sensor.favorites_cache_a
     toggle_member_script: script.player_a_toggle_member
     members:
       - entity: media_player.player_b
@@ -458,8 +434,8 @@ hold_action:
 
 For the non-dimmable example, HA must report `supported_color_modes: [onoff]` on
 `light.switch_a`; that attribute is not part of the emitted card YAML. The Sonos
-example requires the separately installed sensor/cache/script above. Omit optional
-cache/Join keys and external configuration when the user does not need them.
+example requires the enabled native favorites sensor and, only if requested, optional Join script
+above. Do not emit removed template-cache options or setup.
 
 ## Migration and limits
 
@@ -492,9 +468,9 @@ cache/Join keys and external configuration when the user does not need them.
 4. Apply/store presets (both numeric domains); test color and temperature-only
    Lights and explicit on/off-only On/Off behavior. Unavailable stays gray and
    recovers; no missing capability should be mistaken for on/off-only.
-5. Test solo/group volume, favorites playback, cache thumbnail matching and Join
-   data. Empty Radio means check base favorites; no artwork means inspect cache
-   refresh, exact IDs and browser URL access. Reopen Radio after list changes.
+5. Test solo/group volume, favorites playback, native Browse thumbnail matching and Join
+   data. Empty Radio means check native favorites; no artwork means inspect WS
+   response/permissions, exact IDs and browser URL access. Reopen Radio after list changes.
 6. Test home/away, attribute and threshold changes; exact numeric bounds hide.
    Unknown/missing dependencies hide unless a logical branch decides otherwise.
    Hidden hard holes are expected. Check diagnostics for collisions/overflow.
@@ -508,41 +484,22 @@ but never move that center. [Architecture](../ARCHITECTURE.md),
 [Phase 1](V1_7_PHASE1.md), [Issue #78](ISSUE_78.md), [Phase 2](V1_7_PHASE2.md),
 [documentation validation commands](DOCUMENTATION.md).
 
-## v1.7.1-beta.2 development additions (PR #91)
+## Sonos accents and recognition — current beta.4 contract
 
-The corrected Sonos inner slots/Join behavior above remain. Radio outer slots
-7–18 add only deterministic Light-wheel inner accents. Preserve favorite order,
-IDs, existing cache compatibility, artwork and actions. Up to 12 IDs have distinct colors stable
-under reordering; larger sets can share hues.
+Inner slots/Join behavior above are preserved. Favorite IDs choose stable Light
+hue-wheel accents; ordering/playback never comes from artwork metadata. Known
+station logos/accent update both Hub launcher and promoted center while playing;
+paused/idle fill is neutral. Custom styles/hidden icons retain precedence.
 
-Beta.4 matches exact favorite IDs or unique optional
-cached `uri`/`playback_uri`. Validated Sonos radio schemes can instead use a
-unique `media_channel` match against the favorite-map name OR cached `title`
-(type `favorite_item_id`); map/cache names need not agree. Normalize only NFC,
-whitespace and case. A live channel `Station Alpha · programme text` or
-`Station Alpha • programme text` can match its station prefix only when that
-name uniquely agrees with both map and typed cache title. Require the spaced
-separator/nonempty programme; reject conflicts with full labels, duplicate
-entries, arbitrary suffix/diacritic inference, substrings, HTTP channels and
-`media_title`. Valid artwork
-remains required. Four-field caches work unchanged. Reciprocal groups use the
-coordinator's identity. Recognized Sonos artwork may replace a navigation arrow;
-center Back action remains unchanged on deeper menus.
-Call the inspected cube's `getPresentationDiagnostics()` for privacy-safe
-state/counts/reasons (no identifiers/URLs or automatic logging). See
-[diagnostic procedure and evidence gate](SONOS_MODULE.md#station-recognition-diagnostics).
-The owner's sanitized FV/stream + station/programme tuple is covered by regressions;
-real hardware remains the owner's beta acceptance gate.
-No stream mapping is learned merely from successful service completion.
-
-Known logo/accent may remain on pause/stop only while metadata still matches;
-center fill becomes neutral `off.center_color`, default `#202224`. Explicit playing
-colors beat station accent, legacy `active_color` fallback and defaults; unavailable state stays
-unavailable. Custom background image and `show_icon: false` win over automatic
-artwork. See [Sonos precedence](SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
-
-PR #91 stays unmerged. Beta installation requires an actual GitHub prerelease
-and owner real-HA testing; synthetic CI is insufficient approval for stable.
+Native Browse Media is the sole enrichment source. Exact favorite ID or unique,
+corroborated radio channel/programme format is required. Never use arbitrary track
+titles, inferred stream URLs, custom cache entities or old explicit URI aliases.
+Missing/ambiguous metadata means standard presentation. Reciprocal group membership
+is required for leader metadata. [Migration/limits](SONOS_NATIVE_FAVORITES.md).
+Call `getPresentationDiagnostics()` for privacy-safe counts/status/reasons; see
+[diagnostic guidance](SONOS_MODULE.md#station-recognition-diagnostics). Real HA
+owner testing remains the acceptance gate; no stream mapping is learned from
+successful playback service completion.
 
 ## Light Color Zoom — cumulative v1.7.1-beta.3
 
@@ -573,7 +530,7 @@ integer seconds (900/1800/2700/3600/5400, maximum 7200) and
 `sonos.clear_sleep_timer` with empty data. Explicit target is the freshly validated
 selected group's coordinator, including follower selections. Reject inconsistent
 or unavailable groups. Missing native service disables its choice. Setting needs
-playback; paused/stopped cancellation is allowed. Preserve all optional Radio cache
+playback; paused/stopped cancellation is allowed. Preserve native Radio
 and grouping-script compatibility; generic Media/Light do not acquire Sleep keys.
 
 The Sonos device owns expiry. **Do not implement browser expiry, invent timer
@@ -597,7 +554,7 @@ with its own unused tag and exact tested branch head, without a master merge.
 
 Baseline is the exact published beta.6 commit
 `214443460f827c05f977a8aaeefe48f71a7216b6`. Preserve native Sonos Sleep (no HA
-helpers), Radio identity/cache/actions, Join Back, recursive Color zoom, presets,
+helpers), Radio identity/browse/actions, Join Back, recursive Color zoom, presets,
 dynamic placement, [terminology](TERMINOLOGY.md) and shared 82 CSS-px geometry.
 Sonos function icons/text inherit ordinary Light's shared hierarchy; no forced
 three-row preset grid. Station artwork stays compact at 62% of usable fill in
@@ -665,7 +622,7 @@ async discovery, Sleep estimates/acknowledgements and rerenders do not.
 
 Do not confuse UI idle-close with native Sonos Sleep Timer: closing the menu does
 not cancel the device timer. No helper/script setup is added. Preserve Radio
-order/cache/recognition, Join discovery/grouping, both Light palettes, presets,
+order/browse/recognition, Join discovery/grouping, both Light palettes, presets,
 dynamic Hub allocation and the 82 CSS-px geometry. Existing beta tags/assets and
 the unpublished beta.5 draft remain immutable; no stable/master merge without
 explicit owner approval after real HA validation. #90/#97/#99 remain open pending
