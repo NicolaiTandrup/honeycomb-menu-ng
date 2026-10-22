@@ -34,7 +34,7 @@ class NativeFavorites(Cubes):
    ]);
   }''')
  def item(self,**extra):
-  return {'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache','favorites_browse':True,**extra}
+  return {'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites',**extra}
  def start(self,**extra):self.hub({'logo':False,'items':[self.item(**extra)]})
  def center(self):return self.page.locator('honeycomb-menu-ng .center-item')
  def image(self):return self.center().locator('.station-artwork')
@@ -42,6 +42,10 @@ class NativeFavorites(Cubes):
   self.page.wait_for_function('(url)=>hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork?.url===url',arg=url)
   self.assertTrue(self.image().is_visible())
  def open_main(self):self.hold_input(self.center().locator('.interaction-surface'));self.settle()
+ def test_minimal_media_item_uses_native_sensor_default(self):
+  self.page.evaluate("hass.states['sensor.sonos_favorites']=hass.states['sensor.favorites']")
+  self.hub({'logo':False,'items':[{'type':'media','entity':'media_player.player_a'}]});self.wait_image();self.assertEqual(self.page.evaluate('browseCalls.length'),2)
+  self.open_main();self.wait_image();self.capture('native-only-minimal-media')
  def test_documented_complete_hub_and_control_examples(self):
   root=Path(__file__).resolve().parents[2]
   self.page.evaluate("hass.states['sensor.favorites_a']=hass.states['sensor.favorites']")
@@ -62,16 +66,25 @@ class NativeFavorites(Cubes):
   self.activate(first.locator('.interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)'),['media_player','play_media',{'media_content_id':'FV:2/57','media_content_type':'favorite_item_id'},{'entity_id':'media_player.player_a'}])
   self.page.evaluate("pushState('media_player.player_a','paused',{volume_level:.42,group_members:['media_player.player_a'],media_content_id:'x-sonosapi-hls:synthetic-stream-a',media_channel:'Station Alpha · Programme text'})")
   self.wait_image();self.assertEqual(self.center().evaluate('el=>el._model.fill'),{'type':'solid','center':'#202224'});self.capture('native-favorites-paused')
- def test_explicit_cache_precedence_then_missing_artwork_live_fallback(self):
-  self.page.evaluate("pushState('sensor.favorites_cache','2',{items:[{media_content_id:'FV:2/57',media_content_type:'favorite_item_id',title:'Station Alpha',thumbnail:'/station-c.svg'},{media_content_id:'FV:2/58',media_content_type:'favorite_item_id',title:'Station Beta',thumbnail:'/station-c.svg'}]})")
-  self.start();self.wait_image('/station-c.svg');self.page.wait_for_timeout(200);self.assertEqual(self.page.evaluate('browseCalls.length'),0)
-  self.page.evaluate("pushState('sensor.favorites_cache','1',{items:[{media_content_id:'FV:2/57',media_content_type:'favorite_item_id',title:'Station Alpha'}]})")
-  self.wait_image();self.assertEqual(self.page.evaluate('browseCalls.length'),2)
-  self.page.evaluate("pushState('sensor.favorites_cache','1',{items:[{media_content_id:'FV:2/57',media_content_type:'favorite_item_id',title:'Station Alpha',thumbnail:'/station-c.svg'}]})")
-  self.wait_image('/station-c.svg');self.capture('native-favorites-cache-precedence')
- def test_opt_out_permissions_missing_map_and_unknown_identity_fall_back(self):
-  self.start(favorites_browse=False);self.page.wait_for_timeout(220);self.assertEqual(self.page.evaluate('browseCalls.length'),0);self.assertEqual(self.image().count(),0)
-  self.page.evaluate('ng.disposeContext(hub._menuContext);hub.remove();browseMode="reject"');self.start();self.page.wait_for_function('browseCalls.length===1');self.page.wait_for_timeout(200);self.assertEqual(self.image().count(),0)
+ def test_legacy_sentinel_cache_is_ignored_and_removed_options_fail(self):
+  self.page.evaluate("""()=>{
+   const sentinel={state:'2',attributes:{items:[{media_content_id:'FV:2/57',media_content_type:'favorite_item_id',title:'Station Alpha',thumbnail:'/station-c.svg'}]}};
+   hass.states['sensor.sonos_favorites_cache']=sentinel;hass.states['sensor.favorites_cache']=sentinel;
+  }""")
+  self.start();self.wait_image();self.assertEqual(self.page.evaluate('browseCalls.length'),2)
+  self.open_main();self.wait_image();self.activate(self.sonos_slot(1).locator('.interaction-surface'));self.settle()
+  self.assertEqual(self.sonos_slot(7).locator('.station-artwork').get_attribute('src'),'/station-a.svg');self.capture('native-only-sentinel-ignored')
+  self.page.evaluate("hass.states['sensor.sonos_favorites_cache'].attributes.items[0].thumbnail='/station-full-bleed.svg';pushState('sensor.unrelated','1')")
+  self.assertEqual(self.sonos_slot(7).locator('.station-artwork').get_attribute('src'),'/station-a.svg');self.assertEqual(self.page.evaluate('browseCalls.length'),2)
+  errors=self.page.evaluate("""()=>[ {favorites_cache_sensor:'sensor.sonos_favorites_cache'}, {favorites_browse:false} ].map(option=>{
+   const control=document.createElement('honeycomb-persistent-control');try{control.setConfig({module:'sonos',entity:'media_player.player_a',...option});return 'accepted'}catch(error){return error.message}
+  })""")
+  self.assertTrue(all('Remove' in error or 'removed' in error for error in errors))
+ def test_browse_failure_never_falls_back_to_cache_and_missing_map_never_browses(self):
+  self.page.evaluate("hass.states['sensor.sonos_favorites_cache']={state:'2',attributes:{items:[{media_content_id:'FV:2/57',title:'Station Alpha',media_content_type:'favorite_item_id',thumbnail:'/station-c.svg'}]}};browseMode='reject'")
+  self.start();self.page.wait_for_function('browseCalls.length===1');self.page.wait_for_timeout(200);self.assertEqual(self.image().count(),0)
+  self.open_main();self.activate(self.sonos_slot(1).locator('.interaction-surface'));self.settle();self.assertEqual(self.sonos_slot(7).evaluate('el=>el._model.icon'),'mdi:radio')
+  self.assertEqual(self.sonos_slot(7).evaluate('el=>el._model.name'),'Station Alpha')
   self.page.evaluate('ng.disposeContext(hub._menuContext);hub.remove();browseMode="ok";delete hass.states["sensor.favorites"]');self.start();self.page.wait_for_timeout(200);self.assertEqual(self.page.evaluate('browseCalls.length'),1);self.assertEqual(self.image().count(),0)
  def test_group_switch_pending_disposal_and_late_reply_do_not_reopen(self):
   self.page.evaluate("browseMode='hold'");self.start();self.page.wait_for_function('browseCalls.length===1');self.open_main()
@@ -83,7 +96,7 @@ class NativeFavorites(Cubes):
   self.page.evaluate('ng.disposeContext(hub._menuContext);hub.remove()');self.page.wait_for_timeout(200);self.assertEqual(self.page.locator('honeycomb-menu-ng').count(),0)
  def test_reconnect_reload_ttl_and_shared_multi_card_dedup(self):
   self.page.clock.install();self.start();self.page.clock.run_for(150);self.wait_image();self.assertEqual(self.page.evaluate('browseCalls.length'),2)
-  self.page.evaluate("window.second=document.createElement('honeycomb-persistent-control');second.setConfig({module:'sonos',entity:'media_player.player_a',favorites_browse:true,favorites_sensor:'sensor.favorites',favorites_cache_sensor:'sensor.favorites_cache'});document.body.append(second)")
+  self.page.evaluate("window.second=document.createElement('honeycomb-persistent-control');second.setConfig({module:'sonos',entity:'media_player.player_a',favorites_sensor:'sensor.favorites'});document.body.append(second)")
   self.page.clock.run_for(150);self.assertEqual(self.page.evaluate('browseCalls.length'),2)
   self.page.evaluate("hass.connection.connected=false;hass.connection.dispatchEvent(new Event('disconnected'))");self.page.clock.run_for(150);self.assertEqual(self.image().count(),0)
   self.page.evaluate("hass.connection.connected=true;hass.connection.dispatchEvent(new Event('ready'))");self.page.clock.run_for(200);self.wait_image();self.assertEqual(self.page.evaluate('browseCalls.length'),4)

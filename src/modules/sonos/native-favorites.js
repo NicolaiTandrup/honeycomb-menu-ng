@@ -9,45 +9,13 @@ function favoriteMap(hass, options)
     const map = (source.attributes || {}).items;
     if (!map || typeof map !== 'object' || Array.isArray(map)) return null;
     const ids = Object.keys(map);
-    if (!ids.length || ids.length > 512 || ids.some(id => !/^FV:[^\s]{1,256}$/.test(id) || typeof map[id] !== 'string' || map[id].length > 2048)) return null;
+    if (!ids.length || ids.length > 512 || ids.some(id => !/^[A-Za-z0-9][A-Za-z0-9:._/-]{0,255}$/.test(id) || typeof map[id] !== 'string' || map[id].length > 2048)) return null;
     return map;
-}
-function primaryItems(hass, options)
-{
-    const source = (hass && hass.states || {})[options.cache];
-    return source && !['unknown','unavailable'].includes(source.state) && Array.isArray((source.attributes || {}).items) ? source.attributes.items : EMPTY;
-}
-function indexItems(items)
-{
-    const indexed = new Map();
-    items.forEach((item,index) => {
-        if (!item) return;
-        const prior = indexed.get(item.media_content_id);
-        indexed.set(item.media_content_id,{item,index,count:prior ? prior.count + 1 : 1});
-    });
-    return indexed;
-}
-function mergeItems(primary, supplement, map)
-{
-    if (!map || !supplement.length) return primary;
-    const result = primary.slice(), indexed = indexItems(primary);
-    const extras = new Map(supplement.map(item => [item.media_content_id,item]));
-    for (const id of Object.keys(map)) {
-        const match = indexed.get(id), extra = extras.get(id);
-        if (!extra || match && match.count > 1) continue; // Never conceal ambiguous configured records.
-        if (!match) { result.push(extra); continue; }
-        const source = match.item;
-        result[match.index] = {...source,
-            title: typeof source.title === 'string' && source.title ? source.title : extra.title,
-            media_content_type: source.media_content_type || extra.media_content_type,
-            thumbnail: validThumbnail(source.thumbnail) ? source.thumbnail : extra.thumbnail};
-    }
-    return result;
 }
 function context(hass, config)
 {
     const options = config && config._sonos;
-    if (!hass || !options || !options.browse) return null;
+    if (!hass || !options) return null;
     const connection = hass.connection;
     if (!connection || typeof connection.sendMessagePromise !== 'function') return null;
     const map = favoriteMap(hass, options), states = hass.states || {};
@@ -60,12 +28,6 @@ function context(hass, config)
     const coordinator = group[0], leader = states[coordinator], members = (leader && leader.attributes || {}).group_members;
     if (!leader || ['unknown','unavailable'].includes(leader.state) || !Array.isArray(members) ||
         members[0] !== coordinator || !members.includes(player) || knownPlatform(coordinator) && knownPlatform(coordinator) !== 'sonos') return null;
-    const primary = indexItems(primaryItems(hass, options));
-    const needed = Object.keys(map).some(id => {
-        const match = primary.get(id);
-        return !match || match.count === 1 && (!validThumbnail(match.item.thumbnail) || !match.item.title || !match.item.media_content_type);
-    });
-    if (!needed) return null;
     // Reordering does not refetch. The sensor still owns display/playback order.
     const key = JSON.stringify([coordinator, Object.keys(map).sort().map(id => [id,map[id]])]);
     return {connection, coordinator, map, key};
@@ -258,9 +220,5 @@ function createProvider({now = () => Date.now(), ttl = 300000, timeout = 8000, d
     return {observe,peek};
 }
 const provider = createProvider();
-function cacheItems(hass, config) {
-    const options = config._sonos || {}, primary = primaryItems(hass,options);
-    if (!options.browse) return primary;
-    return mergeItems(primary,provider.peek(hass,config).items,favoriteMap(hass,options));
-}
-module.exports = {createProvider,provider,favoriteMap,primaryItems,mergeItems,context,cacheItems};
+function browseItems(hass, config) { return provider.peek(hass,config).items; }
+module.exports = {createProvider,provider,favoriteMap,context,browseItems};

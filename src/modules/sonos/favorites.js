@@ -1,12 +1,12 @@
 const { accentTemplate,settings } = require('./station.js');
 const {validThumbnail} = require('./artwork');
-const {cacheItems,provider} = require('./native-favorites');
+const {browseItems,provider} = require('./native-favorites');
 const {artworkLayout} = require('../../core/cube-presentation');
 
 function buildRadioMenu(item)
 {
     const favorites = item.favorites_sensor || 'sensor.sonos_favorites';
-    const cache = item.favorites_cache_sensor || 'sensor.sonos_favorites_cache';
+    const options = settings(item);
 
     const menu = {
         entity: item.entity,
@@ -15,6 +15,9 @@ function buildRadioMenu(item)
         empty_slots: 'hidden',
         _navigation_sibling: {group: `sonos:${item.entity}`, id: 'radio'},
         buttons: Array.from({ length: 12 }, (_, index) => ({
+            mode: 'sonos-favorite',
+            _sonos: options,
+            _favoriteIndex: index,
             slot: index + 7,
             slot_mode: 'hard',
             colors: { inner_border: accentTemplate(favorites, index) },
@@ -34,16 +37,6 @@ function buildRadioMenu(item)
             styles: {
                 card: [
                     { background: 'rgba(52, 66, 78, 0.92)' },
-                    {
-                        'background-image': `[[[
-                            const base = states['${favorites}']?.attributes?.items || {};
-                            const id = Object.keys(base)[${index}];
-                            const cached = states['${cache}']?.attributes?.items || [];
-                            const match = cached.find(x => x?.media_content_id === id);
-                            const thumb = match?.thumbnail || '';
-                            return thumb ? 'url("' + thumb + '")' : 'none';
-                        ]]]`
-                    },
                     { 'background-position': 'center' },
                     { 'background-repeat': 'no-repeat' },
                     { 'background-size': '56% auto' },
@@ -51,16 +44,7 @@ function buildRadioMenu(item)
                 ],
                 icon: [
                     { width: '17px' },
-                    { 'align-self': 'end' },
-                    {
-                        display: `[[[
-                            const base = states['${favorites}']?.attributes?.items || {};
-                            const id = Object.keys(base)[${index}];
-                            const cached = states['${cache}']?.attributes?.items || [];
-                            const match = cached.find(x => x?.media_content_id === id);
-                            return match?.thumbnail ? 'none' : 'block';
-                        ]]]`
-                    }
+                    { 'align-self': 'end' }
                 ],
                 name: [
                     { 'align-self': 'start' },
@@ -68,16 +52,7 @@ function buildRadioMenu(item)
                     { 'font-weight': '600' },
                     { 'white-space': 'nowrap' },
                     { overflow: 'hidden' },
-                    { 'text-overflow': 'ellipsis' },
-                    {
-                        display: `[[[
-                            const base = states['${favorites}']?.attributes?.items || {};
-                            const id = Object.keys(base)[${index}];
-                            const cached = states['${cache}']?.attributes?.items || [];
-                            const match = cached.find(x => x?.media_content_id === id);
-                            return match?.thumbnail ? 'none' : 'block';
-                        ]]]`
-                    }
+                    { 'text-overflow': 'ellipsis' }
                 ]
             },
             tap_action: {
@@ -94,17 +69,6 @@ function buildRadioMenu(item)
             }
         }))
     };
-    if (item.favorites_browse === true) {
-        for (const [index,button] of menu.buttons.entries()) {
-            button.mode = 'sonos-favorite';
-            button._sonos = settings(item);
-            button._favoriteIndex = index;
-            // Use the existing image/error renderer for opt-in thumbnails. A
-            // failed image restores the normal radio icon/name, never a blank face.
-            button.styles.card = button.styles.card.filter(rule => !Object.prototype.hasOwnProperty.call(rule,'background-image'));
-            for (const part of ['icon','name']) button.styles[part] = button.styles[part].filter(rule => !Object.prototype.hasOwnProperty.call(rule,'display'));
-        }
-    }
     return menu;
 }
 
@@ -113,7 +77,7 @@ function resolveFavorite({hass,config,runtime={}})
     const options = config._sonos || settings({}), states = hass && hass.states || {};
     const map = (states[options.favorites] && states[options.favorites].attributes || {}).items || {};
     const id = Object.keys(map)[config._favoriteIndex];
-    const matches = cacheItems(hass,config).filter(item => item && item.media_content_id === id);
+    const matches = browseItems(hass,config).filter(item => item && item.media_content_id === id);
     const favorite = matches.length === 1 ? matches[0] : null;
     const key = JSON.stringify([id,favorite,provider.peek(hass,config).version]);
     const usable = favorite && validThumbnail(favorite.thumbnail) && key !== runtime.failedArtworkKey;

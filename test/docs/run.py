@@ -42,7 +42,7 @@ def blocks(text):
     return re.findall(r'^(?:```|~~~)yaml\s*\n(.*?)^(?:```|~~~)\s*$',text,re.M|re.S)
 
 SHARED=set('entity name label icon show_name show_label show_icon background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
-SONOS=set('favorites_browse favorites_sensor favorites_cache_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
+SONOS=set('favorites_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
 ITEM=SHARED|SONOS|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
     assert isinstance(value,dict),where
@@ -70,7 +70,6 @@ def item(value,where):
             known(preset,{'hue_entity','saturation_entity'} if key=='color' else {'entity','default'},where)
             for k,v in preset.items():
                 if k!='default': assert re.fullmatch(r'(number|input_number)\.\w+',v)
-    if 'favorites_browse' in value: assert type(value['favorites_browse']) is bool
     if 'members' in value:
         for member in value['members']: known(member,{'entity','name','icon'},where)
     if 'colors' in value: known(value['colors'],{'center','inner_border','outer_border','unavailable','fill_gradient'},where)
@@ -152,35 +151,7 @@ def links():
     return count
 
 def external_recipes():
-    cache=load((ROOT/'examples/sonos-favorites-cache.yaml').read_text())
-    recipe=cache['template'][0]
-    assert [t['trigger'] for t in recipe['triggers']]==['event','state','time_pattern','homeassistant']
-    assert recipe['triggers'][0]['event_type']=='sonos_favorites_refresh'
-    assert recipe['triggers'][1]['entity_id']=='sensor.favorites_a'
-    assert recipe['triggers'][2]['minutes']=='/15'
-    assert recipe['triggers'][3]=={'trigger':'homeassistant','event':'start'}
-    action=recipe['actions'][3]
-    assert action['action']=='media_player.browse_media'
-    assert action['target']['entity_id']=='{{ cache_player }}'
-    assert action['data']=={'media_content_type':'favorites_folder','media_content_id':'object.item.audioItem.audioBroadcast'}
     env=NativeEnvironment()
-    context={'cache_player':'media_player.player_a','sonos_radio_favorites':{'media_player.player_a':{'children':[
-        {'title':'Station A','media_content_id':'favorite_a','media_content_type':'favorite_item_id','thumbnail':''},
-        {'title':'Station B','media_content_id':'favorite_b','media_content_type':'favorite_item_id'}]}}}
-    selector=env.from_string(recipe['actions'][1]['variables']['cache_player'])
-    assert selector.render(cache_players=['media_player.player_a','media_player.player_b'],has_value=lambda e:e.endswith('b')).strip()=='media_player.player_b'
-    assert selector.render(cache_players=['media_player.player_a'],has_value=lambda e:False).strip()==''
-    sensor=recipe['sensor'][0]
-    def native(template, **values):
-        result=env.from_string(template).render(**values)
-        # HA strips template whitespace before interpreting native list/number values.
-        return ast.literal_eval(result.strip()) if isinstance(result,str) else result
-    assert native(sensor['state'],**context)==2
-    items=native(sensor['attributes']['items'],**context)
-    assert len(items)==2 and items[0]['media_content_id']=='favorite_a' and items[1]['thumbnail']==''
-    condition=env.from_string(recipe['conditions'][0]['value_template'])
-    assert condition.render(has_value=lambda _:True) is True
-    assert condition.render(has_value=lambda _:False) is False
     script=load((ROOT/'examples/sonos-toggle-member.yaml').read_text())['script']['player_a_toggle_member']
     assert script['fields']['member']['required'] is True and script['mode']=='queued'
     variables=script['sequence'][0]['variables'];assert variables['coordinator']=='media_player.player_a'
@@ -192,7 +163,7 @@ def external_recipes():
     assert choice['sequence'][0]['action']=='media_player.unjoin'
     join=script['sequence'][1]['default'][0]; assert join['action']=='media_player.join'
     assert env.from_string(join['data']['group_members']).render(member='media_player.player_c')==['media_player.player_c']
-    return items
+    return []
 
 STATES={
  'light.white_a':{'state':'on','attributes':{'brightness':128,'color_temp_kelvin':3000,'supported_color_modes':['color_temp'],'min_color_temp_kelvin':1800,'max_color_temp_kelvin':6535}},
@@ -209,7 +180,6 @@ STATES={
  'input_number.preset_a_hue':{'state':'30','attributes':{}},
  'input_number.preset_a_saturation':{'state':'80','attributes':{}},
  'sensor.favorites_a':{'state':'2','attributes':{'items':{'favorite_a':'Station A','favorite_b':'Station B'}}},
- 'sensor.favorites_cache_a':{'state':'2','attributes':{'items':[]}},
 }
 for entity,state in STATES.items():state['entity_id']=entity
 
@@ -333,14 +303,14 @@ def main():
         try:card(invalid,'negative schema check')
         except AssertionError:pass
         else:raise AssertionError(f'Accepted unsupported key {key}')
-    STATES['sensor.favorites_cache_a']['attributes']['items']=external_recipes()
+    external_recipes()
     link_count=links()
     payload={'cards':cards,'examples':examples,'states':STATES}
     with tempfile.NamedTemporaryFile(mode='w',suffix='.json') as output:
         json.dump(payload,output);output.flush()
         subprocess.run(['node','test/docs/contracts.js',output.name],check=True)
     complete=sum('(reference context)' not in card['source'] for card in cards)
-    print(f'Documentation validation: {yaml_count} YAML blocks parsed, {complete} complete cards + {len(cards)-complete} contextual fragments checked, {link_count} local links/anchors resolved, external cache/Join Jinja exercised',flush=True)
+    print(f'Documentation validation: {yaml_count} YAML blocks parsed, {complete} complete cards + {len(cards)-complete} contextual fragments checked, {link_count} local links/anchors resolved, optional Join Jinja exercised; native-only favorites contract checked',flush=True)
     table=(ROOT/'README.md').read_text().split('<!-- auto-slots:start -->')[1].split('<!-- auto-slots:end -->')[0]
     Examples.auto=[]
     for count,without,with_logo in re.findall(r'^\| (\d+) \| `([\d,]+)` \| ([^\n]+)',table,re.M):

@@ -1,10 +1,32 @@
-# Optional native Sonos favorite artwork — v1.8.0-beta.4
+# Native Sonos Favorites — v1.8.0-beta.4
 
-This beta can retrieve favorite thumbnails directly through Home Assistant's
-supported, authenticated **read-only** `media_player/browse_media` WebSocket API.
-No `templates.yaml`, helper, script, automation or backend integration is needed
-for this option. The official Sonos favorites sensor must still be enabled; its
-actual entity ID, favorite IDs and ordering remain authoritative.
+**Breaking beta migration:** Home Assistant Browse Media is now the **only** Sonos
+favorite artwork/metadata enrichment path. There is no opt-in switch, template
+sensor autodetection or legacy fallback, even when an old cache entity exists.
+The official native favorites sensor remains the source of IDs and ordering.
+
+## Migrate before upgrading
+
+1. Remove every `favorites_cache_sensor` property from Sonos Hub/Control YAML.
+   The option now produces a clear configuration error. Remove any experimental
+   `favorites_browse` setting from the earlier unpublished PR candidate too.
+2. Remove the custom **favorites-cache template definition** previously installed
+   for Honeycomb, including its refresh triggers/automation if used only for that
+   cache. Keep unrelated templates, helpers and the **official native** Sonos
+   favorites entity. Review/reload your HA configuration yourself; Honeycomb does
+   not edit files, delete entities or change live HA configuration.
+3. Enable the official Sonos favorites entity (often disabled by default), and
+   confirm its actual ID. The default is `sensor.sonos_favorites`; specify a
+   different actual entity with `favorites_sensor` if necessary.
+4. Install beta.4, hard-refresh all dashboard clients and verify Browse Media
+   responses/artwork. No new template, helper, script, automation or backend needed.
+
+This intentionally removes legacy cache compatibility, as explicitly approved by
+the owner for beta.4. The prerelease remains `v1.8.0-beta.4` for this approved test
+train. **Removing a public configuration option is a breaking API change under
+SemVer:** a major-version/stable compatibility decision must be reviewed before
+any stable promotion. This beta is not stable approval and never changes master.
+Previous tagged releases retain their original cache support/documentation.
 
 ## Copy, replace IDs, test
 
@@ -19,99 +41,92 @@ items:
     entity: media_player.player_a
     name: Player A
     favorites_sensor: sensor.favorites_a
-    favorites_browse: true
 ```
 
-Standalone Control uses the same option:
+Standalone Control:
 
 ```yaml
 type: custom:honeycomb-persistent-control
 module: sonos
 entity: media_player.player_a
 favorites_sensor: sensor.favorites_a
-favorites_browse: true
 ```
 
-Replace the synthetic IDs with the actual available Sonos player and enabled
-favorites sensor from HA. Leave `favorites_browse` absent or `false` for the
-existing sensor/cache-only behavior. Only literal booleans are supported. This is
-a **v1.8.0-beta.4+ option**, not supported by v1.7.1 stable or beta.3.
+Replace synthetic IDs with actual available Sonos/native favorites entities.
+If the default native sensor ID is correct, a Sonos item needs only `type: sonos`
+and `entity`. Legacy Hub `type: media` still selects Sonos; `module: media`
+explicitly selects the generic player module instead.
 
-## Precedence and fallback
+## Data and identity contract
 
-1. `favorites_sensor` defaults to `sensor.sonos_favorites`. It must expose an
-   `attributes.items` map such as `{"FV:2/57":"Station Alpha"}`. Without that map,
-   browsing is not attempted; browsing alone never populates Radio or playback IDs.
-2. `favorites_cache_sensor` continues to default to `sensor.sonos_favorites_cache`.
-   Existing templates and the [optional cache recipe](../examples/sonos-favorites-cache.yaml)
-   remain supported unchanged. Configured cache entries take precedence **by exact
-   favorite ID**. A valid configured thumbnail/title/type is never replaced by
-   browse metadata; only missing fields/invalid artwork may be supplemented.
-   Duplicate cache identities stay ambiguous; native browsing does not conceal them.
-3. With `favorites_browse: true`, missing metadata comes from Browse Media. Sonos
-   returns `favorites_folder` children of `favorites`; only those exact returned
-   folders are read. Favorite leaves supply FV ID/title/thumbnail. Native enrichment requires both
-   exact FV ID and agreeing sensor/browse favorite title (Unicode normalization
-   and outer whitespace only); stale or foreign-library collisions fall back.
-   Existing explicit cache labels retain their established compatibility. No services,
-   playback commands, stream scraping or HA configuration writes are involved.
-4. Radio keeps sensor order and its existing twelve physical choices/playback IDs.
-   Artwork updates live. Opted-in Radio uses the shared image-error fallback: a
-   broken image restores the radio icon/title. A valid known playing station also
-   updates the parent launcher and promoted Sonos center. Paused/idle fill remains
-   solid neutral; active fill retains beta.3's 30% edge darkening.
+- Native favorites `attributes.items` is an ID→title map, for example
+  `{"FV:2/57":"Station Alpha"}`. Sensor order and exact IDs control Radio/playback.
+  No sensor/empty map means no browsing; browse alone never populates Radio.
+- Supported authenticated read-only WebSocket command:
+  `media_player/browse_media`, selected verified coordinator, type `favorites`,
+  ID `""`. Only its exact returned `favorites_folder` IDs are read. Leaves provide
+  `favorite_item_id`, ID/title/thumbnail. IDs are bounded opaque identifiers;
+  native Sonos normally uses FV IDs. No station web scraping or service calls.
+- Native metadata needs both exact ID and agreeing sensor/browse favorite title
+  (Unicode normalization/outer whitespace only). Duplicate identities, stale or
+  differently named colliding library entries fail safely. No cache entity is read.
+- Browse Media exposes **no universal FV-to-stream URI mapping**. Recognition uses
+  exact favorite ID, or a unique radio `media_channel` corroborated by both map and
+  typed native metadata. The explicit `Station Alpha · Programme` / spaced bullet
+  format is parsed conservatively. Ambiguous names, arbitrary track titles and
+  unknown stream URLs never identify a station; no URI guessing or learning.
+- Known artwork/accent updates the Hub launcher and promoted Sonos center live.
+  Playing fill follows the station inner-border color and beta.3's 30% darker edge.
+  Paused/idle remains solid neutral while reliable artwork/accent may remain.
+  Radio order, twelve choices and playback actions are unchanged. The shared image
+  error path restores icon/title on broken images, including Radio. Normal Sonos
+  presentation is the fallback when browse/artwork/identity is unavailable.
 
-Browse Media does **not** provide a universal FV-to-stream URI mapping. Existing
-strict exact ID/explicit URI or corroborated radio-channel/programme recognition
-is retained. Ambiguous names, arbitrary track titles and unknown stream URLs
-never identify a station. Such playback keeps the standard Sonos presentation;
-its Radio favorite may still have a thumbnail. No automatic identity learning.
+## Lifecycle, limits and diagnostics
 
-## Lifecycle, limits and performance
+One memory cache per browser tab/HA connection is shared by cards. Tabs fetch
+independently; reload starts fresh. No storage, synthetic HA states, global auth
+state, backend, config-file writes or per-cube polling. Available reciprocally
+verified coordinators serve selected followers; known non-Sonos registry entries
+and unknown/unavailable groups do not browse. Separate connections/players/maps
+never share results.
 
-The cache is browser-memory only, shared by cards in **one tab and HA connection**.
-Other tabs fetch independently. Browser reload starts fresh; no local storage,
-new sensor or shared global authentication state is created. Separate connections,
-players/coordinators and favorite ID/name maps cannot share results. A follower
-uses only its available reciprocally verified coordinator. Known non-Sonos
-registry entries and unavailable/unknown groups do not browse.
+Bounds: 32 active cached contexts, 512 map entries/returned leaves, eight folders,
+two actual outstanding WS reads; 120 ms debounce, eight-second operation deadline
+including queue waiting, five-minute shared expiry refresh while observed. Reorder
+reuses metadata; rename/deletion, group/config changes, reconnect/HA restart and
+disposal invalidate ownership. Pending cancellation is logical: the official WS
+API has no abort operation. Unresolved transport reads keep their budget until
+reply/disconnect. Late responses cannot restore old groups or reopen menus.
 
-Limits: 32 active cached contexts per connection, 512 map entries/returned leaves,
-eight folders and **two actual outstanding WebSocket reads**. Oversized or
-unexpected data falls back safely. A 120 ms debounce coalesces rapid state/config
-changes; an eight-second operation deadline bounds waiting, including queued work.
-Cancellation invalidates application ownership; the HA WebSocket API has no
-request-abort operation. An unresolved transport retains its concurrency budget
-until reply/disconnect, preventing an accumulation of hung reads.
+Errors use a 60-second negative cache; a later relevant update/reopen may retry,
+without a failure polling loop. Signed/artwork URLs refresh with metadata expiry.
+Failed images can retry after a successful refresh. HA-supplied image locations
+are validated; the dashboard browser must be able to reach them. No raw entity
+IDs, station names, URLs/tokens or exception strings are logged. Explicit cube
+module diagnostics expose finite status/counts only.
 
-One shared five-minute expiry refresh runs only while a context has connected
-consumers, to refresh changed/signed thumbnail URLs even when the map is unchanged.
-There is **no per-cube polling**. Reorder reuses the cache; rename/deletion, group or
-connection changes invalidate the appropriate context. API/permission/schema
-failure uses a 60-second negative cache; a later relevant state update/reopen can retry,
-without an automatic failure-retry loop. Disconnect/HA restart invalidates all
-results; ready/reconnect refetches. Removed cards release listeners/timers and
-logically cancel unowned pending work. Late responses cannot restore an old group
-or reopen a menu. Complete configured caches need no browse at all.
+## Verify no-template operation in DevTools
 
-Thumbnails are validated image locations returned by HA, including its signed
-proxy URLs. Images load normally in the dashboard browser, which must be able to
-reach them. Failed artwork falls back; a later successful refresh can retry.
-No raw station names, entity IDs, URLs/tokens or backend exception strings are
-logged. Explicit cube diagnostics add only a finite `browse` status (`ready`,
-`pending`, `unavailable`, `offline`, `not_requested`); normal errors are icon fallback.
+Open browser DevTools → Network → the Home Assistant WebSocket → Messages. Reload
+the dashboard and filter for `media_player/browse_media`. Confirm requests target
+the configured player/current coordinator and traverse `favorites` then returned
+`favorites_folder` IDs. Inspect responses for the expected FV ID/title/thumbnail.
+Do not share authentication messages, signed URLs or private entity/station names;
+use sanitized synthetic reproductions for reports. A visible thumbnail alone is
+not evidence of its source; recorded browse calls plus a conflicting old-cache
+sentinel test prove isolation in automated tests.
 
-## Real HA acceptance checklist
+## Real HA checklist
 
-- Enable the official favorites sensor, opt in, confirm thumbnails without templates.
-- Check Radio order/actions and both launcher/promoted-center station images; switch
-  stations, pause/play, unknown content and ambiguous names. Volume stays legible.
-- Add a cache sensor: its valid artwork wins; missing artwork can use browsing.
-- Join/unjoin or select a follower; confirm metadata follows the verified group.
-- Reload browser, restart/reconnect HA, test offline/permission failures and recovery.
-- Leave a panel open beyond five minutes; verify renewed artwork, no request flood.
-- Check Light Hue/Kelvin zoom, Sonos Sleep/Join/Back/idle and original/NG coexistence.
+- Remove legacy cache option/template; keep/enable native favorites sensor.
+- Confirm logos from Browse Media with no template, and normal fallback if denied.
+- Verify Radio order/playback and both launcher/promoted center during station
+  switch, pause/play, unknown/ambiguous content; volume labels stay clear.
+- Test Join/unjoin/follower changes, browser reload, HA restart/reconnect, offline
+  recovery and five-minute signed-artwork refresh without floods.
+- Check native Sleep, sibling Back/idle, Light Hue/Kelvin/presets and coexistence.
 
-Synthetic unit/browser CI proves the client contracts; it does not replace owner
-real Sonos/HA validation. This optional feature requires that beta approval before
-stable. No backend integration or live HA setup is installed by the HACS bundle.
+Synthetic unit/browser CI verifies client contracts, not physical Sonos/HA or
+all tablet hardware. Real owner beta testing and explicit approval remain required
+before stable. No beta.5 is published proactively.

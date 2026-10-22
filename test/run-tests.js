@@ -542,7 +542,6 @@ function testModuleMenusAreDeclarative()
             type: 'media',
             entity: 'media_player.test',
             favorites_sensor: 'sensor.favorites',
-            favorites_cache_sensor: 'sensor.favorites_cache'
         }
     });
 
@@ -573,19 +572,10 @@ function testModuleMenusAreDeclarative()
     assert.strictEqual(firstFavorite.show_icon, true);
     assert.strictEqual(firstFavorite.show_name, true);
 
-    const favoriteIconDisplayRule =
-        firstFavorite.styles.icon.find(rule =>
-            Object.prototype.hasOwnProperty.call(rule, 'display')
-        );
-    const favoriteNameDisplayRule =
-        firstFavorite.styles.name.find(rule =>
-            Object.prototype.hasOwnProperty.call(rule, 'display')
-        );
+    assert.strictEqual(firstFavorite.mode,'sonos-favorite');
+    assert.ok(!JSON.stringify(firstFavorite).includes('favorites_cache'));
+    assert.strictEqual(firstFavorite.tap_action.perform_action,'media_player.play_media');
 
-    assert.ok(favoriteIconDisplayRule);
-    assert.ok(favoriteNameDisplayRule);
-    assert.ok(String(favoriteIconDisplayRule.display).includes("match?.thumbnail"));
-    assert.ok(String(favoriteNameDisplayRule.display).includes("match?.thumbnail"));
 }
 
 function collectJsFiles(root)

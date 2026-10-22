@@ -26,7 +26,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404); return
         self.send_response(200)
         self.send_header('Content-Type', 'text/html' if self.path == '/' else 'image/svg+xml' if self.path.endswith('.svg') else 'text/javascript')
-        self.end_headers(); self.wfile.write(paths[self.path].read_bytes())
+        self.end_headers()
+        payload=paths[self.path].read_bytes()
+        if self.path=='/':
+            native=b'favorites_cache_sensor was removed' in self.server.bundle.read_bytes()
+            payload=payload.replace(b'window.nativeFavoritesOnly=false;',b'window.nativeFavoritesOnly='+str(native).lower().encode()+b';')
+        self.wfile.write(payload)
     def log_message(self, *args): pass
 
 class CheckResult(unittest.TextTestResult):
@@ -46,6 +51,7 @@ class Cubes(unittest.TestCase):
         self.page.on('pageerror',lambda e:self.errors.append(str(e)))
         self.page.on('console',lambda e:self.errors.append(e.text) if e.type=='error' else None)
         self.page.goto(self.url); self.page.wait_for_function('window.ready')
+        self.native_only=self.page.evaluate('window.nativeFavoritesOnly')
         self.page.evaluate("window.ng=window.honeycombNG || {createContext:window.honeycomb_menu_create_context,openInContext:window.honeycomb_menu_in_context,updateBase:window.honeycomb_menu_context_update_base,disposeContext:window.honeycomb_menu_context_dispose,closeInContext:window.honeycomb_menu_context_close,backInContext:window.honeycomb_menu_context_back,close:window.honeycomb_menu_close,back:window.honeycomb_menu_back,templates:window.honeycomb_menu_templates,open:window.honeycomb_menu}")
         self.assertEqual(self.page.title(),'Honeycomb shared cube test')
         self.assertTrue(self.page.locator('h1').is_visible())
@@ -55,6 +61,17 @@ class Cubes(unittest.TestCase):
             self.assertEqual(self.page.locator('hui-error-card').count(),0)
         finally: self.page.close()
     def hub(self, config):
+        if not self.native_only:
+            # Immutable historical bundles still use their original cache source.
+            import copy
+            config=copy.deepcopy(config)
+            def historical(value):
+                if isinstance(value,dict):
+                    if value.get('type') in ('sonos','media') or value.get('module')=='sonos':value.setdefault('favorites_cache_sensor','sensor.favorites_cache')
+                    for child in value.values():historical(child)
+                elif isinstance(value,list):
+                    for child in value:historical(child)
+            historical(config)
         self.page.evaluate('config=>makeHub(config)',config)
         self.page.wait_for_function('hub._hubMenu?.shadowRoot.querySelector("#honeycombs")')
     def settle(self):
@@ -85,7 +102,7 @@ class Cubes(unittest.TestCase):
             {'type':'light','entity':'light.zone_b','name':'Zone B','presets':{
                 'brightness':{'entity':'number.zone_b_normal_brightness'},'kelvin':{'entity':'number.zone_b_standard_kelvin'},
                 'color':{'hue_entity':'number.zone_b_standard_hue','saturation_entity':'number.zone_b_standard_saturation'}}},
-            {'type':'media','entity':'media_player.player_a','name':'Media','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
+            {'type':'media','entity':'media_player.player_a','name':'Media','favorites_sensor':'sensor.favorites'}]})
         self.settle()
     def activate(self, target):
         if self.viewport['width']<500: target.tap()
@@ -711,7 +728,7 @@ class Cubes(unittest.TestCase):
             ]);
         }''')
     def sonos_item(self):
-        return {'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache',
+        return {'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites',
             'members':[{'entity':'media_player.player_b','name':'Room B'},{'entity':'media_player.player_c','name':'Room C with a longer name'}],
             'toggle_member_script':'script.toggle_member_a'}
     def sonos_open(self, item=None):
@@ -727,13 +744,13 @@ class Cubes(unittest.TestCase):
         return self.page.evaluate('''()=>({
             outer:[...hub._hubMenu.shadowRoot.querySelectorAll('[data-honeycomb-slot]')].filter(el=>Number(el.dataset.honeycombSlot)>=6).map(el=>({
                 index:Number(el.dataset.honeycombSlot),x:el.offsetLeft,y:el.offsetTop,width:el.offsetWidth,height:el.offsetHeight,model:el._model,
-                artwork:getComputedStyle(el.shadowRoot.querySelector('.artwork')).backgroundImage})),
+                artwork:(()=>{const image=el.shadowRoot.querySelector('.station-artwork');const value=image?image.getAttribute('src'):getComputedStyle(el.shadowRoot.querySelector('.artwork')).backgroundImage;return value.includes('/station-a.svg')?'station-a.svg':value})()})),
             center:hub._hubMenu.shadowRoot.querySelector('.center-item')._model
         })''')
     def sonos_radio_data(self):
         self.page.evaluate('''()=>{
             const items=Object.fromEntries(Array.from({length:12},(_,i)=>['favorite_'+i,'Station '+String(i+1).padStart(2,'0')]));
-            const thumbnail='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Crect width=%2224%22 height=%2224%22 fill=%22red%22/%3E%3C/svg%3E';
+            const thumbnail='/station-a.svg';
             pushStates([['sensor.favorites','12',{items}],['sensor.favorites_cache','1',{items:[{media_content_id:'favorite_5',thumbnail}]}]]);
         }''')
     def test_issue90_slots_handlers_and_light_alignment(self):
@@ -852,6 +869,7 @@ class Cubes(unittest.TestCase):
     def test_issue90_radio_outer_render_matches_v170_reference(self):
         self.sonos_open();self.sonos_radio_data()
         self.activate(self.sonos_slot(1).locator('.interaction-surface'));self.settle()
+        self.sonos_slot(12).locator('.station-artwork').wait_for(state='visible')
         snapshot=self.sonos_radio_state()
         if self.evidence:
             reference=json.loads((self.evidence/'before'/f'{self.viewport["width"]}-radio-state.json').read_text())
@@ -860,6 +878,15 @@ class Cubes(unittest.TestCase):
             for cell in snapshot['outer']:
                 self.assertEqual(cell['model']['fill'],{'type':'solid','center':cell['model']['colors']['center']})
             self.assertEqual(snapshot['center']['fill']['center'],snapshot['center']['colors']['inner'])
+            # Only metadata delivery/hidden-image representation changes: shared
+            # img/error fallback replaces the old cache-dependent CSS background.
+            for actual,old in zip(snapshot['outer'],reference['outer']):
+                if actual['model']['artwork']:
+                    self.assertEqual(actual['model']['artwork']['url'],'/station-a.svg')
+                    self.assertEqual(old['model']['iconStyle']['display'],'none')
+                    self.assertEqual(old['model']['nameStyle']['display'],'none')
+                    self.assertEqual(actual['model']['name'],'');self.assertIsNone(actual['model']['icon'])
+                    actual['model']['name']=old['model']['name'];actual['model']['icon']=old['model']['icon']
             for scene in [snapshot,reference]:
                 scene['center'].pop('fill',None)
                 for cell in scene['outer']:cell['model'].pop('fill',None)
@@ -867,7 +894,10 @@ class Cubes(unittest.TestCase):
                 for cell in scene['outer']:
                     cell['model'].pop('artwork',None)
                     cell['model']['colors'].pop('inner',None)
-            self.assertEqual(snapshot,reference,'Only Radio inner accent rings may differ from stable')
+                    cell['model']['card'].pop('background-image',None)
+                    cell['model']['iconStyle'].pop('display',None)
+                    cell['model']['nameStyle'].pop('display',None)
+            self.assertEqual(snapshot,reference,'Geometry/order/fills/text/style remain equivalent; only accents and native image delivery differ')
         self.assertEqual([x['model']['name'] for x in snapshot['outer']],[f'Station {i:02d}' for i in range(1,13)])
         self.assertEqual([x['index'] for x in snapshot['outer']],list(range(6,18)))
         self.capture('issue90-radio')
@@ -909,7 +939,7 @@ class Cubes(unittest.TestCase):
               ['media_player.player_a','playing',{volume_level:.42,media_content_id:'x-sonosapi-hls:stream-a?sid=1',media_channel:'Station A',media_title:'Track A',group_members:['media_player.player_a']}]
             ]);
         }""")
-        self.hub({'logo':False,'items':[{'type':'media','entity':'media_player.player_a','active_color':'#00bcd4','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
+        self.hub({'logo':False,'items':[{'type':'media','entity':'media_player.player_a','active_color':'#00bcd4','favorites_sensor':'sensor.favorites'}]})
         cube=self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .center-item');cube.locator('.station-artwork').wait_for(state='visible')
         color=cube.locator('.hex-fill').get_attribute('fill');self.assertNotEqual(color,'#00bcd4')
         self.assertEqual(cube.locator('.hex-inner').get_attribute('fill'),color)
@@ -975,7 +1005,7 @@ class Cubes(unittest.TestCase):
         }""",data)
         # A real parent ring launcher beside a Light, rather than only slot 0.
         item={'type':'media','entity':'media_player.player_a','active_color':'#00bcd4',
-              'favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}
+              'favorites_sensor':'sensor.favorites'}
         self.hub({'logo':True,'items':[{'type':'light','entity':'light.zone_a'},item]})
         self.settle()
         return data
@@ -1019,7 +1049,7 @@ class Cubes(unittest.TestCase):
         self.assertEqual(launcher.locator('.hex-fill').get_attribute('fill'),'#00bcd4')
         report=launcher.evaluate('(el)=>el.getPresentationDiagnostics()')
         self.assertEqual(report['reason'],'channel_or_mapping_missing')
-        self.assertEqual(report['map_channel_candidates'],0);self.assertEqual(report['cache_channel_candidates'],0)
+        self.assertEqual(report['map_channel_candidates'],0);self.assertEqual(report['metadata_channel_candidates'],0)
         for value in ['Station A','media_player.player_a','synthetic-unknown']:
             self.assertNotIn(value,json.dumps(report))
 
@@ -1079,7 +1109,7 @@ class Cubes(unittest.TestCase):
     def sleep_hub(self,player='a',idle_timeout=None):
         self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_'+player,
             **({'persistent':{'menu':{'idle_timeout':idle_timeout}}} if idle_timeout is not None else {}),
-            'favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache'}]})
+            'favorites_sensor':'sensor.favorites'}]})
         self.hold_input(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .center-item .interaction-surface'))
         self.page.wait_for_function('hub._menuContext.stack.length===1');self.settle()
     def sleep_sync(self):
@@ -1478,7 +1508,8 @@ class Cubes(unittest.TestCase):
         }''')
         item=self.sonos_item();item.update(overrides or {})
         self.hub({'logo':False,'items':[item]});self.settle()
-    def test_issue90_station_launcher_transitions_and_cache_updates(self):
+        if self.native_only:self.page.wait_for_function("hub._hubMenu.shadowRoot.querySelector('.center-item')._model.artwork?.url==='/station-a.svg'")
+    def test_issue90_station_launcher_transitions_and_browse_updates(self):
         self.station_hub()
         cube=self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .center-item')
         image=cube.locator('.station-artwork')
@@ -1531,7 +1562,7 @@ class Cubes(unittest.TestCase):
         self.page.evaluate("pushState('media_player.player_b','playing',{group_members:['media_player.player_b'],media_content_id:'favorite_c'})")
         self.page.wait_for_function('!hub._hubMenu.shadowRoot.querySelector(".center-item")._model.artwork')
         self.page.evaluate('ng.disposeContext(hub._menuContext);hub.remove()')
-        self.page.evaluate("stationUpdate('playing',{group_members:['media_player.player_a'],media_content_id:'favorite_a'});makeControl({module:'sonos',entity:'media_player.player_a',favorites_sensor:'sensor.favorites',favorites_cache_sensor:'sensor.favorites_cache'})")
+        self.page.evaluate("stationUpdate('playing',{group_members:['media_player.player_a'],media_content_id:'favorite_a'});makeControl({module:'sonos',entity:'media_player.player_a',favorites_sensor:'sensor.favorites'})")
         self.page.locator('body > honeycomb-persistent-control .station-artwork').wait_for(state='visible')
     def test_issue90_station_failed_image_and_unrelated_update(self):
         self.station_hub()
@@ -1566,9 +1597,9 @@ class Cubes(unittest.TestCase):
             self.assertEqual(self.page.title(),'Honeycomb layout model preview')
             self.capture('issue90-layout-'+theme)
 
-    def test_sonos_favorites_cache_volume_and_grouping(self):
+    def test_sonos_native_favorites_volume_and_grouping(self):
         self.sonos_setup()
-        self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites','favorites_cache_sensor':'sensor.favorites_cache','members':[{'entity':'media_player.player_b','name':'Player B'}],'toggle_member_script':'script.toggle_member_a'}]})
+        self.hub({'logo':False,'items':[{'type':'sonos','entity':'media_player.player_a','favorites_sensor':'sensor.favorites','members':[{'entity':'media_player.player_b','name':'Player B'}],'toggle_member_script':'script.toggle_member_a'}]})
         self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .interaction-surface').click()
         self.assertEqual(self.page.evaluate('calls.at(-1).slice(0,2)'),['media_player','media_play_pause'])
         self.hold(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .interaction-surface'))
@@ -1583,10 +1614,11 @@ class Cubes(unittest.TestCase):
         self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Radio"]').click()
         self.page.wait_for_function('hub._hubMenu.buttons.filter(Boolean).length===7')
         self.assertTrue(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .primary').filter(has_text='Station A').is_visible())
-        thumbnail='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Crect width=%2224%22 height=%2224%22 fill=%22red%22/%3E%3C/svg%3E'
+        thumbnail='/station-a.svg'
         self.page.evaluate("thumbnail=>pushState('sensor.favorites_cache','1',{items:[{media_content_id:'favorite_a',thumbnail}]})",thumbnail)
-        self.page.wait_for_function("getComputedStyle(hub._hubMenu.shadowRoot.querySelector('[data-honeycomb-slot=\"6\"]').shadowRoot.querySelector('.artwork')).backgroundImage.includes('data:image/svg+xml')")
-        self.assertEqual(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="6"] .primary').evaluate('(el)=>getComputedStyle(el).display'),'none')
+        artwork=self.sonos_slot(7).locator('.station-artwork');artwork.wait_for(state='visible')
+        self.assertEqual(artwork.get_attribute('src'),thumbnail)
+        self.assertEqual(self.sonos_slot(7).locator('.primary').count(),0)
         self.capture('favorite-artwork')
         self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [data-honeycomb-slot="6"] .interaction-surface').click()
         self.assertEqual(self.page.evaluate('calls.at(-1)[2].media_content_id'),'favorite_a')
@@ -1699,6 +1731,7 @@ def main():
     parser.add_argument('--bundle',type=Path,required=True)
     parser.add_argument('--button-card',type=Path,required=True)
     parser.add_argument('--baseline',action='store_true')
+    parser.add_argument('--test-filter',help='Run only matching test names; CI always runs the complete suite')
     parser.add_argument('--evidence-dir',type=Path)
     args=parser.parse_args()
     assert hashlib.sha256(args.button_card.read_bytes()).hexdigest()==BUTTON_SHA
@@ -1710,12 +1743,12 @@ def main():
         with sync_playwright() as p:
             Cubes.browser=p.chromium.launch(executable_path=os.getenv('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox'])
             Cubes.url=f'http://127.0.0.1:{server.server_port}';Cubes.evidence=args.evidence_dir
-            if args.evidence_dir and not args.baseline:
+            if args.evidence_dir and not args.baseline and not args.test_filter:
                 from sonos_reference import capture_reference
                 capture_reference(Cubes,Handler,args.button_card.resolve(),args.evidence_dir)
             for width,height in [(1100,900),(390,844)]:
                 Cubes.viewport={'width':width,'height':height}
-                names=['test_baseline'] if args.baseline else [n for n in unittest.defaultTestLoader.getTestCaseNames(Cubes) if n!='test_baseline']
+                names=['test_baseline'] if args.baseline else [n for n in unittest.defaultTestLoader.getTestCaseNames(Cubes) if n!='test_baseline' and (not args.test_filter or args.test_filter in n)]
                 result=unittest.TextTestRunner(verbosity=2,resultclass=CheckResult).run(unittest.TestSuite(Cubes(n) for n in names))
                 success=result.wasSuccessful() and success
             Cubes.browser.close()

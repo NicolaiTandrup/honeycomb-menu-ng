@@ -31,8 +31,7 @@ function accentTemplate(sensor, index)
 }
 function settings(item)
 {
-    if (item.favorites_browse !== undefined && typeof item.favorites_browse !== 'boolean') throw new Error('favorites_browse must be true or false.');
-    return {...(item.favorites_browse === true ? {browse:true,player:item.entity} : {}),favorites:item.favorites_sensor || 'sensor.sonos_favorites',cache:item.favorites_cache_sensor || 'sensor.sonos_favorites_cache',activeFallback:(item.persistent || {}).active_color || item.active_color || item.color || null};
+    return {player:item.entity,favorites:item.favorites_sensor || 'sensor.sonos_favorites',activeFallback:(item.persistent || {}).active_color || item.active_color || item.color || null};
 }
 // Compare metadata, never arbitrary track titles. Preserve punctuation and
 // diacritics; case/Unicode composition/whitespace carry no station identity.
@@ -45,9 +44,9 @@ function inspectFavorite(hass, config)
     const states=hass && hass.states || {}, options=config._sonos || settings({});
     const selected=states[config.entity];
     const diagnostics={player_state:selected && ['playing','paused','idle','off','unknown','unavailable'].includes(selected.state) ? selected.state : 'other',
-        grouped:false,radio_transport:false,favorites_present:false,cache_present:false,
-        favorite_count:0,cache_count:0,candidate_count:0,channel_present:false,
-        map_channel_candidates:0,cache_channel_candidates:0,programme_map_candidates:0,programme_cache_candidates:0,programme_channel:false,match_stage:'none',artwork_valid:false};
+        grouped:false,radio_transport:false,favorites_present:false,metadata_present:false,
+        favorite_count:0,metadata_count:0,candidate_count:0,channel_present:false,
+        map_channel_candidates:0,metadata_channel_candidates:0,programme_map_candidates:0,programme_metadata_candidates:0,programme_channel:false,match_stage:'none',artwork_valid:false};
     const done=(reason,favorite=null)=>({favorite,diagnostics:{...diagnostics,reason}});
     if (!selected || ['unknown','unavailable'].includes(selected.state)) return done('player_unavailable');
     let effective=selected;
@@ -61,22 +60,22 @@ function inspectFavorite(hass, config)
     const id=(effective.attributes || {}).media_content_id;
     if (typeof id!=='string' || !id) return done('playback_id_missing');
     diagnostics.radio_transport=/^(x-sonosapi-(?:hls|radio|stream):|x-rincon-mp3radio:)/i.test(id);
-    if (['unknown','unavailable'].includes((states[options.favorites] || {}).state) || !options.browse && ['unknown','unavailable'].includes((states[options.cache] || {}).state)) return done('favorites_or_cache_unavailable');
+    if (['unknown','unavailable'].includes((states[options.favorites] || {}).state)) return done('favorites_unavailable');
     const favorites=(states[options.favorites] && states[options.favorites].attributes || {}).items;
-    const cache=options.browse ? nativeFavorites.cacheItems(hass,config) : (states[options.cache] && states[options.cache].attributes || {}).items;
+    const metadata=nativeFavorites.browseItems(hass,config);
     diagnostics.favorites_present=!!favorites && !Array.isArray(favorites) && typeof favorites==='object';
-    diagnostics.cache_present=Array.isArray(cache);
-    if (!diagnostics.favorites_present || !diagnostics.cache_present) return done('favorites_or_cache_missing');
-    diagnostics.favorite_count=Object.keys(favorites).length;diagnostics.cache_count=cache.length;
-    const configured=cache.filter(entry=>entry && Object.prototype.hasOwnProperty.call(favorites,entry.media_content_id));
-    let candidates=configured.filter(entry=>entry.media_content_id===id ||
-        [entry.uri,entry.playback_uri].some(uri=>typeof uri==='string' && uri===id));
+    diagnostics.metadata_present=Array.isArray(metadata);
+    if (!diagnostics.favorites_present || !diagnostics.metadata_present) return done('favorites_or_metadata_missing');
+    diagnostics.favorite_count=Object.keys(favorites).length;diagnostics.metadata_count=metadata.length;
+    if (!metadata.length) return done('browse_metadata_missing');
+    const configured=metadata.filter(entry=>entry && Object.prototype.hasOwnProperty.call(favorites,entry.media_content_id));
+    let candidates=configured.filter(entry=>entry.media_content_id===id);
     if (candidates.length) diagnostics.match_stage='identifier';
     if (!candidates.length && diagnostics.radio_transport) {
         const name=channelName((effective.attributes || {}).media_channel);
         diagnostics.channel_present=!!name;
         const mapIds=Object.keys(favorites).filter(key=>name && channelName(favorites[key])===name);
-        const cacheIds=configured.filter(entry=>name && entry.media_content_type==='favorite_item_id' && channelName(entry.title)===name).map(entry=>entry.media_content_id);
+        const metadataIds=configured.filter(entry=>name && entry.media_content_type==='favorite_item_id' && channelName(entry.title)===name).map(entry=>entry.media_content_id);
         // HA Sonos combines station and radio-show metadata with a spaced bullet;
         // the owner's HA also exposes a spaced middle dot. Parse only these
         // explicit formats, never arbitrary prefixes/suffixes or track titles.
@@ -84,18 +83,17 @@ function inspectFavorite(hass, config)
         diagnostics.programme_channel=parts.length>1 && !!parts[0] && parts.slice(1).every(Boolean);
         const prefix=diagnostics.programme_channel ? parts[0] : '';
         const programmeMap=Object.keys(favorites).filter(key=>prefix && channelName(favorites[key])===prefix);
-        const programmeCache=configured.filter(entry=>prefix && entry.media_content_type==='favorite_item_id' && channelName(entry.title)===prefix).map(entry=>entry.media_content_id);
-        diagnostics.map_channel_candidates=mapIds.length;diagnostics.cache_channel_candidates=cacheIds.length;
-        diagnostics.programme_map_candidates=programmeMap.length;diagnostics.programme_cache_candidates=programmeCache.length;
-        // The HA favorite map and browse cache can use different station labels.
-        // Either exact label identifies an ID, but conflicting labels/duplicate
-        // records must never be resolved by list order or a fuzzy score.
-        const ids=[...new Set([...mapIds,...cacheIds,...programmeMap,...programmeCache])];
+        const programmeMetadata=configured.filter(entry=>prefix && entry.media_content_type==='favorite_item_id' && channelName(entry.title)===prefix).map(entry=>entry.media_content_id);
+        diagnostics.map_channel_candidates=mapIds.length;diagnostics.metadata_channel_candidates=metadataIds.length;
+        diagnostics.programme_map_candidates=programmeMap.length;diagnostics.programme_metadata_candidates=programmeMetadata.length;
+        // Both official map and native Browse metadata must corroborate a
+        // single ID. No legacy aliases, stream inference or fuzzy track titles.
+        const ids=[...new Set([...mapIds,...metadataIds,...programmeMap,...programmeMetadata])];
         if (ids.length>1) return done('channel_ambiguous');
-        if (ids.length===1 && (mapIds.length || cacheIds.length ||
-            (programmeMap.length===1 && programmeCache.length===1 && programmeMap[0]===programmeCache[0]))) {
+        if (ids.length===1 && ((mapIds.length===1 && metadataIds.length===1 && mapIds[0]===metadataIds[0]) ||
+            (programmeMap.length===1 && programmeMetadata.length===1 && programmeMap[0]===programmeMetadata[0]))) {
             candidates=configured.filter(entry=>entry.media_content_id===ids[0] && entry.media_content_type==='favorite_item_id');
-            diagnostics.match_stage=mapIds.length || cacheIds.length ? 'radio_channel' : 'radio_station_programme';
+            diagnostics.match_stage=mapIds.length || metadataIds.length ? 'radio_channel' : 'radio_station_programme';
         }
     }
     diagnostics.candidate_count=candidates.length;
@@ -104,19 +102,19 @@ function inspectFavorite(hass, config)
     const favorite=candidates[0];diagnostics.artwork_valid=validThumbnail(favorite.thumbnail);
     if (!diagnostics.artwork_valid) return done('artwork_missing_or_invalid');
     return done('recognized',{id:favorite.media_content_id,url:favorite.thumbnail,color:accentColor(favorite.media_content_id,Object.keys(favorites)),
-        key:JSON.stringify([options.cache,cache,favorite.media_content_id,...(options.browse ? [nativeFavorites.provider.peek(hass,config).version] : [])]),playing:selected.state==='playing' && effective.state==='playing'});
+        key:JSON.stringify([metadata,favorite.media_content_id,nativeFavorites.provider.peek(hass,config).version]),playing:selected.state==='playing' && effective.state==='playing'});
 }
 function recognizedFavorite(hass, config)
 {
     return inspectFavorite(hass,config).favorite;
 }
 // Explicit inspection only: no automatic console logs, network calls, raw
-// entity IDs, station names, URLs, cache contents or token-bearing identifiers.
+// entity IDs, station names, URLs, browse payloads or token-bearing identifiers.
 function diagnostics({hass,config,runtime={}})
 {
     const inspected=inspectFavorite(hass,config), favorite=inspected.favorite;
     const result=resolve({hass,config,state:(hass && hass.states || {})[config.entity],runtime});
-    return {...inspected.diagnostics,...(config._sonos && config._sonos.browse ? {browse:nativeFavorites.provider.peek(hass,config).status} : {}),artwork_load_failed:!!favorite && favorite.key===runtime.failedArtworkKey,
+    return {...inspected.diagnostics,browse:nativeFavorites.provider.peek(hass,config).status,artwork_load_failed:!!favorite && favorite.key===runtime.failedArtworkKey,
         presentation:result.artwork ? (favorite.playing ? 'station_playing' : 'station_inactive') : 'standard_or_override',
         explicit_center_color:!!(config.colors && config.colors.center && config.colors.center!=='auto'),
         explicit_inner_color:!!(config.colors && config.colors.inner_border && config.colors.inner_border!=='auto')};

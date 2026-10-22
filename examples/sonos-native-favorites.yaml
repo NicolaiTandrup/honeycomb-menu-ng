@@ -1,4 +1,4 @@
-# v1.8.0-beta.4+: replace these synthetic IDs with enabled HA Sonos entities.
+# v1.8.0-beta.4 native-only metadata: replace these synthetic IDs with enabled HA Sonos entities.
 type: custom:honeycomb-persistent-hub
 logo: false
 size: 82
@@ -7,4 +7,3 @@ items:
     entity: media_player.player_a
     name: Player A
     favorites_sensor: sensor.favorites_a
-    favorites_browse: true

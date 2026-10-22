@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {createProvider,context,mergeItems} = require('../src/modules/sonos/native-favorites');
+const {createProvider,context} = require('../src/modules/sonos/native-favorites');
 const {settings,recognizedFavorite} = require('../src/modules/sonos/station');
 const {buildCubeConfig} = require('../src/core/cube-config');
 const A='media_player.player_a', B='media_player.player_b';
@@ -21,30 +21,27 @@ function fixture() {
  connection.sendMessagePromise=async request=>{calls.push(request);return request.media_content_type==='favorites'?root:{children:leaves()};};
  const hass={connection,states:{[A]:{state:'playing',attributes:{group_members:[A],media_content_id:'x-sonosapi-hls:synthetic',media_channel:'Station Alpha · Programme'}},
   [B]:{state:'playing',attributes:{group_members:[B]}},[F]:{state:'2',attributes:{items:map}}},entities:{[A]:{platform:'sonos'},[B]:{platform:'sonos'}}};
- const config={entity:A,_sonos:settings({entity:A,favorites_browse:true,favorites_sensor:F,favorites_cache_sensor:C})};
+ const config={entity:A,_sonos:settings({entity:A,favorites_sensor:F})};
  const c=clock(),provider=createProvider({...c,debounce:5,ttl:1000,timeout:80,negativeTtl:200});
  let changes=0;const observers=[];
  const observe=(h=hass,conf=config)=>{let o; o=provider.observe(()=>{changes++;o.update(h,conf);});o.update(h,conf);observers.push(o);return o;};
  return {hass,config,c,provider,calls,connection,map,root,leaves,observe,changes:()=>changes,dispose:()=>observers.forEach(o=>o.dispose())};
 }
-test('opt-in only; strict boolean and both Hub/Control configuration carry native settings',()=>{
- assert.throws(()=>settings({favorites_browse:'true'}),/true or false/);
+test('native Browse Media is default for Hub/Control/legacy media; removed options fail clearly',()=>{
  for(const item of [{type:'sonos'},{module:'sonos'},{type:'media'}]) {
-  const conf=buildCubeConfig({...item,entity:A,favorites_browse:true});
-  assert.equal(conf._sonos.browse,true);assert.equal(conf.menu.promoted_center._sonos.browse,true);
+  const conf=buildCubeConfig({...item,entity:A});
+  assert.equal(conf._sonos.favorites,'sensor.sonos_favorites');
+  assert.equal(conf._sonos.cache,undefined);
   assert.equal(conf.menu.buttons[0].tap_action.honeycomb_nested_menu.buttons[0].mode,'sonos-favorite');
+  for(const removed of [{favorites_cache_sensor:C},{persistent:{favorites_cache_sensor:C}},{favorites_browse:false},{favorites_browse:true}])
+   assert.throws(()=>buildCubeConfig({...item,entity:A,...removed}),/Remove|removed/);
  }
- const f=fixture();delete f.config._sonos.browse;assert.equal(context(f.hass,f.config),null);f.observe();assert.equal(f.c.count(),0);f.dispose();
 });
 test('actual HA read-only folder shape, FV IDs, multiple consumers and safe station contract',async()=>{
  const f=fixture();for(let i=0;i<24;i++)f.observe();await f.c.tick(5);
  assert.deepEqual(f.calls,[{type:'media_player/browse_media',entity_id:A,media_content_type:'favorites',media_content_id:''},
   {type:'media_player/browse_media',entity_id:A,media_content_type:'favorites_folder',media_content_id:'object.item.audioItem.audioBroadcast'}]);
  const {items}=f.provider.peek(f.hass,f.config);assert.deepEqual(items.map(v=>v.media_content_id),[id,other]);assert.ok(Object.isFrozen(items));
- // The strict existing recognizer consumes this exact schema. No invented URI.
- const h={states:{...f.hass.states,[C]:{state:'2',attributes:{items}}}};
- const cfg={...f.config,_sonos:{...f.config._sonos,browse:false}};
- assert.equal(recognizedFavorite(h,cfg).id,id);assert.equal(items[0].uri,undefined);
  assert.equal(f.changes(),24);f.dispose();assert.equal(f.c.count(),0);
 });
 test('TTL is one shared refresh; reorders reuse metadata, rename/deletion creates a fresh context',async()=>{
@@ -54,21 +51,16 @@ test('TTL is one shared refresh; reorders reuse metadata, rename/deletion create
  f.hass.states[F].attributes.items={[id]:'Station Renamed'};o.update(f.hass,f.config);assert.equal(f.provider.peek(f.hass,f.config).items.length,0);
  await f.c.tick(5);assert.equal(f.calls.length,6);f.dispose();
 });
-test('configured cache wins, missing fields are supplemented; duplicates stay ambiguous',()=>{
- const extra=[{media_content_id:id,media_content_type:'favorite_item_id',title:'Browse title',thumbnail:'/new.svg'}],map={[id]:'Station Alpha'};
- const primary=[{media_content_id:id,title:'Configured title',thumbnail:'/explicit.svg',uri:'synthetic:exact'}];
- assert.deepEqual(mergeItems(primary,extra,map),[{...primary[0],media_content_type:'favorite_item_id'}]);
- assert.equal(mergeItems([{media_content_id:id,thumbnail:'javascript:unsafe'}],extra,map)[0].thumbnail,'/new.svg');
- assert.deepEqual(mergeItems([primary[0],primary[0]],extra,map),[primary[0],primary[0]]);
-});
-test('a complete valid cache needs no browse; empty/unavailable cache may supplement',async()=>{
- const f=fixture();f.hass.states[C]={state:'2',attributes:{items:f.leaves()}};assert.equal(context(f.hass,f.config),null);
- f.observe();await f.c.tick(5);assert.equal(f.calls.length,0);
- f.hass.states[C].state='unavailable';const o=f.observe();await f.c.tick(5);assert.equal(f.calls.length,2);o.dispose();f.dispose();
+test('legacy default and configured-looking cache entities are never read, even with sentinel artwork',async()=>{
+ const f=fixture(),states=f.hass.states;
+ states['sensor.sonos_favorites_cache']={state:'2',attributes:{items:f.leaves().map(v=>({...v,thumbnail:'/wrong.svg'}))}};
+ f.hass.states=new Proxy(states,{get:(object,key)=>{if(String(key).includes('cache'))assert.fail('Legacy cache entity read');return object[key];}});
+ f.observe();await f.c.tick(5);assert.equal(f.calls.length,2);
+ assert.equal(f.provider.peek(f.hass,f.config).items[0].thumbnail,'/station-a.svg');f.dispose();
 });
 test('no sensor, unavailable player, non-Sonos registry platform, invalid/huge maps and unknown groups never browse',async()=>{
  const mutations=[h=>delete h.states[F],h=>h.states[F].state='unavailable',h=>h.states[F].attributes.items={},
-  h=>h.states[F].attributes.items={legacy_id:'Station Alpha'},h=>h.states[F].attributes.items=Object.fromEntries(Array.from({length:513},(_,i)=>['FV:2/'+i,'Station'])),
+  h=>h.states[F].attributes.items={'invalid id':'Station Alpha'},h=>h.states[F].attributes.items=Object.fromEntries(Array.from({length:513},(_,i)=>['FV:2/'+i,'Station'])),
   h=>h.states[A].state='unavailable',h=>h.entities[A].platform='other',h=>delete h.states[A].attributes.group_members,
   h=>h.states[A].attributes.group_members=[B,A],h=>h.connection.connected=false];
  for(const mutate of mutations){const f=fixture();mutate(f.hass);f.observe();await f.c.tick(100);assert.equal(f.calls.length,0);f.dispose();}

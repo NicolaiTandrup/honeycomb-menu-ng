@@ -78,7 +78,7 @@ jobs:
       - name: Verify shared active/inactive cube presentation
         run: python test/browser/presentation.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/presentation"
 
-      - name: Verify opt-in native Sonos Favorites and lifecycle
+      - name: Verify native-only Sonos Favorites isolation and lifecycle
         run: python test/browser/native_favorites.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/native-favorites"
 
       - name: Validate documentation and complete YAML examples

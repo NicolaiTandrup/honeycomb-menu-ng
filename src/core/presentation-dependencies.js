@@ -25,8 +25,8 @@ function presentationSnapshot(hass, dependency) {
         const states=hass && hass.states || {};
         const player=states[dependency.sonosPlayer] || entity;
         const leader=(player && player.attributes && player.attributes.group_members || [])[0];
-        return JSON.stringify([entity,player,states[dependency.sonos.favorites],states[dependency.sonos.cache],states[leader],
-            ...(dependency.sonos.browse ? [hass && hass.entities && hass.entities[dependency.sonosPlayer],hass && hass.entities && hass.entities[leader]] : [])]);
+        return JSON.stringify([entity,player,states[dependency.sonos.favorites],states[leader],
+            hass && hass.entities && hass.entities[dependency.sonosPlayer],hass && hass.entities && hass.entities[leader]]);
     }
     return JSON.stringify(entity ? [entity.state, entity.attributes] : null);
 }
