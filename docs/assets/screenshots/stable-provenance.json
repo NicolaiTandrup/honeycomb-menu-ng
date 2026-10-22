@@ -1,0 +1,14 @@
+{
+  "synthetic": true,
+  "capture_source_commit": "bd77ce5104e6e571cd13f8f54fbc3bbbfdefa81c",
+  "capture_bundle_sha256": "20a2f4fbaf4c74d9480e0a9175f7d689ab33f501e8933618afbb4f85e61c0eda",
+  "stable_tag": "v1.8.1",
+  "stable_commit": "c1f178740c8181921033d0d18e0ac8d01afc7ea7",
+  "stable_bundle_sha256": "30ebd78630eb1763c0a7e885732f13647ab9a2b3554800bca0471694a211656d",
+  "normalized_runtime_sha256": "3c574d163cf257e6d4a768afe2bb0944552ffe7660aa9749e7bc72796ff95bcd",
+  "note": "Reused verified v1.8.0 screenshots: v1.8.1 runtime is byte-identical except its version banner. These are synthetic Chromium fixtures, not owner hardware.",
+  "images": {
+    "stable-light.png": "97baf9df821ae5a9c548929e23cedcb282bdab000adbc84b4ec96c0bf8aa311c",
+    "stable-kelvin.png": "21462a6fd314a3b5242f8e6edd2f7195f117f143ed879fb991c2f1978f684ce0"
+  }
+}
