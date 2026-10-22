@@ -285,9 +285,11 @@ class CubeElement extends LitElement
         const wave=this.config.energy_wave;
         const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
         const state=this._entityState();
-        const waveEnabled=!model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
+        const timing=energyWave.timing(normalized);
+        const waveEnabled=!!timing && !model.disabled && (!this.config.entity || state && !['unknown','unavailable','paused','off','idle','disconnected','offline','error'].includes(state.state)) && energyWave.enabled(normalized);
         if(waveEnabled)model.energyWave=true;
         if(waveEnabled && this.isConnected && !this._waveCleanup)this._waveCleanup=energyWave.attach(this);
+        if(waveEnabled && this._waveCleanup)energyWave.setCycle(this,timing.cycleMs);
         else if((!waveEnabled || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
         // Display refresh only. The backend/device owns expiry; this never calls HA.
         const refreshAt=presentation.refreshAt || null;
@@ -1052,6 +1054,7 @@ class CubeElement extends LitElement
 
     updated()
     {
+        if(this._waveCleanup)energyWave.sync(this);
         const target = this.shadowRoot.querySelector('.external-content');
         if (target && !this._contentCard) {
             const type=this.config.type && !['custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type) ? this.config.type : 'custom:button-card';

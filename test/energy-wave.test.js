@@ -14,3 +14,26 @@ test('one shared normalized capability passes descriptor validation; templates u
  for(const v of [true,{},[],{...value,power_w:'100'},{...value,unknown:1}])assert.throws(()=>validateCubeConfig({energy_wave:v}));
  assert.equal(presentationDependencies({energy_wave:{...value,power_w:'HCJS: return Number(states["sensor.power_a"].state);'}}).wildcard,true);
 });
+test('power speed is continuous monotone and bounded, independently configured',()=>{
+ let previous=Infinity;
+ for(const power_w of [Number.MIN_VALUE,1,1000,7000,11000,19400,100000]){
+  const t=wave.timing({speed_mode:'power',power_w,max_power_w:19400});
+  assert.ok(t.cycleMs<=previous && t.cycleMs>=900 && t.cycleMs<=2200);previous=t.cycleMs;
+ }
+ assert.equal(wave.timing({speed_mode:'power',power_w:19400,max_power_w:19400}).cycleMs,900);
+ assert.equal(wave.timing({speed_mode:'power',power_w:11000,max_power_w:11000}).cycleMs,900);
+ assert.ok(wave.timing({speed_mode:'power',power_w:11000,max_power_w:19400}).cycleMs>900);
+ assert.equal(wave.timing({speed_mode:'fixed',power_w:1000,cycle_ms:1400}).cycleMs,1400);
+ assert.equal(wave.timing({power_w:1000}).cycleMs,3000);
+});
+test('speed schema validates static values and dynamic invalid settings fail closed',()=>{
+ const base={active:true,available:true,fault:false,power_w:1000,speed_mode:'power',max_power_w:19400};
+ for(const edit of [{max_power_w:0},{max_power_w:-1},{max_power_w:Infinity},{cycle_ms:1400},{min_cycle_ms:499},{max_cycle_ms:10001},{min_cycle_ms:2500,max_cycle_ms:2000},{speed_mode:'fast'},{max_power_w:undefined}]){
+  assert.throws(()=>wave.validate({...base,...edit}));assert.equal(wave.timing({...base,...edit}),null);
+ }
+ for(const edit of [{max_power_w:'HCJS: return Number(entity.state);'},{min_cycle_ms:'[[[ return 900; ]]]'}])assert.doesNotThrow(()=>wave.validate({...base,...edit}));
+ for(const power_w of [0,-1,NaN,Infinity,'1000'])assert.equal(wave.timing({...base,power_w}),null);
+ for(const max_power_w of [null,'19400','900;animation:x',NaN])assert.equal(wave.timing({...base,max_power_w}),null);
+ assert.throws(()=>wave.validate({...base,speed_mode:'fixed'}));
+ assert.throws(()=>wave.validate({...base,min_cycle_ms:3000}));
+});
