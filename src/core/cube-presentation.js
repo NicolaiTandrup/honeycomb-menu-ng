@@ -43,4 +43,6 @@ function artworkLayout({primary=false,secondary=false,scale=1,offsetX=0,offsetY=
     const x=bounded(offsetX,-5,5,0),y=bounded(offsetY,-4,4,0);
     return {width:`${width}%`,left:`${(100-width)/2+x}%`,top:`${(primary || secondary?14:19)+y}%`,height:`${height}%`};
 }
-module.exports={channels,darken,resolveFill,validateGradient,artworkLayout};
+// Built-in design dimensions consume the same numeric size variable. User px overrides remain px.
+const designLength=px=>`calc(var(--honeycomb-persistent-size,82px) / 82 * ${px})`;
+module.exports={channels,darken,resolveFill,validateGradient,artworkLayout,designLength};

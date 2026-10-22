@@ -46,8 +46,9 @@ There is no new artificial numeric maximum/minimum. Very small cubes remain
 mathematically valid but may be unreadable or hard to touch. Auto uses no hidden
 minimum, which would break alignment: at 50% image scale cubes are 41px, at 75%
 61.5px, at 100% 82px. Prefer an appropriately detailed mobile floorplan or fixed
-mode if touch targets become too small. Original numeric ring-width/style
-semantics are retained; explicit pixel styles remain explicit pixels.
+mode if touch targets become too small. Default ring widths, icon/label spacing and shadows now consume the existing
+numeric size variable too, keeping the 82px design proportions at smaller sizes.
+Explicit numeric border widths and pixel styles remain explicit pixels.
 
 ## Coordinate frame and supported layouts
 
@@ -75,7 +76,9 @@ semantics are retained; explicit pixel styles remain explicit pixels.
   coalesced measurements; removal cleans up observers/listeners. No polling.
   HA DOM is not a public sizing API; incompatible future DOM uses the fallback.
 - Existing geometry positions the icons/text/artwork, gradients, logo and menus
-  from the effective numeric size. The shared wave follows the fill polygon.
+  from the effective numeric size. Native HA MDI SVG size, default borders, spacing and shadows
+  also consume that variable (24px icon at 82px, 12px at 41px), correcting the
+  previous inner SVG default that could overflow a small numeric host. The shared wave follows the fill polygon.
   Open nested menus and Back retain their navigation stack and resize together;
   passive resize does not reset idle timeout or call services. The base follows
   its anchor while module centers keep their existing navigation anchor rule.

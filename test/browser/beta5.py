@@ -45,6 +45,8 @@ class Beta5(Cubes):
   self.floor()
   for factor in [1,.75,.5,1.5,1]:
    self.resize(640*factor,400*factor);r=self.measured();self.assertAlmostEqual(r['size'],82*factor,places=2);self.assertAlmostEqual(r['menu'],82*factor,places=2)
+   icon=self.page.locator('honeycomb-menu-ng honeycomb-menu-ng-item').first.locator('ha-svg-icon').bounding_box();self.assertAlmostEqual(icon['width'],24*factor,delta=.03)
+   inner=self.page.locator('honeycomb-menu-ng honeycomb-menu-ng-item').first.locator('.hex-inner').evaluate('(el)=>el.parentElement.getAttribute("transform")');self.assertAlmostEqual(float(re.search(r'scale\(([^)]+)',inner).group(1)),1-6/82,places=8)
    self.assertAlmostEqual(r['center'],self.page.evaluate('floorImage.getBoundingClientRect().left+floorImage.getBoundingClientRect().width/2'),delta=.1)
    self.capture(f'auto-scale-{factor}')
   for size in [60,82,100,None]:

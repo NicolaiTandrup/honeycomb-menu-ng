@@ -1,3 +1,4 @@
+const {designLength}=require('../../core/cube-presentation');
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { INITIAL } = require('./color-zoom.js');
@@ -68,12 +69,12 @@ function presetControlStyles()
             { 'align-items': 'center' }
         ],
         icon: [
-            { width: '22px' },
+            { width: designLength(22) },
             { 'align-self': 'end' },
             { color: '#f6f7f9' }
         ],
         name: [
-            { 'font-size': '11px' },
+            { 'font-size': designLength(11) },
             { 'font-weight': '650' },
             { 'line-height': '1' },
             { 'align-self': 'center' },
@@ -83,10 +84,10 @@ function presetControlStyles()
             { 'text-overflow': 'ellipsis' }
         ],
         label: [
-            { 'font-size': '8px' },
+            { 'font-size': designLength(8) },
             { 'line-height': '1' },
             { 'align-self': 'start' },
-            { 'padding-top': '1px' },
+            { 'padding-top': designLength(1) },
             { color: 'rgba(246,247,249,0.82)' },
             { 'white-space': 'nowrap' },
             { overflow: 'hidden' },

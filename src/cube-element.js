@@ -63,7 +63,7 @@ class CubeElement extends LitElement
             }
 
             .persistent-center {
-                filter: drop-shadow(2px 4px 3px rgba(0,0,0,.76));
+                filter: drop-shadow(calc(var(--honeycomb-persistent-size,82px) / 82 * 2) calc(var(--honeycomb-persistent-size,82px) / 82 * 4) calc(var(--honeycomb-persistent-size,82px) / 82 * 3) rgba(0,0,0,.76));
                 position: relative;
                 width: 100%;
                 height: calc(var(--honeycomb-persistent-size, 82px) * 1.1547);
@@ -140,7 +140,7 @@ class CubeElement extends LitElement
                 object-fit: contain;
                 overflow: visible;
                 transform-origin: center;
-                filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+                filter: drop-shadow(0 calc(var(--honeycomb-persistent-size,82px) / 82) calc(var(--honeycomb-persistent-size,82px) / 82) rgba(0, 0, 0, 0.18));
             }
 
             .bee-icon.flap {
@@ -162,6 +162,7 @@ class CubeElement extends LitElement
                 }
             }
             ha-icon {
+                --mdc-icon-size: calc(var(--honeycomb-persistent-size,82px) / 82 * 24);
                 width: 34%;
                 height: 34%;
                 color: inherit;
@@ -170,11 +171,11 @@ class CubeElement extends LitElement
             .content.has-secondary ha-icon {
                 width: 30%;
                 height: 30%;
-                transform: translateY(-2px);
+                transform: translateY(calc(var(--honeycomb-persistent-size,82px) / 82 * -2));
             }
 
             .secondary {
-                margin-top: 2px;
+                margin-top: calc(var(--honeycomb-persistent-size,82px) / 82 * 2);
                 font-size: calc(var(--honeycomb-persistent-size, 82px) * 0.16);
                 font-weight: 650;
                 line-height: 1;
@@ -351,10 +352,7 @@ class CubeElement extends LitElement
                 center_color: '#202224',
                 preview_color: null
             },
-            border: {
-                outer_width: 3,
-                inner_width: 3
-            }
+            border: {}
         });
 
 
@@ -996,8 +994,12 @@ class CubeElement extends LitElement
     {
         if (!this.config || !this._model) return html``;
         const m = this._model;
-        const innerScale = Math.max(.55, 1-m.outer*2/this.size);
-        const centerScale = Math.max(.45, innerScale-m.inner*2/this.size);
+        // Default widths are design pixels at 82; explicit numeric widths stay pixels.
+        const border=this.config.border || {};
+        const outer=border.outer_width===undefined?m.outer*this.size/82:m.outer;
+        const inner=border.inner_width===undefined?m.inner*this.size/82:m.inner;
+        const innerScale = Math.max(.55, 1-outer*2/this.size);
+        const centerScale = Math.max(.45, innerScale-inner*2/this.size);
         const points = layoutCore.persistentHexPoints('cell');
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));

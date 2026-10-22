@@ -1,7 +1,7 @@
 const { accentTemplate,settings } = require('./station.js');
 const {validThumbnail} = require('./artwork');
 const {browseItems,provider} = require('./native-favorites');
-const {artworkLayout} = require('../../core/cube-presentation');
+const {artworkLayout,designLength} = require('../../core/cube-presentation');
 
 function buildRadioMenu(item)
 {
@@ -43,12 +43,12 @@ function buildRadioMenu(item)
                     { border: '1px solid rgba(75, 180, 200, 0.22)' }
                 ],
                 icon: [
-                    { width: '17px' },
+                    { width: designLength(17) },
                     { 'align-self': 'end' }
                 ],
                 name: [
                     { 'align-self': 'start' },
-                    { 'font-size': '9px' },
+                    { 'font-size': designLength(9) },
                     { 'font-weight': '600' },
                     { 'white-space': 'nowrap' },
                     { overflow: 'hidden' },

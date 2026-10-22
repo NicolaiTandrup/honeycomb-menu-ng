@@ -887,6 +887,15 @@ class Cubes(unittest.TestCase):
                     self.assertEqual(old['model']['nameStyle']['display'],'none')
                     self.assertEqual(actual['model']['name'],'');self.assertIsNone(actual['model']['icon'])
                     actual['model']['name']=old['model']['name'];actual['model']['icon']=old['model']['icon']
+            # Built-in design lengths now use the existing size variable. At 82px
+            # these exact two values are equivalent; all other style fields compare.
+            for actual,old in zip(snapshot['outer'],reference['outer']):
+                for group,key,design in [('iconStyle','width',17),('nameStyle','font-size',9)]:
+                    value=actual['model'][group].get(key)
+                    if isinstance(value,str) and value.startswith('calc(var(--honeycomb-persistent-size,82px)'):
+                        self.assertEqual(value,f'calc(var(--honeycomb-persistent-size,82px) / 82 * {design})')
+                        self.assertEqual(old['model'][group][key],f'{design}px')
+                        actual['model'][group][key]=old['model'][group][key]
             for scene in [snapshot,reference]:
                 scene['center'].pop('fill',None)
                 for cell in scene['outer']:cell['model'].pop('fill',None)

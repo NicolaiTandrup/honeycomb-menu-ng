@@ -40,3 +40,12 @@ test('decorative logo uses its own fill gradient while inactive physical cubes s
  assert.equal(resolveFill({colors,decorative:true,gradient:false}).type,'solid');
  assert.equal(resolveFill({colors,decorative:false,active:false}).type,'solid');
 });
+
+test('built-in preset and Radio dimensions use the existing numeric size variable',()=>{
+ const {designLength}=require('../src/core/cube-presentation');
+ assert.equal(designLength(11),'calc(var(--honeycomb-persistent-size,82px) / 82 * 11)');
+ const controls=require('../src/modules/light/controls');
+ const menu={entity:'light.zone_a',buttons:[{control:'preset-brightness'}]};
+ controls.applyPresetControls(menu,{},'light.zone_a');
+ assert.ok(JSON.stringify(menu.buttons[0].styles).includes(designLength(22)));
+});
