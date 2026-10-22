@@ -1,5 +1,36 @@
 # v1.7.1 — Stable
 
+## v1.8.0-beta.6 — stable display baseline and power-responsive pulse
+
+Cumulative on exact published beta.5 `ece8f9e5af7e92b1629cfe164cf000028b0b1068`.
+The accepted40% gradient, logo gradient, all existing modules/actions, native-only
+Sonos, numeric sizing, navigation and original coexistence are retained.
+
+- `size: auto` now uses rendered image width / stable **display reference**,
+  default1536 CSS pixels. Optional positive `auto_reference_width: 1500` makes
+  1500px →82px,750px →41px regardless of bitmap1500/3000/6000px. This corrects
+  beta.5's tiny baseline; never infer the reference separately on each client.
+- Existing energy_wave defaults to fixed3000ms. Explicit power mode requires a
+  per-cube max_power_w, with default900–2200ms bounds; fixed cycle_ms is supported.
+  Effective cycles500–10000ms, safe validation and runtime static fallback.
+- Hex contour/keyframes unchanged. One shared350ms playback-rate transition
+  preserves animation phase/node identity; no per-cube timer, polling or DOM
+  rebuild per power update. All health/visibility/reduced-motion gates and
+  24-visible-motion budget remain. No Charger adapter or HA commands.
+
+[Copy/paste sizing and migration](docs/FLOORPLAN_SIZING.md),
+[rate mapping and sensor prerequisites](docs/ENERGY_WAVE.md),
+[no-hardware power demo](examples/energy-wave-power.yaml). The19400W aggregate
+reference is illustrative theoretical3×28A/400V capacity, not actual measured
+power or a limit for all users. Individual references remain independent.
+
+Full exact-head CI and manually authorized publisher must pass before an unused
+immutable prerelease tag. #115/#117 remain open for owner real-HA verification.
+Known static-image DOM/fallback/touch-size and native Sonos/Sleep limits remain;
+HACS catalog and stable SemVer/migration review are separate owner gates.
+No master/stable/retention change or prior release/tag/asset overwrite/deletion.
+
+
 ## v1.8.0-beta.5 — cumulative floorplan and shared presentation beta
 
 Starts from the exact owner-accepted beta.4 commit
