@@ -1,3 +1,26 @@
+# v1.9.0-beta.3 — Radio artwork containment
+
+Focused cumulative stabilization release from immutable v1.9.0-beta.2. Owner
+real-HA acceptance confirmed Charger two-row labels, two-charger metrics/pulse
+and dashboard editor positioning in beta.2; these implementations are unchanged.
+
+- Station artwork stays inside the sloping inner hex edges on the launcher,
+  promoted Sonos center and Radio favorite cubes. One inset policy, aspect-ratio
+  containment, centered unlabeled logos and reserved name/volume text space.
+- Regression fixtures include opaque square, wide and tall logos, default/compact
+  numeric sizes, larger borders, playing/paused/idle, fallback and live recovery.
+  Assertions measure actual contained image pixels against all six polygon edges.
+- Native Radio ordering/recognition/Browse Media, Join/Sleep, Light Hue/Kelvin,
+  shared 82px geometry, reference autosizing, approved gradients, Charger and
+  editor lifecycle behavior remain intact.
+
+Latest stable/master remain v1.8.1. No master merge, stable publication, retention
+change, prior tag/release/asset rewrite or real HA/charging command. Issue #125
+remains open until owner real-HA artwork acceptance. Climate is a separate
+v1.10 development PR, never part of beta.3; Charger Level B and guest UI are deferred.
+
+---
+
 # v1.9.0-beta.2 — Charger labels, artwork padding and editor lifecycle
 
 Cumulative prerelease from immutable v1.9.0-beta.1. Latest stable remains v1.8.1;

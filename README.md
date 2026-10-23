@@ -35,7 +35,7 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
 Car and Climate modules are not implemented. Charging automation remains external.
-The generic Charger module below is **v1.9.0-beta.2 only**, not part of v1.8.1 stable.
+The generic Charger module below is **v1.9.0-beta.3 only**, not part of v1.8.1 stable.
 Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
 
 Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
@@ -76,7 +76,7 @@ release does not make newer beta-only options available.
 
 ## Charger beta: complete dashboards
 
-**v1.9.0-beta.2 prerelease only.** A generic Charger/Easee module shares the same
+**v1.9.0-beta.3 prerelease only.** A generic Charger/Easee module shares the same
 82px renderer, gradients, sizing and power-sensitive hexagonal pulse. A Charging
 Hub sums fresh verified power and physically connected cars; named chargers open
 fixed detail menus. Permission and permanent-lock controls require deliberate taps
@@ -89,8 +89,8 @@ on verified HA switches. Opening/Back/state updates never issue charging command
 - [Installation, entity checklist, source-backed capabilities and safe HA tests](docs/CHARGER_MODULE.md).
 
 Named chargers show vehicle/connection and fixed charger name in two rows; fresh
-charging power stays visible beside the icon. Sonos artwork is padded inside
-the border. Dashboard editor previews own their overlays and cannot send actions.
+charging power stays visible beside the icon. Sonos launcher, promoted center and Radio favorite artwork share an inset safe
+area that avoids the sloping hex edges, preserves aspect ratio and reserves labels. Dashboard editor previews own their overlays and cannot send actions.
 
 All example IDs and screenshots are synthetic replacement points. Replace them
 with your actual integration entities. HACS prereleases must be enabled and the

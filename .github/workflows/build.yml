@@ -99,6 +99,9 @@ jobs:
       - name: Verify two-row labels, padded artwork and real-card editor ownership
         run: python test/browser/track3.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/track3"
 
+      - name: Verify radio artwork pixel bounds across ratios and hex slopes
+        run: python test/browser/radio_artwork.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/radio-artwork"
+
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

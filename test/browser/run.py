@@ -19,7 +19,7 @@ BUTTON_SHA = '5d6e9c6afca01e8014653fa56bb5d6aa9248d832c34fb944a7f2c36329bc22d1'
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        paths = {'/station-full-bleed.svg': ROOT/'test/browser/assets/station-full-bleed.svg', '/mdi-icons.js': ROOT/'test/browser/assets/mdi-icons.js', '/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button, '/layout.svg': ROOT/'docs/assets/layout-slots.svg', '/station-a.svg': ROOT/'test/browser/assets/station-a.svg', '/station-c.svg': ROOT/'test/browser/assets/station-c.svg'}
+        paths = {**{f'/station-{shape}.svg':ROOT/f'test/browser/assets/station-{shape}.svg' for shape in ['square','wide','tall']}, '/station-full-bleed.svg': ROOT/'test/browser/assets/station-full-bleed.svg', '/mdi-icons.js': ROOT/'test/browser/assets/mdi-icons.js', '/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button, '/layout.svg': ROOT/'docs/assets/layout-slots.svg', '/station-a.svg': ROOT/'test/browser/assets/station-a.svg', '/station-c.svg': ROOT/'test/browser/assets/station-c.svg'}
         if self.path == '/favicon.ico':
             self.send_response(204); self.end_headers(); return
         if self.path not in paths:
@@ -1466,11 +1466,11 @@ class Cubes(unittest.TestCase):
                     img=cube.locator('.station-artwork');img.wait_for(state='visible')
                     self.page.wait_for_function('()=>[...document.querySelectorAll("honeycomb-persistent-hub")].every(h=>!!h)')
                     details=img.evaluate('el=>({fit:getComputedStyle(el).objectFit,width:el.style.width,top:el.style.top,natural:[el.naturalWidth,el.naturalHeight],opacity:getComputedStyle(el).opacity})')
-                    self.assertEqual(details['fit'],'contain');self.assertEqual(details['width'],'55.8%');self.assertEqual(details['opacity'],'1')
+                    self.assertEqual(details['fit'],'contain');self.assertEqual(details['width'],'48%');self.assertEqual(details['opacity'],'1')
                     self.assertEqual(details['natural'],[160,80])
                     self.assertEqual(cube.bounding_box()['width'],82)
                     if state=='playing':
-                        self.assertEqual(details['top'],'15%');self.assertEqual(cube.locator('.secondary').inner_text(),f'{round(volume*100)}%')
+                        self.assertEqual(details['top'],'22%');self.assertEqual(cube.locator('.secondary').inner_text(),f'{round(volume*100)}%')
                         self.assertLess(img.bounding_box()['y']+img.bounding_box()['height'],cube.locator('.secondary').bounding_box()['y'])
                     else:
                         self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#202224')

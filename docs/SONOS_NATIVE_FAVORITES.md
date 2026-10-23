@@ -130,3 +130,14 @@ Synthetic unit/browser CI verifies client contracts, not physical Sonos/HA or
 all tablet hardware. Real owner beta testing and explicit approval remain required
 before stable. The owner reports successful beta.7 real-HA testing; merging and
 publication still require separate explicit approval.
+
+## Radio artwork containment (v1.9.0-beta.3)
+
+Launcher, promoted center and outer-ring favorite logos use one shared Sonos
+safe-area policy inside the existing 82px renderer. Images are contained, never
+cropped or stretched. Labeled player art sits below the upper sloping edges with
+space for name/volume; unlabeled favorites are centered with generous inset.
+Square, wide and tall artwork scale through the existing numeric/auto size pipeline.
+Missing/failed or unrecognized artwork retains the existing icon fallback. No
+station recognition, ordering, native Browse Media caching, playback action,
+Join/Sleep behavior or user-configured artwork precedence changes.

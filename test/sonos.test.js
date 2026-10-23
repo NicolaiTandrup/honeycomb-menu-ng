@@ -432,12 +432,23 @@ test('playing artwork moves down with text space; paused and idle artwork stay c
     const {hass,config}=stationFixture();
     hass.states[player].attributes.volume_level=.02;
     let art=station.resolve({hass,config,state:hass.states[player]}).artwork;
-    assert.equal(art.style.width,'55.8%');assert.equal(art.style.height,'43.2%');
+    assert.equal(art.style.width,'48%');assert.equal(art.style.height,'37.161%');
     hass.states[player].state='paused';
     art=station.resolve({hass,config,state:hass.states[player]}).artwork;
-    assert.equal(art.style.width,'55.8%');assert.equal(art.style.height,'55.8%');
-    assert.equal(art.style.top,'20%');
+    assert.equal(art.style.width,'48%');assert.equal(art.style.height,'48%');
+    assert.equal(art.style.top,'26%');
     config.label='Custom label';config.show_name=true;config.name='Player A';
     art=station.resolve({hass,config,state:hass.states[player]}).artwork;
-    assert.equal(art.style.height,'32.4%','Explicit labels still reserve space');
+    assert.equal(art.style.height,'27.871%','Explicit labels still reserve space');
+});
+
+test('all Radio artwork contexts reserve sloped-edge padding and text zones',()=>{
+    const {radioArtworkLayout}=require('../src/modules/sonos/artwork');
+    for(const primary of [false,true])for(const secondary of [false,true]){
+        const style=radioArtworkLayout({primary,secondary});
+        assert.equal(style.width,'48%');assert.equal(style.left,'26%');
+        assert.equal(style.top,primary || secondary ? '22%' : '26%');
+        assert.ok(parseFloat(style.height)<=48);
+        if(primary || secondary)assert.ok(parseFloat(style.top)+parseFloat(style.height)<60);
+    }
 });

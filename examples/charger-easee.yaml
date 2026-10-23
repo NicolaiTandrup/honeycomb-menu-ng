@@ -1,5 +1,5 @@
 # Synthetic replacement IDs: collect the actual entities listed in docs/CHARGER_MODULE.md.
-# Install v1.9.0-beta.2 in HACS (prereleases enabled), keep the existing resource:
+# Install v1.9.0-beta.3 in HACS (prereleases enabled), keep the existing resource:
 # /hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js  (JavaScript module).
 # Paste this COMPLETE dashboard in the Lovelace raw configuration editor.
 # The neutral inline image needs no /local file. YAML anchors share each mapping.

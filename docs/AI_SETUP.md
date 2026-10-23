@@ -11,14 +11,14 @@ Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior is supported.
 No runtime code from v1.6 is imported. Catalog inclusion is pending; use the
 HACS custom repository until accepted. [Catalog submission](HACS_CATALOG_SUBMISSION.md).
 
-**BETA EXTENSION — v1.9.0-beta.2 only:** `type: charger` / `module: charger`
+**BETA EXTENSION — v1.9.0-beta.3 only:** `type: charger` / `module: charger`
 and `type: charging-hub` / `module: charging-hub` are implemented in this prerelease.
 Never generate Charger YAML for v1.8.1 stable. Use the exact
 [Charger schema/entity/slot/action/freshness contract](CHARGER_MODULE.md) and the
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
-### Charger generation rules (1.9.0-beta.2)
+### Charger generation rules (1.9.0-beta.3)
 
 1. Collect real `entity` status plus explicit role mappings, provider (`easee` or
    `generic`), friendly name and actual W/kW, Wh/kWh, A/mA units. Do not fabricate
