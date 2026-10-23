@@ -13,10 +13,12 @@ This file is a checkpoint, not a substitute for CI/release verification.
 - Tested beta.3 source: **`8a57ccd225cf95a22685c86fafda1a674bd649d2`**,
   branch `fix/issue125-radio-beta3`,
   [PR #130](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/130), unmerged.
-  Do not change that branch during its publisher run.
+  Its publication is independently verified; preserve the immutable tag/assets.
 - Current feature/handoff branch: **`feature/v1.10-climate`**, based on exact
-  tested beta.3. First checkpoint adds continuation documentation only; Climate
-  implementation is not yet present. No Climate PR/release exists at this checkpoint.
+  tested beta.3. Permanent handoff instructions are committed at `5320ea2`.
+  Climate implementation and local targeted validation are now present; a separate
+  review PR and full inherited regression/CI are the next checkpoint. No Climate
+  tag/release has been published or is authorized by this task.
 - Relevant issues: [#125 artwork acceptance](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/125),
   [#87 Climate](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/87),
   [#106 roadmap](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/106).
@@ -46,69 +48,92 @@ Beta.3 implementation is committed in `ad3bc39` + release metadata `8a57ccd`:
 - Tested bundle: **244847 bytes**, SHA256
   `29879439c38eb46c95cb0fd6f87407e5dd4c33d182aef7318748ca1a7c2a415b`.
 
-## In progress — beta.3 publication has been dispatched, not yet verified
+## Completed — beta.3 publication independently verified
 
-Owner explicitly authorized immutable beta.3 after green CI. Fresh preflight
-passed source/head, both CI attempts/checksums, unused tag/release and unchanged
-master/latest stable. Normal manual publisher was dispatched once with publish=true:
+[Public beta.3](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.3)
+is published from exact tested source `8a57ccd225cf95a22685c86fafda1a674bd649d2`.
+[Guarded publisher 39991372795](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39991372795)
+passed. All three assets downloaded without authentication; bundle bytes,
+SHA256SUMS, provenance, tag, asset digests and prerelease/public flags matched.
+Inventory: all 49 earlier releases/assets and 101 earlier tags preserved; now
+50 releases / 102 tags. Private beta.5 draft/assets, master/latest stable v1.8.1
+and retention unchanged. PR #130 is open/unmerged; #125 awaits owner logo acceptance.
+Do not dispatch this beta again or modify its tag/assets.
 
-[Run 39991372795](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39991372795).
+Permanent continuation instructions committed/pushed at `5320ea2` on the current
+feature branch. Documentation contracts, YAML/links and all 16 desktop/mobile docs
+checks passed after adding the handoff. No runtime changes in that checkpoint.
 
-**Next step:** inspect this run. Do not dispatch a second publication blindly.
-If successful, independently download all three public assets and verify bytes,
-SHA256SUMS, release-provenance.json, tag SHA, prerelease=true/draft=false and latest
-stable v1.8.1. Refresh the inventory: all prior 49 releases/101 tags and private
-v1.7.1-beta.5 draft/assets must be preserved. If a tag/draft exists after failure,
-preserve it and report the precise blocker; never delete/reuse/force it.
+## Active priority — Climate v1.10.0 (separate review candidate)
 
-## Next priority — Climate v1.10.0 (separate PR, not in beta.3)
+Current branch: `feature/v1.10-climate`, based on exact published beta.3. Candidate
+metadata is `1.10.0-beta.1` solely to distinguish its test bundle; **unpublished**.
+Open a reviewable unmerged PR targeting `fix/issue125-radio-beta3` after the coherent
+implementation checkpoint. No Climate publication/merge/stable is authorized here.
 
-After beta.3 publication verification, implement generic `type: climate` / standalone
-`module: climate` on this feature branch and open a reviewable unmerged PR targeting
-`fix/issue125-radio-beta3`. No Climate release is authorized by the current task.
+Implemented:
 
-Owner decisions confirmed in chat:
+- Shared module/renderer for Hub and Control, 82px default and existing auto sizing.
+- Main slots: 0 live current/target/status; 1 +2 native steps; 2 advertised HVAC
+  chooser; 3 capability categories; 4 −2 steps; 5 −1 step; 6 +1 step.
+- Owner-approved HVAC chooser (no guessed power restoration), explicit Low/High
+  range selection, native units/steps/bounds and exact advertised services/choices.
+- Preset/fan/swing/horizontal capabilities, truthful unavailable/read-only states.
+- Exact-target serialized command bridge; Sending/Awaiting HA vs failed/unconfirmed,
+  15-second acknowledgement/timeout and no automatic retry or service-on-render.
+- Native Defrost first unless explicit switch mapping overrides; optional read-only
+  registry lookup requires exact semantics + unambiguous same-device/platform/config
+  entry. Denied/missing/ambiguous metadata never guesses from names or areas.
+- Generic `honeycomb-open-nested` child descriptor with explicit `module`/`entity`;
+  real center/Back context works from ordinary parents and standalone Control.
+- New Climate unit/browser tests, mandatory CI browser step, synthetic complete YAML,
+  README and precise versioned AI/Climate guide. No Car or Charger redesign.
 
-- Slot 2 opens **advertised HVAC modes**, not a guessed power/restore toggle.
-- Dual-setpoint devices require **explicit Low/High selection** before +/− writes.
+Research: HA core `ebea8e72ef5ac27b24ac5c1bf051cab46fa48dd0` climate const/entity/
+services + registry, current HA frontend temperature control and research PR #112.
+HA fallback step is 0.5°C / 1°F only if the attribute is absent. HA metadata does
+not universally identify switch purpose; explicit user-confirmed mapping is required
+when discovery cannot prove it. No helper/backend/real HA configuration is modified.
 
-Planned scope: shared-renderer current/target temperature, HVAC action/mode, native
-unit/step/min/max validation, capability-aware modes/presets/fan/swing, truthful
-read-only/unavailable states, safe exact-target actions and genuine cross-entity
-nested navigation with correct one-level Back. No Car implementation.
+Actual local validation at this implementation checkpoint:
 
-Research reviewed: [PR #112](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/112),
-HA core `ebea8e72ef5ac27b24ac5c1bf051cab46fa48dd0` climate const/entity/services and
-entity registry; current HA frontend climate temperature control. HA frontend uses
-reported target_temp_step, otherwise 0.5 Celsius / 1 Fahrenheit. Do not convert
-one unit's numeric increment into another silently.
+- Full Node suite: **364 passed / 3 stable-only skips** (367 total), including
+  **23 new Climate cases**; no failures.
+- First Climate browser run: all **22 initial desktop/mobile cases passed** after
+  fixing standalone/generic child center promotion and test clock/disabled inputs.
+  Expanded suite adds command failure/unconfirmed/reconnect, Light alignment and
+  40-cube performance; its final full rerun is in progress, not yet a completion claim.
+- Documentation: **61 YAML blocks**, 44 complete cards + 11 contextual fragments,
+  217 local links; **20 desktop/mobile documentation interactions passed**.
+- Six native Sleep Timer contracts, HACS packaging and actionlint passed.
+- Candidate bundle: 263317 bytes, SHA256
+  `2435b34a2edbcf6f2228558912c8050e69c2850f3735ed7a6b1c1bf540544eb2`.
+  Repeated-build verification and full inherited browser/remote CI still pending.
+- Local QA evidence is outside Git under `/workspace/build-output/beta3-climate/`.
+  Full unit log `climate-all-unit.log`, docs `climate-docs.log`, new browser
+  `climate-browser.log`; existing regression run `climate-core.log` is in progress.
+  Browser plugin is unavailable; tests use the existing real Chromium harness.
 
-Discovery constraints: native exact Defrost preset first; generic optional registry
-resolution requires unambiguous same-device metadata with verified function semantics,
-not names. HA does not universally describe switch purpose; require explicit mapping
-when unknown/ambiguous/denied or for user-confirmed cross-device topology. Do not
-hardcode brands. Keep discovery bounded/event-driven and actions serialized with
-HA confirmation/errors; no polling or service calls on navigation/render.
+Remaining tasks, in order:
 
-Reuse existing nested action/menu structure and shared controller where possible;
-retain separate parent/child module/entity/config/Back identity. Do not create a
-second renderer or duplicate temperature controls for a future Car module.
+1. Finish expanded Climate suite and complete inherited desktop/mobile regressions.
+   Fix any real failures; do not weaken required checks. Inspect screenshots.
+2. Verify repeated production builds/checksums, full core/performance/contracts,
+   workflow lint and package checks; commit/push reviewable checkpoints.
+3. Open Climate PR against `fix/issue125-radio-beta3`; run all exact-head push/PR CI.
+4. Record PR/head/CI, actual counts, known limitations and next step here; post a
+   concise meaningful #87/PR progress comment. Keep #87 open for owner hardware
+   acceptance. Beta.3 issue #125 also awaits real-HA artwork acceptance.
+5. Owner reviews Climate candidate and decides subsequent real-HA beta publication;
+   no automatic Climate tag/release, master/stable merge or device commands.
 
-Remaining implementation order:
-
-1. Verify beta.3 publication and update this checkpoint/PR #130/#125.
-2. Implement Climate capability model, exact-target action/feedback bridge and
-   narrow generic cross-entity nested module resolution.
-3. Unit tests for C/F, steps/bounds/ranges/choice validity, discovery/duplicates,
-   service errors/pending/expiry and entity isolation.
-4. Desktop/mobile scenarios for rich/simple/display-only devices, range selection,
-   parent -> different Climate entity -> Back, live updates, touch, resizing,
-   editor preview and lifecycle; side-by-side against Light.
-5. Complete synthetic YAML, capability/migration limitations and AI documentation;
-   run complete inherited CI, build/reproducibility/package checks.
-6. Commit/push, open/update Climate PR, record exact validated code head/CI results
-   and handoff before stopping. Leave real HA/HVAC acceptance and all merges stable
-   gated on owner approval.
+Known limits: no real HVAC hardware tested; registry permissions/semantics vary.
+Newly advertised choices appear on category reopen; removed ones disable live so
+placement never changes during an active gesture. Commands already sent to HA can
+complete after closing; an unresolved timeout is not proof of device failure.
+Initial scope excludes humidity/auxiliary heat/vendor-specific controls. Larger
+anchored menus retain existing viewport/capacity limitations. Webpack reports its
+standard bundle-size advisory; no renderer duplication or runtime dependencies added.
 
 ## Deferred / separate tracks
 
@@ -135,6 +160,7 @@ npm test
 NODE_OPTIONS=--openssl-legacy-provider npm run build
 node scripts/check-release.js
 node scripts/check-hacs-package.js
+node --test test/climate.test.js
 python3 -m pip install -r test/browser/requirements.txt
 python3 -m playwright install --with-deps chromium
 curl --fail --location https://github.com/custom-cards/button-card/releases/download/v7.0.1/button-card.js --output /tmp/honeycomb-button-card.js
@@ -142,6 +168,7 @@ python3 test/sleep_timer/run.py
 node test/performance/hub-benchmark.js --output /tmp/honeycomb-evidence/core-performance.json
 python3 test/browser/run.py --bundle honeycomb-menu-ng.js --button-card /tmp/honeycomb-button-card.js --evidence-dir /tmp/honeycomb-evidence/core
 python3 test/browser/radio_artwork.py --bundle honeycomb-menu-ng.js --button-card /tmp/honeycomb-button-card.js --evidence-dir /tmp/honeycomb-evidence/radio
+python3 test/browser/climate.py --bundle honeycomb-menu-ng.js --button-card /tmp/honeycomb-button-card.js --evidence-dir /tmp/honeycomb-evidence/climate
 python3 test/browser/charger.py --bundle honeycomb-menu-ng.js --button-card /tmp/honeycomb-button-card.js --evidence-dir /tmp/honeycomb-evidence/charger
 python3 test/browser/track3.py --bundle honeycomb-menu-ng.js --button-card /tmp/honeycomb-button-card.js --evidence-dir /tmp/honeycomb-evidence/editor
 python3 test/docs/run.py --bundle honeycomb-menu-ng.js --button-card /tmp/honeycomb-button-card.js --evidence-dir /tmp/honeycomb-evidence/docs

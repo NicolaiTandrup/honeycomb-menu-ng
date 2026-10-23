@@ -6,6 +6,7 @@ const light = require('./light/index.js');
 const media = require('./media/index.js');
 const sonos = require('./sonos/index.js');
 const charger = require('./charger/index.js');
+const climate = require('./climate/index.js');
 const lightActions = require('./light/actions.js');
 const mediaActions = require('./media/actions.js');
 
@@ -13,6 +14,7 @@ const moduleRegistry = new ModuleRegistry();
 
 moduleRegistry
     .register(charger)
+    .register(climate)
     .register(sonos)
     .register(light)
     .register(media)
@@ -22,6 +24,7 @@ lightActions.registerActions(customActionRegistry);
 mediaActions.registerActions(customActionRegistry);
 sonos.registerActions(customActionRegistry);
 charger.registerActions(customActionRegistry);
+climate.registerActions(customActionRegistry);
 
 module.exports = {
     moduleRegistry,
@@ -30,6 +33,7 @@ module.exports = {
         light,
         media,
         sonos,
-        charger
+        charger,
+        climate
     }
 };

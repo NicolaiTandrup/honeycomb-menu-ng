@@ -94,7 +94,8 @@ function prepareMenuConfig(config)
 
 function openHoneycombMenu(context, config)
 {
-    const honeycombConfig = prepareMenuConfig(config);
+    const liveHass=context.honeycomb && context.honeycomb.hass || context.owner && context.owner.hass || document.querySelector('home-assistant').hass;
+    const honeycombConfig = prepareMenuConfig(require('./core/module-menu').expandModuleMenu(config,liveHass));
 
     // If a menu is already open, treat a newly opened menu as a nested menu.
     // nested_expand keeps the current Honeycomb element alive and only updates
