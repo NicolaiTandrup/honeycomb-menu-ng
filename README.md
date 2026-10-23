@@ -34,7 +34,10 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Car and Climate modules are not implemented. Charging automation remains external.
+Car is not implemented. Climate is an **unpublished v1.10.0 review candidate**
+on this feature branch; see the [Climate capability/slot guide](docs/CLIMATE_MODULE.md)
+and [copy/paste Hub example](examples/climate-hub.yaml). Do not use Climate YAML
+with published v1.8.1 or v1.9.0-beta.3. Charging automation remains external.
 The generic Charger module below is **v1.9.0-beta.3 only**, not part of v1.8.1 stable.
 Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
 

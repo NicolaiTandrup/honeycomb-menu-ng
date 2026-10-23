@@ -18,6 +18,42 @@ Never generate Charger YAML for v1.8.1 stable. Use the exact
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
+**UNPUBLISHED CLIMATE CANDIDATE — v1.10.0-beta.1 metadata on the review branch:**
+`type: climate` / `module: climate` use real `climate.*` entities, not brand names.
+This version is not a published release; never offer it as an installed HACS beta.
+Use the [precise Climate contract](CLIMATE_MODULE.md) and complete
+[Hub](../examples/climate-hub.yaml), [Control](../examples/climate-control.yaml),
+[nested child](../examples/climate-nested.yaml) examples only with the candidate bundle.
+
+### Climate generation rules (unpublished v1.10.0 candidate)
+
+1. Obtain the user's actual climate entity, current/target or low/high attributes,
+   `temperature_unit` (or HA unit system), `target_temp_step`, min/max,
+   `supported_features`, advertised modes and available HA services. Never invent
+   capability lists or convert numeric Celsius increments into Fahrenheit.
+2. Main physical slots: 0 current/target/Back, 1 +2 steps, 2 advertised HVAC mode
+   chooser, 3 capability categories, 4 −2 steps, 5 −1 step, 6 +1 step.
+   Missing target/unit/bounds/features/services means inert adjustment controls.
+3. Dual targets require explicit Low/High selection. Each change sends both bounds,
+   changes just the selected bound and never crosses min/max or the other bound.
+   Current-temperature display is distinct from target and actual HVAC action.
+4. Modes, presets, fan, swing and horizontal swing use exact advertised values and
+   the matching official climate service, flags and live validation. Do not guess
+   restoration modes, implement arbitrary power toggles or fabricate Defrost presets.
+5. Only new Climate keys are `defrost_entity: switch.*` and `discover: boolean`
+   (default true). Explicit verified mapping overrides native exact Defrost, which
+   overrides an unambiguous metadata-verified same-device switch. No name/area/brand
+   heuristics. Registry denial/missing semantics requires explicit confirmation and
+   mapping; native Climate controls need no registry access or HA helpers.
+6. Generic child action is `action: honeycomb-open-nested` with
+   `honeycomb_nested_menu: {module: climate, entity: climate.room_b, name: Room B}`.
+   The explicit child ID wins; preserve parent/child identity and meaningful Back.
+   No Car implementation or extra special-purpose navigation key is required.
+7. Pending service result is not hardware success. Describe Sending/Awaiting HA,
+   failed/unconfirmed, 15-second confirmation timeout and no automatic retries.
+   Rendering/navigation never operates the equipment; tests use synthetic services.
+8. Real-HA acceptance and any Climate beta/stable publication remain separate gates.
+
 ### Charger generation rules (1.9.0-beta.3)
 
 1. Collect real `entity` status plus explicit role mappings, provider (`easee` or
@@ -496,8 +532,9 @@ above. Do not emit removed template-cache options or setup.
   capacity 217; no automatic shrinking/paging; large anchored menus can clip near
   viewport edges; structural visibility intentionally defers during interaction.
   Arbitrary JS templates are conservative; Radio/Join each have 12 outer choices.
-- Future Car/Charger modules are not implemented. Do not emit their configuration,
-  charging sessions, unplug rules or optimization. Those automations are external.
+- Car is not implemented. Charger is beta-only and Climate is review-candidate-only
+  under the version extensions above. Do not generate charging sessions, unplug
+  rules or optimization; those automations are external.
 
 ## Validation and troubleshooting checklist
 

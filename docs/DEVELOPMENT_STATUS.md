@@ -16,8 +16,9 @@ This file is a checkpoint, not a substitute for CI/release verification.
   Its publication is independently verified; preserve the immutable tag/assets.
 - Current feature/handoff branch: **`feature/v1.10-climate`**, based on exact
   tested beta.3. Permanent handoff instructions are committed at `5320ea2`.
-  Climate implementation and local targeted validation are now present; a separate
-  review PR and full inherited regression/CI are the next checkpoint. No Climate
+  Climate implementation is committed/pushed at **`79f172e`**. Targeted validation
+  and documentation are present; a review PR and full inherited regression/CI
+  are the next checkpoint. No Climate
   tag/release has been published or is authorized by this task.
 - Relevant issues: [#125 artwork acceptance](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/125),
   [#87 Climate](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/87),
@@ -99,10 +100,12 @@ Actual local validation at this implementation checkpoint:
 
 - Full Node suite: **364 passed / 3 stable-only skips** (367 total), including
   **23 new Climate cases**; no failures.
-- First Climate browser run: all **22 initial desktop/mobile cases passed** after
-  fixing standalone/generic child center promotion and test clock/disabled inputs.
-  Expanded suite adds command failure/unconfirmed/reconnect, Light alignment and
-  40-cube performance; its final full rerun is in progress, not yet a completion claim.
+- Climate browser suite: **28 desktop/mobile cases passed**, including standalone/
+  generic child centers, command failure/unconfirmed/reconnect, Light alignment,
+  explicit ranges, capability changes/Back, auto sizing, idle and lifecycle.
+  Forty-cube/1000 unrelated state updates: zero rerenders; one relevant update
+  rerenders one cube; one deduplicated registry read. This is synthetic Chromium,
+  not a real-HA hardware claim.
 - Documentation: **61 YAML blocks**, 44 complete cards + 11 contextual fragments,
   217 local links; **20 desktop/mobile documentation interactions passed**.
 - Six native Sleep Timer contracts, HACS packaging and actionlint passed.

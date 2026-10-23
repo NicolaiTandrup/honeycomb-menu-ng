@@ -1,0 +1,22 @@
+# Unpublished v1.10.0 review candidate. Generic parent, different Climate child.
+type: custom:honeycomb-persistent-hub
+logo: false
+items:
+  - type: generic
+    entity: sensor.value_a
+    name: Parent A
+    tap_action:
+      action: honeycomb-open-nested
+      honeycomb_nested_menu:
+        entity: sensor.value_a
+        nested_expand: true
+        buttons:
+          - slot: 1
+            name: Climate B
+            show_name: true
+            tap_action:
+              action: honeycomb-open-nested
+              honeycomb_nested_menu:
+                module: climate
+                entity: climate.room_b
+                name: Room B

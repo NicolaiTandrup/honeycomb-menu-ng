@@ -47,8 +47,9 @@ def blocks(text):
 
 SHARED=set('entity name label icon show_name show_label show_icon energy_wave background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
 SONOS=set('favorites_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
+CLIMATE={'defrost_entity','discover'}
 CHARGER=set('provider entities device_id discover max_age association chargers'.split())
-ITEM=SHARED|SONOS|CHARGER|set('type module slot slot_mode visibility show persistent'.split())
+ITEM=SHARED|SONOS|CHARGER|CLIMATE|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
     assert isinstance(value,dict),where
     assert not set(value)-allowed,f'{where}: unsupported example keys {set(value)-allowed}'
@@ -58,18 +59,22 @@ def actions(obj):
     elif isinstance(obj,dict):
         for key,value in obj.items():
             if key in ('tap_action','hold_action','double_tap_action'):
-                known(value,set('action perform_action service data service_data target navigation_path url_path honeycomb_menu'.split()),key)
-                assert value['action'] in ('none','toggle','more-info','perform-action','call-service','navigate','url','fire-dom-event')
+                known(value,set('action perform_action service data service_data target navigation_path url_path honeycomb_menu honeycomb_nested_menu'.split()),key)
+                assert value['action'] in ('none','toggle','more-info','perform-action','call-service','navigate','url','fire-dom-event','honeycomb-open-nested')
                 if value['action']=='perform-action': assert re.fullmatch(r'\w+\.\w+',value['perform_action'])
             actions(value)
 def item(value,where):
     known(value,ITEM,where)
     module=value.get('module',value.get('type'))
-    assert module in ('light','sonos','media','generic','charger','charging-hub'),where
+    assert module in ('light','sonos','media','generic','charger','charging-hub','climate'),where
     if module=='charging-hub':
         assert isinstance(value.get('chargers'),list),where
         for member in value['chargers']:item(member,where+' aggregate member')
     elif module!='generic' or 'entity' in value:assert re.fullmatch(r'\w+\.\w+',value['entity']),where
+    if module=='climate':
+        assert re.fullmatch(r'climate\.\w+',value['entity']),where
+        if 'defrost_entity' in value:assert re.fullmatch(r'switch\.\w+',value['defrost_entity']),where
+        if 'discover' in value:assert type(value['discover']) is bool,where
     if module=='charger':
         assert value.get('provider','generic') in ('easee','generic'),where
         if 'entities' in value:known(value['entities'],set('status power enabled online connected session_energy physical_lock permanent_lock current limit'.split()),where)
@@ -93,7 +98,7 @@ def card(config,where):
         known(config,{'type','name','size','logo','items','auto_open','menu','style','auto_reference_width'},where)
         for i,value in enumerate(config['items']): item(value,f'{where} item {i}')
     elif config['type']=='custom:honeycomb-persistent-control':
-        known(config,SHARED|SONOS|CHARGER|{'type','module','size','style','auto_reference_width'},where)
+        known(config,SHARED|SONOS|CHARGER|CLIMATE|{'type','module','size','style','auto_reference_width'},where)
         item({k:v for k,v in config.items() if k not in ('type','size','style','auto_reference_width')},where)
     elif config['type']=='button':
         known(config,{'type','entity','name','hold_action'},where)
@@ -115,7 +120,7 @@ def fragment(config,where):
     elif 'homeassistant' in config:
         assert config=={'homeassistant':{'packages':'packages'}},where
     elif 'type' in config:
-        if config['type'] in ('light','sonos','media','generic','charger','charging-hub'):
+        if config['type'] in ('light','sonos','media','generic','charger','charging-hub','climate'):
             return {'type':'custom:honeycomb-persistent-hub','items':[config]}
         if config['type']=='picture-elements':
             known(config,{'type','image','elements'},where)
@@ -282,6 +287,13 @@ class Examples(BROWSER.Cubes):
         self.assertEqual(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu)').count(),0)
         self.assertEqual(self.page.evaluate('calls[0]'),['homeassistant','toggle',{}, {'entity_id':'light.switch_a'}])
         self.capture('docs-onoff')
+    def climate_seed(self):
+        self.page.evaluate("()=>{hass.config={unit_system:{temperature:'°C'}};hass.services.climate={set_temperature:{},set_hvac_mode:{}};for(const entity of ['climate.room_a','climate.room_b'])pushState(entity,'heat',{supported_features:1,current_temperature:20.2,temperature:21,min_temp:7,max_temp:35,target_temp_step:.5,hvac_modes:['off','heat'],hvac_action:'heating'})}")
+    def test_docs_climate_Hub_Control_and_exact_service(self):
+        self.climate_seed();self.hub(load((ROOT/'examples/climate-hub.yaml').read_text()));self.assert_visible_unique_cells(2);self.activate(self.page.locator('honeycomb-menu-ng .center-item .interaction-surface'));self.settle();self.assertEqual(self.page.locator('honeycomb-menu-ng .center-item .primary').inner_text(),'20.2°C');self.capture('docs-climate-Hub');self.page.evaluate('hub.remove()')
+        self.page.evaluate('config=>makeControl(config)',load((ROOT/'examples/climate-control.yaml').read_text()));self.activate(self.page.locator('body > honeycomb-persistent-control .interaction-surface'));self.settle();self.activate(self.page.locator('honeycomb-menu-ng [data-honeycomb-slot="5"] .interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)'),['climate','set_temperature',{'temperature':21.5},{'entity_id':'climate.room_a'}]);self.capture('docs-climate-Control')
+    def test_docs_climate_nested_entity_and_one_level_Back(self):
+        self.climate_seed();self.hub(load((ROOT/'examples/climate-nested.yaml').read_text()));self.activate(self.page.locator('honeycomb-menu-ng .center-item .interaction-surface'));self.settle();self.activate(self.page.locator('honeycomb-menu-ng [data-honeycomb-slot="0"] .interaction-surface'));self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.currentConfig.entity'),'climate.room_b');self.assertEqual(self.page.evaluate('calls.length'),0);self.capture('docs-climate-nested');self.back();self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.currentConfig.entity'),'sensor.value_a');self.back();self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0)
     def test_docs_classic_popup(self):
         config=self.examples['classic-popup.yaml']
         self.page.evaluate('config=>{const el=document.createElement("button");el.textContent="Light A";el.style.cssText="position:absolute;left:120px;top:280px";el.addEventListener("click",()=>el.dispatchEvent(new CustomEvent("ll-custom",{detail:config.hold_action,bubbles:true,composed:true})));document.body.append(el);}',config)
@@ -298,7 +310,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml','climate-hub.yaml','climate-control.yaml','climate-nested.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     for name,count in [('charger-easee.yaml',1),('charger-multi.yaml',2)]:
         dashboard=load((ROOT/'examples'/name).read_text())
