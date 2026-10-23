@@ -432,12 +432,12 @@ test('playing artwork moves down with text space; paused and idle artwork stay c
     const {hass,config}=stationFixture();
     hass.states[player].attributes.volume_level=.02;
     let art=station.resolve({hass,config,state:hass.states[player]}).artwork;
-    assert.equal(art.style.width,'62%');assert.equal(art.style.height,'48%');
+    assert.equal(art.style.width,'55.8%');assert.equal(art.style.height,'43.2%');
     hass.states[player].state='paused';
     art=station.resolve({hass,config,state:hass.states[player]}).artwork;
-    assert.equal(art.style.width,'62%');assert.equal(art.style.height,'62%');
-    assert.equal(art.style.top,'19%');
+    assert.equal(art.style.width,'55.8%');assert.equal(art.style.height,'55.8%');
+    assert.equal(art.style.top,'20%');
     config.label='Custom label';config.show_name=true;config.name='Player A';
     art=station.resolve({hass,config,state:hass.states[player]}).artwork;
-    assert.equal(art.style.height,'36%','Explicit labels still reserve space');
+    assert.equal(art.style.height,'32.4%','Explicit labels still reserve space');
 });

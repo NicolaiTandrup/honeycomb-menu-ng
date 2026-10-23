@@ -53,7 +53,7 @@ class Charger(Cubes):
             right=min(self.viewport['width'],max(b['right'] for b in bounds)+12);bottom=min(self.viewport['height'],max(b['bottom'] for b in bounds)+12)
             self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-{name}-focus.png'),clip={'x':x,'y':y,'width':right-x,'height':bottom-y})
     def settle(self):
-        self.page.evaluate('''async()=>{await new Promise(r=>requestAnimationFrame(r));for(const menu of view.querySelectorAll('honeycomb-menu-ng')){
+        self.page.evaluate('''async()=>{await new Promise(r=>requestAnimationFrame(r));for(const menu of [hub._hubMenu].filter(Boolean)){
           await menu.updateComplete;await Promise.all([...menu.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control')].map(e=>e.updateComplete));
           await Promise.all(menu.shadowRoot.getAnimations({subtree:true}).filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));}}''')
     def cell(self,slot):
@@ -81,7 +81,7 @@ class Charger(Cubes):
     def test_overview_state_gallery_and_shared_light_geometry(self):
         self.overview([charger(1)],extra=[{'type':'light','entity':'light.zone_a','name':'Light A','show_name':True,'slot':2}])
         self.assertEqual(self.model(0)['name'],'7.4 kW');self.assertEqual(self.model(0)['secondary'],'1 car')
-        self.assertEqual(self.model(1)['name'],'Charger 1');self.assertEqual(self.model(1)['secondary'],'7.4 kW');self.assertEqual(self.model(1)['tertiary'],'Car connected')
+        self.assertEqual(self.model(1)['name'],'Car connected');self.assertEqual(self.model(1)['secondary'],'Charger 1');self.assertEqual(self.model(1)['iconBadge'],'7.4 kW');self.assertIsNone(self.model(1)['tertiary'])
         for slot in [0,1,2]:self.assertAlmostEqual(self.cell(slot).bounding_box()['width'],82,delta=.05)
         self.page.wait_for_timeout(80);self.assertTrue(self.cell(1).evaluate('(e)=>e.hasAttribute("energy-wave-running")'))
         self.capture('charger-one-positive-light-reference')
@@ -104,9 +104,9 @@ class Charger(Cubes):
             self.assertEqual(self.model(3)['secondary'],'2.50 kWh');self.assertEqual(self.model(4)['name'],'Vehicle A' if index==1 else 'Vehicle B')
             self.capture(f'charger-{index}-promoted-details')
             self.activate(self.cell(0).locator('.interaction-surface'));self.page.wait_for_function('hub._menuContext.stack.length===0')
-        self.state(1,'status','Car disconnected');self.assertEqual(self.model(1)['tertiary'],'No car');self.assertEqual(self.model(0)['secondary'],'1 car')
+        self.state(1,'status','Car disconnected');self.assertEqual(self.model(1)['name'],'No car');self.assertEqual(self.model(0)['secondary'],'1 car')
         self.state(1,'status','Charging');self.page.evaluate('''()=>chargerSet('sensor.vehicle_links','2',{updated_at:new Date().toISOString(),assignments:[{charger:'charger_1',car:'vehicle_b',car_name:'Vehicle B',mode:'auto_assigned'},{charger:'charger_2',car:'vehicle_a',car_name:'Vehicle A',mode:'auto_assigned'}]})''');self.settle()
-        self.assertEqual(self.model(1)['tertiary'],'Vehicle B');self.assertEqual(self.model(2)['tertiary'],'Vehicle A');self.assert_no_commands()
+        self.assertEqual(self.model(1)['name'],'Vehicle B');self.assertEqual(self.model(2)['name'],'Vehicle A');self.assert_no_commands()
 
     def test_deliberate_controls_confirm_state_and_never_cross_target(self):
         self.overview();self.open_details(2);self.assert_no_commands()
@@ -131,8 +131,8 @@ class Charger(Cubes):
     def test_expiry_missing_association_and_command_failure_remain_honest(self):
         self.page.clock.install();a=charger(1);a['max_age']=10;a['association']={'entity':'sensor.vehicle_links','charger_key':'charger_1','max_age':10}
         self.page.evaluate('''()=>chargerSet('sensor.vehicle_links','1',{updated_at:new Date().toISOString(),assignments:[{charger:'charger_1',car:'vehicle_a',car_name:'Vehicle A',mode:'auto_assigned'}]})''')
-        self.overview([a]);self.assertEqual(self.model(1)['tertiary'],'Vehicle A')
-        self.page.clock.fast_forward(11000);self.page.clock.run_for(100);self.assertEqual(self.model(1)['tertiary'],'Car connected');self.assertEqual(self.model(1)['secondary'],'Power unknown');self.assertEqual(self.model(0)['name'],'— kW')
+        self.overview([a]);self.assertEqual(self.model(1)['name'],'Vehicle A')
+        self.page.clock.fast_forward(11000);self.page.clock.run_for(100);self.assertEqual(self.model(1)['name'],'Car connected');self.assertIn('Power unknown',self.model(1)['ariaLabel']);self.assertEqual(self.model(1)['secondary'],'Charger 1');self.assertEqual(self.model(0)['name'],'— kW')
         self.open_details();self.page.evaluate('()=>{hass.callService=(...args)=>{calls.push(args);return Promise.reject(new Error("synthetic rejection"))}}')
         self.activate(self.cell(1).locator('.interaction-surface'));self.page.wait_for_function('calls.length===1');self.assertEqual(self.model(1)['tertiary'],'Command failed')
         self.assertFalse(self.model(1).get('disabled',False));self.capture('charger-command-failure')
@@ -194,7 +194,7 @@ class Charger(Cubes):
             self.page.evaluate(FLOORPLAN,config);self.page.evaluate('w=>{floor.style.width=w+"px";imageHost.style.height=w*2/3+"px"}',width);self.page.wait_for_timeout(100)
             control=self.page.locator('hui-picture-elements-card honeycomb-persistent-control').last
             self.assertAlmostEqual(control.bounding_box()['width'],41 if size=='auto' else size,delta=.1)
-            control.locator('.interaction-surface').press('Enter');self.page.wait_for_function('view.querySelector("honeycomb-menu-ng")')
+            control.locator('.interaction-surface').press('Enter');self.page.wait_for_function('hub._ownedMenuContext?.honeycomb?.isConnected')
             self.assert_no_commands();self.page.evaluate('ng.close();hub.remove();floor.remove()');self.page.wait_for_timeout(300)
 
 def main():

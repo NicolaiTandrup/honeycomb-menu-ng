@@ -1466,11 +1466,11 @@ class Cubes(unittest.TestCase):
                     img=cube.locator('.station-artwork');img.wait_for(state='visible')
                     self.page.wait_for_function('()=>[...document.querySelectorAll("honeycomb-persistent-hub")].every(h=>!!h)')
                     details=img.evaluate('el=>({fit:getComputedStyle(el).objectFit,width:el.style.width,top:el.style.top,natural:[el.naturalWidth,el.naturalHeight],opacity:getComputedStyle(el).opacity})')
-                    self.assertEqual(details['fit'],'contain');self.assertEqual(details['width'],'62%');self.assertEqual(details['opacity'],'1')
+                    self.assertEqual(details['fit'],'contain');self.assertEqual(details['width'],'55.8%');self.assertEqual(details['opacity'],'1')
                     self.assertEqual(details['natural'],[160,80])
                     self.assertEqual(cube.bounding_box()['width'],82)
                     if state=='playing':
-                        self.assertEqual(details['top'],'14%');self.assertEqual(cube.locator('.secondary').inner_text(),f'{round(volume*100)}%')
+                        self.assertEqual(details['top'],'15%');self.assertEqual(cube.locator('.secondary').inner_text(),f'{round(volume*100)}%')
                         self.assertLess(img.bounding_box()['y']+img.bounding_box()['height'],cube.locator('.secondary').bounding_box()['y'])
                     else:
                         self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#202224')

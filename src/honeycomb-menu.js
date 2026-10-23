@@ -230,7 +230,10 @@ function openHoneycombMenu(context, config)
 };
 
 
-window.honeycombNG.open = (config) => openHoneycombMenu(manager, config);
+window.honeycombNG.open = (config, owner = null) => {
+    manager.owner=owner;
+    return openHoneycombMenu(manager, config);
+};
 
 window.honeycombNG.createContext = () =>
     navigationCore.createMenuContext({ local: true });
@@ -291,6 +294,7 @@ document.body.addEventListener("ll-custom", e => {
         const context = sourceMenu && sourceMenu._menuContext
             ? sourceMenu._menuContext
             : manager;
+        if (!sourceMenu) manager.owner=null;
 
         const mayMovePersistentCenter =
             navigationCore.canEstablishAnchor(context);
@@ -344,7 +348,10 @@ function showHoneycombMenu( _config, options = {} )
         ? Number(_config.anchor_y)
         : manager.position.y;
 
-    menu.display( lovelace_view(), anchorX, anchorY );
+    const owner=context.owner;
+    const mount=owner && owner.isConnected && owner.parentElement && owner.parentElement !== document.body
+        ? owner.parentElement : lovelace_view();
+    menu.display( mount, anchorX, anchorY );
     menu.addEventListener('honeycomb-ng-closing', e => {
         if( context.honeycomb === menu )
             context.honeycomb = null;
@@ -916,6 +923,12 @@ class HoneycombMenu extends LitElement
         this._setCssVars();
     }
 
+    disconnectedCallback()
+    {
+        super.disconnectedCallback();
+        this.dispose();
+    }
+
     dispose()
     {
         if( this._disposed )
@@ -934,7 +947,7 @@ class HoneycombMenu extends LitElement
         // Lifecycle teardown (for example Lovelace edit mode) must be
         // synchronous. Waiting for CSS animationend leaves orphaned Hub
         // overlays behind after the owning card has already been replaced.
-        if( this.isConnected )
+        if( this.parentNode )
             this.remove();
     }
 
@@ -1201,8 +1214,6 @@ class HoneycombMenu extends LitElement
             h: ( this.sizes.containerHeight / 2 )
         };
 
-        const rect = this.view.getBoundingClientRect();
-
         // Persistent controls are real dashboard/floorplan anchors. Their
         // center must stay at the exact same screen coordinate while the ring
         // expands around them, even when part of the ring reaches an edge.
@@ -1213,11 +1224,27 @@ class HoneycombMenu extends LitElement
             const centerOffsetX = (centerPos.x * itemSize) + (itemSize / 2);
             const centerOffsetY = (centerPos.y * itemSize) + ((itemSize * 1.1547) / 2);
 
-            this.style.left = `${_x - centerOffsetX}px`;
-            this.style.top = `${_y - centerOffsetY}px`;
+            let left=_x-centerOffsetX,top=_y-centerOffsetY;
+            // A transformed editor/preview ancestor establishes a fixed
+            // containing block. Keep the controller's anchors in viewport
+            // coordinates and compensate at this owned portal boundary only.
+            const block=this.offsetParent;
+            this.style.transform='';this.style.transformOrigin='0 0';
+            if (block && block.offsetWidth && block.offsetHeight) {
+                const rect=block.getBoundingClientRect();
+                const sx=rect.width/block.offsetWidth,sy=rect.height/block.offsetHeight;
+                if (sx>0 && sy>0) {
+                    left=(left-rect.left)/sx-block.clientLeft+block.scrollLeft;
+                    top=(top-rect.top)/sy-block.clientTop+block.scrollTop;
+                    this.style.transform=`scale(${1/sx},${1/sy})`;
+                }
+            }
+            this.style.left = `${left}px`;
+            this.style.top = `${top}px`;
             return;
         }
 
+        const rect = this.view.getBoundingClientRect();
         const viewStyle = window.getComputedStyle(this.view, null);
 
         const paddingLeft = parseFloat( viewStyle.getPropertyValue('padding-left') ) || 0;
@@ -1293,6 +1320,7 @@ class HoneycombMenu extends LitElement
 
     _handleItemAction(e)
     {
+        if (this._menuContext && this._menuContext.owner && this._menuContext.owner.preview === true) return;
         if( ! e.detail.item )
             return;
 
