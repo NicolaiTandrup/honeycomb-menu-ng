@@ -27,6 +27,12 @@ function resolve({hass,config}) {
         value.power ? number(value.power.value/1000)+' kW' : 'Power unknown' : value.label;
     let tertiary=value.vehicle,disabled=false,refreshAt=!role || role === 'details' ? value.refreshAt : role === 'vehicle' ? value.link.expires : null;
     let color=value.color;
+    let iconBadge,labelLayout;
+    if (!role) {
+        name=!value.available || value.fault ? value.label : value.disabled ? 'Disabled' : value.vehicle;
+        secondary=options.name;tertiary=null;labelLayout='two-row';
+        if (value.active) iconBadge=number(value.power.value/1000)+' kW';
+    }
     if (role) {
         tertiary=null;
         if (role === 'enabled' || role === 'permanent_lock') {
@@ -57,8 +63,9 @@ function resolve({hass,config}) {
         }
     }
     return {name,secondary,tertiary,disabled,active:!role && value.active,
+        ...(!role ? {iconBadge,labelLayout} : {}),
         colors:{center:!role && value.active ? color : neutral,inner:color,outer},forceColors:{inner:color},
-        ariaLabel:[name,secondary,tertiary].filter(Boolean).join(', '),refreshAt,
+        ariaLabel:[name,secondary,tertiary,iconBadge,!role && value.status === 'charging' && !value.power ? 'Power unknown' : null].filter(Boolean).join(', '),refreshAt,
         ...(!role ? {energyWave:energyWave(options,value,config)} : {})};
 }
 function diagnostics({hass,config}) {

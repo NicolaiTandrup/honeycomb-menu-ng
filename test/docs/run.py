@@ -106,6 +106,9 @@ def card(config,where):
 def fragment(config,where):
     """Give reference fragments their documented context before checking contracts."""
     if isinstance(config,list):
+        if config and all(isinstance(v,dict) and v.get('type') in ('custom:honeycomb-persistent-hub','custom:honeycomb-persistent-control') for v in config):
+            for i,value in enumerate(config):card(value,f'{where} picture element {i}')
+            return None
         if all(isinstance(v,dict) and v.get('type') in ('light','sonos','media','generic') for v in config):
             return {'type':'custom:honeycomb-persistent-hub','items':config}
         for value in config:known(value,SHARED|{'slot','slot_mode','position','active','show'},where)
@@ -307,6 +310,8 @@ def main():
         assert len(hub['items'][0]['chargers'])==count
         assert all(a=={k:v for k,v in b.items() if k!='slot'} for a,b in zip(hub['items'][0]['chargers'],hub['items'][1:]))
         cards.append({'source':f'examples/{name} (complete dashboard)','config':hub})
+    for i,element in enumerate(load((ROOT/'examples/charger-elements.yaml').read_text())):
+        cards.append({'source':f'examples/charger-elements.yaml element {i}','config':element})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:
         for index,block in enumerate(blocks(file.read_text())):

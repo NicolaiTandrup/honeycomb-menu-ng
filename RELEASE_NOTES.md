@@ -1,3 +1,32 @@
+# v1.9.0-beta.2 — Charger labels, artwork padding and editor lifecycle
+
+Cumulative prerelease from immutable v1.9.0-beta.1. Latest stable remains v1.8.1;
+PR #124 and this focused fix remain unmerged. No real HA charging commands or
+Node-RED changes were performed.
+
+- Individual Charger faces have two readable body rows: vehicle/connection or
+  safety/Disabled status, then the fixed charger name. Fresh positive charging
+  power appears beside the icon. Aggregate and detail capabilities remain intact.
+- Sonos launcher/promoted artwork has additional padding and retains aspect ratio;
+  custom Sonos/Media background artwork is contained inside the border.
+- Persistent overlays belong to their actual picture-elements/editor container.
+  Detached views dispose synchronously, including already-disconnected DOM;
+  ancestor layout/scale changes update geometry. Preview interactions send no actions.
+- Desktop/mobile regressions cover numeric/auto sizes, artwork shapes, multiple
+  hubs, separate previews, transformed cards, repeated view reattachment and cleanup.
+- [Element-only example](examples/charger-elements.yaml) for existing floorplans;
+  optional exact Easee registry discovery. Wave reference power is animation
+  scaling, never an electrical load limit. Missing optional roles remain truthful.
+
+Issue #126's future forecast menu is not shipped: Brain association and Optimizer
+forecast entity contracts must be agreed and implemented externally first. Current
+session/current/diagnostic details remain. Native-only Sonos, Light Hue/Kelvin,
+navigation, shared 82px geometry, approved gradients and energy-wave behavior persist.
+Synthetic validation does not establish real-device acceptance. Owner testing and
+explicit approval remain required before any master merge or stable release.
+
+---
+
 # v1.9.0-beta.1 — Generic Charger / Easee
 
 Prerelease from published v1.8.1, using the existing shared 82px renderer, 40%

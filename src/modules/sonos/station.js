@@ -131,7 +131,7 @@ function stationForeground(color)
 // Percentages refer to the usable clipped cube fill, never the whole cell.
 function artworkStyle(playing, primary, secondary)
 {
-    return artworkLayout({primary,secondary});
+    return artworkLayout({primary,secondary,scale:.9,offsetY:1});
 }
 function resolve({config,state,hass,runtime={}})
 {

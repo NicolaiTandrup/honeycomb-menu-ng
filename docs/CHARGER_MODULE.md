@@ -1,4 +1,4 @@
-# Charger — v1.9.0-beta.1
+# Charger — v1.9.0-beta.2
 
 **Prerelease only. Latest stable remains v1.8.1.** No real Easee hardware or
 owner Node-RED flow was changed or exercised by development tests. This module
@@ -10,13 +10,13 @@ Car and Climate modules are not implemented.
 
 1. In HACS, keep the custom repository `NicolaiTandrup/honeycomb-menu-ng`, type
    **Dashboard**. Enable/show prereleases in its version selector, choose
-   **v1.9.0-beta.1**, and download. Normal stable installs remain on v1.8.1.
+   **v1.9.0-beta.2**, and download. Normal stable installs remain on v1.8.1.
 2. Keep one JavaScript module resource at
    `/hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js`. Keep the existing
    custom:button-card dependency/resource for other Honeycomb functionality.
    Do not load a second manual/old Honeycomb NG bundle alongside it.
 3. Reload the HA frontend/app; hard-refresh cached resources if necessary.
-   Verify the loaded JS starts with `/*! Honeycomb Menu NG v1.9.0-beta.1 */`.
+   Verify the loaded JS starts with `/*! Honeycomb Menu NG v1.9.0-beta.2 */`.
 4. Copy [the complete one-Easee dashboard](../examples/charger-easee.yaml), or
    [the two-charger dashboard](../examples/charger-multi.yaml), into a new
    dashboard's raw configuration editor. These include `views`, `picture-elements`,
@@ -34,6 +34,10 @@ their physical floorplan anchor; they do not silently move away from it at an ed
 For your own floorplan, choose a position with room for the detail ring. Existing
 `size: auto` / `auto_reference_width` can be used unchanged (e.g. reference 900
 for an image intended to display at 900 CSS px). Numeric sizes stay fixed.
+
+For an existing picture-elements card, copy the [element-only example](../examples/charger-elements.yaml)
+into `elements:`. Each 22 kW animation reference controls only wave speed, not
+electrical limits; confirm each charger's actual capabilities separately.
 
 ## Public API and shared presentation
 
@@ -58,8 +62,10 @@ Other Light, Sonos, generic and future independent Car cubes retain their own sl
 
 Existing Hub item `slot`, `slot_mode`, `visibility`, borders, sizing and actions
 still work. No new allocator or renderer is used. Geometry is the shared 82px
-full cell; the optional shared third text row fits charger identity, power/state
-and vehicle context. Full text is exposed to assistive technology/hover even
+full cell. Individual launchers and their promoted center use two body rows:
+vehicle/connection (or Disabled/fault/offline/unknown) first, fixed charger name
+second. Fresh positive charging power appears beside the icon, never as a third
+body row. Detail controls retain their existing diagnostic text. Full text is exposed to assistive technology/hover even
 when a long name is visually ellipsized. Keep display names concise on tablets.
 
 ### Entity collection checklist (per charger)

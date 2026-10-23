@@ -135,7 +135,7 @@ test('multi-entity dependencies ignore unrelated HA events and include associate
 });
 test('all wave health is derived, speed/color settings are reused, and missing power cannot be forced active',()=>{
     const f=fixture(),config=buildCubeConfig({...f.item,energy_wave:{speed_mode:'power',max_power_w:7400,color:'#123456'}},f.hass);
-    let view=presentation.resolve({hass:f.hass,config});assert.equal(view.name,'Charger 1');assert.equal(view.secondary,'7.4 kW');assert.equal(view.tertiary,'Car connected');
+    let view=presentation.resolve({hass:f.hass,config});assert.equal(view.name,'Car connected');assert.equal(view.secondary,'Charger 1');assert.equal(view.iconBadge,'7.4 kW');assert.equal(view.tertiary,null);
     assert.equal(wave.enabled(view.energyWave),true);assert.equal(view.energyWave.max_power_w,7400);assert.equal(view.energyWave.color,'#123456');
     set(f,'online','off');view=presentation.resolve({hass:f.hass,config});assert.equal(wave.enabled(view.energyWave),false);
     assert.equal(view.forceColors.inner,model.COLORS.fault);
@@ -193,4 +193,14 @@ test('read-only and writable detail faces depend on relevant capabilities instea
     const before=fields.map(c=>model.snapshot(f.hass,c));set(f,'power','5.2');
     const after=fields.map(c=>model.snapshot(f.hass,c));
     assert.deepEqual(after.map((v,i)=>v!==before[i]),[false,false,false,false,false,true]);
+});
+
+test('two-row overview keeps connection priority and fixed name; live power uses icon badge',()=>{
+ const f=fixture(),config=buildCubeConfig(f.item,f.hass),view=()=>presentation.resolve({hass:f.hass,config});
+ assert.equal(view().labelLayout,'two-row');assert.equal(view().secondary,'Charger 1');assert.equal(view().iconBadge,'7.4 kW');
+ link(f,[assigned()]);config._charger=f.options;assert.equal(view().name,'Vehicle A');
+ set(f,'enabled','off');assert.equal(view().name,'Disabled');assert.equal(view().iconBadge,undefined);
+ set(f,'status','Error');assert.equal(view().name,'Fault');set(f,'online','off');assert.equal(view().name,'Offline');
+ set(f,'online','on');set(f,'enabled','on');set(f,'status','Car disconnected');assert.equal(view().name,'No car');
+ set(f,'status','unknown');assert.equal(view().name,'Status unknown');assert.equal(view().secondary,'Charger 1');
 });

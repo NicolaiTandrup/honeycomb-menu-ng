@@ -101,6 +101,12 @@ class CubeElement extends LitElement
                 font-size:calc(var(--honeycomb-persistent-size,82px)*.11);line-height:1.1;margin-top:calc(var(--honeycomb-persistent-size,82px)/82*2); }
             .content.has-primary.has-secondary .secondary { font-size:calc(var(--honeycomb-persistent-size,82px)*.12); }
             .content.has-primary ha-icon { width:30%;height:30%; }
+            .content.two-row .primary { font-size:calc(var(--honeycomb-persistent-size,82px)*.12);max-width:94%; }
+            .content.two-row .secondary { font-size:calc(var(--honeycomb-persistent-size,82px)*.15);max-width:84%; }
+            .icon-with-badge { display:flex;align-items:center;justify-content:center;gap:calc(var(--honeycomb-persistent-size,82px)*.035);max-width:84%;height:25%; }
+            .content .icon-with-badge ha-icon { width:calc(var(--honeycomb-persistent-size,82px)*.22);height:calc(var(--honeycomb-persistent-size,82px)*.22);transform:none;flex-shrink:0;--mdc-icon-size:calc(var(--honeycomb-persistent-size,82px)*.22); }
+            .power-badge { font-size:calc(var(--honeycomb-persistent-size,82px)*.12);font-weight:650;white-space:nowrap; }
+            .media-background-artwork { position:absolute;left:22%;top:20%;width:56%;height:48%;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important; }
             .interaction-surface:focus-visible { outline:2px solid var(--primary-color,#2196f3);outline-offset:-5px; }
             .interaction-surface {
                 position: absolute;
@@ -278,6 +284,8 @@ class CubeElement extends LitElement
             disabled:!!(this.config.disabled || presentation.disabled),
             colorMix:supportsColorMix});
         const model = {colors, fill, secondary,
+            ...(presentation.iconBadge !== undefined ? {iconBadge:presentation.iconBadge} : {}),
+            ...(presentation.labelLayout !== undefined ? {labelLayout:presentation.labelLayout} : {}),
             ...(presentation.tertiary !== undefined ? {tertiary:presentation.tertiary} : {}),
             ...(presentation.ariaLabel !== undefined ? {ariaLabel:presentation.ariaLabel} : {}),
             ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
@@ -409,6 +417,9 @@ class CubeElement extends LitElement
         this._localPresentationUnsubscribe=null;this._localPresentationKey=null;
         clearTimeout(this._presentationTimer);this._presentationTimer=null;this._presentationRefreshAt=null;
         this._cancelGesture();
+        if (this._ownedMenuContext && this._ownedMenuContext.owner === this)
+            window.honeycombNG.disposeContext(this._ownedMenuContext);
+        this._ownedMenuContext=null;
 
         if( this._beeFlapTimer )
         {
@@ -664,6 +675,7 @@ class CubeElement extends LitElement
 
     _handlePointerDown(e)
     {
+        if (this._isPreview()) return;
         if( ! this.config || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false )
             return;
 
@@ -782,7 +794,9 @@ class CubeElement extends LitElement
         if( typeof window.honeycombNG.open !== 'function' )
             return null;
 
-        return window.honeycombNG.open(menu);
+        const opened=window.honeycombNG.open(menu,this);
+        this._ownedMenuContext=opened && opened._menuContext;
+        return opened;
     }
 
     _openMenu()
@@ -859,8 +873,15 @@ class CubeElement extends LitElement
         });
     }
 
+    _isPreview()
+    {
+        const context=(this.getRootNode().host || {})._menuContext || this._menuContext;
+        return this.preview === true || !!(context && context.owner && context.owner.preview === true);
+    }
+
     _executeAction(action)
     {
+        if (this._isPreview()) return;
         if (!action || !this.hass || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false) return;
         const name=typeof action === 'string' ? action : (action.action || 'toggle');
         this._dispatchAction(action);
@@ -875,6 +896,7 @@ class CubeElement extends LitElement
 
     _dispatchAction(action)
     {
+        if (this._isPreview()) return;
         if( ! action || ! this.hass || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false )
             return;
 
@@ -1011,6 +1033,7 @@ class CubeElement extends LitElement
         const points = layoutCore.persistentHexPoints('cell');
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
+        const mediaBackground=['sonos','media'].includes(this.config.mode) && !!artwork['background-image'];
         const external = this.config.custom_fields || (this.config.type &&
             !['custom:button-card','custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type));
         this._externalContent = !!external;
@@ -1029,15 +1052,17 @@ class CubeElement extends LitElement
                     <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
             </svg>
-            <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>
+            <div class="artwork" style=${styleMap({...(!mediaBackground ? artwork : {}),transform:`scale(${centerScale})`})}>
+                ${mediaBackground ? html`<div class="media-background-artwork" style=${styleMap(artwork)}></div>` : ''}
                 ${m.artwork ? html`<img class="station-artwork" src=${m.artwork.url} alt="" aria-hidden="true"
                     style=${styleMap(m.artwork.style || {})}
                     @error=${()=>{if(this._model.artwork && this._model.artwork.key===m.artwork.key){this._failedArtworkKey=m.artwork.key;this._updatePresentation();}}}>` : ''}
             </div>
             ${external ? html`<div class="external-content"></div>` : html`
-            <div class="content ${m.artwork ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''}"
+            <div class="content ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
                 ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
+                    : m.iconBadge ? html`<div class="icon-with-badge"><ha-icon .icon=${m.icon}></ha-icon><span class="power-badge">${m.iconBadge}</span></div>`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
                 ${m.name ? html`<div class="primary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'n':undefined,...m.nameStyle})}>${m.name}</div>` : ''}
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}

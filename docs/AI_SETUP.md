@@ -11,14 +11,14 @@ Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior is supported.
 No runtime code from v1.6 is imported. Catalog inclusion is pending; use the
 HACS custom repository until accepted. [Catalog submission](HACS_CATALOG_SUBMISSION.md).
 
-**BETA EXTENSION — v1.9.0-beta.1 only:** `type: charger` / `module: charger`
+**BETA EXTENSION — v1.9.0-beta.2 only:** `type: charger` / `module: charger`
 and `type: charging-hub` / `module: charging-hub` are implemented in this prerelease.
 Never generate Charger YAML for v1.8.1 stable. Use the exact
 [Charger schema/entity/slot/action/freshness contract](CHARGER_MODULE.md) and the
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
-### Charger generation rules (1.9.0-beta.1)
+### Charger generation rules (1.9.0-beta.2)
 
 1. Collect real `entity` status plus explicit role mappings, provider (`easee` or
    `generic`), friendly name and actual W/kW, Wh/kWh, A/mA units. Do not fabricate
@@ -28,7 +28,9 @@ dashboards. No backend, optimizer, Car or Climate module is added.
    containing `chargers: [full descriptors]`, and ordinary named `charger` items.
    Reuse YAML anchors as in the complete examples. Zero members is supported.
    The aggregate deduplicates physical identity/status/power; unavailable is not zero.
-3. Details are fixed: 0 identity/power/car/Back; 1 verified Enabled switch;
+3. Individual launchers use two body rows: vehicle/connection (safety errors or
+   Disabled take precedence), then fixed charger name. Fresh charging power is
+   an icon-row badge, not a third body row. Details are fixed: 0 summary/Back; 1 verified Enabled switch;
    2 verified permanent-lock switch plus separate read-only physical lock;
    3 session kWh; 4 current vehicle/connection; 5 current/allocation A read-only;
    6 diagnostics/more-info. Missing capabilities stay reserved and disabled.
