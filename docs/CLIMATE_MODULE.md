@@ -34,7 +34,8 @@ size: 82
 
 Complete validated files: [Hub](../examples/climate-hub.yaml),
 [Control](../examples/climate-control.yaml),
-[different-entity nested child](../examples/climate-nested.yaml).
+[different-entity nested child](../examples/climate-nested.yaml),
+[standalone parent Control](../examples/climate-nested-control.yaml).
 Existing Hub visibility/placement and `size: auto` / `auto_reference_width` also
 apply. Fixed numeric size and the omitted 82px default retain their meaning.
 
@@ -171,6 +172,15 @@ items:
         entity: climate.room_b
         name: Room B
 ```
+
+A standalone parent Control uses its existing numeric/automatic sizing and
+actual dashboard anchor for the child. Its main center returns directly to that
+Control; deeper category centers restore one menu level. Resizing an auto-sized
+floorplan updates the child through the same numeric pipeline; removing its parent
+disposes the owned overlay. No parent Light presets/colors are copied into a
+different module child. Shared presentation overrides on the child descriptor
+(e.g. `icon`, `colors`, `border`) are compiled by the existing common pipeline and
+retained on both standalone and nested promoted centers.
 
 Back returns to the parent with its original entity/state; Climate services target
 only `climate.room_b`. Ordinary descriptors with explicit `buttons` retain their

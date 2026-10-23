@@ -95,3 +95,9 @@ test('HA acknowledgement wins over a late rejected transport response without fa
 test('missing temperature cannot acknowledge a pending zero-degree target; real zero can',async()=>{
  const h=fixture({temperature:-.5,min_temp:-10,max_temp:20}),f=field(h);await actions.command(context(h,f));assert.deepEqual(h.calls[0][2],{temperature:0});h.states[entity].attributes.temperature=null;assert.equal(actions.recordFor(h,model.state(h,f._climate)).phase,'pending');h.states[entity].attributes.temperature=0;assert.equal(actions.recordFor(h,model.state(h,f._climate)),null);cleanup(h);
 });
+
+test('nested child presentation reuses compiled overrides without inheriting the parent or a recursive menu',()=>{
+ const h=fixture(),menu=expandModuleMenu({module:'climate',entity,icon:'mdi:fan',colors:{inner_border:'#e040fb'},border:{inner_width:4}},h);
+ for(const face of [menu.promoted_center,menu.persistent_center]){assert.equal(face.icon,'mdi:fan');assert.equal(face.colors.inner_border,'#e040fb');assert.equal(face.border.inner_width,4);assert.equal(face.entity,entity);assert.equal(face.menu,undefined);assert.equal(face.hold_action.view,'targets');}
+ assert.equal(menu.persistent_center.tap_action.action,'honeycomb-back');assert.equal(h.calls.length,0);
+});

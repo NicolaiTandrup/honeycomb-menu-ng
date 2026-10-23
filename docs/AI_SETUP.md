@@ -23,7 +23,8 @@ dashboards. No backend, optimizer, Car or Climate module is added.
 This version is not a published release; never offer it as an installed HACS beta.
 Use the [precise Climate contract](CLIMATE_MODULE.md) and complete
 [Hub](../examples/climate-hub.yaml), [Control](../examples/climate-control.yaml),
-[nested child](../examples/climate-nested.yaml) examples only with the candidate bundle.
+[nested child](../examples/climate-nested.yaml),
+[standalone parent](../examples/climate-nested-control.yaml) examples only with the candidate bundle.
 
 ### Climate generation rules (unpublished v1.10.0 candidate)
 

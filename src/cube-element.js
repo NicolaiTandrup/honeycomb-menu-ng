@@ -576,17 +576,17 @@ class CubeElement extends LitElement
         return luminance > 0.42 ? '#17212b' : '#f6f7f9';
     }
 
-    _persistentMenuConfig()
+    _persistentMenuConfig(moduleMenu = null)
     {
-        if( ! this.config || ! this.config.menu )
+        if( ! this.config || (! moduleMenu && ! this.config.menu) )
             return null;
 
-        const menu = merge({}, this.config.menu);
+        const menu = merge({}, moduleMenu || this.config.menu);
 
         if( ! menu.entity )
             menu.entity = this.config.entity;
 
-        if( this.config.presets )
+        if( ! moduleMenu && this.config.presets )
             menu.presets = merge({}, this.config.presets, menu.presets || {});
 
         menu.position_mode = 'anchored';
@@ -647,15 +647,17 @@ class CubeElement extends LitElement
             menu.button_defaults || {}
         );
 
-        const center = merge({}, this.config);
+        const center = merge({}, moduleMenu ? menu.promoted_center : this.config);
         delete center.menu;
-        center.interactive = false;
+        center.interactive = !!moduleMenu;
+        // The standalone parent is a dashboard cube, not a Back-stack entry.
+        if (moduleMenu) center.tap_action = {action:'honeycomb-close'};
         center.size = this.size;
 
         if( ! center.off )
             center.off = {};
 
-        if( this._lastKnownColor )
+        if( ! moduleMenu && this._lastKnownColor )
             center.off.preview_color = this._lastKnownColor;
 
         menu.persistent_center = center;
@@ -799,9 +801,9 @@ class CubeElement extends LitElement
         return opened;
     }
 
-    _openMenu()
+    _openMenu(moduleMenu = null)
     {
-        const menu = this._persistentMenuConfig();
+        const menu = this._persistentMenuConfig(moduleMenu);
 
         if( ! menu || typeof window.honeycombNG.open !== 'function' )
             return;
@@ -910,7 +912,12 @@ class CubeElement extends LitElement
             (action.honeycomb_nested_menu || action.honeycomb_menu)) {
             const nested=merge({nested_expand:true,entity:this.config.entity}, action.honeycomb_nested_menu || action.honeycomb_menu);
             nested.variables=merge({},this.config.variables || {},nested.variables || {});
-            this._openHoneycombMenu(nested);
+            // A dashboard Control has no menu scene to supply numeric size or
+            // anchor. Use its existing persistent-menu pipeline for a module
+            // child, preserving the child's own center/entity and real Back.
+            if (!context && nested.module && nested.buttons === undefined)
+                this._openMenu(require('./core/module-menu').expandModuleMenu(nested,this.hass));
+            else this._openHoneycombMenu(nested);
             return;
         }
         if (actionName === 'honeycomb-close') { window.honeycombNG.closeInContext(context); return; }
