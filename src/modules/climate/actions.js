@@ -8,7 +8,7 @@ function recordFor(hass,value,now=Date.now()) {
         const record=store.commands.get(id);if(!record)continue;
         const source=(hass.states||{})[id];
         if(!model.absent(source)&&Object.entries(record.expected).every(([field,wanted])=>field==='state'?source.state===wanted:typeof wanted==='number'?model.numeric((source.attributes||{})[field])!==null&&Math.abs(model.numeric((source.attributes||{})[field])-wanted)<1e-6:(source.attributes||{})[field]===wanted)) {
-            clearTimeout(record.timer);store.commands.delete(id);continue;
+            record.confirmed=true;clearTimeout(record.timer);store.commands.delete(id);continue;
         }
         if(record.deadline<=now&&record.phase!=='failed'){record.phase='unconfirmed';clearTimeout(record.timer);}
         return record;
@@ -65,7 +65,7 @@ async function command(context) {
     try {
         await Promise.race([hass.callService(domain,service,data,{entity_id:target}),new Promise((_,reject)=>{requestTimer=setTimeout(()=>reject(Error('timeout')),ACK_MS);})]);
         record.phase='pending';recordFor(getHass(),model.state(getHass(),options));registry.notify(store);return true;
-    } catch(_){record.phase='failed';clearTimeout(record.timer);registry.notify(store);notify('Climate command failed or timed out. Check Home Assistant before retrying; no automatic retry.');return false;}
+    } catch(_){if(record.confirmed)return true;record.phase='failed';clearTimeout(record.timer);registry.notify(store);notify('Climate command failed or timed out. Check Home Assistant before retrying; no automatic retry.');return false;}
     finally{clearTimeout(requestTimer);}
 }
 function registerActions(actions){actions.register('honeycomb-climate-open',open);for(const name of ['honeycomb-climate-adjust','honeycomb-climate-set'])actions.register(name,c=>{void command(c);return true;});}

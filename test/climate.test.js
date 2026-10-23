@@ -86,3 +86,12 @@ test('generic nested module expansion binds child entity, leaves ordinary menus 
  const h=fixture();const menu=expandModuleMenu({module:'climate',entity,name:'Room A'},h);assert.equal(menu.entity,entity);assert.equal(menu.promoted_center._climate.entity,entity);assert.equal(menu.nested_expand,true);assert.equal(menu.persistent_center.mode,'climate');assert.equal(menu.persistent_center.tap_action.action,'honeycomb-back');assert.equal(h.calls.length,0);
  const ordinary={entity:'sensor.parent_a',buttons:[]};assert.equal(expandModuleMenu(ordinary,h),ordinary);assert.throws(()=>expandModuleMenu({module:'unknown',entity},h));assert.throws(()=>buildCubeConfig({type:'climate',entity:'sensor.wrong'},h));assert.throws(()=>buildCubeConfig({type:'climate',entity,defrost_entity:'light.wrong'},h));
 });
+
+test('HA acknowledgement wins over a late rejected transport response without false failure or retry',async()=>{
+ const h=fixture(),f=field(h);let reject,notices=[];h.callService=(...args)=>{h.calls.push(args);return new Promise((_,fail)=>reject=fail);};
+ const pending=actions.command({...context(h,f),notify:m=>notices.push(m)});h.states[entity].attributes.temperature=21.5;assert.equal(actions.recordFor(h,model.state(h,f._climate)),null);
+ reject(Error('late transport rejection'));assert.equal(await pending,true);assert.deepEqual(notices,[]);assert.equal(h.calls.length,1);assert.equal(registry.session(h).commands.size,0);cleanup(h);
+});
+test('missing temperature cannot acknowledge a pending zero-degree target; real zero can',async()=>{
+ const h=fixture({temperature:-.5,min_temp:-10,max_temp:20}),f=field(h);await actions.command(context(h,f));assert.deepEqual(h.calls[0][2],{temperature:0});h.states[entity].attributes.temperature=null;assert.equal(actions.recordFor(h,model.state(h,f._climate)).phase,'pending');h.states[entity].attributes.temperature=0;assert.equal(actions.recordFor(h,model.state(h,f._climate)),null);cleanup(h);
+});

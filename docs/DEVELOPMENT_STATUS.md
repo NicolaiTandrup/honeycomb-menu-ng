@@ -17,8 +17,8 @@ This file is a checkpoint, not a substitute for CI/release verification.
 - Current feature/handoff branch: **`feature/v1.10-climate`**, based on exact
   tested beta.3. Permanent handoff instructions are committed at `5320ea2`.
   Climate implementation is committed/pushed at **`79f172e`**. Targeted validation
-  and documentation are present; a review PR and full inherited regression/CI
-  are the next checkpoint. No Climate
+  and documentation are present. [Climate PR #131](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/131)
+  is draft while full inherited regressions and exact-head CI run. No Climate
   tag/release has been published or is authorized by this task.
 - Relevant issues: [#125 artwork acceptance](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/125),
   [#87 Climate](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/87),
@@ -69,8 +69,8 @@ checks passed after adding the handoff. No runtime changes in that checkpoint.
 
 Current branch: `feature/v1.10-climate`, based on exact published beta.3. Candidate
 metadata is `1.10.0-beta.1` solely to distinguish its test bundle; **unpublished**.
-Open a reviewable unmerged PR targeting `fix/issue125-radio-beta3` after the coherent
-implementation checkpoint. No Climate publication/merge/stable is authorized here.
+[Review PR #131](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/131) targets
+`fix/issue125-radio-beta3`; it remains draft until full regression/CI completion. No Climate publication/merge/stable is authorized here.
 
 Implemented:
 
@@ -82,6 +82,9 @@ Implemented:
 - Preset/fan/swing/horizontal capabilities, truthful unavailable/read-only states.
 - Exact-target serialized command bridge; Sending/Awaiting HA vs failed/unconfirmed,
   15-second acknowledgement/timeout and no automatic retry or service-on-render.
+  HA state acknowledgement wins over a late transport rejection; a missing value
+  cannot falsely acknowledge a legitimate zero-degree target. Both are unit tested;
+  late response feedback is also exercised on desktop/mobile.
 - Native Defrost first unless explicit switch mapping overrides; optional read-only
   registry lookup requires exact semantics + unambiguous same-device/platform/config
   entry. Denied/missing/ambiguous metadata never guesses from names or areas.
@@ -98,8 +101,8 @@ when discovery cannot prove it. No helper/backend/real HA configuration is modif
 
 Actual local validation at this implementation checkpoint:
 
-- Full Node suite: **364 passed / 3 stable-only skips** (367 total), including
-  **23 new Climate cases**; no failures.
+- Full Node suite: **366 passed / 3 stable-only skips** (369 total), including
+  **25 new Climate cases**; no failures.
 - Climate browser suite: **28 desktop/mobile cases passed**, including standalone/
   generic child centers, command failure/unconfirmed/reconnect, Light alignment,
   explicit ranges, capability changes/Back, auto sizing, idle and lifecycle.
@@ -109,13 +112,22 @@ Actual local validation at this implementation checkpoint:
 - Documentation: **61 YAML blocks**, 44 complete cards + 11 contextual fragments,
   217 local links; **20 desktop/mobile documentation interactions passed**.
 - Six native Sleep Timer contracts, HACS packaging and actionlint passed.
-- Candidate bundle: 263317 bytes, SHA256
-  `2435b34a2edbcf6f2228558912c8050e69c2850f3735ed7a6b1c1bf540544eb2`.
-  Repeated-build verification and full inherited browser/remote CI still pending.
+- Candidate bundle: 263348 bytes, SHA256
+  `9f4c7888538c1336f9e29c77df8abde39ac9f109eac75e7b7a71ba45ab9b0c8d`.
+  Repeated production build is byte-identical. Full inherited core browser and
+  exact-head remote CI completion are still pending.
 - Local QA evidence is outside Git under `/workspace/build-output/beta3-climate/`.
   Full unit log `climate-all-unit.log`, docs `climate-docs.log`, new browser
   `climate-browser.log`; existing regression run `climate-core.log` is in progress.
   Browser plugin is unavailable; tests use the existing real Chromium harness.
+
+[Meaningful #87 progress](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/87#issuecomment-6370807828)
+was posted after implementation/PR creation. Initial push/PR CI for `720f0fd`:
+[39995224959](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39995224959) /
+[39995309536](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39995309536),
+still in progress at this checkpoint. A later HA-acknowledgement feedback correction
+requires fresh exact-head CI after pushing this checkpoint; do not use older CI as
+proof for the final candidate. No Climate publisher dispatch has occurred.
 
 Remaining tasks, in order:
 
