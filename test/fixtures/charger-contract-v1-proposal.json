@@ -1,0 +1,38 @@
+{
+  "status": "proposal-only-not-runtime-configuration",
+  "clock": "2026-10-23T20:00:00Z",
+  "site_timezone": "Europe/Copenhagen",
+  "identity_crosswalk": {"vehicle_a": "optimizer_vehicle_a"},
+  "association": {
+    "entity_id": "sensor.ev_charger_assignments",
+    "state": "1",
+    "attributes": {
+      "schema_version": 1,
+      "operating_mode": "log_only",
+      "updated_at": "2026-10-23T20:00:00Z",
+      "assignments": [{"charger": "charger_1", "car": "vehicle_a", "car_name": "Vehicle A", "mode": "auto_assigned", "valid": true, "fresh": true, "updated_at": "2026-10-23T20:00:00Z"}]
+    }
+  },
+  "optimizer_shared_attributes": {
+    "schema_version": 1,
+    "car": "optimizer_vehicle_a",
+    "mode": "log_only",
+    "forecast_basis": "proposed_schedule",
+    "updated_at": "2026-10-23T20:00:00Z",
+    "forecast_cutoff": "2026-10-24T05:00:00Z",
+    "valid": true,
+    "provisional": false
+  },
+  "optimizer_scalars": {
+    "sensor.vehicle_a_expected_finish": "2026-10-24T03:45:00Z",
+    "sensor.vehicle_a_expected_soc_at_0700": "85",
+    "sensor.vehicle_a_expected_next_start": "2026-10-23T23:15:00Z",
+    "sensor.vehicle_a_forecast": "scheduled"
+  },
+  "negative_mutations_to_test_before_shipping": [
+    "duplicate car or charger", "unsupported schema", "expired aggregate or row",
+    "unavailable retained attributes", "mismatched vehicle key", "mixed forecast generation",
+    "provisional or invalid forecast", "SoC outside 0..100", "historical start or finish",
+    "expired 07:00 cutoff", "physical disconnect", "HA disconnect", "reassignment"
+  ]
+}
