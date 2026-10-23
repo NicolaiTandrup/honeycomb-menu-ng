@@ -1,3 +1,47 @@
+# v1.10.0-beta.1 — Climate candidate (unpublished)
+
+A cumulative review candidate on public v1.9.0-beta.3; it does not imply a v1.9
+stable merge or a published Climate beta. No Car, guest charging, optimizer or
+Charger redesign is included. Owner review and explicit publication authorization
+are still required by #87 before a manual publish=true dispatch.
+
+- Generic Climate in Hub and standalone Control, with the existing shared 82px
+  renderer, inner/outer borders, gradients, native numeric/automatic sizing and actions.
+- Live current/target temperature, HVAC activity and advertised HVAC mode, preset,
+  fan, swing and horizontal swing choices; native C/F steps, bounds and safe ranges.
+- Owner-approved HVAC chooser at slot 2 and explicit Low/High selection before
+  dual-setpoint changes. No guessed restore mode, fabricated capability or service
+  call from rendering, opening a menu or discovery.
+- Native exact Defrost preset or verified same-device switch metadata; explicit
+  user-confirmed mapping overrides. No name/brand/area or cross-device guessing.
+- Pending/HA-confirmed/failed/unconfirmed feedback, duplicate write protection,
+  bounded timeouts, no automatic retry and safe late results after navigation.
+- Generic different-entity child views preserve correct entity, presentation,
+  sizing and meaningful Back. Standalone parents use their actual numeric anchor,
+  not classic popup defaults; auto resize and removal use existing lifecycle cleanup.
+- Existing Charger, Sonos Radio/Join/Sleep/native Favorites, Light Hue/Kelvin/presets,
+  shared geometry/gradients/wave, dynamic slots, original coexistence and editor fixes
+  remain part of the cumulative candidate.
+
+[Climate capability/slot/HA acceptance guide](docs/CLIMATE_MODULE.md) and complete
+synthetic [Hub](examples/climate-hub.yaml), [Control](examples/climate-control.yaml),
+[Hub child](examples/climate-nested.yaml), [Control child](examples/climate-nested-control.yaml)
+examples are included. No HA helpers, backend or production configuration is installed.
+
+Known limits: actual HVAC hardware remains untested; HA registry semantics and
+permissions vary, requiring explicit mapping when unknown/ambiguous. Humidity,
+auxiliary heat and vendor-only controls are outside this first scope. Removed
+choices disable live; newly offered choices appear on reopen to preserve gestures.
+Synthetic Chromium tests do not establish Safari/Firefox or real-device acceptance.
+
+The normal guarded publisher may prepare verified assets with publish=false after
+exact-head CI. This is preparation, not an installable GitHub/HACS release. Do not
+claim HACS availability until a separately authorized public prerelease exists.
+No master/stable merge, prior release/tag/asset modification, retention change or
+live HA command is part of this work. Keep #87 and #125 open for owner acceptance.
+
+---
+
 # v1.9.0-beta.3 — Radio artwork containment
 
 Focused cumulative stabilization release from immutable v1.9.0-beta.2. Owner

@@ -14,13 +14,22 @@ This file is a checkpoint, not a substitute for CI/release verification.
   branch `fix/issue125-radio-beta3`,
   [PR #130](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/130), unmerged.
   Its publication is independently verified; preserve the immutable tag/assets.
-- Current feature/handoff branch: **`feature/v1.10-climate`**, based on exact
-  tested beta.3. Permanent handoff instructions are committed at `5320ea2`.
-  Last validated functional commit: **`ea64da63823edc7b9ba0dffd9aeeae3a56b9e27d`**
-  (`79f172e` implementation, `720f0fd` browser/docs, `ea64da6` late-ACK feedback).
-  All local suites pass; follow-up handoff/test-report changes do not change runtime. [Climate PR #131](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/131)
-  is draft while exact-head CI runs; mark ready only after every required check passes. No Climate
-  tag/release has been published or is authorized by this task.
+- Current feature/handoff branch: **`feature/v1.10-climate`**, based on exact beta.3,
+  [PR #131](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/131), ready/unmerged.
+  Previous fully green candidate: `6fb6b13e953abf00c9f6249239aee1ee862b77f5`.
+  Latest locally tested functional commit:
+  **`f11bc2624d50e42780f94b3b66b141d77c303e80`** (standalone cross-entity geometry,
+  presentation overrides and Back/close). New exact-head CI must complete after
+  this release-notes/handoff checkpoint; do not reuse older CI for publication.
+- Separate v1.9 stable candidate: `release/v1.9.0-stable-candidate`,
+  **`7d46be37e3a538b65542719d60ea0a3157ba4c44`**,
+  [PR #132](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/132) targets master.
+  Its source is exact beta.3; no Climate. Stable body differs only by version banner:
+  244840 bytes / `d9797e39ccb8b9f5b4acb3d9ed0982af34d5fa9631cf2f38182d7dbce30cd07d`.
+  All 344 stable Node tests (zero skips), 16 docs interactions, package/lint,
+  source/banner and reproducibility checks passed locally. Full candidate CI is
+  running. See its own status/checklist; owner acceptance/merge/stable approval is
+  pending. The proposed manifest is not a claim of current owner approval.
 - Relevant issues: [#125 artwork acceptance](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/125),
   [#87 Climate](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/87),
   [#106 roadmap](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/106).
@@ -71,7 +80,12 @@ checks passed after adding the handoff. No runtime changes in that checkpoint.
 Current branch: `feature/v1.10-climate`, based on exact published beta.3. Candidate
 metadata is `1.10.0-beta.1` solely to distinguish its test bundle; **unpublished**.
 [Review PR #131](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/131) targets
-`fix/issue125-radio-beta3`; it remains draft until full regression/CI completion. No Climate publication/merge/stable is authorized here.
+`fix/issue125-radio-beta3`; it is ready/unmerged. The latest owner request permits
+preparing the reproducible beta and publication only if established authorization
+and gates permit. #87 still requires owner review before release; no explicit
+publish=true approval for this candidate is recorded. A normal publisher
+**publish=false** verification is safe after fresh exact-head CI. Do not create a
+public tag/Release or infer stable/merge authority.
 
 Implemented:
 
@@ -91,6 +105,14 @@ Implemented:
   entry. Denied/missing/ambiguous metadata never guesses from names or areas.
 - Generic `honeycomb-open-nested` child descriptor with explicit `module`/`entity`;
   real center/Back context works from ordinary parents and standalone Control.
+- Continuation audit reproduced a standalone parent -> Climate child at 62.7px
+  instead of 82px. Reused `_persistentMenuConfig` / `_openMenu` numeric anchor and
+  auto sizing, preserving child entity/presentation and real one-level Back. Root
+  child returns to its dashboard parent via existing close semantics. No CSS,
+  cube geometry or second sizing engine was introduced.
+- Child module presentation overrides now reuse the common compiled face; parent
+  presets/colors are not copied into another module. New standalone fixed60/82,
+  auto41->82, removal, unavailable, exact service-target and style tests pass.
 - New Climate unit/browser tests, mandatory CI browser step, synthetic complete YAML,
   README and precise versioned AI/Climate guide. No Car or Charger redesign.
 
@@ -102,69 +124,76 @@ when discovery cannot prove it. No helper/backend/real HA configuration is modif
 
 Actual local validation at this implementation checkpoint:
 
-- Full Node suite: **366 passed / 3 stable-only skips** (369 total), including
-  **25 new Climate cases**; no failures.
-- Climate browser suite: **28 desktop/mobile cases passed**, including standalone/
+- Full Node suite: **367 passed / 3 stable-only skips** (370 total), including
+  **26 Climate cases**; no failures.
+- Climate browser suite: **32 desktop/mobile cases passed**, including standalone/
   generic child centers, command failure/unconfirmed/reconnect, Light alignment,
   explicit ranges, capability changes/Back, auto sizing, idle and lifecycle.
   Forty-cube/1000 unrelated state updates: zero rerenders; one relevant update
   rerenders one cube; one deduplicated registry read. This is synthetic Chromium,
   not a real-HA hardware claim.
-- Documentation: **61 YAML blocks**, 44 complete cards + 11 contextual fragments,
-  217 local links; **20 desktop/mobile documentation interactions passed**.
-- Full inherited + Climate browser validation: **325 scenarios passed**: core 136,
+- Documentation: **61 YAML blocks**, 45 complete cards + 11 contextual fragments,
+  224 local links; **20 desktop/mobile documentation interactions passed**.
+- Previous fully green candidate (`6fb6b13`): **325 scenarios passed**: core 136,
   shared presentation 10, native Favorites 22, original-bundle coexistence 8,
   gradients/auto sizing/hex pulse 26, reference/power 21 (including 7 tablet), wave
   color 12, Charger 20, editor/labels 14, artwork 8, Climate 28, documentation 20.
-  This is 318 desktop/mobile + 7 additional tablet scenarios; no Firefox/WebKit or
-  real HA hardware is covered. Screenshot evidence was visually inspected.
+  Its exact-head push/PR CI passed and checksums matched. Latest local targeted
+  suite now has four additional Climate scenarios (32); complete new CI must
+  validate **329 scenarios**, not inferred from the old head. No Firefox/WebKit or
+  real HA hardware is covered. New standalone screenshots were visually inspected.
 - Six native Sleep Timer contracts, HACS packaging, core allocation/performance,
   actionlint and `git diff --check` passed. No required local suite was omitted.
-- Candidate bundle: 263348 bytes, SHA256
-  `9f4c7888538c1336f9e29c77df8abde39ac9f109eac75e7b7a71ba45ab9b0c8d`.
+- Candidate bundle: 263581 bytes, SHA256
+  `c2ed152b2cdc674351e5c9726e13239fccf101d80d210dd9937e945b78134077`.
   Repeated production build is byte-identical; the source bundle matches the
   rebuilt production artifact. Exact-head remote CI is still pending at this checkpoint.
 - Local QA evidence is outside Git under `/workspace/build-output/beta3-climate/`.
-  Full unit log `climate-all-unit.log`, docs `climate-docs.log`, new browser
-  `climate-browser.log`, inherited `climate-core.log` and per-suite logs are complete.
-  `climate-local-validation.json` records counts; `climate-artifact.json` records
-  reproducible checksum/size. Screenshots and synthetic performance data are outside Git.
+  Original full validation is under that directory. New continuation evidence:
+  `/workspace/build-output/continuation-v19-v110/`: `climate-unit.log`, `climate.log`,
+  `climate-docs.log`, `climate-artifact.json`; `climate-before.log` reproduces the
+  62.7px defect on both viewports. `stable-artifact.json` and `beta3-verified/`
+  verify phase 1 source/banner/public assets. Screenshots remain outside Git.
   Browser plugin is unavailable; tests use the existing real Chromium harness.
 
-[Meaningful #87 progress](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/87#issuecomment-6370807828)
-was posted after implementation/PR creation. Exact runtime-head CI for `ea64da6`:
-[push 39996150619](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39996150619) /
-[PR 39996159306](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39996159306).
-Both are still in progress at this checkpoint. This handoff/test-report commit
-requires checking its own final push/PR CI too; use the current PR head, not older
-CI, as proof of final validation. No Climate publisher dispatch has occurred.
+[Previous completion after CI](https://github.com/NicolaiTandrup/honeycomb-menu-ng/issues/87#issuecomment-6371280222)
+records the successful `6fb6b13` [push CI](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39996580886)
+and [PR CI](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/39996589163).
+Those checks must not substitute for new-head validation. The new functional change
+is `f11bc26`; this handoff/release-notes commit must receive its own fresh CI.
+No Climate publisher dispatch/publication has occurred at this checkpoint.
 
 ## Precise continuation point
 
-1. **Do not reimplement or republish beta.3, Climate or handoff.** Check current
-   `git status`, branch/head, PR #131 and its exact-head push/PR CI. All local suites,
-   docs, package, lint and reproducibility checks above already passed.
-2. Wait for all final-head required CI. If any failure appears, inspect the actual
-   failed step/annotations, fix narrowly and rerun the affected check plus required
-   CI. Do not bypass checks. Mark PR #131 ready only when green; leave it unmerged.
-3. Update PR #131 with exact final head/checksum, CI links and results. Post one
-   concise meaningful completion/blocker comment and push any handoff checkpoint.
-   If a future session finds CI has since completed, verify rather than repeat it.
-4. Owner reviews the Climate candidate and authorizes an installable Climate beta
-   before any tag/publication. Then perform the existing exact-head guarded beta
-   workflow. No automatic Climate release is authorized in this implementation task.
-5. Keep #87 open for real HVAC acceptance, #125 for beta.3 logo acceptance. Do not
-   start Car, Charger Level B/guest authorization or master/stable promotion.
+1. **Do not reimplement or republish beta.3, Climate or handoff.** Inspect live Git,
+   relevant owner comments, PR #131 and PR #132. Preserve both independent branches.
+2. Finish new exact-head push/PR CI. Climate expects 367 Node passes / 3 stable-only
+   skips and 329 browser scenarios; stable expects 344 Node passes / zero skips and
+   293 browser scenarios (includes seven tablet cases). Fix failures narrowly;
+   never bypass mandatory checks. Mark stable PR ready only when green, leave both
+   unmerged. Read final PR/issue comments for post-checkpoint completion evidence.
+3. Once Climate CI is green, run normal beta publisher from that exact branch/head
+   with expected v1.10.0-beta.1 and **publish=false**. Inspect prepared reproducible
+   assets/checksum/provenance. This does not create a tag or an installable HACS release.
+4. Owner review and explicit beta publication approval remain a gate under #87
+   (delivery: "Do not auto-merge or publish releases."). Current request is conditional;
+   do not interpret validation alone as publish=true authority. Stable merge/publication
+   is explicitly prohibited until owner approval. Keep retention false and assets intact.
+5. Update PRs/handoff with exact heads, checksums, CI and preparation result. Keep
+   #87/#125/#105 open for owner real-device acceptance. No Car/Charger redesign or
+   live HA/backend/charging change. A fresh session should verify completed checks
+   rather than repeat the implementation or an already published beta.
 
-Recommended next commands (after reading this document and `AGENTS.md`):
+Recommended next commands:
 
 ```sh
 git status --short
 git branch --show-current
 git log -5 --oneline
-gh pr view 131 --repo NicolaiTandrup/honeycomb-menu-ng --json url,headRefOid,baseRefName,isDraft,state,statusCheckRollup
 gh pr checks 131 --repo NicolaiTandrup/honeycomb-menu-ng
-gh run list --repo NicolaiTandrup/honeycomb-menu-ng --branch feature/v1.10-climate --limit 6
+gh pr checks 132 --repo NicolaiTandrup/honeycomb-menu-ng
+gh run list --repo NicolaiTandrup/honeycomb-menu-ng --branch feature/v1.10-climate --limit 5
+gh run list --repo NicolaiTandrup/honeycomb-menu-ng --branch release/v1.9.0-stable-candidate --limit 5
 ```
 
 Known limits: no real HVAC hardware tested; registry permissions/semantics vary.
