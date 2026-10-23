@@ -26,6 +26,17 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
+## v1.9.0 stable candidate — not published
+
+This review branch prepares the exact public v1.9.0-beta.3 runtime for stable.
+Latest public stable remains **v1.8.1**. No merge or stable publication is authorized.
+The generic Charger/Easee, two-row labels, safe radio artwork and editor lifecycle
+fixes are included; Climate is a separate v1.10 candidate and is not included.
+See the [source pins, tests and owner release checklist](docs/V1_9_RELEASE_CANDIDATE.md).
+The existing beta.3 YAML contract also applies to this candidate; install beta.3
+from HACS for currently published Charger support. Owner artwork/control acceptance
+and explicit stable approval remain pending.
+
 ## What you can build
 
 - Persistent Hubs and individual Controls with consistent icons, labels and rings.

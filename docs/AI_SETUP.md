@@ -18,6 +18,11 @@ Never generate Charger YAML for v1.8.1 stable. Use the exact
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
+**STABLE PREPARATION — unpublished v1.9.0 candidate:** the complete beta.3 Charger
+API below is unchanged. Do not tell users that v1.9.0 stable is available or approved.
+Use published beta.3 until a verified stable release exists. Climate/Car are absent
+from this candidate. See [the v1.9 release gate](V1_9_RELEASE_CANDIDATE.md).
+
 ### Charger generation rules (1.9.0-beta.3)
 
 1. Collect real `entity` status plus explicit role mappings, provider (`easee` or

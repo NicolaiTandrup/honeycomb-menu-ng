@@ -1,3 +1,36 @@
+# v1.9.0 — Stable candidate (not published)
+
+Prepared from exact public v1.9.0-beta.3 source, with **no functional changes**.
+Latest stable remains v1.8.1. These notes and the release-approval manifest are a
+proposal for owner review, not evidence of real-HA acceptance or authorization to
+merge/publish. See the [stable checklist](docs/V1_9_RELEASE_CANDIDATE.md).
+
+- Generic Charger with explicit HA mappings and optional verified Easee discovery;
+  individual and aggregate fresh power, physical connection counts, session energy,
+  separate lock semantics, truthful unavailable/stale/partial states and safe pulses.
+- Two Charger body rows retain the vehicle/connection or safety state and fixed
+  charger name, with measured power beside the icon; no third body row.
+- Radio logos of square/wide/tall proportions remain aspect-contained inside the
+  six sloping inner-hex boundaries on launcher, promoted center and favorites.
+- Dashboard/editor overlays retain their actual card ownership, lifecycle cleanup
+  and anchoring. Numeric/automatic sizes, shared 82px geometry, 40% gradients and
+  power-sensitive true hex wave are preserved.
+- Native-only Sonos Browse Media, Radio/Join/Sleep, Light Hue/Kelvin/presets,
+  visibility, placement, classic menus, touch and original Honeycomb coexistence
+  retain their beta.3 behavior. No Climate/Car, Charger redesign or guest UI.
+
+Complete synthetic dashboards: [one charger](examples/charger-easee.yaml),
+[two chargers](examples/charger-multi.yaml), [floorplan elements](examples/charger-elements.yaml).
+External HA automation owns charging policy, scheduling and optional associations;
+this candidate does not modify HA, Node-RED or send any production command.
+
+HACS stable users will receive v1.9.0 only after owner approval and verified public
+stable publication. Existing beta users can select that stable version at the same
+repository/resource path then refresh the dashboard. No old tag, Release or asset
+is replaced. Retention remains disabled; no external catalog submission is made.
+
+---
+
 # v1.9.0-beta.3 — Radio artwork containment
 
 Focused cumulative stabilization release from immutable v1.9.0-beta.2. Owner

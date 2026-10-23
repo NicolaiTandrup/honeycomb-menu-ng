@@ -348,7 +348,7 @@ def main():
     assert len(Examples.auto)==7
     assert hashlib.sha256(args.button_card.read_bytes()).hexdigest()==BROWSER.BUTTON_SHA
     server=ThreadingHTTPServer(('127.0.0.1',0),BROWSER.Handler);server.bundle=args.bundle.resolve();server.button=args.button_card.resolve()
-    threading.Thread(target=server.serve_forever,daemon=True).start();success=True
+    threading.Thread(target=server.serve_forever,daemon=True).start();success=True;browser_checks=0
     try:
         with sync_playwright() as p:
             Examples.browser=p.chromium.launch(executable_path=os.getenv('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox'])
@@ -356,10 +356,10 @@ def main():
             for width,height in [(1100,900),(390,844)]:
                 Examples.viewport={'width':width,'height':height}
                 names=[name for name in unittest.defaultTestLoader.getTestCaseNames(Examples) if name.startswith('test_docs_')]
-                result=unittest.TextTestRunner(verbosity=2,resultclass=BROWSER.CheckResult).run(unittest.TestSuite(Examples(name) for name in names));success=result.wasSuccessful() and success
+                result=unittest.TextTestRunner(verbosity=2,resultclass=BROWSER.CheckResult).run(unittest.TestSuite(Examples(name) for name in names));success=result.wasSuccessful() and success;browser_checks+=result.testsRun
             Examples.browser.close()
     finally:server.shutdown();server.server_close()
-    report={'passed':success,'yaml_blocks':yaml_count,'complete_cards':complete,'contextual_fragments':len(cards)-complete,'local_links':link_count,'canonical_browser_checks':12}
+    report={'passed':success,'yaml_blocks':yaml_count,'complete_cards':complete,'contextual_fragments':len(cards)-complete,'local_links':link_count,'canonical_browser_checks':browser_checks}
     (args.evidence_dir/'documentation-results.json').write_text(json.dumps(report,indent=2)+'\n')
     return 0 if success else 1
 if __name__=='__main__':raise SystemExit(main())
