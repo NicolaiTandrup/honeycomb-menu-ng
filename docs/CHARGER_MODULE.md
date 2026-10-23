@@ -1,4 +1,4 @@
-# Charger — v1.9.0-beta.2
+# Charger — v1.9.0-beta.3
 
 **Prerelease only. Latest stable remains v1.8.1.** No real Easee hardware or
 owner Node-RED flow was changed or exercised by development tests. This module
@@ -10,13 +10,13 @@ Car and Climate modules are not implemented.
 
 1. In HACS, keep the custom repository `NicolaiTandrup/honeycomb-menu-ng`, type
    **Dashboard**. Enable/show prereleases in its version selector, choose
-   **v1.9.0-beta.2**, and download. Normal stable installs remain on v1.8.1.
+   **v1.9.0-beta.3**, and download. Normal stable installs remain on v1.8.1.
 2. Keep one JavaScript module resource at
    `/hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js`. Keep the existing
    custom:button-card dependency/resource for other Honeycomb functionality.
    Do not load a second manual/old Honeycomb NG bundle alongside it.
 3. Reload the HA frontend/app; hard-refresh cached resources if necessary.
-   Verify the loaded JS starts with `/*! Honeycomb Menu NG v1.9.0-beta.2 */`.
+   Verify the loaded JS starts with `/*! Honeycomb Menu NG v1.9.0-beta.3 */`.
 4. Copy [the complete one-Easee dashboard](../examples/charger-easee.yaml), or
    [the two-charger dashboard](../examples/charger-multi.yaml), into a new
    dashboard's raw configuration editor. These include `views`, `picture-elements`,

@@ -1,6 +1,6 @@
 # ELEMENT ONLY: add this list item under an existing picture-elements elements:.
 # Synthetic IDs; replace status/enabled with verified entities on each device.
-# v1.9.0-beta.2 only. No Car/Brain/Optimizer setup is required.
+# v1.9.0-beta.3 only. No Car/Brain/Optimizer setup is required.
 - type: custom:honeycomb-persistent-hub
   name: Charging Hub
   size: auto
