@@ -19,14 +19,12 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.8.0 stable candidate — not published.** Prepared from owner-tested
-> [beta.7](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.0-beta.7)
-> with identical runtime source. Latest public stable remains
-> [v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1).
-> The owner is the sole current user, already migrated to the 1.8 track, and
-> has accepted beta.7 in real Home Assistant. Read the
-> [candidate audit and release gates](docs/V1_8_RELEASE_CANDIDATE.md).
-> Owner acceptance of beta functionality does not authorize merging or publication.
+> **Latest stable: [v1.8.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.1).**
+> This maintenance release preserves the owner-tested v1.8.0 runtime. NG includes
+> the shared renderer, native Sonos Favorites, responsive sizing and hexagonal
+> power-sensitive pulse. Official HACS validation has passed; catalog inclusion
+> is still pending. Continue using the HACS custom-repository installation below.
+> [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
 ## What you can build
 
@@ -38,6 +36,15 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 
 Car/Charger modules and charging automation are not implemented. Honeycomb calls
 configured HA actions; device automation belongs in Home Assistant.
+
+Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
+is unchanged from these verified v1.8.0 captures):
+
+<img src="docs/assets/screenshots/stable-light.png" width="260" alt="Synthetic Light menu with brightness and preset controls">
+<img src="docs/assets/screenshots/stable-kelvin.png" width="260" alt="Synthetic Light White palette with twelve filled Kelvin swatches">
+
+[Capture provenance](docs/assets/screenshots/stable-provenance.json). Charger is not
+part of v1.8.1 stable.
 
 ## Install and update
 

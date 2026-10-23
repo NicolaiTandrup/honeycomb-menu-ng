@@ -1,17 +1,15 @@
 # AI configuration guide
 
-**VERSION CONTRACT:** this is the proposed v1.8.0 stable candidate on exact
-owner-tested v1.8.0-beta.7 runtime. It is not published; latest stable remains
-v1.7.1. The sole owner/user has already migrated to the 1.8 track and selected
-v1.8.0. No separate legacy migration guide or compatibility shim is required.
-See the [candidate audit/publication gates](V1_8_RELEASE_CANDIDATE.md). Features include namespace
-isolation, one shared renderer, 40% active/logo gradients, reference-display
-autosizing, fixed numeric sizes, true hex pulse, power/fixed speed and resolved
-inner-border/default or optional explicit pulse color. See [runtime API](NG_RUNTIME.md),
+**VERSION CONTRACT:** v1.8.1 is the latest published stable maintenance release,
+with the same runtime as owner-tested v1.8.0. Stable includes NG namespace
+isolation, the shared 82px renderer, 40% active/logo gradients, reference-display
+autosizing, fixed numeric sizes, true hexagonal pulse, power/fixed speed and
+resolved inner-border/default or optional explicit pulse color. See [runtime API](NG_RUNTIME.md),
 [shared presentation](CUBE_PRESENTATION.md) and [native favorites](SONOS_NATIVE_FAVORITES.md).
-No Car/Charger/Climate, backend helper or retention activation is included.
-All prior Sonos Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior
-remains supported. No runtime code from v1.6 is imported.
+Car/Charger/Climate are not implemented in v1.8.1 stable. All existing Sonos
+Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior is supported.
+No runtime code from v1.6 is imported. Catalog inclusion is pending; use the
+HACS custom repository until accepted. [Catalog submission](HACS_CATALOG_SUBMISSION.md).
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute
