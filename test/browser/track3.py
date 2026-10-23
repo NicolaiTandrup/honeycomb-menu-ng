@@ -62,7 +62,7 @@ class Track3(Charger):
                 for state in ['playing','paused']:
                     self.page.evaluate("s=>pushState('media_player.player_a',s,{volume_level:.42,media_content_id:'favorite_a',group_members:['media_player.player_a']})",state)
                     image=self.cell(0).locator('.station-artwork');image.wait_for();self.page.wait_for_function('h=>h._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector("img.station-artwork").naturalWidth>0',arg=self.page.evaluate_handle('hub'))
-                    self.assertEqual(image.evaluate('e=>getComputedStyle(e).objectFit'),'contain');self.assertEqual(image.evaluate('e=>e.style.width'),'55.8%')
+                    self.assertEqual(image.evaluate('e=>getComputedStyle(e).objectFit'),'contain');self.assertEqual(image.evaluate('e=>e.style.width'),'48%')
                     box=image.bounding_box();cell=self.cell(0).bounding_box();self.assertGreater(box['x']-cell['x'],size*.14);self.assertLess(box['x']+box['width'],cell['x']+size*.86)
                     if state=='playing':self.assertLess(box['y']+box['height'],self.cell(0).locator('.secondary').bounding_box()['y'])
                     else:self.assertEqual(self.cell(0).locator('.hex-fill').get_attribute('fill'),'#202224')

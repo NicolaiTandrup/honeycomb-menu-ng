@@ -106,7 +106,7 @@ class CubeElement extends LitElement
             .icon-with-badge { display:flex;align-items:center;justify-content:center;gap:calc(var(--honeycomb-persistent-size,82px)*.035);max-width:84%;height:25%; }
             .content .icon-with-badge ha-icon { width:calc(var(--honeycomb-persistent-size,82px)*.22);height:calc(var(--honeycomb-persistent-size,82px)*.22);transform:none;flex-shrink:0;--mdc-icon-size:calc(var(--honeycomb-persistent-size,82px)*.22); }
             .power-badge { font-size:calc(var(--honeycomb-persistent-size,82px)*.12);font-weight:650;white-space:nowrap; }
-            .media-background-artwork { position:absolute;left:22%;top:20%;width:56%;height:48%;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important; }
+            .media-background-artwork { position:absolute;left:26%;top:22%;width:48%;height:38%;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important; }
             .interaction-surface:focus-visible { outline:2px solid var(--primary-color,#2196f3);outline-offset:-5px; }
             .interaction-surface {
                 position: absolute;

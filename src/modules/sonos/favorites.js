@@ -1,7 +1,7 @@
 const { accentTemplate,settings } = require('./station.js');
-const {validThumbnail} = require('./artwork');
+const {validThumbnail,radioArtworkLayout} = require('./artwork');
 const {browseItems,provider} = require('./native-favorites');
-const {artworkLayout,designLength} = require('../../core/cube-presentation');
+const {designLength} = require('../../core/cube-presentation');
 
 function buildRadioMenu(item)
 {
@@ -82,7 +82,7 @@ function resolveFavorite({hass,config,runtime={}})
     const key = JSON.stringify([id,favorite,provider.peek(hass,config).version]);
     const usable = favorite && validThumbnail(favorite.thumbnail) && key !== runtime.failedArtworkKey;
     return {colors:{center:'rgba(52, 66, 78, 0.92)',inner:'#34383d',outer:'#34383d'},secondary:null,
-        ...(usable ? {name:'',artwork:{url:favorite.thumbnail,key,style:{...artworkLayout({scale:56/62}),top:'22%'}}} : {})};
+        ...(usable ? {name:'',artwork:{url:favorite.thumbnail,key,style:radioArtworkLayout()}} : {})};
 }
 
 module.exports = {
