@@ -1,6 +1,5 @@
-const {artworkLayout}=require('../../core/cube-presentation');
 const media = require('../media/presentation.js');
-const {validThumbnail} = require('./artwork');
+const {validThumbnail,radioArtworkLayout} = require('./artwork');
 const nativeFavorites = require('./native-favorites');
 const { buildColorPaletteButtons } = require('../light/controls.js');
 
@@ -131,7 +130,7 @@ function stationForeground(color)
 // Percentages refer to the usable clipped cube fill, never the whole cell.
 function artworkStyle(playing, primary, secondary)
 {
-    return artworkLayout({primary,secondary});
+    return radioArtworkLayout({primary,secondary});
 }
 function resolve({config,state,hass,runtime={}})
 {

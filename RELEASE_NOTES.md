@@ -1,3 +1,118 @@
+# v1.9.0 — Stable candidate (not published)
+
+Prepared from exact public v1.9.0-beta.3 source, with **no functional changes**.
+Latest stable remains v1.8.1. These notes and the release-approval manifest are a
+proposal for owner review, not evidence of real-HA acceptance or authorization to
+merge/publish. See the [stable checklist](docs/V1_9_RELEASE_CANDIDATE.md).
+
+- Generic Charger with explicit HA mappings and optional verified Easee discovery;
+  individual and aggregate fresh power, physical connection counts, session energy,
+  separate lock semantics, truthful unavailable/stale/partial states and safe pulses.
+- Two Charger body rows retain the vehicle/connection or safety state and fixed
+  charger name, with measured power beside the icon; no third body row.
+- Radio logos of square/wide/tall proportions remain aspect-contained inside the
+  six sloping inner-hex boundaries on launcher, promoted center and favorites.
+- Dashboard/editor overlays retain their actual card ownership, lifecycle cleanup
+  and anchoring. Numeric/automatic sizes, shared 82px geometry, 40% gradients and
+  power-sensitive true hex wave are preserved.
+- Native-only Sonos Browse Media, Radio/Join/Sleep, Light Hue/Kelvin/presets,
+  visibility, placement, classic menus, touch and original Honeycomb coexistence
+  retain their beta.3 behavior. No Climate/Car, Charger redesign or guest UI.
+
+Complete synthetic dashboards: [one charger](examples/charger-easee.yaml),
+[two chargers](examples/charger-multi.yaml), [floorplan elements](examples/charger-elements.yaml).
+External HA automation owns charging policy, scheduling and optional associations;
+this candidate does not modify HA, Node-RED or send any production command.
+
+HACS stable users will receive v1.9.0 only after owner approval and verified public
+stable publication. Existing beta users can select that stable version at the same
+repository/resource path then refresh the dashboard. No old tag, Release or asset
+is replaced. Retention remains disabled; no external catalog submission is made.
+
+---
+
+# v1.9.0-beta.3 — Radio artwork containment
+
+Focused cumulative stabilization release from immutable v1.9.0-beta.2. Owner
+real-HA acceptance confirmed Charger two-row labels, two-charger metrics/pulse
+and dashboard editor positioning in beta.2; these implementations are unchanged.
+
+- Station artwork stays inside the sloping inner hex edges on the launcher,
+  promoted Sonos center and Radio favorite cubes. One inset policy, aspect-ratio
+  containment, centered unlabeled logos and reserved name/volume text space.
+- Regression fixtures include opaque square, wide and tall logos, default/compact
+  numeric sizes, larger borders, playing/paused/idle, fallback and live recovery.
+  Assertions measure actual contained image pixels against all six polygon edges.
+- Native Radio ordering/recognition/Browse Media, Join/Sleep, Light Hue/Kelvin,
+  shared 82px geometry, reference autosizing, approved gradients, Charger and
+  editor lifecycle behavior remain intact.
+
+Latest stable/master remain v1.8.1. No master merge, stable publication, retention
+change, prior tag/release/asset rewrite or real HA/charging command. Issue #125
+remains open until owner real-HA artwork acceptance. Climate is a separate
+v1.10 development PR, never part of beta.3; Charger Level B and guest UI are deferred.
+
+---
+
+# v1.9.0-beta.2 — Charger labels, artwork padding and editor lifecycle
+
+Cumulative prerelease from immutable v1.9.0-beta.1. Latest stable remains v1.8.1;
+PR #124 and this focused fix remain unmerged. No real HA charging commands or
+Node-RED changes were performed.
+
+- Individual Charger faces have two readable body rows: vehicle/connection or
+  safety/Disabled status, then the fixed charger name. Fresh positive charging
+  power appears beside the icon. Aggregate and detail capabilities remain intact.
+- Sonos launcher/promoted artwork has additional padding and retains aspect ratio;
+  custom Sonos/Media background artwork is contained inside the border.
+- Persistent overlays belong to their actual picture-elements/editor container.
+  Detached views dispose synchronously, including already-disconnected DOM;
+  ancestor layout/scale changes update geometry. Preview interactions send no actions.
+- Desktop/mobile regressions cover numeric/auto sizes, artwork shapes, multiple
+  hubs, separate previews, transformed cards, repeated view reattachment and cleanup.
+- [Element-only example](examples/charger-elements.yaml) for existing floorplans;
+  optional exact Easee registry discovery. Wave reference power is animation
+  scaling, never an electrical load limit. Missing optional roles remain truthful.
+
+Issue #126's future forecast menu is not shipped: Brain association and Optimizer
+forecast entity contracts must be agreed and implemented externally first. Current
+session/current/diagnostic details remain. Native-only Sonos, Light Hue/Kelvin,
+navigation, shared 82px geometry, approved gradients and energy-wave behavior persist.
+Synthetic validation does not establish real-device acceptance. Owner testing and
+explicit approval remain required before any master merge or stable release.
+
+---
+
+# v1.9.0-beta.1 — Generic Charger / Easee
+
+Prerelease from published v1.8.1, using the existing shared 82px renderer, 40%
+gradients, numeric/auto sizing, dynamic placement and six-sided power-sensitive wave.
+Latest stable remains v1.8.1; no Charger code is merged into master.
+
+- Generic explicitly mapped `charger` and aggregate `charging-hub`; fresh W/kW
+  power, physical connection counts, honest unknown/partial values and deduplication.
+- Easee adapter based on verified integration source and exact same-device registry
+  keys; explicit fallback, separate physical lock and permanent-lock policy.
+- Named launchers, optional read-only vehicle associations, fixed detail slots,
+  explicit verified switch controls with pending/failed/unconfirmed feedback.
+- No charging command from navigation/render/reconnect; no retries, optimizer,
+  scheduling, vehicle inference, Node-RED edits or Car/Climate implementation.
+- Shared optional third text row and module-supplied health/dependency snapshot;
+  one-shot expiry correctly arms when a cube connects. Existing modules retained.
+- [Complete single-Easee dashboard](examples/charger-easee.yaml),
+  [complete multi-charger dashboard](examples/charger-multi.yaml),
+  [installation, entity checklist, capability sources and supervised hardware tests](docs/CHARGER_MODULE.md).
+- [HACS catalog submission package](docs/HACS_CATALOG_SUBMISSION.md) remains
+  prepared for owner review only; Charger is not advertised as stable.
+
+Synthetic unit/browser tests are not real-device acceptance. Verify installed
+Easee entity IDs/units, permission/lock semantics, fresh reporting and external
+association feed at hardware. The optional feed may be absent. HA acknowledgement
+is not independent hardware confirmation; a timeout may still have reached a device.
+Owner real-HA testing and explicit approval are required before stable publication.
+
+---
+
 # v1.8.1 — Stable
 
 Version-only maintenance release for HACS catalog readiness after successful

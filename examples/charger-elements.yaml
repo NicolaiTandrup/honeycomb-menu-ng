@@ -1,0 +1,45 @@
+# ELEMENT ONLY: add this list item under an existing picture-elements elements:.
+# Synthetic IDs; replace status/enabled with verified entities on each device.
+# v1.9.0-beta.3 only. No Car/Brain/Optimizer setup is required.
+- type: custom:honeycomb-persistent-hub
+  name: Charging Hub
+  size: auto
+  auto_reference_width: 900
+  logo: false
+  style:
+    left: 60%
+    top: 50%
+  items:
+    - type: charging-hub
+      name: Charging Hub
+      slot: 0
+      energy_wave:
+        speed_mode: power
+        max_power_w: 44000 # Visual speed reference ONLY, not an electrical limit.
+      chargers:
+        - &charger_1
+          type: charger
+          provider: easee
+          name: Charger 1
+          entity: sensor.charger_1_status
+          entities:
+            enabled: switch.charger_1_enabled
+          # Optional roles use exact Easee device/registry discovery by default.
+          # If registry access is denied, supply verified explicit role IDs.
+          energy_wave:
+            speed_mode: power
+            max_power_w: 22000 # Individual visual reference, never a load limit.
+        - &charger_2
+          type: charger
+          provider: easee
+          name: Charger 2
+          entity: sensor.charger_2_status
+          entities:
+            enabled: switch.charger_2_enabled
+          energy_wave:
+            speed_mode: power
+            max_power_w: 22000
+    - <<: *charger_1
+      slot: 1
+    - <<: *charger_2
+      slot: 2

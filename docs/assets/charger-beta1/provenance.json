@@ -1,0 +1,27 @@
+{
+  "scope": "Synthetic HA fixtures, production v1.9.0-beta.1 bundle; no live hardware",
+  "baseline_commit": "c1f178740c8181921033d0d18e0ac8d01afc7ea7",
+  "bundle_sha256": "90ae8de7d7e84c587996a24b727f49aec89a9169291065b23ae64acbb61bb9cf",
+  "viewports": [
+    {
+      "width": 1100,
+      "height": 900
+    },
+    {
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "capture": "Playwright direct screenshots; focused captures use original page bounds",
+  "files": [
+    "1100-charger-one-positive-light-reference",
+    "1100-charger-two-known-vehicles",
+    "390-charger-1-promoted-details",
+    "390-charger-connected-zero",
+    "390-charger-no-car",
+    "390-charger-disabled",
+    "390-charger-fault",
+    "390-charger-unavailable",
+    "390-charger-command-failure"
+  ]
+}
