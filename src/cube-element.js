@@ -788,6 +788,26 @@ class CubeElement extends LitElement
         const host = root && root.host ? root.host : null;
         const context = host && host._menuContext ? host._menuContext : null;
 
+        // Only genuine child promotion moves the scene. Existing Light zoom
+        // and Sonos sibling expansions deliberately retain their module center.
+        if (context && menu.nested_expand === true && menu.inherit_inner !== true &&
+            !menu._navigation_sibling && menu.promote_to_center !== false) {
+            menu=merge({},menu);
+            const rect=this.getBoundingClientRect();
+            menu.anchor_x=rect.left+rect.width/2; menu.anchor_y=rect.top+rect.height/2;
+            menu.promote_to_center=true;
+            if (!menu.promoted_center) {
+                menu.promoted_center=merge({},this.config);
+                delete menu.promoted_center.menu;
+            } else {
+                // Preserve explicit selected-cube appearance, not parent colors.
+                const appearance={};
+                for (const key of ['colors','border','styles','foreground','background'])
+                    if (this.config[key] !== undefined) appearance[key]=this.config[key];
+                menu.promoted_center=merge({},appearance,menu.promoted_center);
+            }
+        }
+
         if( context && typeof window.honeycombNG.openInContext === 'function' )
             return window.honeycombNG.openInContext(context, menu);
 
@@ -1071,7 +1091,8 @@ class CubeElement extends LitElement
             ${this.config.interactive !== false && !this.config.disabled ? html`
             <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
                 @keydown=${e=>{
-                    const zoom=(this.config.hold_action && ['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action)) ||
+                    const zoom=(this.config.hold_action && (['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action) ||
+                            (this.config.hold_action.honeycomb_nested_menu || {})._light_palette_request === 'opposite')) ||
                         (this.config.tap_action && this.config.tap_action.action==='honeycomb-light-kelvin-apply');
                     if (zoom && e.key==='Escape') {e.preventDefault();this._dispatchAction({action:'honeycomb-close'});return;}
                     if(!m.disabled && !e.repeat && ['Enter',' '].includes(e.key)) {

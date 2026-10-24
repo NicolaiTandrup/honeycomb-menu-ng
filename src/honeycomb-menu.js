@@ -110,12 +110,11 @@ function openHoneycombMenu(context, config)
         if (honeycombConfig.inherit_inner && !honeycombConfig._light_palette_view)
             honeycombConfig._light_palette_view=current._light_palette_view;
 
-        // Core owns the only legal anchor transition:
-        // Hub base -> selected module. Every deeper level reuses that anchor.
+        // Promotion selects a new physical center; palettes/siblings keep it.
         navigationCore.enterNested(context, current, honeycombConfig);
         honeycombConfig.size=current.size;
         if (honeycombConfig.layout_envelope === undefined) honeycombConfig.layout_envelope=current.layout_envelope;
-        if (!navigationCore.isHubRoot(current)) {
+        if (!navigationCore.isHubRoot(current) && honeycombConfig.promote_to_center !== true) {
             honeycombConfig.anchor_x=context.honeycomb._anchorX;
             honeycombConfig.anchor_y=context.honeycomb._anchorY;
         }
@@ -310,7 +309,7 @@ document.body.addEventListener("ll-custom", e => {
             const sourceItem = path.find(node =>
                 node &&
                 node.tagName &&
-                node.tagName.toLowerCase() === 'honeycomb-menu-ng-item'
+                ['honeycomb-menu-ng-item','honeycomb-persistent-control'].includes(node.tagName.toLowerCase())
             );
 
             if( sourceItem && typeof sourceItem.getBoundingClientRect === 'function' )

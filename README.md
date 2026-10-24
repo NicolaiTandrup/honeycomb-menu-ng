@@ -462,3 +462,14 @@ six-sided geometry, power/fixed speed and sizing stay unchanged. Try the
 [complete synthetic green/blue demo](examples/energy-wave-color.yaml) and read
 the [color and template rules](docs/ENERGY_WAVE.md#contour-color--v180-beta7).
 This setting starts in beta.7; published beta.6 remains immutable.
+
+
+### Anchored child menus (v1.9.0-beta.4)
+
+Opening a promoted child keeps the selected cube at its exact physical position;
+it becomes that submenu's slot 0. Back restores the previous anchor and layout.
+This also applies to deeper Charger/generic menus and responsive floorplans.
+Light palettes/zoom and Sonos Radio/Join/Sleep retain their existing navigation.
+Charger detail actions now default to neutral gray inner borders. Explicit
+`colors.inner_border` overrides still win; the promoted center keeps its selected
+appearance. Root status colors and intentional Light/Sonos colors are preserved.

@@ -71,3 +71,18 @@ test('sibling replacement retains module anchor and depth; recursive children st
     navigation.prepareBack(context,radio);assert.equal(context.navigation.depth,2);
     navigation.prepareBack(context,main);assert.deepEqual(context.navigation,{phase:'module',depth:1});
 });
+
+test('promoted children select a new anchor at any depth; Back restores each saved level',()=>{
+    const context=navigation.createMenuContext({local:true});
+    const base={_persistent_hub_root:true,anchor_x:10,anchor_y:20};
+    const overview={anchor_x:100,anchor_y:200,promote_to_center:true};
+    const detail={anchor_x:18,anchor_y:200,promote_to_center:true};
+    navigation.enterNested(context,base,overview);navigation.enterNested(context,overview,detail);
+    assert.deepEqual(navigation.readAnchor(detail),{x:18,y:200});
+    const palette={anchor_x:999,anchor_y:999,inherit_inner:true};navigation.enterNested(context,detail,palette);
+    assert.deepEqual(navigation.readAnchor(palette),{x:18,y:200});
+    navigation.prepareBack(context,detail);assert.deepEqual(context.moduleAnchor,{x:18,y:200});
+    navigation.prepareBack(context,overview);assert.deepEqual(context.moduleAnchor,{x:100,y:200});
+    navigation.prepareBack(context,base);assert.equal(context.moduleAnchor,null);
+    assert.equal(navigation.readAnchor({anchor_x:null,anchor_y:undefined}),null);
+});

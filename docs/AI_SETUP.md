@@ -747,3 +747,22 @@ styles or paint URLs. Node checks validate structure, not browser color support.
 Keep alpha, opacity, geometry, rate/phase, health gates and sizing unchanged.
 [Exact color contract](ENERGY_WAVE.md#contour-color--v180-beta7)
 and [complete no-hardware green/blue demo](../examples/energy-wave-color.yaml).
+
+
+## v1.9.0-beta.4 child navigation and inner-border hierarchy
+
+A promoted child stays at the selected cube's pixel center and becomes logical
+slot 0; its own children surround that anchor. Back restores the exact saved
+anchor/layout at each level. Palette expansions and Sonos sibling menus retain
+their existing module anchor and history. This is shared navigation, not a
+Charger-specific positioning engine. Numeric and `size: auto` use existing sizing.
+
+Charger detail action cubes default to neutral gray `inner_border` (`#555b63`);
+root Charger status colors, outer borders, center fill and energy-wave semantics
+are unchanged. Explicit `colors.inner_border` overrides (including menu
+`button_defaults` and individual `buttons`) are honored at every depth. A promoted
+center preserves the selected cube's explicit visual settings; a child menu's
+explicit `promoted_center` appearance takes precedence. Do not propagate a root
+status color automatically to newly created detail actions. Existing intentional
+Light and Sonos inner colors/defaults are protected and are not reset by depth.
+No new public YAML key or module implementation is introduced.

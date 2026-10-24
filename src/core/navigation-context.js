@@ -3,8 +3,8 @@
  *
  * Invariant:
  * - The persistent Hub base may establish a new module anchor.
- * - Once a module is entered, its physical center is locked.
- * - Nested levels may change ring population/layout, never the module anchor.
+ * - A promoted child establishes its own selected-cell anchor.
+ * - In-place palettes/siblings retain the current anchor; Back restores the saved one.
  * - Returning to the Hub base clears the lock.
  */
 
@@ -12,6 +12,7 @@ const HUB_ROOT_FLAG = '_persistent_hub_root';
 
 function finiteNumber(value)
 {
+    if (value === null || value === undefined) return null;
     const number = Number(value);
     return Number.isFinite(number) ? number : null;
 }
@@ -100,6 +101,8 @@ function enterNested(context, currentConfig, incomingConfig)
         };
     }
 
+    if (incomingConfig.promote_to_center === true && readAnchor(incomingConfig))
+        context.moduleAnchor=readAnchor(incomingConfig);
     if( context.moduleAnchor )
         applyAnchor(incomingConfig, context.moduleAnchor);
 
@@ -137,8 +140,8 @@ function prepareBack(context, previousConfig)
         return previousConfig;
     }
 
-    if( context.moduleAnchor )
-        applyAnchor(previousConfig, context.moduleAnchor);
+    // Stack entries are snapshots of each real level, not the newest anchor.
+    context.moduleAnchor=readAnchor(previousConfig) || context.moduleAnchor;
 
     const currentDepth =
         context.navigation && Number.isFinite(Number(context.navigation.depth))
@@ -170,13 +173,9 @@ function resetNavigation(context)
     }
 }
 
-function canEstablishAnchor(context)
+function canEstablishAnchor()
 {
-    return !(
-        context &&
-        context.local === true &&
-        context.moduleAnchor
-    );
+    return true; // Promotion may select a cell at any meaningful depth.
 }
 
 module.exports = {
