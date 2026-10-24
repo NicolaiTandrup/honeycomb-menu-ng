@@ -7,6 +7,7 @@ const { customActionRegistry } = require('./core/action-registry.js');
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
+const {isOnOffOnly}=require('./modules/light/presentation');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
 const imageSizing = require('./core/image-sizing.js');
@@ -579,6 +580,8 @@ class CubeElement extends LitElement
     _persistentMenuConfig()
     {
         if( ! this.config || ! this.config.menu )
+            return null;
+        if (['persistent','light'].includes(this.config.mode) && isOnOffOnly(this._entityState()))
             return null;
 
         const menu = merge({}, this.config.menu);

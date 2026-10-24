@@ -53,3 +53,12 @@ test('a stale group palette cannot send color commands after capability loss or 
     hass.states[entity].attributes.supported_color_modes=['color_temp'];assert.equal(applyColor(context),false);
     hass.states[entity].attributes.supported_color_modes=['hs'];hass.states[entity].state='unavailable';assert.equal(applyColor(context),false);assert.deepEqual(calls,[]);
 });
+
+test('explicit onoff capability suppresses details even when unavailable or changed since launcher compilation',()=>{
+    const light=require('../src/modules/light');
+    for(const state of ['on','off','unknown','unavailable']) {
+        const hass=fixture(['onoff'],'onoff',state);
+        assert.equal(light.buildMenu({hass,item:{entity}}),null);
+    }
+    assert.notEqual(light.buildMenu({hass:fixture([],null,'unavailable'),item:{entity}}),null);
+});

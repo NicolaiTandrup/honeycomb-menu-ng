@@ -25,7 +25,7 @@ Updated: 2026-10-24 (Europe/Copenhagen). Verify live Git/CI/PR/release state bef
 - `0c7c39e`: #134 shared promoted-child anchors at meaningful depths and exact Back
   snapshots; neutral Charger detail inner borders; explicit overrides preserved.
   Existing Light zoom/Sonos siblings retain their module anchors and defaults.
-- Local Node: **356 pass, 3 stable-only skips, zero failures**. Stable-only tests
+- Local Node: **357 pass, 3 stable-only skips, zero failures**. Stable-only tests
   intentionally do not apply to this prerelease; no mandatory gate disabled.
 - Local targeted Chromium: **12 desktop/mobile tests pass** with real pointer/touch;
   synthetic before fixtures reproduce beta.3 dual-mode default and deeper anchor
@@ -35,13 +35,17 @@ Updated: 2026-10-24 (Europe/Copenhagen). Verify live Git/CI/PR/release state bef
 - Evidence outside Git: `/workspace/build-output/beta4/{before,after}`. Browser
   plugin unavailable; repository Playwright Chromium harness used. No real HA,
   Firefox or WebKit acceptance is implied.
-- Local reproducible production build passed: 247827 bytes; SHA256
-  `38cd0b4eb0d288d8e42994f30aefdafa845783207807338309815450ba279f01`. HACS package/license, workflow lint, 57 YAML
-  blocks/37 complete cards/11 fragments/165 links and 16 docs interactions pass.
+- Local reproducible production build passed: 247895 bytes; SHA256
+  `3ac96d191f56c3d86a6dbf81e8189a875defd8be6d26b92654e28f7a1a82e84f`. HACS package/license, workflow lint, 57 YAML
+  blocks/37 complete cards/11 fragments/213 links and 16 docs interactions pass.
 - Full regression caught and fixed an overbroad default promotion: unmarked custom
   Light children must retain their named center. Promotion now requires explicit
   `promote_to_center: true`; the existing unchanged regression passes desktop/mobile.
   Complete earlier CI runs are superseded by the corrected final head.
+- Live on/off capability changes now suppress stale detail launchers, including
+  unavailable entities with explicit onoff capability (missing capabilities remain
+  conservative). Added real touch/pointer and unit regressions. SVG computed fills
+  verify neutral/detail overrides at multiple depths, not just model data.
 - Full mandatory exact-head CI and publisher are pending at this
   checkpoint. Latest PR comments and Actions are authoritative for later results.
   Do not mark a dispatch, prepared tag or written code as a published release.

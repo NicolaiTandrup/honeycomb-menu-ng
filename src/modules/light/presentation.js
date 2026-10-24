@@ -43,7 +43,7 @@ function currentColor(state)
 
 function isOnOffOnly(state)
 {
-    if( ! state || ['unavailable', 'unknown'].includes(state.state) )
+    if( ! state )
         return false;
 
     const attrs = state.attributes || {};

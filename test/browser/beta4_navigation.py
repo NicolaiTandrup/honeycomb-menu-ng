@@ -63,7 +63,7 @@ class Navigation(Charger):
         self.assertEqual(self.cell(3).evaluate('(e)=>e.config.tap_action.action'),'none')
         self.assertEqual(self.cell(4).evaluate('(e)=>e.config.tap_action.data'),{'brightness_pct':60})
         self.back();self.page.evaluate('pushState("light.zone_a","on",{supported_color_modes:["onoff"],color_mode:"onoff"})');self.settle()
-        self.page.evaluate('hub.remove()');self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','slot':0}]});self.assertIsNone(self.cell(0).evaluate('(e)=>e.config.menu'));self.assert_no_commands()
+        self.hold_input(self.cell(0).locator('.interaction-surface'));self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0);self.assert_no_commands()
     def test_charger_promotion_exact_position_gray_children_and_back(self):
         self.nested_overview();self.page.evaluate("hub.style.left=(innerWidth*.65-41)+'px'");self.settle()
         before=self.center(1);self.capture('issue134-overview')
@@ -71,7 +71,9 @@ class Navigation(Charger):
         delta=sum(abs(a-b) for a,b in zip(before,after))
         if self.baseline:self.assertGreater(delta,40);return
         self.assertLess(delta,.1)
-        for slot in range(1,7):self.assertEqual(self.model(slot)['colors']['inner'],'#555b63')
+        for slot in range(1,7):
+            self.assertEqual(self.model(slot)['colors']['inner'],'#555b63')
+            self.assertEqual(self.cell(slot).locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(85, 91, 99)')
         self.assertEqual(self.model(0)['colors']['inner'],'#43c95b')
         self.activate(self.cell(0).locator('.interaction-surface'));self.settle()
         restored=self.center(1);self.assertAlmostEqual(restored[0],before[0],delta=.1);self.assertAlmostEqual(restored[1],before[1],delta=.1);self.assert_no_commands()
@@ -80,12 +82,12 @@ class Navigation(Charger):
         self.overview([charger(1)])
         # Explicit child override must survive live Charger state and navigation.
         self.cell(1).evaluate('(e)=>e.config.menu.buttons[2].colors={inner_border:"#123456"}')
-        self.open_details();self.assertEqual(self.model(3)['colors']['inner'],'#123456')
+        self.open_details();self.assertEqual(self.model(3)['colors']['inner'],'#123456');self.assertEqual(self.cell(3).locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(18, 52, 86)')
         self.page.evaluate('chargerSet("sensor.charger_1_status","Ready to charge")');self.settle();self.assertEqual(self.model(3)['colors']['inner'],'#123456')
         prior=self.center(0);selected=self.center(6)
-        self.cell(6).evaluate('(e)=>e.config.menu={nested_expand:true,promote_to_center:true,promoted_center:{mode:"generic",name:"Child",show_name:true,colors:{inner_border:"#abcdef"}},buttons:[{slot:1,slot_mode:"hard",name:"Action",tap_action:{action:"none"}}]}')
+        self.cell(6).evaluate('(e)=>e.config.menu={nested_expand:true,promote_to_center:true,promoted_center:{mode:"generic",name:"Child",show_name:true,colors:{inner_border:"#abcdef"}},buttons:[{slot:1,slot_mode:"hard",name:"Action",colors:{inner_border:"#fedcba"},tap_action:{action:"none"}}]}')
         self.hold_input(self.cell(6).locator('.interaction-surface'));self.settle()
-        center=self.center(0);self.assertAlmostEqual(center[0],selected[0],delta=.1);self.assertAlmostEqual(center[1],selected[1],delta=.1);self.assertEqual(self.model(0)['colors']['inner'],'#abcdef')
+        center=self.center(0);self.assertAlmostEqual(center[0],selected[0],delta=.1);self.assertAlmostEqual(center[1],selected[1],delta=.1);self.assertEqual(self.model(0)['colors']['inner'],'#abcdef');self.assertEqual(self.cell(1).locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(254, 220, 186)')
         self.back();self.settle();self.assertAlmostEqual(self.center(0)[0],prior[0],delta=.1);self.assertEqual(self.model(3)['colors']['inner'],'#123456');self.assert_no_commands()
     def test_auto_floorplan_promote_at_scaled_size_and_restore(self):
         if self.baseline:return
