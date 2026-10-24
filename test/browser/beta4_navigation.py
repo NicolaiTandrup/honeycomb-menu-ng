@@ -41,7 +41,7 @@ class Navigation(Charger):
         self.assertEqual(self.palette(),'color');self.assertEqual(self.model(0)['name'],'Color');self.assertEqual(self.model(0)['secondary'],'White')
         self.light_state('on',{'brightness':200,'color_mode':'color_temp'})
         self.assertEqual(self.palette(),'color');self.assert_no_commands();self.capture('issue133-after-manual-color-retained')
-        self.hold_input(self.cell(3).locator('.interaction-surface'));self.settle();self.assertEqual(self.palette(),'white');self.assert_no_commands()
+        self.cell(3).locator('.interaction-surface').press('Shift+Enter');self.settle();self.assertEqual(self.palette(),'white');self.assert_no_commands()
         self.back();self.back();self.back();self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),1)
         self.activate(self.cell(3).locator('.interaction-surface'));self.settle();self.assertEqual(self.palette(),'white');self.assert_no_commands()
     def test_capabilities_off_recovery_and_mixed_groups(self):

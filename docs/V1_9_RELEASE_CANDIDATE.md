@@ -1,5 +1,10 @@
 # v1.9.0 stable candidate — owner review required
 
+> Beta.4 development note (2026-10-24): PR #132 remains an unmerged beta.3-based
+> stable proposal. A separate cumulative beta.4 branch fixes #133/#134. The old
+> `release-approval.json` pin is not approval for beta.4 or stable publication.
+> Re-prepare stable only after owner accepts the new beta and authorizes promotion.
+
 **Preparation only: no master merge or stable publication authorized.** Latest
 public stable/master remain v1.8.1. Owner beta.2 testing accepted Charger two-row
 labels, dashboard editor placement, simultaneous charging, individual/aggregate

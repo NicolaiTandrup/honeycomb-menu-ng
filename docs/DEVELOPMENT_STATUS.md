@@ -1,69 +1,84 @@
-# Development status — v1.9 stable preparation
+# Development status — v1.9.0-beta.4
 
-Updated: 2026-10-23. Read AGENTS.md and verify live issue/PR/CI state before changing files.
+Updated: 2026-10-24 (Europe/Copenhagen). Verify live Git/CI/PR/release state before work.
 
 ## Active work and protected baseline
 
-- Branch: `release/v1.9.0-stable-candidate`; base is exact public beta.3
-  `8a57ccd225cf95a22685c86fafda1a674bd649d2` ([PR #130](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/130)).
-- Latest stable/master remains v1.8.1 at `c1f178740c8181921033d0d18e0ac8d01afc7ea7`.
-  No merge/stable publisher dispatch/tag/release or live HA command is authorized.
-- Cumulative runtime includes Charger #105 and stabilization #125; future Climate
-  is on separate `feature/v1.10-climate` [PR #131](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/131).
-  Do not import Climate into this v1.9 candidate or reimplement already tested work.
+- Active branch `fix/v1.9-beta4-palettes-navigation`, review PR targets unmerged
+  `release/v1.9.0-stable-candidate` (PR #132), not master.
+- Authoritative runtime baseline: public beta.3 `8a57ccd225cf95a22685c86fafda1a674bd649d2`.
+  Candidate parent `7d46be37e3a538b65542719d60ea0a3157ba4c44` only prepared stable
+  metadata/docs; beta.4 metadata now supersedes that on this separate branch.
+- Master/latest stable v1.8.1 `c1f178740c8181921033d0d18e0ac8d01afc7ea7` is protected.
+  PR #132 is unmerged. Climate stays separate on `feature/v1.10-climate` PR #131;
+  do not import it. Car, Charger Level B redesign/guest UI and EV manager deferred.
+- Owner authorizes immutable beta.4 publication through the normal guarded manual
+  beta workflow only after all exact-head CI/reproducibility/publication gates pass.
+  No stable merge/publication, retention mutation, old tag/release/asset modification
+  or live HA commands are authorized. Preserve private beta.5 draft and assets.
 
-## Completed and validation
+## Completed implementation and actual validation
 
-- Fresh public beta.3 downloads of bundle/SHA256SUMS/provenance matched tag, Git source,
-  asset digests and source `8a57ccd`; source tree `802a5db2a2e4cad7b06bfd8c197f325f274ff472`.
-- Public beta.3 bundle: 244847 bytes, SHA256
-  `29879439c38eb46c95cb0fd6f87407e5dd4c33d182aef7318748ca1a7c2a415b`.
-  Existing exact-head CI/publisher are green; do not republish or mutate beta.3.
-- Candidate metadata/version banner prepared for 1.9.0. Source/build/dependencies
-  unchanged. `release-approval.json` is a proposed pin, not existing owner approval.
-- Actual stable Node suite: **344 passed, zero skips/failures**, including all three
-  formerly skipped stable source/banner/ancestry/publisher safety contracts.
-- Candidate documentation/checklist and README/AI version boundaries are prepared.
-  Repeated build and banner-only comparison passed: stable bundle 244840 bytes,
-  SHA256 `d9797e39ccb8b9f5b4acb3d9ed0982af34d5fa9631cf2f38182d7dbce30cd07d`.
-- Documentation: 57 YAML blocks, 37 complete cards + 11 fragments, 214 local links
-  and all 16 desktop/mobile documentation interactions passed. HACS package,
-  workflow lint and diff checks passed. Docs result counter now records actual cases.
-- Full inherited browser and exact-head candidate push/PR CI are next; do not claim
-  hardware acceptance or publication from these synthetic checks.
+- `439e907`: #133 capability/current-mode Light navigation; dual-mode tap/hold,
+  displayed/alternative labels, bounded per-connection/entity off-mode memory,
+  no-service navigation, live capability guards, fixed-white brightness preset.
+- `0c7c39e`: #134 shared promoted-child anchors at meaningful depths and exact Back
+  snapshots; neutral Charger detail inner borders; explicit overrides preserved.
+  Existing Light zoom/Sonos siblings retain their module anchors and defaults.
+- Local Node: **356 pass, 3 stable-only skips, zero failures**. Stable-only tests
+  intentionally do not apply to this prerelease; no mandatory gate disabled.
+- Local targeted Chromium: **12 desktop/mobile tests pass** with real pointer/touch;
+  synthetic before fixtures reproduce beta.3 dual-mode default and deeper anchor
+  lock (4 baseline cases pass). A root-Hub Charger already anchored correctly;
+  the navigation defect requires a deeper level. Tests compare physical centers,
+  allowing existing hover scale instead of mistaking it for anchor movement.
+- Evidence outside Git: `/workspace/build-output/beta4/{before,after}`. Browser
+  plugin unavailable; repository Playwright Chromium harness used. No real HA,
+  Firefox or WebKit acceptance is implied.
+- Local reproducible production build passed: 247827 bytes; SHA256
+  `0627a5852c1c92c77e89bf7f4fadb8345429f5d97bfbc9067bfa5b5802aa889f`. HACS package/license, workflow lint, 57 YAML
+  blocks/37 complete cards/11 fragments/165 links and 16 docs interactions pass.
+- Full mandatory exact-head CI and publisher are pending at this
+  checkpoint. Latest PR comments and Actions are authoritative for later results.
+  Do not mark a dispatch, prepared tag or written code as a published release.
 
-## Remaining tasks in priority order
+## Remaining tasks, in order
 
-1. Run candidate build/reproducibility, source/banner comparison, package/docs/lint.
-   Commit/push and open a cumulative review PR targeting master, leave unmerged.
-2. Let all mandatory exact-head CI finish, inspect failures/artifact checksum and
-   update PR/handoff with actual results. Do not repeat accepted beta feature work.
-3. Owner beta.3 artwork acceptance (#125), Charger hardware control/association
-   acceptance (#105) and explicit stable merge/publication approval remain pending.
-4. Separately continue existing Climate PR #131. Audit found standalone parent ->
-   different Climate child used classic 62.7px sizing instead of 82px; a focused
-   fix/test is in progress there. No Climate release is automatically authorized.
+1. Verify final-head mandatory push/PR Build jobs including new beta4-navigation
+   suite; inspect full browser/docs/performance/HACS/workflow results/artifacts.
+2. Verify reproducible production bytes/checksum. Run normal manually authorized
+   beta publisher for NEW `v1.9.0-beta.4` with exact tested head and `publish=true`
+   only after all gates pass. Freeze this branch while verifying/publishing.
+3. Independently check public exact tag/JS/checksums/provenance and preservation of
+   master/latest stable/previous releases/assets; report any access blocker precisely.
+   Do not bypass a failed gate or reuse an existing tag/draft.
+4. Record actual final outcomes in PR/issue progress and a separate handoff branch
+   after publication (do not move the verified source during publication).
+5. Owner real-HA acceptance checklist is in RELEASE_NOTES.md. Leave #133/#134 open;
+   stable #125/#105 acceptance remains separate. Update PR #132 with beta.4 status,
+   not a merge or unapproved source pin. A future stable candidate must pin the
+   newly owner-tested beta, never silently reuse the old beta.3 approval proposal.
+6. Climate preparation on PR #131 resumes independently after this release mission.
+   Do not repeat existing implementation. Car #86 remains planning-only until
+   Climate acceptance and owner implementation authorization.
 
-Known limitations and owner gates: see [stable checklist](V1_9_RELEASE_CANDIDATE.md).
-No actual HA hardware/commands tested here. #126/#129/EV-manager redesign is v1.12+;
-Car is deferred. Retention stays false; old releases/tags/branches/assets preserved.
-
-## Commands and precise continuation
+## Commands
 
 ```sh
 git status --short
-git branch --show-current
 git log -5 --oneline
 npm test
 NODE_OPTIONS=--openssl-legacy-provider npm run build
-node scripts/check-release.js --stable
+node scripts/check-release.js
 node scripts/check-hacs-package.js
-python3 test/docs/run.py --bundle honeycomb-menu-ng.js --button-card /tmp/button-card.js --evidence-dir /tmp/honeycomb-v19-docs
-actionlint -shellcheck="" -pyflakes=""
-gh pr list --repo NicolaiTandrup/honeycomb-menu-ng --head release/v1.9.0-stable-candidate
+python test/browser/beta4_navigation.py --bundle honeycomb-menu-ng.js --button-card /tmp/button-card.js --evidence-dir /tmp/beta4-navigation
+python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card /tmp/button-card.js --evidence-dir /tmp/beta4-docs
+node test/performance/hub-benchmark.js
+# Complete browser/contract/coexistence/release commands: .github/workflows/build.yml
+# Publication input contract: docs/BETA_RELEASES.md; never weaken guards.
 ```
 
-Use the existing full `.github/workflows/build.yml` on the exact candidate; no gate
-is disabled. Do not run npm ci through a shared node_modules symlink. Local QA data
-belongs outside Git. Fresh session: inspect current PR/CI and the checklist, finish
-validation, then stop for owner stable approval; never repeat beta publication.
+Local Python environment `/tmp/honeycomb-beta-venv/bin/python`; button-card fixture
+`/workspace/build-output/test-dependencies/button-card.js`; actionlint
+`/tmp/honeycomb-actionlint-bin/actionlint`. Do not run npm ci through the shared
+node_modules symlink. CI uses a clean locked install normally.
