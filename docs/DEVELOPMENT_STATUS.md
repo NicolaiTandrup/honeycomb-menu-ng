@@ -36,8 +36,12 @@ Updated: 2026-10-24 (Europe/Copenhagen). Verify live Git/CI/PR/release state bef
   plugin unavailable; repository Playwright Chromium harness used. No real HA,
   Firefox or WebKit acceptance is implied.
 - Local reproducible production build passed: 247827 bytes; SHA256
-  `0627a5852c1c92c77e89bf7f4fadb8345429f5d97bfbc9067bfa5b5802aa889f`. HACS package/license, workflow lint, 57 YAML
+  `38cd0b4eb0d288d8e42994f30aefdafa845783207807338309815450ba279f01`. HACS package/license, workflow lint, 57 YAML
   blocks/37 complete cards/11 fragments/165 links and 16 docs interactions pass.
+- Full regression caught and fixed an overbroad default promotion: unmarked custom
+  Light children must retain their named center. Promotion now requires explicit
+  `promote_to_center: true`; the existing unchanged regression passes desktop/mobile.
+  Complete earlier CI runs are superseded by the corrected final head.
 - Full mandatory exact-head CI and publisher are pending at this
   checkpoint. Latest PR comments and Actions are authoritative for later results.
   Do not mark a dispatch, prepared tag or written code as a published release.

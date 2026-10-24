@@ -791,7 +791,7 @@ class CubeElement extends LitElement
         // Only genuine child promotion moves the scene. Existing Light zoom
         // and Sonos sibling expansions deliberately retain their module center.
         if (context && menu.nested_expand === true && menu.inherit_inner !== true &&
-            !menu._navigation_sibling && menu.promote_to_center !== false) {
+            !menu._navigation_sibling && menu.promote_to_center === true) {
             menu=merge({},menu);
             const rect=this.getBoundingClientRect();
             menu.anchor_x=rect.left+rect.width/2; menu.anchor_y=rect.top+rect.height/2;
