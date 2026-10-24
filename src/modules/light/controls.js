@@ -1,5 +1,6 @@
 const {designLength}=require('../../core/cube-presentation');
 const merge = require('lodash/merge');
+const {capabilities,selectedPalette}=require('./palette-state');
 const _defaults = require('lodash/defaults');
 const { INITIAL } = require('./color-zoom.js');
 const {normalizeRange,initialPalette,validPalette,refineKelvinPalette}=require('./kelvin-zoom.js');
@@ -106,22 +107,7 @@ function lightCapabilities(entityId)
 {
     const liveHass = currentHass();
     const state = liveHass && entityId ? liveHass.states[entityId] : null;
-    const attrs = state && state.attributes ? state.attributes : {};
-    const modes = Array.isArray(attrs.supported_color_modes)
-        ? attrs.supported_color_modes
-        : [];
-
-    const colorModes = ['xy', 'hs', 'rgb', 'rgbw', 'rgbww'];
-    const colorCapable = modes.some(mode => colorModes.includes(mode));
-    const temperatureCapable = modes.includes('color_temp');
-
-    return {
-        modes,
-        colorCapable,
-        temperatureCapable,
-        minKelvin: attrs.min_color_temp_kelvin,
-        maxKelvin: attrs.max_color_temp_kelvin
-    };
+    return capabilities(state);
 }
 
 function kelvinToCssRgb(kelvin)
@@ -166,8 +152,7 @@ function buildColorPaletteButtons(palette = INITIAL)
             ]
         },
         tap_action: {
-            action: 'perform-action',
-            perform_action: 'light.turn_on',
+            action: 'honeycomb-light-color-apply',
             data: { hs_color: [hue, saturation] }
         },
         hold_action: {
@@ -196,68 +181,48 @@ function buildWhitePaletteButtons(capabilities,palette)
     });
 }
 
+function paletteMenu(entity, palette, caps) {
+    const white=palette === 'white', alternative=white ? caps.colorCapable : caps.temperatureCapable;
+    return {entity,nested_expand:true,inherit_inner:true,empty_slots:'hidden',idle_timeout:8000,
+        _light_palette_view:palette,
+        persistent_center:{name:white ? 'White' : 'Color',show_name:true,
+            label:alternative ? white ? 'Color' : 'White' : '',show_label:true,show_brightness:'never'},
+        buttons:white ? buildWhitePaletteButtons(caps) : buildColorPaletteButtons()};
+}
+
+// Resolve again at activation, not when a launcher was first compiled. HA may
+// change mode/capabilities while the main Light menu remains open.
+function resolvePaletteRequest(config, hass, currentView) {
+    if (!config._light_palette_request) return config;
+    const caps=capabilities(hass && hass.states && hass.states[config.entity]);
+    let palette=selectedPalette(hass,config.entity);
+    if (config._light_palette_request === 'opposite') {
+        const from=currentView || palette;
+        palette=from === 'white' ? caps.colorCapable && 'color' : caps.temperatureCapable && 'white';
+    }
+    if (!palette || palette === 'white' && !normalizeRange(caps.minKelvin,caps.maxKelvin)) return null;
+    return paletteMenu(config.entity,palette,caps);
+}
+
 function expandLightPaletteControl(button, inheritedEntity)
 {
-    const lightEntity = button.entity || inheritedEntity;
-    const capabilities = lightCapabilities(lightEntity);
-
-    if( capabilities.colorCapable )
-    {
-        _defaults(button, {
-            entity: lightEntity,
-            icon: 'mdi:palette',
-            name: 'Color',
-            show_name: true,
-            autoclose: false,
-            tap_action: {
-                action: 'honeycomb-open-nested',
-                honeycomb_nested_menu: {
-                    nested_expand: true,
-                    inherit_inner: true,
-                    empty_slots: 'hidden',
-                    idle_timeout: 8000,
-                    buttons: buildColorPaletteButtons()
-                }
-            }
-        });
-        return;
-    }
-
-    if( capabilities.temperatureCapable )
-    {
-        if (!normalizeRange(capabilities.minKelvin,capabilities.maxKelvin)) {
+    const lightEntity=button.entity || inheritedEntity, caps=lightCapabilities(lightEntity);
+    const palette=selectedPalette(currentHass(),lightEntity);
+    if (palette) {
+        if (palette === 'white' && !normalizeRange(caps.minKelvin,caps.maxKelvin)) {
             _defaults(button,{entity:lightEntity,icon:'mdi:temperature-kelvin',name:'White unavailable',label:'Kelvin range missing',
                 show_name:true,show_label:true,autoclose:false,tap_action:{action:'none'},hold_action:{action:'none'}});
             return;
         }
-        _defaults(button, {
-            entity: lightEntity,
-            icon: 'mdi:temperature-kelvin',
-            name: 'White',
-            show_name: true,
-            autoclose: false,
-            tap_action: {
-                action: 'honeycomb-open-nested',
-                honeycomb_nested_menu: {
-                    nested_expand: true,
-                    inherit_inner: true,
-                    empty_slots: 'hidden',
-                    idle_timeout: 8000,
-                    buttons: buildWhitePaletteButtons(capabilities)
-                }
-            }
-        });
+        const request=kind=>({action:'honeycomb-open-nested',honeycomb_nested_menu:{
+            ...paletteMenu(lightEntity,palette,caps),_light_palette_request:kind}});
+        _defaults(button,{entity:lightEntity,icon:palette === 'white' ? 'mdi:temperature-kelvin' : 'mdi:palette',
+            name:palette === 'white' ? 'White' : 'Color',show_name:true,autoclose:false,
+            tap_action:request('current'),hold_action:caps.colorCapable && caps.temperatureCapable ? request('opposite') : {action:'none'}});
         return;
     }
-
-    _defaults(button, {
-        entity: lightEntity,
-        icon: 'mdi:lightbulb-outline',
-        name: 'Light',
-        show_name: true,
-        autoclose: false,
-        tap_action: { action: 'none' }
-    });
+    _defaults(button,{entity:lightEntity,icon:'mdi:lightbulb-outline',name:'Light',show_name:true,
+        autoclose:false,tap_action:{action:'none'},hold_action:{action:'none'}});
 }
 
 function expandPresetStandardControl(button, presets, inheritedEntity)
@@ -282,6 +247,12 @@ function expandPresetStandardControl(button, presets, inheritedEntity)
     {
         button.control = 'preset-kelvin';
         expandPresetControl(button, presets, lightEntity);
+        return;
+    }
+
+    if (!capabilities.temperatureCapable) {
+        button.control='preset-brightness';
+        expandPresetControl(button,presets,lightEntity);
         return;
     }
 
@@ -508,6 +479,7 @@ function applyPresetControls(config, inheritedPresets, inheritedEntity)
 
 module.exports = {
     applyPresetControls,
+    resolvePaletteRequest,
     lightCapabilities,
     buildColorPaletteButtons,
     buildWhitePaletteButtons

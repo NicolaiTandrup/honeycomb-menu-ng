@@ -235,9 +235,16 @@ domain's `set_value`. Storing brightness converts HA 0–255 into rounded percen
 
 No helpers are needed for normal operation: apply-only defaults are 60% and 2700 K.
 The standard slot chooses HS when color-capable with both hue/saturation values,
-otherwise a supported Kelvin preset, otherwise 2700 K. It does not show separate
+otherwise a supported Kelvin preset (default 2700 K), otherwise a brightness preset. It does not show separate
 HS and Kelvin preset buttons simultaneously. Palette is 12 hues for color-capable
-Lights or 12 Kelvin steps for temperature-only Lights. Brightness-only keeps a
+Lights or 12 native Kelvin steps. In v1.9.0-beta.4 dual-capability Lights tap
+to open the current `color_mode` palette and hold to open the opposite supported
+palette. Only `supported_color_modes` grants controls: `rgbw`/`rgbww` alone does
+not grant `color_temp`. Center primary/secondary = displayed palette / supported
+alternative; no unsupported alternative label. UI switching never sends HA commands.
+An off/null mode can use entity-specific frontend-session memory, else Color when
+supported, then White; unavailable state is not inferred from RGB values. Manual
+selection survives passive updates until navigation/reopen. Brightness-only keeps a
 passive slot 3; explicitly `[onoff]` has no detail menu. Never infer `[onoff]` just
 from missing attributes on an unavailable entity. [Light details](LIGHT_MODULE.md).
 

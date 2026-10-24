@@ -334,6 +334,13 @@ White swatches are solid temperature colors: tap applies; hold refines without
 calling HA. Back restores the prior palette, and full close resets it. Native
 Kelvin bounds and integer-precision limits apply; no new YAML options are needed.
 
+In v1.9.0-beta.4, HA `supported_color_modes` selects available palettes. For a
+Color + White light, tap slot 3 for its current `color_mode`; hold for the other
+supported palette. Slot 0 names the displayed palette and its alternative.
+Navigation sends no light command. White-only exposes no Color alternative;
+fixed-white keeps brightness controls, and on/off-only keeps toggle only.
+
+
 Preset values may be writable `number.*` entities on **another relay/device or
 integration**, or `input_number.*` helpers. They need not belong to the Light.
 Brightness is 0–100%, hue 0–360, saturation 0–100, Kelvin must suit the Light.
