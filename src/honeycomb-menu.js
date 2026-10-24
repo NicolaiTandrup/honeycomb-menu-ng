@@ -20,7 +20,7 @@ const navigationCore = require('./core/navigation-context.js');
 const layoutCore = require('./core/layout.js');
 const { applyEntityInheritance } = require('./core/entity-inheritance.js');
 const { customActionRegistry } = require('./core/action-registry.js');
-const { applyPresetControls } = require('./modules/light/controls.js');
+const { applyPresetControls, resolvePaletteRequest } = require('./modules/light/controls.js');
 
 // Register built-in domain modules and their custom actions.
 require('./modules/index.js');
@@ -94,7 +94,10 @@ function prepareMenuConfig(config)
 
 function openHoneycombMenu(context, config)
 {
-    const honeycombConfig = prepareMenuConfig(config);
+    const liveHass = context.honeycomb && context.honeycomb.hass || document.querySelector('home-assistant').hass;
+    const resolved = resolvePaletteRequest(config, liveHass, context.currentConfig && context.currentConfig._light_palette_view);
+    if (!resolved) return null;
+    const honeycombConfig = prepareMenuConfig(resolved);
 
     // If a menu is already open, treat a newly opened menu as a nested menu.
     // nested_expand keeps the current Honeycomb element alive and only updates
@@ -104,13 +107,14 @@ function openHoneycombMenu(context, config)
     if( nested && honeycombConfig.nested_expand === true )
     {
         const current = context.currentConfig || {};
+        if (honeycombConfig.inherit_inner && !honeycombConfig._light_palette_view)
+            honeycombConfig._light_palette_view=current._light_palette_view;
 
-        // Core owns the only legal anchor transition:
-        // Hub base -> selected module. Every deeper level reuses that anchor.
+        // Promotion selects a new physical center; palettes/siblings keep it.
         navigationCore.enterNested(context, current, honeycombConfig);
         honeycombConfig.size=current.size;
         if (honeycombConfig.layout_envelope === undefined) honeycombConfig.layout_envelope=current.layout_envelope;
-        if (!navigationCore.isHubRoot(current)) {
+        if (!navigationCore.isHubRoot(current) && honeycombConfig.promote_to_center !== true) {
             honeycombConfig.anchor_x=context.honeycomb._anchorX;
             honeycombConfig.anchor_y=context.honeycomb._anchorY;
         }
@@ -196,7 +200,8 @@ function openHoneycombMenu(context, config)
             {
                 honeycombConfig.persistent_center = merge(
                     {},
-                    honeycombConfig.persistent_center || current.persistent_center,
+                    current.persistent_center,
+                    honeycombConfig.persistent_center || {},
                     {
                         interactive: true,
                         icon: 'mdi:arrow-left',
@@ -304,7 +309,7 @@ document.body.addEventListener("ll-custom", e => {
             const sourceItem = path.find(node =>
                 node &&
                 node.tagName &&
-                node.tagName.toLowerCase() === 'honeycomb-menu-ng-item'
+                ['honeycomb-menu-ng-item','honeycomb-persistent-control'].includes(node.tagName.toLowerCase())
             );
 
             if( sourceItem && typeof sourceItem.getBoundingClientRect === 'function' )

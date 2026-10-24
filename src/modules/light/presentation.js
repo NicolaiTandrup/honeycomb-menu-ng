@@ -1,3 +1,4 @@
+const {selectedPalette}=require('./palette-state');
 function kelvinToRgb(kelvin)
 {
     let temp = Math.max(1000, Math.min(40000, Number(kelvin) || 2700)) / 100;
@@ -42,7 +43,7 @@ function currentColor(state)
 
 function isOnOffOnly(state)
 {
-    if( ! state || ['unavailable', 'unknown'].includes(state.state) )
+    if( ! state )
         return false;
 
     const attrs = state.attributes || {};
@@ -88,8 +89,9 @@ function brightnessLabel(config, state)
     return 'On';
 }
 
-function resolve({ config, state, runtime })
+function resolve({ config, state, runtime, hass })
 {
+    selectedPalette(hass,config && config.entity);
     const configured = (config && config.colors) || {};
     const off = (config && config.off) || {};
 

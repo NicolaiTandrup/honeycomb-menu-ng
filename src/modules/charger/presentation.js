@@ -64,7 +64,7 @@ function resolve({hass,config}) {
     }
     return {name,secondary,tertiary,disabled,active:!role && value.active,
         ...(!role ? {iconBadge,labelLayout} : {}),
-        colors:{center:!role && value.active ? color : neutral,inner:color,outer},forceColors:{inner:color},
+        colors:{center:!role && value.active ? color : neutral,inner:role ? '#555b63' : color,outer},
         ariaLabel:[name,secondary,tertiary,iconBadge,!role && value.status === 'charging' && !value.power ? 'Power unknown' : null].filter(Boolean).join(', '),refreshAt,
         ...(!role ? {energyWave:energyWave(options,value,config)} : {})};
 }

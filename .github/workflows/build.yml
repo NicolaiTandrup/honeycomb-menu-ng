@@ -102,6 +102,9 @@ jobs:
       - name: Verify radio artwork pixel bounds across ratios and hex slopes
         run: python test/browser/radio_artwork.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/radio-artwork"
 
+      - name: Verify capability-aware palettes and anchored child navigation
+        run: python test/browser/beta4_navigation.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta4-navigation"
+
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 
