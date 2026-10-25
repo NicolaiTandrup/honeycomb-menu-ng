@@ -1,3 +1,28 @@
+# Active beta.6 extended sprint — checkpoint, not released
+
+Branch `fix/v1.9-beta6-ux-hardening` starts at private dev delivery `a712fb9`,
+which is cumulative public beta.5 + #137/#138. Do not restart those changes.
+Owner now confirms OFF naming/cache refresh on actual development HA; bee visual
+acceptance is pending the correction below. No permission to publish beta.6.
+
+Completed this checkpoint: short computed `v1.9.0 beta 6` lives inside the same
+bee content/safe area during flight, with full technical diagnostics unchanged.
+Version formatter handles stable/future beta/dev metadata. Eighteen relevant
+Node tests and four desktop/mobile browser cases passed, including all six fill
+edges at 41/60/82/110px through animation frames, keyboard and no layout shift.
+Generated draft bundle/evidence remain outside this checkpoint; final normal
+candidate and separate exact-source dev artifacts are still to be prepared.
+
+Next: one-command atomic dev installer with tests; prepare normal beta.6 metadata
+without weakening public guards; audit/measure lifecycle/motion/navigation/sizing,
+run complete suites, docs, reproducibility/HACS/workflow CI and open a cumulative
+review PR. Review future modules without importing them. No remote HA deployment,
+master/stable merge, release/tag overwrite or retention change. Read latest mission
+and issues #133/#134/#137/#138/#125; source evidence in
+`/workspace/build-output/v19-beta6/`. Preserve independent Climate PR #131.
+
+---
+
 # Current handoff — v1.9.0-beta.6-dev ready for owner testing (#137/#138)
 
 Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and live owner comments.

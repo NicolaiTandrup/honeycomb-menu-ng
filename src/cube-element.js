@@ -19,6 +19,7 @@ const { presentationDependencies, presentationSnapshot } = require('./core/prese
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
 const buildInfo = require('./core/build-info');
+const beeVersion = require('./core/version-label').versionLabel(buildInfo.version);
 
 class CubeElement extends LitElement
 {
@@ -154,12 +155,17 @@ class CubeElement extends LitElement
                 filter: drop-shadow(0 calc(var(--honeycomb-persistent-size,82px) / 82) calc(var(--honeycomb-persistent-size,82px) / 82) rgba(0, 0, 0, 0.18));
             }
 
-            .bee-version {
-                position:absolute;top:78%;left:50%;transform:translateX(-50%);
-                padding:2px 5px;border-radius:4px;background:rgba(24,28,32,.94);
-                color:#f6f7f9;font-size:11px;line-height:1.2;white-space:nowrap;
-                pointer-events:none;z-index:3;
+            .content.with-bee-version {
+                padding-bottom:8%;box-sizing:border-box;
+                clip-path:polygon(50% 8%,92% 29%,92% 71%,50% 92%,8% 71%,8% 29%);
             }
+            .content.with-bee-version .bee-icon { width:34%;height:34%;flex-shrink:0; }
+            .bee-version {
+                display:flex;flex-direction:column;align-items:center;max-width:65%;
+                color:inherit;line-height:1.08;text-align:center;white-space:nowrap;
+                margin-top:calc(var(--honeycomb-persistent-size,82px)*.015);
+            }
+            .bee-version span { display:block; }
 
             .bee-icon.flap {
                 animation: honeycomb-bee-flight 430ms ease-in-out;
@@ -1065,6 +1071,8 @@ class CubeElement extends LitElement
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
         const mediaBackground=['sonos','media'].includes(this.config.mode) && !!artwork['background-image'];
+        const showBeeVersion=(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping;
+        const versionFont=Math.min(.12,.57/(Math.max(beeVersion.base.length,beeVersion.stage.length)*.65));
         const external = this.config.custom_fields || (this.config.type &&
             !['custom:button-card','custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type));
         this._externalContent = !!external;
@@ -1090,17 +1098,17 @@ class CubeElement extends LitElement
                     @error=${()=>{if(this._model.artwork && this._model.artwork.key===m.artwork.key){this._failedArtworkKey=m.artwork.key;this._updatePresentation();}}}>` : ''}
             </div>
             ${external ? html`<div class="external-content"></div>` : html`
-            <div class="content ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
+            <div class="content ${showBeeVersion ? 'with-bee-version' : ''} ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
                 ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
                     : m.iconBadge ? html`<div class="icon-with-badge"><ha-icon .icon=${m.icon}></ha-icon><span class="power-badge">${m.iconBadge}</span></div>`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
+                ${showBeeVersion ? html`<span class="bee-version" role="status" aria-live="polite" aria-label=${beeVersion.text}
+                    style=${styleMap({fontSize:`calc(var(--honeycomb-persistent-size,82px)*${versionFont})`})}><span>${beeVersion.base}</span>${beeVersion.stage ? html` <span>${beeVersion.stage}</span>` : ''}</span>` : ''}
                 ${m.name ? html`<div class="primary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'n':undefined,...m.nameStyle})}>${m.name}</div>` : ''}
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
                 ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
             </div>`}
-            ${(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping ? html`
-                <span class="bee-version" role="status" aria-live="polite">${buildInfo.version === 'Version unavailable' ? buildInfo.version : 'v'+buildInfo.version}</span>` : ''}
             ${this.config.interactive !== false && !this.config.disabled ? html`
             <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
                 @keydown=${e=>{

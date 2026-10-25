@@ -3,6 +3,7 @@ Browser plugin not available; repository Playwright Chromium, synthetic HA only.
 """
 import argparse, hashlib, json, os, shutil, threading, unittest
 from pathlib import Path
+from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer
 from urllib.parse import urlsplit, parse_qs
 from playwright.sync_api import sync_playwright
@@ -37,23 +38,46 @@ class DevBuild(Navigation):
     def test_actual_version_with_flight_and_keyboard_no_layout_shift(self):
         self.hub({'logo':True,'items':[{'type':'light','entity':'light.zone_a','slot':1,'name':'Light A'}]});self.settle()
         self.page.clock.install()
-        expected='v'+self.page.evaluate('ng.version');self.assertIn('1.9.0-beta.6-dev+',expected)
+        technical=self.page.evaluate('ng.version');expected='v1.9.0 beta 6'
         before=self.controls().evaluate_all('els=>els.map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})')
         bee=self.cell(0);target=bee.locator('.interaction-surface')
-        box=target.bounding_box();self.page.clock.pause_at(self.page.evaluate('Date.now()')+30)
+        box=target.bounding_box();self.page.clock.pause_at(datetime.fromtimestamp((self.page.evaluate('Date.now()')+30)/1000,timezone.utc))
         point=(box['x']+box['width']/2,box['y']+box['height']/2)
         if self.viewport['width']<500:self.page.touchscreen.tap(*point)
         else:self.page.mouse.click(*point)
         self.page.clock.run_for(35)
-        label=bee.locator('.bee-version');self.assertTrue(label.is_visible());self.assertEqual(label.text_content(),expected)
-        self.assertEqual(label.get_attribute('role'),'status');self.assertEqual(label.get_attribute('aria-live'),'polite');self.assertEqual(label.evaluate('e=>getComputedStyle(e).position'),'absolute')
+        label=bee.locator('.bee-version');self.assertTrue(label.is_visible());self.assertEqual(' '.join(label.text_content().split()),expected)
+        self.assertEqual(label.get_attribute('role'),'status');self.assertEqual(label.get_attribute('aria-live'),'polite');self.assertNotEqual(label.evaluate('e=>getComputedStyle(e).position'),'absolute');self.assertEqual(label.get_attribute('aria-label'),expected)
         self.assertTrue(bee.locator('.bee-icon').evaluate('e=>e.classList.contains("flap")'))
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-issue138-bee-version.png'))
         self.assertEqual(self.controls().evaluate_all('els=>els.map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})'),before)
         self.page.clock.run_for(500);self.assertEqual(label.count(),0);self.assertFalse(bee.locator('.bee-icon').evaluate('e=>e.classList.contains("flap")'))
         for key in ['Enter','Space']:
-            target.press(key);self.page.clock.run_for(35);self.assertEqual(label.text_content(),expected)
+            target.press(key);self.page.clock.run_for(35);self.assertEqual(' '.join(label.text_content().split()),expected)
             self.page.clock.run_for(500);self.assertEqual(label.count(),0)
+        self.assertEqual(self.page.evaluate('ng.version'),technical);self.assert_no_commands()
+    def test_version_text_inside_actual_fill_at_sizes_and_animation_frames(self):
+        self.page.clock.install()
+        for size in [41,60,82,110]:
+            if self.page.evaluate('!!window.hub'):self.page.evaluate('hub.remove()')
+            self.hub({'logo':True,'size':size,'items':[{'type':'light','entity':'light.zone_a','slot':1}]});self.settle()
+            bee=self.cell(0);box=bee.bounding_box();self.page.clock.pause_at(datetime.fromtimestamp((self.page.evaluate('Date.now()')+30)/1000,timezone.utc))
+            bee.locator('.interaction-surface').press('Enter');self.page.clock.run_for(35)
+            for delta in [0,60,100,180]:
+                self.page.clock.run_for(delta)
+                self.assertTrue(bee.evaluate("""e=>{
+                    const polygon=e.shadowRoot.querySelector('.hex-fill'),inverse=polygon.getScreenCTM().inverse();
+                    return [...e.shadowRoot.querySelectorAll('.bee-version span')].every(text=>{
+                        const r=text.getBoundingClientRect();return [[r.left,r.top],[r.right,r.top],[r.left,r.bottom],[r.right,r.bottom]].every(([x,y])=>{
+                            const p=new DOMPoint(x,y).matrixTransform(inverse);return polygon.isPointInFill(p);
+                        });
+                    });
+                }"""),f'Text fits all six fill edges, size {size}')
+                self.assertEqual(bee.bounding_box(),box)
+            self.assertEqual(' '.join(bee.locator('.bee-version').text_content().split()),'v1.9.0 beta 6')
+            self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-issue138-contained-{size}.png'))
+            self.page.clock.run_for(150);self.assertEqual(bee.locator('.bee-version').count(),0)
+            self.page.clock.resume()
         self.assert_no_commands()
 
 class Loader(unittest.TestCase):
@@ -120,7 +144,7 @@ def main():
             Loader.server=server;Loader.packages=packages
             for width,height in [(1100,900),(390,844)]:
                 DevBuild.viewport=Loader.viewport={'width':width,'height':height};server.dev_mode=False
-                r=unittest.TextTestRunner(verbosity=2,resultclass=CheckResult).run(unittest.TestSuite([DevBuild('test_actual_version_with_flight_and_keyboard_no_layout_shift')]));success=r.wasSuccessful() and success
+                r=unittest.TextTestRunner(verbosity=2,resultclass=CheckResult).run(unittest.TestSuite(DevBuild(n) for n in DevBuild.__dict__ if n.startswith('test_')));success=r.wasSuccessful() and success
                 if packages:
                     server.dev_mode=True;r=unittest.TextTestRunner(verbosity=2,resultclass=CheckResult).run(unittest.defaultTestLoader.loadTestsFromTestCase(Loader));success=r.wasSuccessful() and success
             browser.close()
