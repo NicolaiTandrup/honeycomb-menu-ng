@@ -72,8 +72,8 @@ class Navigation(Charger):
         if self.baseline:self.assertGreater(delta,40);return
         self.assertLess(delta,.1)
         for slot in range(1,7):
-            self.assertEqual(self.model(slot)['colors']['inner'],'#555b63')
-            self.assertEqual(self.cell(slot).locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(85, 91, 99)')
+            self.assertEqual(self.model(slot)['colors']['inner'],'#34424e')
+            self.assertEqual(self.cell(slot).locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(52, 66, 78)')
         self.assertEqual(self.model(0)['colors']['inner'],'#43c95b')
         self.activate(self.cell(0).locator('.interaction-surface'));self.settle()
         restored=self.center(1);self.assertAlmostEqual(restored[0],before[0],delta=.1);self.assertAlmostEqual(restored[1],before[1],delta=.1);self.assert_no_commands()

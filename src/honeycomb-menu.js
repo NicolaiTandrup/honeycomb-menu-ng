@@ -86,6 +86,7 @@ function notifyContext(context)
 function prepareMenuConfig(config)
 {
     const honeycombConfig = traverseConfigs(config);
+    if (!navigationCore.isHubRoot(honeycombConfig)) honeycombConfig._submenu=true;
     if (honeycombConfig.entity_id && !honeycombConfig.entity) honeycombConfig.entity = honeycombConfig.entity_id;
     applyPresetControls(honeycombConfig, honeycombConfig.presets || {}, honeycombConfig.entity);
     applyEntityInheritance(honeycombConfig, honeycombConfig.entity);

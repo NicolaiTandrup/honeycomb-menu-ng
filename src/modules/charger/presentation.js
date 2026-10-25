@@ -1,4 +1,5 @@
 const model=require('./model');
+const {SUBMENU_FILL,SUBMENU_INNER}=require('../../core/submenu-theme');
 const {recordFor}=require('./actions');
 const registry=require('./registry');
 const {waveOptions}=require('./config');
@@ -64,7 +65,7 @@ function resolve({hass,config}) {
     }
     return {name,secondary,tertiary,disabled,active:!role && value.active,
         ...(!role ? {iconBadge,labelLayout} : {}),
-        colors:{center:!role && value.active ? color : neutral,inner:role ? '#555b63' : color,outer},
+        colors:{center:role ? SUBMENU_FILL : value.active ? color : neutral,inner:role ? SUBMENU_INNER : color,outer},
         ariaLabel:[name,secondary,tertiary,iconBadge,!role && value.status === 'charging' && !value.power ? 'Power unknown' : null].filter(Boolean).join(', '),refreshAt,
         ...(!role ? {energyWave:energyWave(options,value,config)} : {})};
 }
