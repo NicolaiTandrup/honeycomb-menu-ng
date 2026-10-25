@@ -1,51 +1,119 @@
-# Current development checkpoint — Issue #137 / #138 private dev build
+# Current handoff — v1.9.0-beta.6-dev ready for owner testing (#137/#138)
 
-Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and live issue comments.
+Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and live owner comments.
 
-- Active branch `dev/issue137-light-off`, exact base public beta.5 commit
-  `21f1e75edd9f5c204b7b10fdb6f964371c7a01d0`; no unrelated work imported.
-- #137 implemented: only Light Hub OFF launchers show existing configured name,
-  else friendly_name, else readable entity ID; secondary `OFF`. Existing name
-  templates evaluated through the same renderer helper. Explicit label overrides
-  retain their precedence. No new configuration key. ON, unknown/unavailable,
-  standalone/classic controls and promoted submenu Back centers are unchanged.
-- Actual validation: 40 Light unit/palette/Hue/Kelvin tests; six Chromium cases
-  (1100x900 and 390x844) for simultaneous OFF names, short/long names/ellipsis,
-  live transitions/color retention, reload/template/friendly-name fallback,
-  palette/Back/service isolation; core contracts and build/syntax passed.
-  Browser plugin unavailable; existing Playwright Chromium harness used.
-- Public HACS packaging validator rejects this private dev suffix as Unsupported
-  release version, as intended by public publication guards. No guard modified.
-- Evidence outside Git: `/workspace/build-output/issue137-dev/`.
-- #137 source checkpoint `24b6adedbaa1`, pushed. #138 follow-up now implements
-  separate dev loader + nonce/no-store manifest + immutable hashed runtime;
-  normal stable/HACS resources do not use it. Build-time version/source commit
-  shown beneath bee only during its existing 430 ms flight; no layout movement.
-- Actual #138 draft validation: 43 targeted Node tests (including build metadata),
-  core contracts, build/syntax, six Light OFF browser cases and two desktop/touch/
-  keyboard clock-controlled bee-version cases passed. Draft build explicitly
-  marked `.dirty`, not delivered as an exact-source artifact.
-- #138 implementation checkpoint `6e03e68ef53843920299f8c3df296df4716ce1c4`
-  pushed. Clean source A built successfully: 249568-byte runtime, SHA256
-  `473f6f87c8721c71219b32abb1c0ee344304a235f1bd5566f04b0e272aca8dc3`,
-  embedded version `1.9.0-beta.6-dev+6e03e68ef538`.
-- Next: build this second checkpoint B, which adds an unchanged-source-during-build
-  check and existing-runtime conflict regression. Exercise both real builds
-  through the same permanent URL under aggressive HTTP caching. Verify no duplicate registration, no polling,
-  accurate loaded version and corrupt-manifest fail-closed behavior. Only then
-  package final clean-source runtime/loader/manifest and commit generated bundle.
-  No public release CI/provenance or real-HA acceptance claimed.
-- No release/tag/merge/retention/live HA changes. User explicitly waived release
-  CI and provenance for this private candidate. Real HA acceptance still pending.
+## Exact development candidate (not a public beta)
 
-Commands run:
+- Active branch `dev/issue137-light-off`; exact approved public beta.5 foundation
+  `21f1e75edd9f5c204b7b10fdb6f964371c7a01d0`. PR #136 and public beta.5 untouched.
+- #137 separately committed/pushed as `24b6adedbaa158fb860a50bf16b77a59ee70bd48`.
+- #138 separately committed/pushed as `6e03e68ef53843920299f8c3df296df4716ce1c4`,
+  then build/source-conflict test follow-up `00c572ea55e8e5850fd2a49c97c437662348f005`.
+- **Exact built source:** `00c572ea55e8e5850fd2a49c97c437662348f005`.
+  Embedded running version: **`v1.9.0-beta.6-dev+00c572ea55e8`**.
+- Runtime: **249568 bytes**, SHA256
+  **`8eff8adc2a08572310b8a27771db2f91cc8c01a33ce73d46bf180424ca256f94`**.
+  Rebuilt twice byte-identically from that clean committed source. The following
+  delivery/handoff commit contains only this generated runtime and this status
+  update; its SHA is not the source version embedded into the already built JS.
+- Tracked root `honeycomb-menu-ng.js` is the full runtime. Deployable folder uses
+  that same byte-identical runtime under an immutable content-hash filename;
+  its **permanent resource file is instead the small development loader**.
+- Local delivery ZIP:
+  `/workspace/build-output/issue137-dev/honeycomb-v1.9.0-beta.6-dev-00c572ea55e8.zip`.
+  Contents: `honeycomb-dev/` loader, manifest, hashed runtime, checksum, INSTALL.
+  ZIP SHA256 `a3f2cf68227256d9fc5c74e21f1b7b208a1ee61880292d0ac5f699568e5eb20a`.
+  No official Release, tag or public publisher invocation requested/performed.
+
+## Implemented and actually validated
+
+- #137: OFF Light Hub launchers use existing item `name` (including templates),
+  then HA friendly_name, then readable entity ID, above `OFF`. Short names work;
+  long names retain shared ellipsis. Explicit secondary-label overrides retain
+  precedence. ON presentation/colors/brightness, standalone/classic controls,
+  promoted Back centers, Color/White capability behavior and zoom unchanged.
+  Unknown/unavailable remains `Unavailable`, never `OFF`. No new configuration key.
+- #138: stable development-only loader at
+  `/local/honeycomb-dev/honeycomb-menu-ng.js`; once per document it fetches a
+  nonce/no-store manifest and imports an immutable hashed runtime. No polling or
+  per-cube fetch. Concurrent loader imports deduplicated. Invalid metadata and
+  already-loaded NG runtime fail clearly before importing a second runtime.
+- Compiled version and Git source ID are displayed beneath the bee for its
+  existing 430 ms flight. Absolute overlay, no extra cube or layout shift;
+  keyboard Enter/Space, mouse and touch tested. Label disappears with the flight.
+  Missing metadata fallback is graceful; normal releases retain normal version
+  strings. Production/HACS resources retain direct-bundle caching behavior.
+- **43 targeted Node tests pass**: Light OFF, palette capability/state behavior,
+  recursive Hue/Kelvin zoom, dev/release/fallback metadata. Core contracts pass.
+- **26 targeted Chromium cases pass**, 1100x900 and 390x844:
+  six new OFF-name/transition/fallback/template/refresh/containment/navigation;
+  eight bee version/keyboard/touch/no-shift + two-build reload/deduplication/
+  invalid-manifest/existing-runtime tests; twelve inherited Light palette,
+  protected Hub/Light/Sonos pixel comparisons, Charger/Light/Sonos navigation,
+  state/color/animation galleries and dependency-aware update regressions.
+- Two **real clean Git builds** A (`6e03e68ef538`, hash `473f6f87...aca8dc3`)
+  and B (`00c572ea55e8`, final hash above) loaded consecutively through identical
+  resource URL under aggressive one-year HTTP caching. Loader bytes unchanged;
+  ordinary reload fetched one new manifest and one distinct runtime per build.
+  No custom-element re-registration, no polling or services during navigation.
+- Build syntax, repeated byte comparison, SHA256 verification, ZIP integrity and
+  new YAML example passed. Screenshots reviewed: OFF names, ON unchanged, bee
+  version overlay; computed bounds/pixels confirm no protected layout changes.
+- Browser plugin unavailable; repository Playwright Chromium harness used.
+  Evidence/logs outside Git `/workspace/build-output/issue137-dev/`.
+- **Full public release CI/provenance/publisher intentionally not required** by
+  this task. Automatic push CI at source B
+  https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40231237840
+  reports successful core-tests/build/workflow-lint steps, then HACS package
+  validation failure; downstream browser jobs skipped. Local validator confirms
+  `Unsupported release version` for private `-dev`. No release guard/workflow
+  changed or bypassed; do not report this branch as public-release CI-green.
+  Private Actions logs download is Forbidden; jobs/steps API inspected instead.
+
+## Owner deployment / remaining acceptance
+
+See [DEVELOPMENT_BUILDS.md](DEVELOPMENT_BUILDS.md) for full instructions.
+
+1. Only the independent development HA instance: copy complete ZIP contents to
+   `/config/www/honeycomb-dev/`, immutable runtime first, manifest last/atomically.
+   Use exactly one NG resource (JavaScript Module):
+   `/local/honeycomb-dev/honeycomb-menu-ng.js`. Never point it directly at the
+   runtime under the loader's filename. Lovelace resources are instance-wide.
+2. First installation replacing a cached direct-runtime file at the same URL
+   can need a one-time cache refresh; subsequent loader-based updates require
+   ordinary full-page Reload/F5 only, no URL/query changes. Soft dashboard
+   navigation is not a full document reload. Leave open pages on their old build.
+3. Real HA/proxy acceptance still pending. Proxy must honor cache bypass or
+   distinct manifest query nonces; deliberate stale responses ignoring both
+   cannot be repaired by client JS. Firefox/WebKit and actual HA/Sonos/charger
+   hardware have not been tested. No deployment/live HA commands performed.
+4. Owner checks: multiple OFF lights/short/friendly/long names, ON/OFF/unavailable,
+   reload; cube 3 Color/White tap/hold, White-only, Hue/Kelvin zoom/Back; bee flight
+   version/disappearance/no movement; ordinary reload after next deployed build;
+   Sonos Radio/Join/Sleep and Charger/root Hub smoke tests. Keep #137/#138 OPEN.
+5. Next session: read the issue results/feedback, inspect this branch and its
+   artifact/source distinction, then fix only validated defects. Do not repeat
+   implementation/publication or create a competing OFF-label/loader engine.
+   Public beta/stable work still requires its normal exact-source gates and
+   separate applicable owner authorization. Climate remains independent, Car
+   and future Charger redesign remain deferred.
+
+## Commands used
+
 ```sh
-node --test test/light-off.test.js test/light-palette.test.js test/color-zoom.test.js test/kelvin-zoom.test.js
+node --test test/light-off.test.js test/dev-build.test.js test/light-palette.test.js test/color-zoom.test.js test/kelvin-zoom.test.js
 node test/run-tests.js
-NODE_OPTIONS=--openssl-legacy-provider npm run build
-node --check honeycomb-menu-ng.js
-/tmp/honeycomb-beta-venv/bin/python test/browser/light_off.py --bundle honeycomb-menu-ng.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/issue137-dev/browser
+npm run build:dev -- --out-dir /workspace/build-output/issue137-dev/build-b
+# Above ran at clean source 00c572e. A fresh commit intentionally gets a new ID.
+node --check /workspace/build-output/issue137-dev/build-b/honeycomb-build-8eff8adc2a08572310b8a27771db2f91cc8c01a33ce73d46bf180424ca256f94.js
+/tmp/honeycomb-beta-venv/bin/python test/browser/light_off.py --bundle /workspace/build-output/issue137-dev/build-b/honeycomb-build-8eff8adc2a08572310b8a27771db2f91cc8c01a33ce73d46bf180424ca256f94.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/issue137-dev/final-light
+/tmp/honeycomb-beta-venv/bin/python test/browser/dev_build.py --bundle /workspace/build-output/issue137-dev/build-b/honeycomb-build-8eff8adc2a08572310b8a27771db2f91cc8c01a33ce73d46bf180424ca256f94.js --button-card /workspace/build-output/test-dependencies/button-card.js --package-a /workspace/build-output/issue137-dev/build-a --package-b /workspace/build-output/issue137-dev/build-b --evidence-dir /workspace/build-output/issue137-dev/final-loader
+/tmp/honeycomb-beta-venv/bin/python /workspace/build-output/issue137-dev/targeted-smoke.py
 ```
+
+Protected: master/latest stable remains v1.8.1 at
+`c1f178740c8181921033d0d18e0ac8d01afc7ea7`; no PAHA01/production HA modification,
+release/tag/asset deletion/overwrite, merge or retention changes.
 
 ---
 
