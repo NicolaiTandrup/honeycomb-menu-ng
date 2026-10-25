@@ -1681,7 +1681,15 @@ class Cubes(unittest.TestCase):
         self.hold(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .interaction-surface'))
         self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Details"]').click()
         target=self.page.locator(':is(honeycomb-menu-ng-item,honeycomb-menu-item)').filter(has=self.page.locator('.primary',has_text='Child'))
-        self.assertEqual(target.locator('.hex-fill').get_attribute('fill'),'#34424e')
+        # Beta.5 shares the existing Light fill opacity at every submenu depth.
+        # The parent explicitly uses green; it must not leak into this child.
+        self.assertEqual(target.locator('.hex-fill').get_attribute('fill'),'rgba(52, 66, 78, 0.94)')
+        self.assertEqual(target.locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(52, 66, 78)')
+        self.assertEqual(target.locator('.hex-outer').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(52, 56, 61)')
+        self.back()
+        parent=self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Details"]')
+        parent.wait_for()
+        self.assertEqual(self.page.locator(':is(honeycomb-menu-ng-item,honeycomb-menu-item)').filter(has=parent).locator('.hex-fill').get_attribute('fill'),'#174b32')
     def test_empty_placeholders_are_passive(self):
         self.page.evaluate("window.menu=ng.open({entity:'light.zone_a',animate:false,position_mode:'anchored',anchor_x:innerWidth/2,anchor_y:300,buttons:[{slot:1,slot_mode:'hard',name:'Action A',show_name:true,tap_action:{action:'none'}}]})")
         self.page.wait_for_function('window.menu.shadowRoot.querySelectorAll(":is(honeycomb-menu-ng-item,honeycomb-menu-item)").length===7')

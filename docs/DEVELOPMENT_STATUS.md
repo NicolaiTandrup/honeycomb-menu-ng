@@ -64,7 +64,10 @@ Updated: 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and verify live Git/CI/P
   213 links and 16 desktop/mobile interactions pass. HACS/package/license,
   performance and actionlint pass. Full mandatory final-head CI and publisher
   remain pending at this
-  checkpoint. Exact final results belong in PR/issue follow-up and a handoff update.
+  checkpoint. Superseded initial CI found only the old opaque-gray expectation
+  in nested-menu defaults; it now asserts the approved Light alpha fill, both
+  borders, no parent-color leakage and explicit parent restoration on Back.
+  No runtime/source/gate was weakened; fresh exact-head CI is required. Exact final results belong in PR/issue follow-up and a handoff update.
 
 ## Next steps in order
 
