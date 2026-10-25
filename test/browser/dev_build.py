@@ -35,10 +35,14 @@ class DevHandler(Handler):
         super().do_GET()
 
 class DevBuild(Navigation):
+    def expected_label(self):
+        version=self.page.evaluate('ng.version').split('+',1)[0].removesuffix('-dev')
+        return 'v'+version.replace('-beta.',' beta ')
+
     def test_actual_version_with_flight_and_keyboard_no_layout_shift(self):
         self.hub({'logo':True,'items':[{'type':'light','entity':'light.zone_a','slot':1,'name':'Light A'}]});self.settle()
         self.page.clock.install()
-        technical=self.page.evaluate('ng.version');expected='v1.9.0 beta 6'
+        technical=self.page.evaluate('ng.version');expected=self.expected_label()
         before=self.controls().evaluate_all('els=>els.map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})')
         bee=self.cell(0);target=bee.locator('.interaction-surface')
         box=target.bounding_box();self.page.clock.pause_at(datetime.fromtimestamp((self.page.evaluate('Date.now()')+30)/1000,timezone.utc))
@@ -61,7 +65,7 @@ class DevBuild(Navigation):
         self.page.clock.install();self.page.clock.pause_at(datetime.fromtimestamp((self.page.evaluate('Date.now()')+30)/1000,timezone.utc))
         bee=self.cell(0);bee.locator('.interaction-surface').press('Enter');self.page.clock.run_for(35)
         self.assertEqual(bee.locator('.bee-icon').evaluate('e=>getComputedStyle(e).animationName'),'none')
-        self.assertEqual(bee.locator('.bee-version').get_attribute('aria-label'),'v1.9.0 beta 6')
+        self.assertEqual(bee.locator('.bee-version').get_attribute('aria-label'),self.expected_label())
         self.page.clock.run_for(500);self.assertEqual(bee.locator('.bee-version').count(),0)
         bee.evaluate('e=>{window.removedBee=e;e._flapBee();e.remove()}');self.page.clock.run_for(35)
         self.assertEqual(self.page.evaluate('({flapping:removedBee._beeFlapping,timer:removedBee._beeFlapTimer,frame:removedBee._beeAnimationFrame})'),{'flapping':False,'timer':None,'frame':None})
@@ -93,7 +97,7 @@ class DevBuild(Navigation):
                     });
                 }"""),f'Text fits all six fill edges, size {size}')
                 self.assertEqual(bee.bounding_box(),box)
-            self.assertEqual(' '.join(bee.locator('.bee-version').text_content().split()),'v1.9.0 beta 6')
+            self.assertEqual(' '.join(bee.locator('.bee-version').text_content().split()),self.expected_label())
             self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-issue138-contained-{size}.png'))
             self.page.clock.run_for(150);self.assertEqual(bee.locator('.bee-version').count(),0)
             self.page.clock.resume()

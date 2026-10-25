@@ -32,3 +32,16 @@ test('private packaging derives a dev identity without changing releasable sourc
     assert.throws(()=>developmentVersion('1.9.0'),/beta.N/);
     assert.deepEqual(buildMetadata('1.9.0-beta.6'),{version:'1.9.0-beta.6',commit:null});
 });
+
+test('CI checksum pipeline propagates validator failures instead of accepting tee success',()=>{
+    const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+    const {spawnSync}=require('node:child_process');
+    const workflow=fs.readFileSync('.github/workflows/build.yml','utf8');
+    const step=/      - name: Verify build output\n        run: \|\n([\s\S]*?)(?=\n      - name:)/.exec(workflow)[1].split('\n').map(line=>line.replace(/^          /,'')).join('\n');
+    const root=fs.mkdtempSync(path.join(os.tmpdir(),'ng-ci-fail-closed-'));
+    try {
+        const bin=path.join(root,'bin');fs.mkdirSync(bin);fs.writeFileSync(path.join(bin,'node'),'#!/bin/sh\nexit 7\n',{mode:0o755});
+        const result=spawnSync('bash',['-c',step],{env:{...process.env,PATH:bin+path.delimiter+process.env.PATH,RUNNER_TEMP:root}});
+        assert.equal(result.status,7,'An invalid/checksum-failing bundle must fail this actual workflow step');
+    } finally {fs.rmSync(root,{recursive:true,force:true});}
+});
