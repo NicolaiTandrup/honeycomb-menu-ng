@@ -5,10 +5,15 @@ function buildMetadata(version, revision, dirty=false) {
     if (!/^[0-9a-f]{40}$/.test(revision || '')) throw new Error('Development build needs a real Git source commit.');
     return {version:`${version}+${revision.slice(0,12)}${dirty ? '.dirty' : ''}`,commit:revision};
 }
-function localMetadata(version) {
+function developmentVersion(version) {
+    if (!/^\d+\.\d+\.\d+-beta\.\d+(?:-dev)?$/.test(version))throw new Error('Development builds require a beta.N source version.');
+    return version.endsWith('-dev') ? version : version+'-dev';
+}
+function localMetadata(version, {development=false}={}) {
+    if(development)version=developmentVersion(version);
     if (!/-dev$/.test(version)) return buildMetadata(version);
     const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
     const dirty=!!execFileSync('git',['status','--porcelain','--untracked-files=normal'],{encoding:'utf8'}).trim();
     return buildMetadata(version,revision,dirty);
 }
-module.exports={buildMetadata,localMetadata};
+module.exports={buildMetadata,localMetadata,developmentVersion};

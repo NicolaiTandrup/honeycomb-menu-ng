@@ -1,26 +1,27 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
 const {execFileSync}=require('node:child_process');
-const {localMetadata}=require('./build-version');
+const {localMetadata,developmentVersion}=require('./build-version');
 function build(outDir) {
     const root=path.resolve(__dirname,'..');
     if(process.cwd()!==root)throw new Error('Run build:dev from the repository root.');
     const pkg=require('../package.json');
-    if(!/^\d+\.\d+\.\d+-beta\.\d+-dev$/.test(pkg.version))throw new Error('build:dev accepts private beta.N-dev versions only.');
+    developmentVersion(pkg.version);
     if(execFileSync('git',['status','--porcelain','--untracked-files=normal'],{encoding:'utf8'}).trim())
         throw new Error('Commit source changes before build:dev so the embedded source commit is exact.');
-    const metadata=localMetadata(pkg.version),destination=path.resolve(outDir);
+    const metadata=localMetadata(pkg.version,{development:true}),destination=path.resolve(outDir);
     if(destination===root || destination.startsWith(root+path.sep))throw new Error('Use an output directory outside the Git worktree.');
     const temp=fs.mkdtempSync(path.join(os.tmpdir(),'honeycomb-dev-build-'));
     try {
         execFileSync(process.execPath,[path.join(__dirname,'generate-bee-asset.js')],{stdio:'inherit'});
-        execFileSync(process.execPath,['--openssl-legacy-provider',require.resolve('webpack/bin/webpack.js'),'--output-path',temp],{stdio:'inherit'});
-        if(JSON.stringify(localMetadata(pkg.version))!==JSON.stringify(metadata))
+        execFileSync(process.execPath,['--openssl-legacy-provider',require.resolve('webpack/bin/webpack.js'),'--output-path',temp],{stdio:'inherit',env:{...process.env,HONEYCOMB_DEVELOPMENT_BUILD:'1'}});
+        if(JSON.stringify(localMetadata(pkg.version,{development:true}))!==JSON.stringify(metadata))
             throw new Error('Source changed during development build; commit and rebuild.');
         const bytes=fs.readFileSync(path.join(temp,'honeycomb-menu-ng.js'));
         const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
         const file=`honeycomb-build-${sha256}.js`;
-        const manifest={schema:1,version:metadata.version,commit:metadata.commit,file,sha256,bytes:bytes.length};
+        const loader=fs.readFileSync(path.join(__dirname,'dev-loader.js'));
+        const manifest={schema:1,version:metadata.version,commit:metadata.commit,file,sha256,bytes:bytes.length,loader_sha256:crypto.createHash('sha256').update(loader).digest('hex')};
         fs.mkdirSync(destination,{recursive:true});
         const bundlePath=path.join(destination,file);
         if(fs.existsSync(bundlePath)) {
@@ -29,6 +30,7 @@ function build(outDir) {
         fs.copyFileSync(path.join(__dirname,'dev-loader.js'),path.join(destination,'honeycomb-menu-ng.js'));
         fs.writeFileSync(path.join(destination,'SHA256SUMS.txt'),`${sha256}  ${file}\n`);
         fs.copyFileSync(path.join(root,'docs/DEVELOPMENT_BUILDS.md'),path.join(destination,'INSTALL.md'));
+        fs.copyFileSync(path.join(__dirname,'install-dev.js'),path.join(destination,'install-dev.cjs'));
         // Deployment copies immutable bundle first and atomically replaces the
         // manifest last. Never advertise a new build before its bytes exist.
         const staged=path.join(destination,'manifest.json.tmp');

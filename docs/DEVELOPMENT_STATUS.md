@@ -1,3 +1,28 @@
+# Beta.6 checkpoint — candidate metadata and dev installation
+
+Branch `fix/v1.9-beta6-ux-hardening`, cumulative from beta.5 + existing private
+#137/#138. Bee correction is committed as `afda315`; do not reimplement it.
+Normal candidate metadata is now v1.9.0-beta.6 (unpublished), and build:dev derives
+its own -dev+actual-source identity through a child-only build flag. Public/HACS
+version guards and normal resource caching are unchanged.
+
+A separate self-contained one-command dev installer verifies runtime + loader
+checksums, preserves old hashed runtimes, atomically updates the manifest last,
+refuses conflicting assets/symlinks/concurrent installs, and touches only a
+honeycomb-dev subdirectory of the explicitly supplied local www path. Tests use
+mock directories only; no remote HA deployment or production command occurred.
+
+Actual checks at this checkpoint: complete Node suite 380 passes / 3 stable-only
+skips; installer/metadata focused 23 passes; core benchmark and reproducible public
+build/HACS packaging checks pass (250380 bytes, SHA256
+1b4d0bf347d2a0896ecb7ad469d569b35961840f9d010fc1612b0123b3f6c414).
+Full browser/CI/doc validation still pending, so this is not release readiness.
+Next: finish measured motion/lifecycle audit, docs/capability matrix/readiness,
+complete all inherited and new suites; publish nothing without later approval.
+Evidence `/workspace/build-output/v19-beta6/`. Original dev branch remains intact.
+
+---
+
 # Active beta.6 extended sprint — checkpoint, not released
 
 Branch `fix/v1.9-beta6-ux-hardening` starts at private dev delivery `a712fb9`,

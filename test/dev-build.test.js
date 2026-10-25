@@ -24,3 +24,11 @@ for(const [version,text] of [
     assert.equal(versionLabel(version).text,text);
     assert.ok(!versionLabel(version).text.includes('+'));assert.ok(!versionLabel(version).text.includes('-dev'));
 });
+
+test('private packaging derives a dev identity without changing releasable source metadata',()=>{
+    const {developmentVersion}=require('../scripts/build-version');
+    assert.equal(developmentVersion('1.9.0-beta.6'),'1.9.0-beta.6-dev');
+    assert.equal(developmentVersion('1.9.0-beta.6-dev'),'1.9.0-beta.6-dev');
+    assert.throws(()=>developmentVersion('1.9.0'),/beta.N/);
+    assert.deepEqual(buildMetadata('1.9.0-beta.6'),{version:'1.9.0-beta.6',commit:null});
+});

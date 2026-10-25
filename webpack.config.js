@@ -9,7 +9,7 @@
  */
 const path = require('path');
 const webpack = require('webpack');
-const build=require('./scripts/build-version').localMetadata(require('./package.json').version);
+const build=require('./scripts/build-version').localMetadata(require('./package.json').version,{development:process.env.HONEYCOMB_DEVELOPMENT_BUILD==='1'});
 
 module.exports = {
     entry: './src/honeycomb-menu.js',
