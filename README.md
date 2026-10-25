@@ -150,15 +150,46 @@ current coordinate tables, not inferred from button order.
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
 
 Private local testing: [fixed development resource and build instructions](docs/DEVELOPMENT_BUILDS.md).
+[Unpublished beta.6 scope, measured limitations and future-module boundaries](docs/BETA6_REVIEW.md).
 
 ### Light Hub names while OFF
 
-In the private v1.9.0-beta.6-dev candidate, an OFF Light Hub launcher shows its
+In the unpublished v1.9.0-beta.6 candidate and its private development build, an OFF Light Hub launcher shows its
 existing item `name` above `OFF`. Without a custom name it uses the HA
 `friendly_name`, then the readable entity ID. A short name such as `A` is valid;
 long names use the existing ellipsis. ON brightness/colors and submenu centers
 keep their existing presentation. Unknown/unavailable lights say `Unavailable`,
 never `OFF`. Existing explicit secondary-label overrides still take precedence.
+
+### Light capability reference (beta.6 candidate)
+
+Honeycomb reads HA `supported_color_modes`, never brands or names. Mode selection
+on cube **3** is UI-only; slot 0 retains its normal name/value/Back presentation.
+
+| Advertised capability | Controls | Palette launcher |
+|---|---|---|
+| `onoff` only | Toggle; no detail menu | None |
+| `brightness` or fixed `white` | Brightness/presets | No Color/Kelvin commands |
+| `color_temp` only | Brightness and White/Kelvin | White only; no Color hold |
+| `hs`, `xy`, `rgb`, `rgbw` or `rgbww` only | Brightness and Color | Color only |
+| Color plus `color_temp` | Brightness, Color and White/Kelvin | Tap current/viewed palette; hold opposite |
+| Missing/inconsistent capabilities | Only verified controls | No invented capabilities |
+
+For dual-mode lights, HA `color_mode` chooses the initial palette. Off/null uses
+reliable same-entity session memory, otherwise a deterministic supported fallback.
+A manual palette selection stays selected while browsing/zooming. White/Kelvin
+requires real min/max bounds. Opening, switching, holding and Back send no light
+command; a deliberate swatch tap applies it. Unknown/unavailable is never OFF.
+[Full Light rules and short-name examples](docs/AI_SETUP.md#light-capability-and-off-name-rules-beta6-candidate).
+
+### Bee version feedback and development updates
+
+Tap the golden bee to see a short label such as **v1.9.0 beta 6 inside the same
+hexagon** during the existing animation. It then returns to normal; reduced motion
+suppresses flight while retaining feedback. Full dev revision stays in diagnostics,
+not visual labels. [Permanent development resource, one-command installation and
+cache troubleshooting](docs/DEVELOPMENT_BUILDS.md). This is an unpublished candidate,
+not an announcement that beta.6 is available through HACS.
 
 ### Canonical visual baseline: Light module
 

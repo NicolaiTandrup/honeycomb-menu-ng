@@ -1,3 +1,28 @@
+# v1.9.0-beta.6 — unpublished cumulative review candidate
+
+Publication requires separate owner approval; this is not an available HACS release.
+
+- OFF Light Hub cubes show the configured short name (HA friendly name/entity
+  fallback) above OFF. ON presentation, rings, unknown/unavailable distinction,
+  cube-3 Color/White and recursive zoom/Back remain intact.
+- Bee interaction shows the short derived release version inside its existing
+  golden cell, then restores normal appearance. Technical build/commit metadata
+  stays in diagnostics. Reduced motion and detached/repeated animation cleanup
+  are covered without changing cube geometry.
+- Optional development-only fixed resource uses immutable builds and a verified
+  one-command atomic installer; no URL/query edits, polling or production cache
+  changes. Old files/releases/tags are retained.
+- Cumulative beta.5 shared defaults, native Sonos/Radio/Join/Sleep, Charger,
+  editor, sizing, gradient/pulse, visibility/allocation and original coexistence
+  are preserved. No unfinished Climate/Car/Charger expansion is included.
+- The known 410px fixed-size palette can clip in a 390px viewport. Anchors and
+  Back are preserved; no automatic shrink/paging or actual-device success claimed.
+
+See docs/BETA6_REVIEW.md and docs/DEVELOPMENT_BUILDS.md for scope, setup and
+acceptance gates. Stable/master/retention and production HA remain untouched.
+
+---
+
 # v1.9.0-beta.5 — Palette launcher and shared submenu defaults
 
 Cumulative from public beta.4 `8f9b1c003529b1df0db08058d26691995f3e9afe`.

@@ -11,19 +11,23 @@ Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior is supported.
 No runtime code from v1.6 is imported. Catalog inclusion is pending; use the
 HACS custom repository until accepted. [Catalog submission](HACS_CATALOG_SUBMISSION.md).
 
-**BETA EXTENSION — v1.9.0-beta.3 only:** `type: charger` / `module: charger`
+**BETA EXTENSION — published v1.9.0-beta.5 (cumulative beta.3 API):** `type: charger` / `module: charger`
 and `type: charging-hub` / `module: charging-hub` are implemented in this prerelease.
 Never generate Charger YAML for v1.8.1 stable. Use the exact
 [Charger schema/entity/slot/action/freshness contract](CHARGER_MODULE.md) and the
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
-**STABLE PREPARATION — unpublished v1.9.0 candidate:** the complete beta.3 Charger
-API below is unchanged. Do not tell users that v1.9.0 stable is available or approved.
-Use published beta.3 until a verified stable release exists. Climate/Car are absent
-from this candidate. See [the v1.9 release gate](V1_9_RELEASE_CANDIDATE.md).
+**CURRENT REVIEW — unpublished v1.9.0-beta.6 candidate:** all cumulative beta.5
+modules remain. Adds OFF Light Hub identification and short bee version feedback;
+no Climate, Car, future Charger restructure or guest-authorization UI. Do not claim
+beta.6 or v1.9.0 stable is published/approved. Existing PR #132 is an older stable
+proposal, not this candidate's release authorization. Latest verified public beta:
+[v1.9.0-beta.5](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.5).
+Private development packages use a separate permanent loader and exact commit
+identity; see [development builds](DEVELOPMENT_BUILDS.md).
 
-### Charger generation rules (1.9.0-beta.3)
+### Charger generation rules (1.9.0-beta.3 and later candidates)
 
 1. Collect real `entity` status plus explicit role mappings, provider (`easee` or
    `generic`), friendly name and actual W/kW, Wh/kWh, A/mA units. Do not fabricate
@@ -83,12 +87,59 @@ Ask for actual IDs or omit optional features. Public examples must remain synthe
 7. Emit one complete card, then list **external HA prerequisites** separately. Validate
    it using the checklist below; do not claim optional HA configuration already exists.
 
+## Light capability and OFF name rules (beta.6 candidate)
+
+- Existing item `name` supplies the **OFF Hub launcher** primary text; otherwise
+  use HA `friendly_name`, then readable entity ID. Secondary is `OFF`. No
+  `off_name`, `display_name` or other new key exists. A short name such as `A`
+  needs no `show_name: true` for OFF identification. ON presentation is unchanged;
+  use existing `show_name` deliberately if names are also desired while ON.
+  Standalone/classic controls and promoted Back centers keep their prior behavior.
+  Explicit `label` overrides retain their existing precedence. Unknown/unavailable
+  is rendered as `Unavailable`, never guessed OFF. Long names use shared ellipsis.
+- Capabilities come from HA `supported_color_modes`: `onoff` only has no detail
+  menu; fixed `brightness`/`white` has no chromatic/Kelvin palette; `color_temp`
+  supplies White only with actual min/max; `hs`/`xy`/`rgb`/`rgbw`/`rgbww` supplies
+  Color. A Color mode plus `color_temp` supplies both. Do not infer tunable white
+  from `rgbw`, RGB attributes, friendly name or icon. Group support is not invented.
+- Cube **3**, not center 0, displays the viewed palette and supported alternative.
+  Tap opens current/viewed; hold opens opposite only when supported. Initial
+  selection follows HA `color_mode`; off/null uses reliable same-entity session
+  memory or a deterministic supported fallback. Manual navigation remains UI-only
+  until deliberate swatch tap; recursive Hue/Kelvin zoom and Back remain intact.
+- Root Hub black/status/identity fill stays unchanged. Every ordinary submenu
+  depth defaults to Light gray fill `rgba(52, 66, 78, 0.94)`, inner `#34424e`, dark
+  outer `#34383d`. Functional colors (Light swatches, station identities, active
+  controls, promoted state) and explicit per-cube `colors.center`,
+  `colors.inner_border`, `colors.outer_border` or existing styles stay valid.
+  Do not apply a global gray reset over semantic Light/Sonos colors. Selected
+  cubes become logical 0 at the same physical anchor; Back restores saved layout.
+- Bee click displays a derived short release label inside its golden cell, no
+  new cube/config key. Technical version/source stays at `window.honeycombNG`.
+  Development cache settings apply only to the optional dev loader; never emit
+  them into production/HACS resource URLs or claim a new published release.
+
+Synthetic complete example; replace IDs with actual supplied entities:
+
+```yaml
+type: custom:honeycomb-persistent-hub
+logo: auto
+items:
+  - type: light
+    entity: light.zone_a
+    name: A
+  - type: light
+    entity: light.zone_b
+    name: B
+```
+
 ## Configuration contract
 
 The table is the recommended public surface, not a schema for arbitrary button-card
 keys. Unknown YAML fields may be ignored by runtime code: acceptance by `setConfig`
 is not proof that a feature exists. Do not invent keys such as `visible_when`,
-`placement`, `center_slot`, `menu_size`, `chargers` or `onoff`.
+`placement`, `center_slot`, `menu_size` or `onoff`. `chargers` is valid only on
+the documented charging-hub descriptor, not an arbitrary root/menu.
 
 | Boundary | Keys and types |
 |---|---|
