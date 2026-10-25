@@ -17,9 +17,20 @@ Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and live issue comments.
 - Public HACS packaging validator rejects this private dev suffix as Unsupported
   release version, as intended by public publication guards. No guard modified.
 - Evidence outside Git: `/workspace/build-output/issue137-dev/`.
-- Next priority #138: permanent dev loader/manifest, build-time commit version
-  beneath animated bee; separate implementation commit. Not yet implemented or
-  validated at this checkpoint. Do not restart #137.
+- #137 source checkpoint `24b6adedbaa1`, pushed. #138 follow-up now implements
+  separate dev loader + nonce/no-store manifest + immutable hashed runtime;
+  normal stable/HACS resources do not use it. Build-time version/source commit
+  shown beneath bee only during its existing 430 ms flight; no layout movement.
+- Actual #138 draft validation: 43 targeted Node tests (including build metadata),
+  core contracts, build/syntax, six Light OFF browser cases and two desktop/touch/
+  keyboard clock-controlled bee-version cases passed. Draft build explicitly
+  marked `.dirty`, not delivered as an exact-source artifact.
+- Next: commit the #138 implementation, build clean source A, then a separate
+  validated checkpoint B; exercise both real builds through the same permanent
+  URL under aggressive HTTP caching. Verify no duplicate registration, no polling,
+  accurate loaded version and corrupt-manifest fail-closed behavior. Only then
+  package final clean-source runtime/loader/manifest and commit generated bundle.
+  No public release CI/provenance or real-HA acceptance claimed.
 - No release/tag/merge/retention/live HA changes. User explicitly waived release
   CI and provenance for this private candidate. Real HA acceptance still pending.
 

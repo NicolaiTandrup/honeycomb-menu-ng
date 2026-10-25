@@ -149,6 +149,8 @@ current coordinate tables, not inferred from button order.
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
 
+Private local testing: [fixed development resource and build instructions](docs/DEVELOPMENT_BUILDS.md).
+
 ### Light Hub names while OFF
 
 In the private v1.9.0-beta.6-dev candidate, an OFF Light Hub launcher shows its

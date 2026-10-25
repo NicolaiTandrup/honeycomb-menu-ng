@@ -9,10 +9,12 @@
  */
 const path = require('path');
 const webpack = require('webpack');
+const build=require('./scripts/build-version').localMetadata(require('./package.json').version);
 
 module.exports = {
     entry: './src/honeycomb-menu.js',
-    plugins: [new webpack.BannerPlugin({banner: `Honeycomb Menu NG v${require('./package.json').version}`})],
+    plugins: [new webpack.BannerPlugin({banner: `Honeycomb Menu NG v${build.version}`}),
+        new webpack.DefinePlugin({HONEYCOMB_BUILD_VERSION:JSON.stringify(build.version),HONEYCOMB_BUILD_COMMIT:JSON.stringify(build.commit)})],
     mode: 'production',
     output: {
         filename: 'honeycomb-menu-ng.js',

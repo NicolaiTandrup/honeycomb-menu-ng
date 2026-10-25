@@ -18,6 +18,7 @@ const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-m
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
+const buildInfo = require('./core/build-info');
 
 class CubeElement extends LitElement
 {
@@ -151,6 +152,13 @@ class CubeElement extends LitElement
                 overflow: visible;
                 transform-origin: center;
                 filter: drop-shadow(0 calc(var(--honeycomb-persistent-size,82px) / 82) calc(var(--honeycomb-persistent-size,82px) / 82) rgba(0, 0, 0, 0.18));
+            }
+
+            .bee-version {
+                position:absolute;top:78%;left:50%;transform:translateX(-50%);
+                padding:2px 5px;border-radius:4px;background:rgba(24,28,32,.94);
+                color:#f6f7f9;font-size:11px;line-height:1.2;white-space:nowrap;
+                pointer-events:none;z-index:3;
             }
 
             .bee-icon.flap {
@@ -1091,6 +1099,8 @@ class CubeElement extends LitElement
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
                 ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
             </div>`}
+            ${(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping ? html`
+                <span class="bee-version" role="status" aria-live="polite">${buildInfo.version === 'Version unavailable' ? buildInfo.version : 'v'+buildInfo.version}</span>` : ''}
             ${this.config.interactive !== false && !this.config.disabled ? html`
             <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
                 @keydown=${e=>{
