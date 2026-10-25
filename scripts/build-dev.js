@@ -15,6 +15,8 @@ function build(outDir) {
     try {
         execFileSync(process.execPath,[path.join(__dirname,'generate-bee-asset.js')],{stdio:'inherit'});
         execFileSync(process.execPath,['--openssl-legacy-provider',require.resolve('webpack/bin/webpack.js'),'--output-path',temp],{stdio:'inherit'});
+        if(JSON.stringify(localMetadata(pkg.version))!==JSON.stringify(metadata))
+            throw new Error('Source changed during development build; commit and rebuild.');
         const bytes=fs.readFileSync(path.join(temp,'honeycomb-menu-ng.js'));
         const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
         const file=`honeycomb-build-${sha256}.js`;

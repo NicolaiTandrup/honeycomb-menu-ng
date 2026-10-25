@@ -85,6 +85,16 @@ class Loader(unittest.TestCase):
             self.assertEqual(len(imports),2,'One distinct immutable runtime fetch per build')
             self.assertEqual(page.locator('hui-error-card').count(),0);self.assertEqual(page.evaluate('calls.length'),0);self.assertEqual(errors,[])
         finally:page.close()
+    def test_existing_runtime_fails_before_network_or_duplicate_registration(self):
+        self.server.active=self.packages[1];self.server.bad_manifest=False;self.server.manifest_queries=[];self.server.requests=[]
+        page=self.page();page.add_init_script("window.honeycombNG={apiVersion:1,version:'existing-test-runtime'}")
+        try:
+            page.goto(self.url);page.wait_for_function('window[Symbol.for("honeycombNG.developmentLoader")] !== undefined')
+            failure=page.evaluate('window[Symbol.for("honeycombNG.developmentLoader")].then(()=>null,e=>e.message)')
+            self.assertIn('already loaded',failure);self.assertEqual(self.server.manifest_queries,[])
+            self.assertEqual(page.evaluate('window.honeycombNG.version'),'existing-test-runtime')
+            self.assertFalse(page.evaluate('!!customElements.get("honeycomb-menu-ng")'))
+        finally:page.close()
     def test_invalid_manifest_fails_closed_without_importing_a_runtime(self):
         self.server.active=self.packages[1];self.server.bad_manifest=True;self.server.manifest_queries=[];self.server.requests=[]
         page=self.page()

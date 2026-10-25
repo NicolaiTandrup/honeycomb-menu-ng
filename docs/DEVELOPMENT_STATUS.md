@@ -25,9 +25,13 @@ Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and live issue comments.
   core contracts, build/syntax, six Light OFF browser cases and two desktop/touch/
   keyboard clock-controlled bee-version cases passed. Draft build explicitly
   marked `.dirty`, not delivered as an exact-source artifact.
-- Next: commit the #138 implementation, build clean source A, then a separate
-  validated checkpoint B; exercise both real builds through the same permanent
-  URL under aggressive HTTP caching. Verify no duplicate registration, no polling,
+- #138 implementation checkpoint `6e03e68ef53843920299f8c3df296df4716ce1c4`
+  pushed. Clean source A built successfully: 249568-byte runtime, SHA256
+  `473f6f87c8721c71219b32abb1c0ee344304a235f1bd5566f04b0e272aca8dc3`,
+  embedded version `1.9.0-beta.6-dev+6e03e68ef538`.
+- Next: build this second checkpoint B, which adds an unchanged-source-during-build
+  check and existing-runtime conflict regression. Exercise both real builds
+  through the same permanent URL under aggressive HTTP caching. Verify no duplicate registration, no polling,
   accurate loaded version and corrupt-manifest fail-closed behavior. Only then
   package final clean-source runtime/loader/manifest and commit generated bundle.
   No public release CI/provenance or real-HA acceptance claimed.
