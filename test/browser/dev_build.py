@@ -1,7 +1,7 @@
 """Issue #138: permanent dev resource, real HTTP caching and bee version.
 Browser plugin not available; repository Playwright Chromium, synthetic HA only.
 """
-import argparse, hashlib, json, os, shutil, threading, unittest
+import argparse, hashlib, json, os, shutil, subprocess, tempfile, threading, unittest
 from pathlib import Path
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer
@@ -109,10 +109,15 @@ class Loader(unittest.TestCase):
         return page
     def test_two_successive_builds_same_url_reload_and_deduplication(self):
         self.server.active=self.packages[0];self.server.bad_manifest=False;self.server.manifest_queries=[];self.server.requests=[]
+        installation=tempfile.TemporaryDirectory(prefix='ng-browser-install-');www=Path(installation.name)
         page=self.page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
         try:
             for i,directory in enumerate(self.packages):
-                self.server.active=directory;manifest=json.loads((directory/'manifest.json').read_text())
+                manifest=json.loads((directory/'manifest.json').read_text())
+                subprocess.check_call(['node',str(directory/'install-dev.cjs'),'--www',str(www)],stdout=subprocess.DEVNULL)
+                self.server.active=www/'honeycomb-dev';self.server.packages=[]
+                assert (self.server.active/manifest['file']).read_bytes()==(directory/manifest['file']).read_bytes()
+                assert (self.server.active/'manifest.json').read_bytes()==(directory/'manifest.json').read_bytes()
                 if i==0:page.goto(self.url)
                 else:page.reload()
                 page.wait_for_function('window.ready')
@@ -131,7 +136,7 @@ class Loader(unittest.TestCase):
             imports=[urlsplit(url).path for url in self.server.requests if '/honeycomb-build-' in url]
             self.assertEqual(len(imports),2,'One distinct immutable runtime fetch per build')
             self.assertEqual(page.locator('hui-error-card').count(),0);self.assertEqual(page.evaluate('calls.length'),0);self.assertEqual(errors,[])
-        finally:page.close()
+        finally:page.close();installation.cleanup()
     def test_existing_runtime_fails_before_network_or_duplicate_registration(self):
         self.server.active=self.packages[1];self.server.bad_manifest=False;self.server.manifest_queries=[];self.server.requests=[]
         page=self.page();page.add_init_script("window.honeycombNG={apiVersion:1,version:'existing-test-runtime'}")

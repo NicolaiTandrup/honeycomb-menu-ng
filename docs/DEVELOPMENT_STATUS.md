@@ -51,8 +51,13 @@ and live Git/CI before changes. Do not restart completed #137/#138 work.
 - Core benchmark passes. Public beta.6 build/HACS package checks pass; latest
   bundle 250854 bytes, SHA256
   `707350de766c562ed95ba37246cb75f377a9a29e91b2b37043c5f5da5b72d42f`.
-- Full final browser/docs/YAML/reproducibility/workflow/CI and private A/B package
-  installation/reload validation are now in progress. Do not mark complete until
+- Final Node suite: **381 passes / 3 stable-only skips**, six Sleep contracts,
+  docs **58 YAML / 38 complete cards / 11 fragments / 217 links / 16 browser
+  interactions**, HACS/package and actionlint pass. Remaining browser suites,
+  exact-head CI and private A/B package installation/reload are in progress.
+  The A/B browser regression now executes the packaged one-command installer
+  into a temporary www folder and reloads from that same installed directory,
+  checking real copied files instead of simulating deployment by switching roots. Do not mark complete until
   actual results are recorded. Evidence `/workspace/build-output/v19-beta6/`.
 - Browser plugin unavailable; existing Playwright Chromium harness used. Do not
   claim Firefox/WebKit, real HA, hardware video replay, charger or Sonos acceptance.
