@@ -89,7 +89,25 @@ function brightnessLabel(config, state)
     return 'On';
 }
 
-function resolve({ config, state, runtime, hass })
+// Only Hub launchers change their OFF labels. Promoted Back centers and
+// standalone/classic Light controls keep their existing presentation.
+function offHubLabels(config, state, evaluate = value => value)
+{
+    const tap = config.tap_action;
+    if( !config._hub_item_id || !state || state.state !== 'off' ||
+        (typeof tap === 'string' ? tap : tap && tap.action) === 'honeycomb-back' )
+        return null;
+
+    const text = value => typeof value === 'string' && value.trim() ? value.trim() : null;
+    const fallback = String(config.entity || state.entity_id || 'Light')
+        .replace(/^light\./, '').replace(/_/g, ' ');
+    return {
+        name: text(evaluate(config.name)) || text((state.attributes || {}).friendly_name) || fallback,
+        secondary: 'OFF'
+    };
+}
+
+function resolve({ config, state, runtime, hass, evaluate })
 {
     selectedPalette(hass,config && config.entity);
     const configured = (config && config.colors) || {};
@@ -147,7 +165,8 @@ function resolve({ config, state, runtime, hass })
                     ? automaticOuter
                     : (configured.outer_border || '#34383d')
         },
-        secondary: brightnessLabel(config, state)
+        secondary: brightnessLabel(config, state),
+        ...offHubLabels(config, state, evaluate)
     };
 }
 

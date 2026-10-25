@@ -18,6 +18,8 @@ const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-m
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
+const buildInfo = require('./core/build-info');
+const beeVersion = require('./core/version-label').versionLabel(buildInfo.version);
 
 class CubeElement extends LitElement
 {
@@ -50,6 +52,7 @@ class CubeElement extends LitElement
         this._pointerStartY = 0;
         this._beeFlapping = false;
         this._beeFlapTimer = null;
+        this._beeAnimationFrame = null;
     }
 
     static get styles()
@@ -153,9 +156,22 @@ class CubeElement extends LitElement
                 filter: drop-shadow(0 calc(var(--honeycomb-persistent-size,82px) / 82) calc(var(--honeycomb-persistent-size,82px) / 82) rgba(0, 0, 0, 0.18));
             }
 
+            .content.with-bee-version {
+                padding-bottom:8%;box-sizing:border-box;
+                clip-path:polygon(50% 8%,92% 29%,92% 71%,50% 92%,8% 71%,8% 29%);
+            }
+            .content.with-bee-version .bee-icon { width:34%;height:34%;flex-shrink:0; }
+            .bee-version {
+                display:flex;flex-direction:column;align-items:center;max-width:65%;
+                color:inherit;line-height:1.08;text-align:center;white-space:nowrap;
+                margin-top:calc(var(--honeycomb-persistent-size,82px)*.015);
+            }
+            .bee-version span { display:block; }
+
             .bee-icon.flap {
                 animation: honeycomb-bee-flight 430ms ease-in-out;
             }
+            @media(prefers-reduced-motion:reduce) { .bee-icon.flap { animation:none; } }
 
             @keyframes honeycomb-bee-flight {
                 0%, 100% {
@@ -429,6 +445,10 @@ class CubeElement extends LitElement
             clearTimeout(this._beeFlapTimer);
             this._beeFlapTimer = null;
         }
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        this._beeAnimationFrame = null;
+        this._beeFlapping = false;
     }
 
     getCardSize()
@@ -497,6 +517,7 @@ class CubeElement extends LitElement
             const presentation = module.presentation.resolve({
                 config: this.config || {},
                 state: this._entityState(),
+                evaluate: value => this._value(value),
                 hass: this.hass,
                 runtime
             });
@@ -877,10 +898,17 @@ class CubeElement extends LitElement
 
     _flapBee()
     {
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        clearTimeout(this._beeFlapTimer);
+        this._beeFlapTimer = null;
         this._beeFlapping = false;
+        if( !this.isConnected ) return;
         this.requestUpdate();
 
-        requestAnimationFrame(() => {
+        this._beeAnimationFrame = requestAnimationFrame(() => {
+            this._beeAnimationFrame = null;
+            if( !this.isConnected ) return;
             this._beeFlapping = true;
             this.requestUpdate();
 
@@ -1056,6 +1084,8 @@ class CubeElement extends LitElement
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
         const mediaBackground=['sonos','media'].includes(this.config.mode) && !!artwork['background-image'];
+        const showBeeVersion=(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping;
+        const versionFont=Math.min(.12,.57/(Math.max(beeVersion.base.length,beeVersion.stage.length)*.65));
         const external = this.config.custom_fields || (this.config.type &&
             !['custom:button-card','custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type));
         this._externalContent = !!external;
@@ -1081,11 +1111,13 @@ class CubeElement extends LitElement
                     @error=${()=>{if(this._model.artwork && this._model.artwork.key===m.artwork.key){this._failedArtworkKey=m.artwork.key;this._updatePresentation();}}}>` : ''}
             </div>
             ${external ? html`<div class="external-content"></div>` : html`
-            <div class="content ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
+            <div class="content ${showBeeVersion ? 'with-bee-version' : ''} ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
                 ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
                     : m.iconBadge ? html`<div class="icon-with-badge"><ha-icon .icon=${m.icon}></ha-icon><span class="power-badge">${m.iconBadge}</span></div>`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
+                ${showBeeVersion ? html`<span class="bee-version" role="status" aria-live="polite" aria-label=${beeVersion.text}
+                    style=${styleMap({fontSize:`calc(var(--honeycomb-persistent-size,82px)*${versionFont})`})}><span>${beeVersion.base}</span>${beeVersion.stage ? html` <span>${beeVersion.stage}</span>` : ''}</span>` : ''}
                 ${m.name ? html`<div class="primary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'n':undefined,...m.nameStyle})}>${m.name}</div>` : ''}
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
                 ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
