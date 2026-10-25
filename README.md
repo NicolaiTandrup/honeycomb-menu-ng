@@ -149,6 +149,15 @@ current coordinate tables, not inferred from button order.
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
 
+### Light Hub names while OFF
+
+In the private v1.9.0-beta.6-dev candidate, an OFF Light Hub launcher shows its
+existing item `name` above `OFF`. Without a custom name it uses the HA
+`friendly_name`, then the readable entity ID. A short name such as `A` is valid;
+long names use the existing ellipsis. ON brightness/colors and submenu centers
+keep their existing presentation. Unknown/unavailable lights say `Unavailable`,
+never `OFF`. Existing explicit secondary-label overrides still take precedence.
+
 ### Canonical visual baseline: Light module
 
 **All modules use the existing Light module as their graphical baseline** — Sonos/Media, Climate, Car, Charger and future modules. Keep consistent 82px hex cube geometry, cube fill/inner/outer border layers, icon and label placement, typography, spacing and nested-menu navigation. Module-specific behavior and colors may differ, but modules must not introduce their own competing layout styles. Follow the [shared visual design contract](docs/TERMINOLOGY.md#shared-visual-design-contract--light-is-the-canonical-reference) and compare new module screens side by side against Light on desktop and mobile.

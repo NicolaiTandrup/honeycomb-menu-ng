@@ -1,95 +1,147 @@
-# Development status — v1.9.0-beta.5
+# Current development checkpoint — Issue #137 / #138 private dev build
 
-Updated: 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and verify live Git/CI/PR/release state.
+Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and live issue comments.
 
-## Active branch and protected baseline
+- Active branch `dev/issue137-light-off`, exact base public beta.5 commit
+  `21f1e75edd9f5c204b7b10fdb6f964371c7a01d0`; no unrelated work imported.
+- #137 implemented: only Light Hub OFF launchers show existing configured name,
+  else friendly_name, else readable entity ID; secondary `OFF`. Existing name
+  templates evaluated through the same renderer helper. Explicit label overrides
+  retain their precedence. No new configuration key. ON, unknown/unavailable,
+  standalone/classic controls and promoted submenu Back centers are unchanged.
+- Actual validation: 40 Light unit/palette/Hue/Kelvin tests; six Chromium cases
+  (1100x900 and 390x844) for simultaneous OFF names, short/long names/ellipsis,
+  live transitions/color retention, reload/template/friendly-name fallback,
+  palette/Back/service isolation; core contracts and build/syntax passed.
+  Browser plugin unavailable; existing Playwright Chromium harness used.
+- Public HACS packaging validator rejects this private dev suffix as Unsupported
+  release version, as intended by public publication guards. No guard modified.
+- Evidence outside Git: `/workspace/build-output/issue137-dev/`.
+- Next priority #138: permanent dev loader/manifest, build-time commit version
+  beneath animated bee; separate implementation commit. Not yet implemented or
+  validated at this checkpoint. Do not restart #137.
+- No release/tag/merge/retention/live HA changes. User explicitly waived release
+  CI and provenance for this private candidate. Real HA acceptance still pending.
 
-- Branch `fix/v1.9-beta5-palette-theme`, based exactly on published beta.4
-  `8f9b1c003529b1df0db08058d26691995f3e9afe`. [PR #136](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/136) targets the unmerged beta.4
-  review branch `fix/v1.9-beta4-palettes-navigation` (PR #135), not master.
-- Implementation commits: `5022e51` (#133 cube-3 indicator) and `abdcbf3` (#134
-  shared submenu defaults). Subsequent test/docs commits do not alter runtime.
-- Master/latest stable v1.8.1 remains `c1f178740c8181921033d0d18e0ac8d01afc7ea7`.
-  Stable proposal PR #132 remains an unmerged beta.3 source proposal at `7d46be3`;
-  it must not be merged/published or treated as approval for newer beta source.
-- Climate PR #131 remains separate at `d965f41214085abb1eb52d25948fb5a7d47bd020`.
-  Do not import it or implement Car/future Charger redesign/guest UI in beta.5.
-- Owner explicitly authorizes new immutable beta.5 only after complete exact-head
-  CI and normal manually authorized publisher gates. No master/stable merge,
-  production HA commands, retention changes, old release/tag/asset mutation or
-  private beta.5 draft modification is authorized. Freeze source while publishing.
+Commands run:
+```sh
+node --test test/light-off.test.js test/light-palette.test.js test/color-zoom.test.js test/kelvin-zoom.test.js
+node test/run-tests.js
+NODE_OPTIONS=--openssl-legacy-provider npm run build
+node --check honeycomb-menu-ng.js
+/tmp/honeycomb-beta-venv/bin/python test/browser/light_off.py --bundle honeycomb-menu-ng.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/issue137-dev/browser
+```
 
-## Verified beta.4 completion (do not repeat)
+---
 
-- Public release: https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.4
-- Exact tagged source `8f9b1c003529b1df0db08058d26691995f3e9afe`; bundle 247895 bytes,
-  SHA256 `3ac96d191f56c3d86a6dbf81e8189a875defd8be6d26b92654e28f7a1a82e84f`.
-- Complete push/PR CI: Actions runs `40132132666` / `40132136814`, all jobs/steps
-  successful. Guarded publisher `40133377963` succeeded (verify + publish).
-- All three public assets independently downloaded without authentication; JS
-  matches tagged Git bytes, SHA256SUMS, provenance, asset digests and exact CI pins.
-- Preservation audit: 50 prior releases and 102 prior tags retained, zero altered/
-  overwritten/deleted; only the new beta.4 release/tag added. Private beta.5 draft
-  unchanged; master/latest stable and PRs #131/#132/#135 unchanged/unmerged.
-- Beta.4's final owner feedback is this beta.5 mission: move the indicator from
-  slot 0 to cube 3 and complete gray fill+inner defaults. Publication is complete;
-  don't rerun beta.4 or claim it still awaits publication from the older handoff.
+# Development status — v1.9.0-beta.5 published and verified
 
-## Beta.5 implementation and actual local validation
+Updated: 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and verify live Git/CI/issue/PR state.
 
-- Cube 3 now carries the viewed/alternative palette labels through state-aware
-  tap/hold, manual choice, recursive zoom and Back. Slot 0's palette-specific
-  labels are removed; original name/brightness/colors and Back are preserved.
-  White-only restrictions, session mode retention and service isolation remain.
-- Shared submenu fallback uses the existing Light fill `rgba(52, 66, 78, 0.94)`
-  and inner `#34424e`; existing outer `#34383d`. Root Hub is exempt. Charger detail
-  presentation reuses those constants; functional centers/palettes/module colors
-  and explicit overrides are retained. No duplicate renderer or positioning engine.
-- Defaults are not injected as implicit card styles, so they cannot masquerade as
-  explicit overrides. Native submenu `colors.center` wins over background styles;
-  root precedence is unchanged. Transparent custom content leaves gray visible,
-  while explicit button-card background styles still work.
-- Node: 357 passed / 3 stable-only skips / zero failures. Existing beta.4 desktop/
-  mobile anchoring/capability regressions: 12 pass. New beta.5 scenarios: 12 pass,
-  plus 2 external-content checks pass; baseline beta.4 reproduction: 4 pass.
-- Protected root Hub/main Sonos and Light pixel comparisons match immutable beta.4;
-  only approved cube 3 is masked in the Light comparison. SVG computed fills test
-  Charger, three generic depths, root black, functional center and explicit overrides.
-- Two production builds are identical: 248286 bytes, SHA256
+## Exact completed release — do not repeat publication
+
+- Public prerelease: https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.5
+- Immutable tag/source: `21f1e75edd9f5c204b7b10fdb6f964371c7a01d0`; source tree
+  `44a79e37ca074e4a4725b28d178e4f9c9cabeab1`. Source branch
+  `fix/v1.9-beta5-palette-theme`, unmerged [PR #136](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/136),
+  targeting the unmerged beta.4 branch/PR #135, not master.
+- Bundle: 248286 bytes; SHA256
   `42853c775b8715c9df4ff72a3f73a5f44fe5a271394321cc79aa467381d21dab`.
-- Browser plugin absent; existing Playwright Chromium used. Evidence/logs outside
-  Git: `/workspace/build-output/v19-beta5/`. No real HA, Firefox/WebKit or actual
-  device acceptance is implied. Code written/dispatched is not publication proof.
-- Local docs: 57 YAML blocks, 37 complete cards, 11 fragments,
-  213 links and 16 desktop/mobile interactions pass. HACS/package/license,
-  performance and actionlint pass. Full mandatory final-head CI and publisher
-  remain pending at this
-  checkpoint. Superseded initial CI found only the old opaque-gray expectation
-  in nested-menu defaults; it now asserts the approved Light alpha fill, both
-  borders, no parent-color leakage and explicit parent restoration on Back.
-  No runtime/source/gate was weakened; fresh exact-head CI is required. Exact final results belong in PR/issue follow-up and a handoff update.
+- Complete final-head push CI [40177945615](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40177945615)
+  and PR CI [40177949328](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40177949328):
+  all jobs/steps successful. Guarded manual publisher [40179109115](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40179109115)
+  completed verify + publish successfully. No guard or test was disabled/bypassed.
+- Independently downloaded JS, SHA256SUMS and provenance without authentication;
+  all match tagged Git bytes, sizes/digests and exact CI/source/branch/version pins.
+  Tag is exact commit, Release public/prerelease=true, latest stable unchanged.
+- Preservation audit: 51 prior releases and 103 prior tags retained unchanged;
+  only beta.5's new release/tag added. Zero deletions/overwrites. All old assets,
+  including the private v1.7.1-beta.5 draft, remain intact. Retention untouched.
 
-## Next steps in order
+This documentation-only handoff is on `docs/v19-beta5-published-handoff` after
+verified publication. It does not move the tested source branch or immutable tag.
+The tagged handoff necessarily predates publication; use this follow-up plus live
+PR/issue/release evidence for continuation. Never republish/reuse beta.5.
 
-1. Verify final-head push + PR mandatory Build jobs, including all browser suites,
-   new beta5-ui scenarios, docs/YAML/links, performance, HACS/package/workflow lint.
-   Read exact heads/checks before repeating tests; do not use superseded runs.
-2. Only after all green, dispatch normal `release.yml` for new `v1.9.0-beta.5`
-   with exact current head and explicit authorized publish=true. Branch must stay
-   frozen. Preserve guards and stop on a real gate failure; never reuse a tag/draft.
-3. Independently verify public tag, bundle/checksum/provenance/asset digests and
-   preservation of prior releases/tags/assets/master/latest stable/private draft.
-4. Record actual result, exact source/CI/checksum/URL and owner HA checklist on
-   active PR, #133/#134 and this handoff. Leave acceptance issues open. No stable
-   source pin refresh or promotion until owner accepts the newest beta explicitly.
-5. Climate preparation resumes independently only when requested; Car remains
+## Implemented and actual tests
+
+- `5022e51` (#133): Color/White viewed/alternative labels and switching live on
+  cube 3. Slot 0 restores original entity/name/brightness/colors and Back. Existing
+  capability/current-mode rules, off/null session memory, White-only restrictions,
+  service isolation and Color/Kelvin recursive zoom remain intact.
+- `abdcbf3` (#134): ordinary submenu fill and inner border share the existing
+  Light neutral theme at every depth. Dark outer border retained. Root Hub black/
+  dark base and status colors, meaningful module/center/palette colors and explicit
+  center/inner/outer/card-background overrides remain supported. No second renderer,
+  numeric sizing or navigation engine. Root precedence/82px geometry unchanged.
+- Test/docs follow-ups `a8db4ef`, `eded401`, `21f1e75` do not change runtime.
+  Superseded CI found an old opaque-gray expectation; it now tests approved Light
+  alpha fill, both borders, no inherited parent tint, and Back restoring explicit
+  parent styling. An added selector was corrected and passed locally in both views
+  before final matching CI passed. Superseded failures do not authorize publication.
+- **357 Node passes, 3 stable-only skips, zero failures**; core contracts pass.
+- **319 complete Chromium scenarios pass** (desktop/mobile, 7 tablet cases,
+  original coexistence and docs), plus six native Sonos Sleep service contracts.
+  This includes the new 14-case beta.5 suite and preserved 12-case beta.4 navigation
+  suite, all Light/Sonos/Charger/editor/Radio/auto-size/pulse/visibility/touch tests.
+- Pixel comparison with immutable beta.4 preserves Hub/Light/Sonos root/main
+  surfaces; only approved cube 3 is masked in the Light comparison. Computed SVG
+  fills test Charger, three generic depths, root black, active center and explicit
+  overrides. Transparent custom content preserves gray; explicit card styles work.
+- Docs: 57 YAML blocks, 37 complete cards + 11 fragments, 213 local links, 16
+  desktop/mobile interactions pass. HACS/package/GPL attribution, actionlint,
+  performance and repeated reproducible build/byte comparisons pass.
+- Mandatory publisher compares committed, rebuilt, CI, staged and downloaded
+  assets. Local private CI artifact download is Forbidden; Actions' authorized
+  download/compare passed, followed by independent public asset verification.
+- Evidence outside Git: `/workspace/build-output/v19-beta5/` (including `before`,
+  `release-candidate`, `public`, verified CI and preservation reports). CI artifact
+  `shared-cube-evidence` contains synthetic desktop/mobile screenshots/diffs.
+  Browser plugin unavailable; repository Playwright Chromium used.
+
+## Protected and independent work
+
+- Master/latest stable stays v1.8.1 at `c1f178740c8181921033d0d18e0ac8d01afc7ea7`.
+  No master merge, stable publication, live HA command or production configuration
+  change occurred. No release-retention setting or external HACS submission changed.
+- PR #135 (beta.4) remains unmerged at `8f9b1c003529b1df0db08058d26691995f3e9afe`;
+  its public release stays immutable. Don't merge historical beta snapshots in sequence.
+- PR #132 stays an unmerged beta.3-based stable proposal at
+  `7d46be37e3a538b65542719d60ea0a3157ba4c44`; its old approval manifest is a proposal,
+  not acceptance of beta.5 or permission to merge/publish stable. Any future stable
+  promotion must use the newest explicitly owner-accepted beta and exact source pin.
+- Climate PR #131 remains separate at `d965f41214085abb1eb52d25948fb5a7d47bd020`.
+  Do not reimplement/import it here. Car, future Charger redesign/guest authorization
+  and EV manager integration remain deferred; no premature implementation.
+
+## Next priority — owner real-HA acceptance
+
+Automated success/public beta publication are not actual device acceptance.
+No real HA hardware, Firefox or WebKit validation is claimed. Existing anchored
+large-palette small-screen clipping remains unchanged; no redesign was authorized.
+
+1. Owner installs beta.5 via HACS Redownload with beta versions enabled, retains
+   current resource path, refreshes dashboard/cache. No new YAML keys/migration.
+2. Verify cube 3 mode/alternative/tap/hold; slot 0 original brightness/name/Back;
+   off/null and unavailable/group cases; White-only has no Color hint/action.
+3. Verify Color/Kelvin zoom/Back and deliberate swatch application. Navigation and
+   holds alone must send no light commands.
+4. Verify gray Charger/generic submenus at multiple depths, dark outer border,
+   root black/status styling, functional center colors and explicit overrides.
+   Smoke-test Sonos artwork/Radio/Join/Sleep, presets, auto sizing/editor and pulse.
+5. Keep #133/#134 and related real-device acceptance issues open until feedback is
+   documented. If defects remain, start from this exact published source and use a
+   NEW cumulative beta; never overwrite a tag/release or merge/publish stable.
+6. Climate preparation resumes independently only when requested; Car remains
    planning-only until Climate acceptance and implementation authorization.
 
-## Commands and environment
+## Commands / continuation
 
 ```sh
 git status --short
 git log -5 --oneline
+gh pr view 136 --repo NicolaiTandrup/honeycomb-menu-ng --json headRefOid,state,url
+gh release view v1.9.0-beta.5 --repo NicolaiTandrup/honeycomb-menu-ng
 npm test
 NODE_OPTIONS=--openssl-legacy-provider npm run build
 node scripts/check-release.js
@@ -100,12 +152,11 @@ python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card /tmp/button-
 node test/performance/hub-benchmark.js
 ```
 
-Use complete commands in `.github/workflows/build.yml`; publication contract in
-`docs/BETA_RELEASES.md`. Local Python `/tmp/honeycomb-beta-venv/bin/python`, button
-card `/workspace/build-output/test-dependencies/button-card.js`, actionlint
-`/tmp/honeycomb-actionlint-bin/actionlint`. Never npm ci through the shared symlink.
-The installed gh CLI needs string input `"publish":"true"` for `workflow run --json`;
-a boolean is rejected locally before dispatch. No guard is bypassed by that format.
-Private CI artifact CLI download returns Forbidden in this environment; normal
-Actions publisher successfully downloads/compares internally. Public release asset
-verification remains independent and mandatory; report access limits honestly.
+First verify release/PR/owner feedback and reuse successful exact-source evidence;
+do not repeat completed implementation/publication. Complete gates are in
+`.github/workflows/build.yml`, beta contract in `docs/BETA_RELEASES.md`.
+Local Python `/tmp/honeycomb-beta-venv/bin/python`, button card
+`/workspace/build-output/test-dependencies/button-card.js`, actionlint
+`/tmp/honeycomb-actionlint-bin/actionlint`. Never npm ci through shared symlink.
+Old gh CLI needs string `"publish":"true"` for `workflow run --json`; boolean
+JSON fails locally before dispatch. This is client formatting, not a guard bypass.

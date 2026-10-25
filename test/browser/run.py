@@ -1651,7 +1651,7 @@ class Cubes(unittest.TestCase):
         self.page.evaluate("pushState('sensor.unrelated','1')")
         self.page.wait_for_timeout(100);self.assertEqual(self.page.evaluate('renders'),0)
         self.page.evaluate("pushState('light.zone_a','off',{brightness:0,supported_color_modes:['hs']})")
-        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "Off"')
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "OFF"')
         self.assertEqual(self.page.evaluate('renders'),1)
         self.page.evaluate("pushState('light.zone_a','unavailable')")
         self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "Unavailable"')

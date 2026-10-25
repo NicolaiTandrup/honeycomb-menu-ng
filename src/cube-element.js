@@ -497,6 +497,7 @@ class CubeElement extends LitElement
             const presentation = module.presentation.resolve({
                 config: this.config || {},
                 state: this._entityState(),
+                evaluate: value => this._value(value),
                 hass: this.hass,
                 runtime
             });
