@@ -89,6 +89,17 @@ class UI(Navigation):
         self.assertEqual(self.fills(1),{'hex-fill':'rgb(17, 34, 51)','hex-inner':'rgb(18, 52, 86)','hex-outer':'rgb(171, 205, 239)'})
         self.assertEqual(self.fills(2),{'hex-fill':GRAY,'hex-inner':INNER,'hex-outer':OUTER})
         self.assertEqual(self.model(0)['colors']['inner'],'#43c95b');self.assert_no_commands();self.capture('beta5-functional-center-and-explicit-action')
+    def test_external_button_card_keeps_neutral_submenu_background(self):
+        if self.baseline:return
+        self.hub({'logo':False,'items':[{'type':'generic','name':'Root','menu':{'buttons':[
+            {'slot':1,'slot_mode':'hard','name':'Read only','custom_fields':{'value':'Synthetic'},'tap_action':{'action':'none'}},
+            {'slot':2,'slot_mode':'hard','name':'Explicit','custom_fields':{'value':'Synthetic'},'styles':{'card':[{'background':'#112233'}]},'tap_action':{'action':'none'}}]}}]})
+        self.hold_input(self.cell(0).locator('.interaction-surface'));self.settle()
+        card=self.cell(1).locator('button-card ha-card');card.wait_for()
+        self.assertEqual(card.evaluate('e=>getComputedStyle(e).backgroundColor'),'rgba(0, 0, 0, 0)')
+        self.assertEqual(self.fills(1)['hex-fill'],GRAY,'Transparent content preserves the shared gray cube')
+        self.assertEqual(self.cell(2).locator('button-card ha-card').evaluate('e=>getComputedStyle(e).backgroundColor'),'rgb(17, 34, 51)')
+        self.assert_no_commands()
     def test_protected_light_sonos_and_hub_pixels_equal_published_beta4(self):
         if self.baseline:return
         # Render both immutable baseline and candidate with identical synthetic
