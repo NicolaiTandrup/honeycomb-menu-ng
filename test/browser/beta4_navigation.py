@@ -36,9 +36,9 @@ class Navigation(Charger):
         self.capture('issue133-before-current-white-opens-color' if self.baseline else 'issue133-after-current-white')
         if self.baseline:
             self.assertTrue(self.page.evaluate('hub._hubMenu.buttons[6].tap_action.data.hs_color!==undefined'));return
-        self.assertEqual(self.palette(),'white');self.assertEqual(self.model(0)['name'],'White');self.assertEqual(self.model(0)['secondary'],'Color')
+        self.assertEqual(self.palette(),'white');self.assertEqual(self.model(3)['name'],'White');self.assertEqual(self.model(3)['secondary'],'Color')
         self.hold_input(self.cell(3).locator('.interaction-surface'));self.settle()
-        self.assertEqual(self.palette(),'color');self.assertEqual(self.model(0)['name'],'Color');self.assertEqual(self.model(0)['secondary'],'White')
+        self.assertEqual(self.palette(),'color');self.assertEqual(self.model(3)['name'],'Color');self.assertEqual(self.model(3)['secondary'],'White')
         self.light_state('on',{'brightness':200,'color_mode':'color_temp'})
         self.assertEqual(self.palette(),'color');self.assert_no_commands();self.capture('issue133-after-manual-color-retained')
         self.cell(3).locator('.interaction-surface').press('Shift+Enter');self.settle();self.assertEqual(self.palette(),'white');self.assert_no_commands()
@@ -47,7 +47,7 @@ class Navigation(Charger):
     def test_capabilities_off_recovery_and_mixed_groups(self):
         if self.baseline:return
         self.light_main(['color_temp']);self.activate(self.cell(3).locator('.interaction-surface'));self.settle()
-        self.assertEqual(self.palette(),'white');self.assertEqual(self.model(0)['secondary'],'');self.assertEqual(self.cell(3).evaluate('(e)=>e.config.hold_action.action'),'none')
+        self.assertEqual(self.palette(),'white');self.assertEqual(self.model(3)['secondary'],'');self.assertEqual(self.cell(3).evaluate('(e)=>e.config.hold_action.action'),'none')
         self.back();self.back();self.settle()
         self.light_state('on',{'supported_color_modes':['hs','color_temp'],'color_mode':'hs'})
         self.hold_input(self.cell(0).locator('.interaction-surface'));self.settle()
@@ -56,7 +56,7 @@ class Navigation(Charger):
         self.back();self.light_state('on',{'color_mode':'color_temp'})
         self.activate(self.cell(3).locator('.interaction-surface'));self.settle();self.assertEqual(self.palette(),'white')
         self.back();self.page.evaluate('pushState("light.zone_a","unavailable",{color_mode:null,supported_color_modes:["hs"]})');self.settle()
-        self.activate(self.cell(3).locator('.interaction-surface'));self.settle();self.assertEqual(self.palette(),'color');self.assertEqual(self.model(0)['secondary'],'');self.assert_no_commands()
+        self.activate(self.cell(3).locator('.interaction-surface'));self.settle();self.assertEqual(self.palette(),'color');self.assertEqual(self.model(3)['secondary'],'');self.assert_no_commands()
     def test_fixed_white_presets_never_issue_kelvin_and_onoff_has_no_detail(self):
         if self.baseline:return
         self.light_main(['brightness'],None)
@@ -72,8 +72,8 @@ class Navigation(Charger):
         if self.baseline:self.assertGreater(delta,40);return
         self.assertLess(delta,.1)
         for slot in range(1,7):
-            self.assertEqual(self.model(slot)['colors']['inner'],'#555b63')
-            self.assertEqual(self.cell(slot).locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(85, 91, 99)')
+            self.assertEqual(self.model(slot)['colors']['inner'],'#34424e')
+            self.assertEqual(self.cell(slot).locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(52, 66, 78)')
         self.assertEqual(self.model(0)['colors']['inner'],'#43c95b')
         self.activate(self.cell(0).locator('.interaction-surface'));self.settle()
         restored=self.center(1);self.assertAlmostEqual(restored[0],before[0],delta=.1);self.assertAlmostEqual(restored[1],before[1],delta=.1);self.assert_no_commands()

@@ -105,6 +105,9 @@ jobs:
       - name: Verify capability-aware palettes and anchored child navigation
         run: python test/browser/beta4_navigation.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta4-navigation"
 
+      - name: Verify cube-3 mode indication and neutral defaults against immutable beta.4
+        run: python test/browser/beta5_ui.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta5-ui"
+
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

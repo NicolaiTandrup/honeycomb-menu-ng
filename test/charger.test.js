@@ -209,6 +209,6 @@ test('detail defaults are neutral, root status retained and explicit overrides r
     assert.equal(root.colors.inner,model.COLORS.connected);
     for(const config of compiled.menu.buttons){
         const view=presentation.resolve({hass:f.hass,config:{...config,colors:{inner_border:'#123456'}}});
-        assert.equal(view.colors.inner,'#555b63');assert.equal(view.forceColors,undefined);
+        assert.equal(view.colors.inner,'#34424e');assert.equal(view.forceColors,undefined);assert.equal(view.colors.center,'rgba(52, 66, 78, 0.94)');
     }
 });

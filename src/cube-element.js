@@ -8,6 +8,7 @@ const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const {isOnOffOnly}=require('./modules/light/presentation');
+const {SUBMENU_FILL,SUBMENU_INNER}=require('./core/submenu-theme');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
 const imageSizing = require('./core/image-sizing.js');
@@ -271,7 +272,8 @@ class CubeElement extends LitElement
             inner:color('inner_border',presentation.colors.inner),
             outer:color('outer_border','#34383d')
         };
-        if (this.config.mode === 'generic') {
+        const explicitSubmenuCenter=this.config._submenu && configured.center && this._value(configured.center)!=='auto';
+        if (this.config.mode === 'generic' && !explicitSubmenuCenter) {
             colors.center = card.background || card['background-color'] || this._value(this.config.background, colors.center);
         }
         if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
@@ -505,12 +507,13 @@ class CubeElement extends LitElement
                 return presentation;
         }
 
-        const unavailable = this.config.mode === 'generic' ? '#34424e' : (configured.unavailable || '#555b63');
+        const generic=this.config.mode === 'generic';
+        const unavailable = generic ? this.config._submenu ? SUBMENU_FILL : '#34424e' : (configured.unavailable || '#555b63');
 
         return {
             colors: {
                 center: unavailable,
-                inner: unavailable,
+                inner: generic && this.config._submenu ? SUBMENU_INNER : unavailable,
                 outer: unavailable
             },
             secondary: null
@@ -642,13 +645,9 @@ class CubeElement extends LitElement
         if( this.config.match_anchor_size !== false )
             menu.size = anchorSize * 3.586;
 
-        const persistentDefaults = {styles:{card:[{background:'rgba(52, 66, 78, 0.94)'}]}};
-
-        menu.button_defaults = merge(
-            {},
-            persistentDefaults,
-            menu.button_defaults || {}
-        );
+        // Scene preparation supplies the same neutral fallback for every
+        // submenu depth. Do not disguise a default as an explicit card style:
+        // that would override user center colors and module presentations.
 
         const center = merge({}, this.config);
         delete center.menu;

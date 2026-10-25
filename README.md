@@ -336,7 +336,7 @@ Kelvin bounds and integer-precision limits apply; no new YAML options are needed
 
 In v1.9.0-beta.4, HA `supported_color_modes` selects available palettes. For a
 Color + White light, tap slot 3 for its current `color_mode`; hold for the other
-supported palette. Slot 0 names the displayed palette and its alternative.
+supported palette. Cube 3 names the displayed palette and its alternative (v1.9.0-beta.5).
 Navigation sends no light command. White-only exposes no Color alternative;
 fixed-white keeps brightness controls, and on/off-only keeps toggle only.
 
@@ -470,6 +470,9 @@ Opening a promoted child keeps the selected cube at its exact physical position;
 it becomes that submenu's slot 0. Back restores the previous anchor and layout.
 This also applies to deeper Charger/generic menus and responsive floorplans.
 Light palettes/zoom and Sonos Radio/Join/Sleep retain their existing navigation.
-Charger detail actions now default to neutral gray inner borders. Explicit
+In v1.9.0-beta.5, every ordinary submenu depth defaults to the same neutral gray
+fill and inner border as Light controls; the dark outer border remains unchanged.
+Charger details use that shared gray rather than a black fill. Root Hub base
+fill/status styling and meaningful module/center/palette colors are preserved. Explicit
 `colors.inner_border` overrides still win; the promoted center keeps its selected
 appearance. Root status colors and intentional Light/Sonos colors are preserved.

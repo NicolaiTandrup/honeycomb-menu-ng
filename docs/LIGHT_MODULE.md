@@ -175,7 +175,7 @@ From v1.9.0-beta.4, `supported_color_modes` determines which controls exist;
 | Brightness/fixed white | Passive Light slot 3; brightness controls and brightness preset only |
 | Only `onoff` | Toggle only; no detail menu |
 
-Slot 0 primary/secondary text describes the **displayed palette / supported
+From v1.9.0-beta.5, cube 3 primary/secondary text describes the **displayed palette / supported
 alternative**, not two measured states. Manual switching stays selected through
 passive HA updates. Reopening uses current device mode again. Off/null mode may
 reuse a last valid mode for the same entity in this frontend connection/session;
@@ -187,6 +187,11 @@ Opening/switching sends no light command. Swatch selection alone applies a value
 stale capabilities/unavailable state reject color and Kelvin commands. Existing
 Hue/Kelvin swatches, recursive zoom, exact Back history and geometry are preserved.
 White/Kelvin requires no helpers. Configured Light preset helpers remain optional.
+
+Cube 3 is the mode indicator and tap/hold launcher, including during recursive
+zoom and manual switching. Logical slot 0 keeps its original Light presentation,
+brightness/name and Back behavior. No palette labels or alternative hint are
+assigned to the center. Existing swatches and service payloads are unchanged.
 
 ## Standard preset selection
 

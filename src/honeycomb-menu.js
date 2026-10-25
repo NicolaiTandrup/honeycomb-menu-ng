@@ -20,7 +20,7 @@ const navigationCore = require('./core/navigation-context.js');
 const layoutCore = require('./core/layout.js');
 const { applyEntityInheritance } = require('./core/entity-inheritance.js');
 const { customActionRegistry } = require('./core/action-registry.js');
-const { applyPresetControls, resolvePaletteRequest } = require('./modules/light/controls.js');
+const { applyPresetControls, resolvePaletteRequest, paletteIndicator } = require('./modules/light/controls.js');
 
 // Register built-in domain modules and their custom actions.
 require('./modules/index.js');
@@ -86,6 +86,7 @@ function notifyContext(context)
 function prepareMenuConfig(config)
 {
     const honeycombConfig = traverseConfigs(config);
+    if (!navigationCore.isHubRoot(honeycombConfig)) honeycombConfig._submenu=true;
     if (honeycombConfig.entity_id && !honeycombConfig.entity) honeycombConfig.entity = honeycombConfig.entity_id;
     applyPresetControls(honeycombConfig, honeycombConfig.presets || {}, honeycombConfig.entity);
     applyEntityInheritance(honeycombConfig, honeycombConfig.entity);
@@ -149,6 +150,8 @@ function openHoneycombMenu(context, config)
                     // Capture the actual parent appearance before replacing
                     // the scene; independent child menus retain their own defaults.
                     const inherited=context.honeycomb._computeItemConfig(button);
+                    if (inherited._light_palette_launcher && honeycombConfig._light_palette_view)
+                        Object.assign(inherited,paletteIndicator(inherited.entity,liveHass,honeycombConfig._light_palette_view));
                     inherited.slot=i+1;
                     inherited.slot_mode='hard';
                     combined[i]=[inherited];

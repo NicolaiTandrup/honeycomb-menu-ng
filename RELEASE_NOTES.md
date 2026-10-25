@@ -1,3 +1,59 @@
+# v1.9.0-beta.5 — Palette launcher and shared submenu defaults
+
+Cumulative from public beta.4 `8f9b1c003529b1df0db08058d26691995f3e9afe`.
+Review branches remain unmerged. No master/stable or production HA changes.
+
+- Color/White mode indication belongs to **cube 3**, the existing palette launcher.
+  Its primary/secondary labels describe the displayed/alternate supported palette;
+  tap/hold keep beta.4's live mode selection and bidirectional switching. Slot 0
+  retains its original entity, name/brightness, appearance and Back interaction.
+- White Ambiance exposes White only. Fixed-white brightness and on/off restrictions,
+  reliable off-mode session memory, no-command navigation, capability validation,
+  recursive Hue/Kelvin zoom and exact Back history remain intact.
+- Ordinary submenu cubes at every depth share the existing Light control neutral
+  fill and inner border. The dark outer border is unchanged. Charger details now
+  use that gray fill instead of the root Hub's black fill. Explicit center/inner/
+  outer/background overrides and meaningful module/active/palette colors remain
+  available. Root Hub black/dark base, status colors and promoted centers stay intact.
+- Preserve shared 82px geometry, numeric/auto sizing, anchors, visibility/allocation,
+  touch/idle/navigation, gradients, energy waves/power speed, Charger measurements/
+  safety, Radio artwork/native Favorites/Join/native Sleep and original coexistence.
+  No future Climate/Car/Charger redesign or integration is added.
+
+Complete mandatory CI covers unit/contracts, Chromium desktop/mobile and tablet
+scenarios, HACS/license/package checks, docs/YAML/links, performance and workflows.
+The guarded publisher must verify exact green source/head, metadata, reproducible
+committed/rebuilt/CI/staged/downloaded bytes, SHA256/provenance and new immutable tag.
+Public release notes/provenance record final SHA, checksum and matching runs.
+
+Known limits: mock HA and Chromium checks are not actual HA/device acceptance;
+Firefox/WebKit and real hardware remain untested. Existing small-screen anchored
+palette envelope/clipping is preserved. No YAML migration/new keys are needed.
+Retain all old releases/tags/assets and the private beta.5 draft; retention stays
+unchanged/disabled. Latest stable remains v1.8.1. No stable promotion authorization.
+
+## Owner real-HA acceptance
+
+1. HACS Redownload: enable beta versions, select `v1.9.0-beta.5`, retain the current
+   Honeycomb NG resource path and refresh the dashboard/cache. Manual installation:
+   use this release's JS and verify `SHA256SUMS.txt` before replacing the resource.
+2. On a dual-capability Light, cube 3 indicates Color/White and the alternative.
+   Tap follows current device mode; hold switches the supported view without
+   sending a command. Slot 0 remains the familiar Light center with Back and
+   name/brightness. Test off/null mode, unavailable recovery and groups.
+3. White Ambiance: no Color alternative/hold. Test Color and Kelvin recursive zoom,
+   Back restoration, and actual swatch application as separate deliberate actions.
+4. Root Hub retains its black/dark/status appearance. Charger and generic submenu
+   actions are Light-gray inside the dark outer ring at every depth. Check explicit
+   fill/border overrides, meaningful active colors, anchored promotion and Back.
+5. Smoke-test Sonos Radio artwork/Favorites/Join/Sleep, Light presets, floorplan
+   auto sizing/editor, touch/idle close and Charger power/pulse behavior.
+
+Keep #133/#134 and other acceptance issues open until owner verification. Automated
+success and public beta publication do not authorize master merge or stable.
+
+---
+
 # v1.9.0-beta.4 — Capability-aware Light and anchored submenus
 
 Cumulative prerelease from published beta.3, through the existing unmerged v1.9.0
