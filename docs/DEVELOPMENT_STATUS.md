@@ -1,93 +1,134 @@
-# Development status — cumulative v1.9.0-beta.6 candidate (unpublished)
+# Development status — cumulative v1.9.0-beta.6 candidate, NOT PUBLISHED
 
-Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md, latest PR/issue comments
-and live Git/CI before changes. Do not restart completed #137/#138 work.
+Updated 2026-10-25 (Europe/Copenhagen). Read AGENTS.md and latest PR/issues;
+verify actual Git/head/CI before work. Do not repeat completed implementation.
 
-## Source and authorization
+## Exact review candidate and private package
 
-- Active branch `fix/v1.9-beta6-ux-hardening`, based on exact private delivery
-  `a712fb95bbea2e5ac59956735391f975d808111f`, itself cumulative public beta.5
-  `21f1e75edd9f5c204b7b10fdb6f964371c7a01d0` plus #137/#138 development work.
-- Public beta.5/PR #136 remain immutable/unmerged. Original development branch
-  `dev/issue137-light-off` preserved. Master/latest stable v1.8.1 remain at
-  `c1f178740c8181921033d0d18e0ac8d01afc7ea7`. No production HA change.
-- Owner authorizes candidate implementation, full tests, PR and private package;
-  **no beta.6 publication, master/stable merge, tag or retention change**. Owner
-  has verified prior dev OFF names/cache refresh on development HA; the corrected
-  contained bee/version and cumulative candidate still need actual-HA acceptance.
+- [PR #139](https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/139), branch
+  `fix/v1.9-beta6-ux-hardening`, base `fix/v1.9-beta5-palette-theme` (PR #136),
+  **unmerged**. Tested/frozen source **`68bf88fe07aae0892705f2680a82f38c0e78848d`**.
+- Foundation: immutable public beta.5 `21f1e75edd9f5c204b7b10fdb6f964371c7a01d0`
+  plus existing private #137/#138 delivery `a712fb9`. Original
+  `dev/issue137-light-off` branch remains intact. No v1.6 code imported.
+- Normal candidate version `1.9.0-beta.6`; root HACS runtime **250854 bytes**,
+  SHA256 **`707350de766c562ed95ba37246cb75f377a9a29e91b2b37043c5f5da5b72d42f`**. Repeated production build byte-identical.
+- Separate private artifact **`1.9.0-beta.6-dev+68bf88fe07aa`**, exact same source,
+  **250943 bytes**, SHA256 **`14b4fe0039c1368b85f69a3620471dfd76e1558ea7c4c223d55b8fd34c7e3abf`**. Rebuilt byte-identically.
+  Normal/private JS compare byte-identically after normalizing ONLY exact version
+  and commit constants; no different module functionality/private cache rules.
+- Dev ZIP `honeycomb-v1.9.0-beta.6-dev-68bf88fe07aa.zip` in `/workspace/build-output/v19-beta6/`;
+  SHA256 `9b0a325b64e7978093fc92bb48388a53a4de8a06565a333653ad410116b17de5`. Contains loader, manifest, immutable hashed runtime,
+  checksums, INSTALL and self-contained installer; never rename runtime to loader.
+- This documentation-only follow-up is on `docs/v19-beta6-validated-handoff` so
+  the exact tested source and its required CI remain frozen. Final results live
+  here/PR comments; source-branch status necessarily predates final CI.
 
-## Implemented checkpoints
+## CI / preparation status
 
-- Preserved #137 `24b6ade`: OFF Hub-only existing name/friendly/entity + OFF;
-  ON/unknown/unavailable/standalone/promoted centers unchanged. Existing templates
-  and explicit secondary labels retain precedence; no new YAML key.
-- `afda315`: short computed version inside the golden bee cell, not an external
-  technical overlay. Stable/future beta/dev formatting; technical version/source
-  remain in diagnostics. Text measured within all six fill edges at 41/60/82/110px.
-- `606a46b`: atomic one-command development installer, runtime+loader checksums,
-  source identity, immutable files, manifest last, conflict/symlink/lock refusal.
-  Normal candidate package is beta.6; child-only private flag derives dev+commit.
-  Public version/provenance guards and production caching remain unchanged.
-- `6590c11`: reproduced reduced-motion flight and late disconnected rAF/timer;
-  now respects motion preference and cancels pending animation on repeat/detach.
-  No other module/render/navigation redesign. New measured performance/capacity
-  tests supplement inherited regressions.
-- README/AI guide now document short names/capability matrix, cube 3, styling,
-  source/visible version distinction, fixed resource, installation/cache failures
-  and unpublished status. Future-module review remains documentation only.
-- CI test additions cover OFF naming, contained bee/motion/lifecycle, throttled
-  updates and anchors. `pipefail` makes checksum-validator pipeline fail closed;
-  no publisher guard is relaxed or release workflow changed.
+Push CI 40236365304 is verified green (all jobs/steps; checksum matches).
+PR CI 40236370674 is still running; inspect live status, do not assume green.
 
-## Actual validation so far / current work
+Guarded publisher preparation has NOT yet run: wait for exact-head PR CI, then use prepared JSON with publish=false only. No publication permission exists.
 
-- Complete initial Node run: **380 passed, 3 stable-only skipped**. New checksum
-  pipeline test and installer tests pass locally; rerun full final suite next.
-- Bee current build: **8 desktop/mobile cases pass**, including keyboard/touch,
-  repeat/detach/reduced-motion and frame-by-frame six-edge text containment.
-- New hardening: **4 desktop/mobile cases pass**. At 4x Chromium CPU throttling,
-  50 Light cubes/1000 unrelated updates cause zero renders; one relevant update
-  renders one cube. This is a lab proxy, not actual Raspberry Pi hardware proof.
-- Core benchmark passes. Public beta.6 build/HACS package checks pass; latest
-  bundle 250854 bytes, SHA256
-  `707350de766c562ed95ba37246cb75f377a9a29e91b2b37043c5f5da5b72d42f`.
-- Final Node suite: **381 passes / 3 stable-only skips**, six Sleep contracts,
-  docs **58 YAML / 38 complete cards / 11 fragments / 217 links / 16 browser
-  interactions**, HACS/package and actionlint pass. Remaining browser suites,
-  exact-head CI and private A/B package installation/reload are in progress.
-  The A/B browser regression now executes the packaged one-command installer
-  into a temporary www folder and reloads from that same installed directory,
-  checking real copied files instead of simulating deployment by switching roots. Do not mark complete until
-  actual results are recorded. Evidence `/workspace/build-output/v19-beta6/`.
-- Browser plugin unavailable; existing Playwright Chromium harness used. Do not
-  claim Firefox/WebKit, real HA, hardware video replay, charger or Sonos acceptance.
+No public beta.6 release URL exists. Do not describe staging artifacts/private ZIP
+as an official GitHub/HACS release. Do not merge master or publish stable/beta.6
+without separate applicable explicit owner authorization. Retention stays disabled.
 
-## Known measured limitation / future boundaries
+## Actual completed work
 
-Fixed 82px 19-cell palette spans 410px: centered in 390px view, 10px each side
-clips. Preserve selected anchor/Back and numeric size; no paging/shrink redesign
-was authorized implicitly. Future viewport policy needs owner agreement.
-Ordinary submenu gray fill/inner/dark outer with explicit/semantic exceptions
-and root Hub black/status colors are existing beta.5 code: test, do not duplicate.
+- Preserve #137 OFF Hub identity: existing configured name (including templates),
+  HA friendly name, readable entity fallback, above OFF. Short names supported,
+  long names use existing ellipsis. ON/unknown/unavailable/standalone/promoted Back
+  centers and explicit label precedence unchanged. No new YAML key.
+- #138 correction: short derived release text (e.g. `v1.9.0 beta 6`) **inside the
+  same golden cell** during original 430ms feedback, then normal bee restored.
+  No external floating hashes/dev suffix, extra cube or Hub geometry change.
+  Full version/commit remain runtime diagnostics. Stable/future beta formatting,
+  actual six-edge containment at 41/60/82/110px and keyboard/touch tested.
+- Measured bee defects fixed narrowly: reduced-motion flight, stale rAF creating
+  a timer after detach, and rapid-trigger cleanup. Preserve normal flight.
+- Existing dev loader remains byte-identical through A/B: one nonce/no-store
+  manifest/document, one immutable runtime import; no polling/per-cube requests
+  or duplicate registration. Normal HACS resource caching is unchanged.
+- Verified one-command local static-file installer: runtime+loader SHA, source
+  identity, immutable file conflicts, symlink/lock refusal; old runtimes retained,
+  manifest atomically replaced last. No HA API/config/services, SSH or deployment
+  executed against real HA. Builds derive private metadata only in child compiler.
+- Shared gray submenu defaults, status/identity/semantic colors, explicit nested
+  overrides, Root Hub black base, selected physical anchor/Back are beta.5 code
+  reused and fully regression-tested, not duplicated or redesigned.
+- README/AI guide cover short names, actual capability matrix/cube 3, styling,
+  version/diagnostics, one-command installation and cache troubleshooting.
+  CI adds new regressions and pipefail for checksum failure propagation; no
+  publisher gate/workflow is weakened.
 
-Climate PR #131 is independent at `d965f41214085abb1eb52d25948fb5a7d47bd020`,
-CI green but not imported or authorized for publication here. Car #86 blocked on
-validated Climate reuse; #126/#129 forecast/guest redesign deferred v1.12+.
-HACS #92 is independent; no external catalog submission. See BETA6_REVIEW.md.
+## Actual validation results
 
-## Next steps in priority order
+- **381 Node passes, 3 stable-only skips, zero failures**; core contracts.
+- **337 full Chromium cases pass**: core 136, original coexistence 8,
+  presentation 10, native Favorites 22, sizing/gradient/pulse 26, power/reference
+  21 (includes seven tablet cases), wave 12, Charger 20, editor 14, artwork 8,
+  beta.4 navigation 12, beta.5 defaults/pixels 14, OFF naming 6, bee 8,
+  throttled/anchor 4, docs 16. No failed/skipped browser scenarios.
+- **14 extra private-build browser cases** pass: real clean builds A `6590c114d002`
+  and final B `68bf88fe07aa` installed by the packaged CLI into the same temporary
+  www directory and loaded through identical permanent URL on ordinary reload.
+  Aggressive HTTP caching, one manifest/runtime per build, no duplicate elements,
+  accurate technical identity, invalid manifest and existing-runtime failures.
+- Six native Sleep service-boundary contracts pass. Docs **58 YAML blocks,
+  38 complete cards + 11 fragments, 217 links, 16 interactions** pass.
+- Public HACS package/GPL attribution, actionlint, repeated builds, SHA/ZIP checks
+  pass. New checksum-pipeline test proves validator failure cannot hide behind tee.
+- 4x CPU-throttled lab: 50 cubes/1000 unrelated updates -> zero renders; one
+  relevant state update -> one cube render. Current Node allocator 50-item p95
+  about 0.058ms; lab-only metrics, not a historical speedup or Pi hardware proof.
+- Unicode Latin/CJK/Arabic short names retained with bounded text/zero services
+  in supplemental desktop/mobile QA. Existing built-in labels remain English;
+  no new localization API is claimed.
+- Screenshot ZIP `beta6-review-screenshots.zip` covers all eight requested surfaces,
+  with full local logs/evidence under `/workspace/build-output/v19-beta6/`.
+  CI `shared-cube-evidence` also includes desktop/mobile new/inherited screenshots.
+- Browser plugin unavailable; existing Playwright Chromium harness used. Actual
+  HA, Firefox/WebKit, real Raspberry Pi, Sonos/charger hardware not exercised.
+  Owner confirmed only prior OFF names/cache refresh; new UX still needs acceptance.
 
-1. Finish full final local suite; fix only reproduced defects, document counts.
-2. Commit/push reviewable checkpoint, open cumulative beta.6 PR against beta.5
-   source branch, verify exact matching push/PR CI and uploaded evidence.
-3. Build private A and final B from clean committed source with build:dev;
-   test atomic installer plus two ordinary reloads using the permanent URL.
-   Package B and checksum; full public runtime stays normal beta.6 metadata.
-4. Freeze tested source/head. Record final CI/artifact/private checksums in a
-   docs-only handoff if needed so exact CI remains reviewable. Update #137/#138.
-5. Deliver install instructions + HA checklist and stop before publication/merge.
+## Known limit / future boundaries
 
-## Commands / environment
+At fixed 82px, a 19-cell palette spans 410px. Centered on 390px viewport it clips
+10px each side. Anchor/Back preserved; no unapproved auto-shrink/paging/panning
+redesign claimed. Existing numeric size/size:auto remain available. Future viewport
+policy requires owner design agreement. No new module defect found by full suite.
+
+Climate PR #131 remains separate at `d965f41214085abb1eb52d25948fb5a7d47bd020`,
+CI green but not imported/published. Car #86 blocked on validated Climate reuse;
+Charger #126/#129 forecast/guest redesign deferred v1.12+. HACS #92 is independent;
+no catalog submission. See BETA6_REVIEW.md. Master/latest stable v1.8.1 remain at
+`c1f178740c8181921033d0d18e0ac8d01afc7ea7`; all previous releases/tags/assets,
+private beta.5 draft and production HA are preserved. No retention API calls.
+
+## Owner install / next session
+
+1. Extract the private ZIP on Node.js 20+ with access to development HA filesystem:
+   `node honeycomb-dev/install-dev.cjs --www /config/www` (or actual mounted www).
+2. Keep exactly one NG JavaScript Module resource:
+   `/local/honeycomb-dev/honeycomb-menu-ng.js`. Resources are instance-wide; do
+   not change production HA or combine two NG versions. One-time cache refresh
+   can be needed only when replacing an old direct runtime with the loader.
+3. Ordinary full-page Reload/F5 after future installs; no URL/query edits. Bee
+   shows short version; console `.version`/`.commit` on `window.honeycombNG`
+   identifies exact B. Open pages keep their code until reload.
+4. Owner validates contained bee, normal/reduced motion, sizes/keyboard/touch,
+   OFF names/ON/unavailable, cube-3 Color/White/White-only/zoom/Back, neutral nested
+   defaults/overrides/root black, Sonos Radio/Join/Sleep, Charger/editor/multiple
+   instances. Keep #137/#138 open for acceptance; no automatic issue closure.
+5. Fresh session first checks PR #139/live CI/publisher status/handoff. Finish only
+   pending validation/acceptance, do not repeat completed code or publish/reuse a
+   tag. A later authorized publication must freshly verify exact branch/CI,
+   unused tag/Release, reproducibility/provenance and set publish=true only with
+   explicit owner approval. Stable/master authorization is separate again.
+
+## Commands
 
 ```sh
 npm test
@@ -96,13 +137,14 @@ node scripts/check-release.js
 node scripts/check-hacs-package.js
 node test/performance/hub-benchmark.js --output /tmp/beta6-performance.json
 npm run build:dev -- --out-dir /tmp/honeycomb-dev
-# Owner runs installer only against development HA filesystem:
+# Owner only, development filesystem; not executed against live HA in this run:
 node /tmp/honeycomb-dev/install-dev.cjs --www /config/www
 ```
 
-Browser suites are all commands in `.github/workflows/build.yml`; local Python
-`/tmp/honeycomb-beta-venv/bin/python`, button card
-`/workspace/build-output/test-dependencies/button-card.js`, actionlint
-`/tmp/honeycomb-actionlint-bin/actionlint`. node_modules is a shared symlink;
-do not npm ci through it. No live HA commands, deployment, tag/release mutation
-or retention API calls are needed. Previous validated reports remain in Git history.
+All browser/doc commands are in `.github/workflows/build.yml`; extra A/B uses
+`test/browser/dev_build.py --package-a <A> --package-b <B>` plus usual bundle,
+button-card/evidence args. Local Python `/tmp/honeycomb-beta-venv/bin/python`,
+button card `/workspace/build-output/test-dependencies/button-card.js`, actionlint
+`/tmp/honeycomb-actionlint-bin/actionlint`. Shared node_modules symlink: never npm ci
+through it. Read-only publisher inputs are `/workspace/build-output/v19-beta6/prepare-inputs.json`
+with publish=false; never silently change to true.
