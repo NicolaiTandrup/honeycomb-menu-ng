@@ -26,10 +26,9 @@ verify actual Git/head/CI before work. Do not repeat completed implementation.
 
 ## CI / preparation status
 
-Push CI 40236365304 is verified green (all jobs/steps; checksum matches).
-PR CI 40236370674 is still running; inspect live status, do not assume green.
+Push CI [40236365304](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40236365304) and PR CI [40236370674](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40236370674) are verified green at exact source below: all jobs/steps successful, both checksums match.
 
-Guarded publisher preparation has NOT yet run: wait for exact-head PR CI, then use prepared JSON with publish=false only. No publication permission exists.
+Read-only guarded publisher [run 40237969423](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40237969423) succeeded: verify green, publish SKIPPED, publish=false; exact branch/CI/tag-absence/metadata/rebuilt/committed/CI/staged bytes and prepared checksums/provenance validated. It created NO tag or Release. Separate owner publication approval remains mandatory.
 
 No public beta.6 release URL exists. Do not describe staging artifacts/private ZIP
 as an official GitHub/HACS release. Do not merge master or publish stable/beta.6
