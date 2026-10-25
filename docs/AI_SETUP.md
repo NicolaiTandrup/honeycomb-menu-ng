@@ -240,7 +240,7 @@ HS and Kelvin preset buttons simultaneously. Palette is 12 hues for color-capabl
 Lights or 12 native Kelvin steps. In v1.9.0-beta.4 dual-capability Lights tap
 to open the current `color_mode` palette and hold to open the opposite supported
 palette. Only `supported_color_modes` grants controls: `rgbw`/`rgbww` alone does
-not grant `color_temp`. Center primary/secondary = displayed palette / supported
+not grant `color_temp`. From v1.9.0-beta.5, cube 3 primary/secondary = displayed palette / supported
 alternative; no unsupported alternative label. UI switching never sends HA commands.
 An off/null mode can use entity-specific frontend-session memory, else Color when
 supported, then White; unavailable state is not inferred from RGB values. Manual
@@ -766,3 +766,14 @@ explicit `promoted_center` appearance takes precedence. Do not propagate a root
 status color automatically to newly created detail actions. Existing intentional
 Light and Sonos inner colors/defaults are protected and are not reset by depth.
 No new public YAML key or module implementation is introduced.
+
+
+## v1.9.0-beta.5 palette indicator correction
+
+The Color/White primary/secondary labels and switching gestures belong to logical
+cube 3, the existing palette launcher. Slot 0 retains the original center entity,
+name/brightness, physical appearance and Back behavior. On cube 3, tap still opens
+the state-aware starting palette and hold opens only the other advertised supported
+palette. Manual selection survives passive updates; Hue/Kelvin zoom and Back keep
+the cube-3 labels synchronized with the viewed palette. White Ambiance has White
+only, an empty alternative label and no Color hold action. No new YAML key.

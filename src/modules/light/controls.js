@@ -181,13 +181,18 @@ function buildWhitePaletteButtons(capabilities,palette)
     });
 }
 
+function paletteIndicator(entity, hass, view) {
+    const caps=capabilities(hass && hass.states && hass.states[entity]);
+    const palette=view || selectedPalette(hass,entity), white=palette === 'white';
+    const alternative=white ? caps.colorCapable : caps.temperatureCapable;
+    return {name:white ? 'White' : 'Color',label:alternative ? white ? 'Color' : 'White' : '',
+        icon:white ? 'mdi:temperature-kelvin' : 'mdi:palette',show_name:true,show_label:true};
+}
+
 function paletteMenu(entity, palette, caps) {
-    const white=palette === 'white', alternative=white ? caps.colorCapable : caps.temperatureCapable;
     return {entity,nested_expand:true,inherit_inner:true,empty_slots:'hidden',idle_timeout:8000,
         _light_palette_view:palette,
-        persistent_center:{name:white ? 'White' : 'Color',show_name:true,
-            label:alternative ? white ? 'Color' : 'White' : '',show_label:true,show_brightness:'never'},
-        buttons:white ? buildWhitePaletteButtons(caps) : buildColorPaletteButtons()};
+        buttons:palette === 'white' ? buildWhitePaletteButtons(caps) : buildColorPaletteButtons()};
 }
 
 // Resolve again at activation, not when a launcher was first compiled. HA may
@@ -216,8 +221,7 @@ function expandLightPaletteControl(button, inheritedEntity)
         }
         const request=kind=>({action:'honeycomb-open-nested',honeycomb_nested_menu:{
             ...paletteMenu(lightEntity,palette,caps),_light_palette_request:kind}});
-        _defaults(button,{entity:lightEntity,icon:palette === 'white' ? 'mdi:temperature-kelvin' : 'mdi:palette',
-            name:palette === 'white' ? 'White' : 'Color',show_name:true,autoclose:false,
+        _defaults(button,{entity:lightEntity,_light_palette_launcher:true,...paletteIndicator(lightEntity,currentHass(),palette),autoclose:false,
             tap_action:request('current'),hold_action:caps.colorCapable && caps.temperatureCapable ? request('opposite') : {action:'none'}});
         return;
     }
@@ -480,6 +484,7 @@ function applyPresetControls(config, inheritedPresets, inheritedEntity)
 module.exports = {
     applyPresetControls,
     resolvePaletteRequest,
+    paletteIndicator,
     lightCapabilities,
     buildColorPaletteButtons,
     buildWhitePaletteButtons

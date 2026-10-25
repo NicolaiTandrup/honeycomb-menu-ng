@@ -336,7 +336,7 @@ Kelvin bounds and integer-precision limits apply; no new YAML options are needed
 
 In v1.9.0-beta.4, HA `supported_color_modes` selects available palettes. For a
 Color + White light, tap slot 3 for its current `color_mode`; hold for the other
-supported palette. Slot 0 names the displayed palette and its alternative.
+supported palette. Cube 3 names the displayed palette and its alternative (v1.9.0-beta.5).
 Navigation sends no light command. White-only exposes no Color alternative;
 fixed-white keeps brightness controls, and on/off-only keeps toggle only.
 

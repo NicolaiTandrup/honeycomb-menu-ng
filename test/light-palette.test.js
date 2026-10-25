@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {capabilities,selectedPalette}=require('../src/modules/light/palette-state');
-const {resolvePaletteRequest}=require('../src/modules/light/controls');
+const {resolvePaletteRequest,paletteIndicator}=require('../src/modules/light/controls');
 const entity='light.zone_a';
 const fixture=(modes,mode,state='on')=>({states:{[entity]:{state,attributes:{supported_color_modes:modes,color_mode:mode,min_color_temp_kelvin:2200,max_color_temp_kelvin:6500}}}});
 const open=(hass,kind='current',view)=>resolvePaletteRequest({entity,_light_palette_request:kind},hass,view);
@@ -16,8 +16,10 @@ for(const [modes,mode,expected,other] of [
     const current=open(hass),opposite=open(hass,'opposite');
     assert.equal(current && current._light_palette_view,expected);
     assert.equal(opposite && opposite._light_palette_view,other);
-    if(current){assert.equal(current.buttons.length,12);assert.equal(current.persistent_center.name,expected==='white'?'White':'Color');
-        assert.equal(current.persistent_center.label,other ? other==='white'?'White':'Color' : '');}
+    if(current){assert.equal(current.buttons.length,12);assert.equal(current.persistent_center,undefined);
+        const indicator=paletteIndicator(entity,hass,expected);
+        assert.equal(indicator.name,expected==='white'?'White':'Color');
+        assert.equal(indicator.label,other ? other==='white'?'White':'Color' : '');}
 });
 test('manual palette selection wins over hardware mode until reopening; zoom uses already selected palette',()=>{
     const hass=fixture(['hs','color_temp'],'color_temp');
