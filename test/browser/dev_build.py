@@ -56,6 +56,25 @@ class DevBuild(Navigation):
             target.press(key);self.page.clock.run_for(35);self.assertEqual(' '.join(label.text_content().split()),expected)
             self.page.clock.run_for(500);self.assertEqual(label.count(),0)
         self.assertEqual(self.page.evaluate('ng.version'),technical);self.assert_no_commands()
+    def test_reduced_motion_feedback_and_pending_frame_cleanup(self):
+        self.page.emulate_media(reduced_motion='reduce');self.hub({'logo':True,'items':[{'type':'light','entity':'light.zone_a','slot':1}]});self.settle()
+        self.page.clock.install();self.page.clock.pause_at(datetime.fromtimestamp((self.page.evaluate('Date.now()')+30)/1000,timezone.utc))
+        bee=self.cell(0);bee.locator('.interaction-surface').press('Enter');self.page.clock.run_for(35)
+        self.assertEqual(bee.locator('.bee-icon').evaluate('e=>getComputedStyle(e).animationName'),'none')
+        self.assertEqual(bee.locator('.bee-version').get_attribute('aria-label'),'v1.9.0 beta 6')
+        self.page.clock.run_for(500);self.assertEqual(bee.locator('.bee-version').count(),0)
+        bee.evaluate('e=>{window.removedBee=e;e._flapBee();e.remove()}');self.page.clock.run_for(35)
+        self.assertEqual(self.page.evaluate('({flapping:removedBee._beeFlapping,timer:removedBee._beeFlapTimer,frame:removedBee._beeAnimationFrame})'),{'flapping':False,'timer':None,'frame':None})
+        self.assert_no_commands()
+    def test_rapid_version_activation_restarts_one_feedback_and_cleans_up(self):
+        self.hub({'logo':True,'items':[{'type':'light','entity':'light.zone_a','slot':1}]});self.settle()
+        self.page.clock.install();self.page.clock.pause_at(datetime.fromtimestamp((self.page.evaluate('Date.now()')+30)/1000,timezone.utc))
+        bee=self.cell(0);bee.evaluate('e=>{for(let i=0;i<10;i++)e._executeAction({action:"honeycomb-bee-flap"})}');self.page.clock.run_for(35)
+        self.assertEqual(bee.locator('.bee-version').count(),1)
+        self.page.clock.run_for(300);bee.locator('.interaction-surface').press('Enter');self.page.clock.run_for(35)
+        self.page.clock.run_for(200);self.assertEqual(bee.locator('.bee-version').count(),1)
+        self.page.clock.run_for(250);self.assertEqual(bee.locator('.bee-version').count(),0)
+        self.assertEqual(bee.evaluate('e=>[e._beeFlapTimer,e._beeAnimationFrame]'),[None,None]);self.assert_no_commands()
     def test_version_text_inside_actual_fill_at_sizes_and_animation_frames(self):
         self.page.clock.install()
         for size in [41,60,82,110]:

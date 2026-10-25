@@ -1,3 +1,20 @@
+# Beta.6 robustness checkpoint
+
+Measured audit reproduced bee flight despite reduced motion and a late animation
+frame creating a timer on a removed cube. Both are now fixed narrowly: cancel the
+pending frame/timer on detach/retrigger and suppress flight CSS under reduced
+motion while retaining readable version feedback. Eight new desktop/mobile bee
+cases pass, including real SVG text containment, keyboard, rapid repeats and
+cleanup. Before/after audit JSON is retained outside Git. No Light/Sonos/Charger
+rendering or navigation source was changed by this robustness fix.
+
+Mobile palette capacity measured 410px at fixed 82px vs 390px viewport (10px
+clipped each side) with exact anchor preserved; no speculative movement/shrink
+or layout redesign was made. It remains a documented limitation/design choice.
+Docs/full regression/CI and final private installer validation are still pending.
+
+---
+
 # Beta.6 checkpoint — candidate metadata and dev installation
 
 Branch `fix/v1.9-beta6-ux-hardening`, cumulative from beta.5 + existing private

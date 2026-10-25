@@ -52,6 +52,7 @@ class CubeElement extends LitElement
         this._pointerStartY = 0;
         this._beeFlapping = false;
         this._beeFlapTimer = null;
+        this._beeAnimationFrame = null;
     }
 
     static get styles()
@@ -170,6 +171,7 @@ class CubeElement extends LitElement
             .bee-icon.flap {
                 animation: honeycomb-bee-flight 430ms ease-in-out;
             }
+            @media(prefers-reduced-motion:reduce) { .bee-icon.flap { animation:none; } }
 
             @keyframes honeycomb-bee-flight {
                 0%, 100% {
@@ -443,6 +445,10 @@ class CubeElement extends LitElement
             clearTimeout(this._beeFlapTimer);
             this._beeFlapTimer = null;
         }
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        this._beeAnimationFrame = null;
+        this._beeFlapping = false;
     }
 
     getCardSize()
@@ -892,10 +898,17 @@ class CubeElement extends LitElement
 
     _flapBee()
     {
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        clearTimeout(this._beeFlapTimer);
+        this._beeFlapTimer = null;
         this._beeFlapping = false;
+        if( !this.isConnected ) return;
         this.requestUpdate();
 
-        requestAnimationFrame(() => {
+        this._beeAnimationFrame = requestAnimationFrame(() => {
+            this._beeAnimationFrame = null;
+            if( !this.isConnected ) return;
             this._beeFlapping = true;
             this.requestUpdate();
 
