@@ -1689,7 +1689,7 @@ class Cubes(unittest.TestCase):
         self.back()
         parent=self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Details"]')
         parent.wait_for()
-        self.assertEqual(self.page.locator(':is(honeycomb-menu-ng-item,honeycomb-menu-item)').filter(has=parent).locator('.hex-fill').get_attribute('fill'),'#174b32')
+        self.assertEqual(parent.evaluate('(e)=>e.getRootNode().host.shadowRoot.querySelector(".hex-fill").getAttribute("fill")'),'#174b32')
     def test_empty_placeholders_are_passive(self):
         self.page.evaluate("window.menu=ng.open({entity:'light.zone_a',animate:false,position_mode:'anchored',anchor_x:innerWidth/2,anchor_y:300,buttons:[{slot:1,slot_mode:'hard',name:'Action A',show_name:true,tap_action:{action:'none'}}]})")
         self.page.wait_for_function('window.menu.shadowRoot.querySelectorAll(":is(honeycomb-menu-ng-item,honeycomb-menu-item)").length===7')
