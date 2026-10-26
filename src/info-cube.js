@@ -34,8 +34,8 @@ class InfoCube extends LitElement {
         this._signature=signature;this._relayout();
     }
     get hass(){return this._hass;}
-    configure(config,{hass,anchor,size,observe,positionElement,readGeometry,onReturn,onExpire}){
-        info.validate(config);this.config=config;this.anchor=anchor;this.cubeSize=size;this.observe=observe;this.readGeometry=readGeometry;
+    configure(config,{paintSnapshot,hass,anchor,size,observe,positionElement,readGeometry,onReturn,onExpire}){
+        info.validate(config);this.paintSnapshot=require('./core/info-paint').resolve(config,paintSnapshot);this.config=config;this.anchor=anchor;this.cubeSize=size;this.observe=observe;this.readGeometry=readGeometry;
         this.positionElement=positionElement;
         this.onReturn=onReturn;this.onExpire=onExpire;this.hass=hass;
     }
@@ -89,7 +89,7 @@ class InfoCube extends LitElement {
             @pointerdown=${e=>{e.stopPropagation();this._pointer={id:e.pointerId,x:e.clientX,y:e.clientY};e.currentTarget.setPointerCapture(e.pointerId);}}
             @pointerup=${e=>{e.stopPropagation();const p=this._pointer;this._pointer=null;if(!p||p.id!==e.pointerId)return;const dy=e.clientY-p.y;if(Math.abs(dy)>20)this._turn(dy<0?1:-1);else if(Math.abs(e.clientX-p.x)<12)this._return();}}
             @pointercancel=${()=>{this._pointer=null;}} @click=${e=>e.stopPropagation()}>
-            <honeycomb-menu-ng-item style=${`width:${g.width}px;--honeycomb-persistent-size:${g.width}px`} .config=${info.shell(this.config)} .size=${g.width} .hass=${this.hass}></honeycomb-menu-ng-item>
+            <honeycomb-menu-ng-item style=${`width:${g.width}px;--honeycomb-persistent-size:${g.width}px`} .paintSnapshot=${this.paintSnapshot} .config=${info.shell(this.config)} .size=${g.width} .hass=${this.hass}></honeycomb-menu-ng-item>
             ${g.connector?html`<svg class="text connector" viewBox=${`0 0 ${g.width} ${g.height}`} aria-hidden="true"><line x1=${g.connector.x1} y1=${g.connector.y1} x2=${g.connector.x2} y2=${g.connector.y2} stroke=${g.connector.color} stroke-width="4" stroke-linecap="round"></line></svg>`:''}
             <svg class="text" viewBox=${`0 0 ${g.width} ${g.height}`} role="img" aria-label=${`Page ${this._page+1} of ${l.pages.length}`}>
                 <defs><clipPath id="info-safe"><polygon points=${`${g.width/2},17 ${g.width-17},${g.height/4+9} ${g.width-17},${g.height*.75-9} ${g.width/2},${g.height-17} 17,${g.height*.75-9} 17,${g.height/4+9}`}></polygon></clipPath></defs>

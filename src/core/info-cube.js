@@ -48,7 +48,7 @@ function validate(config){
     const raw=JSON.stringify(config);if(raw.length>LIMITS.characters*2)fail('payload is too large.');
     return config;
 }
-function color(value){if(typeof value!=='string'||value.length>100||!value.trim()||/[;{}<>]/.test(value)||/url\s*\(/i.test(value))fail('use a plain CSS color.');}
+function color(value){if(typeof value!=='string'||value.length>4096||!value.trim()||/[;{}<>]/.test(value)||/url\s*\(/i.test(value))fail('use a plain CSS color.');}
 function styles(config){
     if(config.font_size!==undefined)number(config.font_size,12,32,'font_size (CSS px)');
     if(config.weight!==undefined&&![400,500,600,650,700,800].includes(config.weight))fail('unsupported font weight.');
@@ -181,5 +181,5 @@ function layoutText(config,hass,width,measure){
     if(pages.length>1&&pages[pages.length-1].length===0)pages.pop();
     return {pages:pages.map(p=>p.sort((a,b)=>a.z-b.z)),height,warnings:[...new Set(warnings)],text:resolved.blocks.map(b=>b.text).join('\n')||'No information available'};
 }
-function shell(config){return {mode:'generic',icon:false,name:'',label:'',show_name:false,show_label:false,interactive:false,face_mode:'cell',colors:{center:SUBMENU_FILL,inner_border:SUBMENU_INNER,outer_border:OUTER,...config.colors},border:{outer_width:3,inner_width:2}};}
+function shell(config){return {mode:'generic',icon:false,name:'',label:'',show_name:false,show_label:false,interactive:false,face_mode:'cell',colors:{center:SUBMENU_FILL,inner_border:SUBMENU_INNER,outer_border:OUTER,...Object.fromEntries(Object.entries(config.colors||{}).filter(([,v])=>v!=='source'&&!/gradient\(/i.test(v)))},border:{outer_width:3,inner_width:2}};}
 module.exports={LIMITS,validate,value,dependencies,resolve,footprint,connector,band,layoutText,shell};

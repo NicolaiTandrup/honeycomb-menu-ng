@@ -11,6 +11,7 @@ const {isOnOffOnly}=require('./modules/light/presentation');
 const {SUBMENU_FILL,SUBMENU_INNER}=require('./core/submenu-theme');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
+const infoPaint = require('./core/info-paint.js');
 const imageSizing = require('./core/image-sizing.js');
 const energyWave = require('./core/energy-wave.js');
 let nextFillId=0;
@@ -33,7 +34,8 @@ class CubeElement extends LitElement
         return {
             hass: { type: Object },
             config: { type: Object },
-            size: { type: Number }
+            size: { type: Number },
+            paintSnapshot: { attribute: false }
         };
     }
 
@@ -1072,6 +1074,19 @@ class CubeElement extends LitElement
         }
     }
 
+    _infoLayer(key, className, points)
+    {
+        const p=this.paintSnapshot && this.paintSnapshot[key];
+        if(!p)return null;
+        const id=this._fillId+'-info-'+key;
+        if(p.type==='css')return svg`<defs><clipPath id=${id}><polygon points=${points}></polygon></clipPath></defs>
+            <foreignObject class=${className} x="0" y="0" width="100" height="115.47" clip-path=${`url(#${id})`}>
+                <div xmlns="http://www.w3.org/1999/xhtml" style=${styleMap({width:'100%',height:'100%',background:p.background})}></div>
+            </foreignObject>`;
+        return svg`${p.type==='solid'?'':svg`<defs>${infoPaint.server(p,id)}</defs>`}
+            <polygon class=${className} points=${points} fill=${p.type==='solid'?p.color:`url(#${id})`} fill-opacity=${p.opacity}></polygon>`;
+    }
+
     render()
     {
         if (!this.config || !this._model) return html``;
@@ -1096,12 +1111,12 @@ class CubeElement extends LitElement
                 ${m.fill.type==='radial' ? svg`<defs><radialGradient id=${this._fillId} cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color=${m.fill.center}></stop><stop offset="100%" stop-color=${m.fill.edge}></stop>
                 </radialGradient></defs>` : ''}
-                <polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>
+                ${this._infoLayer('outer_border','hex-outer',points) || svg`<polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>`}
                 <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>
+                    ${this._infoLayer('inner_border','hex-inner',points) || svg`<polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>`}
                 </g>
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
+                    ${this._infoLayer('center','hex-fill',points) || svg`<polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>`}
                     ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
                     <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>

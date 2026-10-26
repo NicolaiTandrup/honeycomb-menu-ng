@@ -26,17 +26,24 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
+## v1.9.0-beta.9 hotfix
+
+Candidate for authorized HACS testing on published beta.8: Info supports `source`
+independently on center fill, inner and outer border, preserving rendered gradients
+and alpha as an opening snapshot. Mix inherited layers with explicit colors/gradients.
+[Source-paint contract](docs/INFO_CUBE.md). Mandatory release gates still apply.
+
 ## v1.9.0 beta track
 
-Latest published beta: [v1.9.0-beta.7](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.7).
-The **unpublished beta.8 candidate** refines the generic, read-only Info Cube:
+Latest published beta: [v1.9.0-beta.8](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.8).
+Published **beta.8** refines the generic, read-only Info Cube:
 a centered hex constrained by the six natural inner notches, independent fill and
 borders, and an optional source-colored connector. Surrounding cubes stay visible,
 stationary and inactive. Wrapped/stacked/positioned text and live HA bindings
 paginate at fixed readable sizes; more content never enlarges the hexagon.
 Tap returns to the exact caller; 30 seconds closes the entire menu.
 [Info Cube guide and examples](docs/INFO_CUBE.md) · [beta.8 review checklist](docs/V1_9_BETA8_REVIEW.md).
-Beta.8 publication and stable promotion require separate owner approval.
+Beta.9 hotfix publication is authorized after mandatory gates; stable promotion needs separate owner approval.
 
 ## What you can build
 
