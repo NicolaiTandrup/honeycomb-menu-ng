@@ -1,8 +1,8 @@
-# Info Cube — beta.7 development contract
+# Info Cube — beta.8 review contract
 
-Available in the **unpublished v1.9.0-beta.7 development candidate**. Published
-beta.6 is the baseline; v1.8.1 remains stable. Do not generate this configuration
-for older versions. No Home Assistant helper, backend, PE/CM integration or device
+Info Cube first shipped in published **v1.9.0-beta.7**. This guide describes its
+**unpublished v1.9.0-beta.8 candidate** refinements; stable remains v1.8.1. Do not
+generate Info configuration for older versions. No HA helper, backend or device
 service is required. All examples use synthetic entities and mock plans.
 
 ## Open and return
@@ -22,6 +22,16 @@ items:
       action: honeycomb-info
       info:
         title: Home overview
+        colors:
+          center: '#34383d'       # Center fill; independent of both borders
+          inner_border: '#f4a0c9'
+          outer_border: '#23282e'
+        connector: true          # Inherit the originating cube's inner border
+        footer:
+          entity: sensor.energy_a
+          prefix: 'Energy: '
+          suffix: ' kWh'
+          fallback: Waiting
         text: A long plain-text message wraps safely inside this hexagon.
 ```
 
@@ -41,24 +51,34 @@ navigation while suspended is discarded; it cannot resurrect another submenu.
 
 ## Verified footprint and coordinates
 
-![Literal slots 0–7 enclosed by one left-shifted Info hexagon](assets/info-cube-footprint.svg)
+![Centered Info hex bounded by the six natural inner notches](assets/info-cube-footprint.svg)
 
-Logical 0 is the center, 1–6 the inner ring and **7 the outer-left cell**.
-Owner approved enclosing literal **0–7**, not silently interpreting it as 0–6.
-The minimal regular pointy hex enclosing their full shared-cell polygons is:
+The latest owner geometry replaces beta.7's enclosing 0–7 polygon. Logical 0 is
+still the calling cluster center; 1–6 form its first ring. Intersections of those
+six full-cell polygons determine the inward V-shaped perimeter notches. The
+largest **centered regular pointy hex** inside all six notch half-planes is:
 
-| Numeric cube width | Info width | Info height | Center relative to slot 0 |
+| Numeric cube width | Maximum Info width | Maximum Info height | Center offset |
 |---|---|---|---|
-| 82 px | 328 px | 378.7416 px | x −41 px, y −0.205 px |
-| 41 px | 164 px | 189.3708 px | x −20.5 px, y −0.1025 px |
+| 82 px | 163.1443 px | 188.3827 px | 0 / 0 px |
+| 41 px | 81.5721 px | 94.1914 px | 0 / 0 px |
 
-The tiny y offset follows the existing `.865`/`1.725` layout table precision.
-Geometry derives from `src/core/layout.js`, including the real cell vertices.
-Numeric sizing and `size: auto` use the caller's existing resolved numeric width.
-The Info view alone shrinks to fit the viewport with a 12px margin when necessary,
-and clamps its own position at edges. It never moves/resizes the caller.
-Fonts remain at their configured CSS pixel sizes; long text paginates instead of
-shrinking into illegibility. Browser zoom causes a new viewport layout.
+The slight difference from exactly two cube widths is intentional: existing
+`.865`/`1.725` layout coordinates overlap slightly. Real shared-cell vertices and
+all six bounds are used, rather than idealized outer corners. Source slot and
+payload length never change this maximum. `scale` (0.5–1, default 1) permits a
+smaller panel. A three-background-cube composition is valid; no minimum background
+cube count is imposed and the overlay never grows to expose more cubes.
+
+Geometry uses the caller's existing numeric engine, including `size: auto` and
+`auto_reference_width`. Available viewport space may reduce the panel around the
+same center, with 12px margin; it never moves the cluster or shifts Info away from
+it. Keep the caller anchor within the visible floorplan. Background remains
+transparent; uncovered original cubes stay visible, mounted, unchanged and inert.
+Anchor style/size observation follows responsive layout updates and is disposed
+when Info closes. Fixed configured CSS font sizes remain readable; additional
+text paginates instead of changing geometry. Very small panels may hit the normal
+content limits; use a practical caller size for long information.
 
 Positioned blocks use normalized **x/y from 0–100**, measured from the left/top
 of the complete large hexagon bounding box. `z` is drawing order, not 3D depth.
@@ -73,7 +93,7 @@ valid coordinates too close to a sloping edge clamp inward, with diagnostics.
 | Field | Contract |
 |---|---|
 | `mode` | `text` (default), `stack`, `positioned` |
-| `title` | Optional plain string or safe entity binding |
+| `title`, `footer` | Optional plain string or safe entity binding; custom footer wraps/paginates as content |
 | `text` | Required in text mode; string or binding |
 | `blocks` | Stack/positioned array of strings or objects with `text` |
 | `spacing` | Stack gap, 0–40 CSS px, default 6 |
@@ -81,18 +101,28 @@ valid coordinates too close to a sloping edge clamp inward, with diagnostics.
 | `font_size` | Body default 14 CSS px; permitted 12–32; never automatically shrunk |
 | `weight` | 400/500/600/650/700/800; default 400; title 700 |
 | `align` | `left` default, `center`, `right` |
-| `colors` | Optional `center`, `inner_border`, `outer_border`, `foreground` CSS colors |
+| `colors` | Independent `center` (center fill), `inner_border`, `outer_border`, `foreground` CSS colors |
+| `scale` | 0.5–1, default 1; fraction of notch-bounded maximum, never grows with text |
+| `connector` | true (default), false, or object with optional CSS `color` |
 
 Each object block can override `font_size`, `weight`, `align`, `color` and
 `background`. Positioned mode additionally requires x/y and permits z (−1000 to
 1000, default 0). Blocks draw in ascending z; equal-z order is stable. Overlapping
 blocks are an explicit authoring choice; containment still applies. Title remains
-automatic at the top. No HTML, Markdown rendering, CSS URLs or JavaScript templates
+automatic at the top; an optional custom footer uses the same safe wrapping and
+binding contract and is appended to content, above the built-in return/page hint. No HTML, Markdown rendering, CSS URLs or JavaScript templates
 are executed inside Info text; special characters remain literal text.
 
 Neutral fill/inner border and dark outer border reuse the shared renderer's Light
 submenu defaults. Explicit Info colors override only this view. Existing Light,
 Sonos station colors and Hub base styles remain unchanged.
+
+The connector is a source-facing edge segment inside the border gutter, never
+through content. Its default color is the **originating cube’s resolved inner
+border**, independently of Info colors. `connector: {color: '#f08020'}` overrides
+it; `connector: false` disables it. All physical slots and promoted/nested callers
+use actual source coordinates. A center-origin source has no direction, so the
+top edge is marked. No red endpoint dots are drawn.
 
 - [One wrapped paragraph](../examples/info-text.yaml)
 - [Automatic vertical stacking](../examples/info-stack.yaml)
@@ -136,12 +166,13 @@ external artwork, scripts, polling or HA commands belong to this component.
 ## Module author API
 
 See [module authoring](MODULE_AUTHORING.md). Internal modules call
-`honeycombNG.openInfoInContext(context, payload)` from their existing menu context.
+`honeycombNG.openInfoInContext(context, payload, sourceElement)` from their existing menu context.
 `honeycombNG.openInfo(payload)` targets the currently open classic/global menu.
-These return the Info view, or null if no active caller/preview. Do not create a
+The third argument is optional; omit it to use the calling center as the source.
+Declarative cube actions pass their own source automatically. These return the Info view, or null if no active caller/preview. Do not create a
 separate modal, push fake Back levels or duplicate the cube renderer. All future
 Climate/Car modules can use this API without importing another domain module.
-No Climate, Car or speculative CM integration is implemented in beta.7.
+No Climate, Car or speculative CM integration is implemented in beta.8.
 
 ## Acceptance
 
@@ -149,4 +180,4 @@ Automated Chromium covers synthetic desktop/tablet/mobile, per-line bounds,
 root/module/palette return, timeout, repeated opens, touch/keyboard, live state,
 late navigation, removal and multiple hosts. Screenshots live in CI evidence.
 Actual owner Info Cube, Terminal add-on and HACS acceptance are separate. Do not
-publish beta.7 or close #140 until owner review and explicit publication approval.
+publish beta.8 or close #140 until owner review and explicit publication approval.

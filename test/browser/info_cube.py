@@ -22,7 +22,7 @@ class Info(Navigation):
         self.page.mouse.move(0,0);self.settle()
         return self.page.evaluate('''()=>{const c=hub._menuContext,m=hub._hubMenu;return {config:JSON.stringify(c.currentConfig),stack:JSON.stringify(c.stack),navigation:c.navigation,anchor:[m._anchorX,m._anchorY],cells:[...m.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control')].map(e=>{const r=e.getBoundingClientRect();return [e.config._hub_item_id,r.x,r.y,r.width]})}}''')
     def assert_safe(self):
-        lines=self.page.locator('honeycomb-ng-info').evaluate('''e=>{const g=e._geometry,l=e._layout;return [...e.shadowRoot.querySelectorAll('.info-line')].map(t=>{const b=t.getBBox();return {r:{x:b.x,y:b.y,width:b.width,height:b.height},g}});}''')
+        lines=self.page.locator('honeycomb-ng-info').evaluate('''e=>{const g=e._geometry,l=e._layout;return [...e.shadowRoot.querySelectorAll('.info-line,.footer')].filter(t=>t.textContent).map(t=>{const b=t.getBBox();return {r:{x:b.x,y:b.y,width:b.width,height:b.height},g}});}''')
         for line in lines:
             r,g=line['r'],line['g'];self.assertGreaterEqual(r['y'],0)
             def bound(y):return max(0,(abs(y-g['height']/2)-g['height']/4)*g['width']/(g['height']/2))+10
@@ -30,9 +30,9 @@ class Info(Navigation):
             self.assertGreaterEqual(r['x']+.3,left);self.assertLessEqual(r['x']+r['width'],g['width']-left+.3)
     def test_declarative_root_safe_hex_and_tap_exact_return(self):
         self.root();before=self.snapshot();self.open();self.assertEqual(self.dialog().get_attribute('aria-label'),'Information')
-        shell=self.page.locator('honeycomb-ng-info honeycomb-menu-ng-item');self.assertAlmostEqual(shell.bounding_box()['width'],328,delta=.1)
-        self.assertAlmostEqual(shell.locator('.hex-outer').bounding_box()['width'],328,delta=.1)
-        self.assertEqual(self.page.evaluate('hub._menuContext.info._geometry.footprint.slots'),list(range(8)))
+        shell=self.page.locator('honeycomb-ng-info honeycomb-menu-ng-item');self.assertAlmostEqual(shell.bounding_box()['width'],163.14428,delta=.1)
+        self.assertAlmostEqual(shell.locator('.hex-outer').bounding_box()['width'],163.14428,delta=.1)
+        self.assertEqual(len(self.page.evaluate('hub._menuContext.info._geometry.footprint.notches')),6)
         self.assertTrue(self.page.evaluate('hub._hubMenu.shadowRoot.querySelector("#honeycombs").inert'));self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-text.png'))
         self.activate(self.dialog());self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assertEqual(self.snapshot(),before);self.assert_no_commands()
@@ -85,7 +85,7 @@ class Info(Navigation):
         self.root();self.open({'text':'Long text for pagination '*150});self.dialog().hover();self.page.mouse.wheel(0,150)
         self.page.wait_for_function('hub._menuContext.info._page===1');self.dialog().press('PageUp');self.assertEqual(self.page.evaluate('hub._menuContext.info._page'),0)
         self.dialog().press('Tab');self.assertEqual(self.dialog().evaluate('e=>e.getRootNode().activeElement===e'),True)
-        self.page.set_viewport_size({'width':320,'height':600});self.page.wait_for_timeout(50);self.assert_safe()
+        self.page.evaluate("hub.style.left='calc(50% - 41px)'");self.page.set_viewport_size({'width':320,'height':600});self.page.wait_for_timeout(50);self.assert_safe()
         box=self.dialog().bounding_box();self.assertGreaterEqual(box['x'],11);self.assertLessEqual(box['x']+box['width'],309)
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-320px.png'));self.dialog().press('Escape');self.assert_no_commands()
     def test_multiple_hubs_only_top_modal_handles_keyboard_and_each_disposes(self):
@@ -112,9 +112,9 @@ class Info(Navigation):
     def test_scaled_floorplan_empty_center_and_editor_cleanup(self):
         config={'type':'custom:honeycomb-persistent-hub','size':'auto','auto_reference_width':900,'logo':False,'items':[{'type':'generic','slot':1,'name':'Info','tap_action':{'action':'honeycomb-info','info':{'text':'Scaled Info'}}}]}
         self.page.evaluate(FLOORPLAN,config);self.page.evaluate('floor.style.width="450px";imageHost.style.height="300px"');self.page.wait_for_function('hub._hubMenu?.sizes.item===41');self.settle()
-        self.open();self.assertAlmostEqual(self.page.evaluate('hub._menuContext.info._geometry.width'),164,delta=.1);self.assert_safe()
+        self.open();self.assertAlmostEqual(self.page.evaluate('hub._menuContext.info._geometry.width'),81.57214,delta=.1);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-auto41.png'))
-        self.page.evaluate('floor.style.width="900px";imageHost.style.height="600px"');self.page.wait_for_function('hub._hubMenu.sizes.item===82 && hub._menuContext.info._geometry.width===328');self.assert_safe()
+        self.page.evaluate('floor.style.width="900px";floor.style.marginLeft=(innerWidth/2-450)+"px";imageHost.style.height="600px"');self.page.wait_for_function('hub._hubMenu.sizes.item===82 && Math.abs(hub._menuContext.info._geometry.width-163.14428)<.01');self.assert_safe()
         self.page.evaluate('hub.remove()');self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assert_no_commands()
     def test_declarative_text_never_executes_javascript_and_invalid_config_is_clear(self):
         self.hub({'logo':'auto','items':[{'type':'generic','slot':1,'name':'Info','tap_action':{'action':'honeycomb-info','info':{'text':'${window.shouldNotRun=42} [[[ return 9; ]]] <script>window.shouldNotRun=43</script>'}}}]});self.settle()
@@ -130,6 +130,54 @@ class Info(Navigation):
         for config in [{'text':' \n'*1000},{'mode':'stack','blocks':[]},{'mode':'positioned','blocks':[]}]:
             self.open(config);self.assertIn('No information available',self.dialog().text_content());self.assertEqual(self.page.evaluate('hub._menuContext.info._layout.pages.length'),1);self.assert_safe();self.dialog().press('Escape')
         self.assert_no_commands()
+    def reference(self,compact=False):
+        self.page.evaluate('if(window.hub)hub.remove()')
+        payload={'title':'Zone A','text':'Light is on.\nStatic overview.','align':'center','colors':{'center':'#34383d','inner_border':'#f4a0c9','outer_border':'#23282e'},'connector':{'color':'#f08020'}}
+        if compact:payload['scale']=.85
+        self.hub({'logo':'auto','items':[{'name':f'Light {slot}','icon':'mdi:lightbulb','slot':slot,'colors':{'center':'#948675','inner_border':'#e4d9c6'},'tap_action':{'action':'honeycomb-info','info':payload}} for slot in (range(1,4) if compact else range(1,7))]});self.settle()
+        return payload
+    def test_owner_reference_notches_layers_stationary_cluster_and_compact(self):
+        for compact in [False,True]:
+            self.reference(compact);before=self.snapshot();tag='compact' if compact else 'normal'
+            self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-reference-{tag}-before.png'))
+            self.activate(self.cell(3).locator('.interaction-surface'));self.page.wait_for_function('!!hub._menuContext.info?._layout');self.settle()
+            self.assertEqual(self.snapshot(),before);self.assert_safe()
+            data=self.page.locator('honeycomb-ng-info').evaluate('''e=>{const g=e._geometry,s=e.shadowRoot.querySelector('honeycomb-menu-ng-item');return {g,anchor:e.anchor,colors:s._model.colors,backdrop:getComputedStyle(e.shadowRoot.querySelector('.backdrop')).backgroundColor,connector:g.connector,inert:hub._hubMenu.shadowRoot.querySelector('#honeycombs').inert}}''')
+            self.assertAlmostEqual(data['g']['left']+data['g']['width']/2,data['anchor']['x'],delta=.01)
+            self.assertAlmostEqual(data['g']['top']+data['g']['height']/2,data['anchor']['y'],delta=.01)
+            self.assertLessEqual(data['g']['width'],data['g']['footprint']['width']);self.assertTrue(data['inert'])
+            self.assertEqual(data['colors'],{'center':'#34383d','inner':'#f4a0c9','outer':'#23282e'})
+            self.assertEqual(data['backdrop'],'rgba(0, 0, 0, 0)');self.assertEqual(data['connector']['slot'],3);self.assertEqual(data['connector']['edge'],0);self.assertEqual(data['connector']['color'],'#f08020')
+            self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-reference-{tag}-info.png'))
+            self.activate(self.dialog());self.assertEqual(self.snapshot(),before)
+            self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-reference-{tag}-return.png'));self.assert_no_commands()
+    def test_all_physical_source_slots_inheritance_override_and_disabled(self):
+        self.hub({'logo':False,'items':[{'name':f'Item {slot}','slot':slot,'colors':{'inner_border':'#13ab79'},'tap_action':{'action':'honeycomb-info','info':{'text':'Read only'}}} for slot in range(19)]});self.settle()
+        for slot in range(19):
+            self.cell(slot).evaluate("e=>e._executeAction(e.config.tap_action)");self.page.wait_for_function('!!hub._menuContext.info?._geometry.connector')
+            c=self.page.evaluate('hub._menuContext.info._geometry.connector');self.assertEqual(c['slot'],slot);self.assertEqual(c['color'],'#13ab79');self.assert_safe();self.dialog().press('Escape')
+        self.open({'text':'Override','connector':{'color':'#abcdef'}});self.assertEqual(self.page.evaluate('hub._menuContext.info._geometry.connector.color'),'#abcdef');self.dialog().press('Escape')
+        self.open({'text':'Disabled','connector':False});self.assertEqual(self.page.locator('honeycomb-ng-info .connector').count(),0);self.dialog().press('Escape');self.assert_no_commands()
+    def test_nested_source_tracks_promoted_module_physical_location(self):
+        self.root([{'type':'light','entity':'light.zone_a','slot':2},{'type':'sonos','entity':'media_player.player_a','slot':3},charger(1)|{'slot':4}])
+        for slot in [2,3,4]:
+            self.hold_input(self.cell(slot).locator('.interaction-surface'));self.settle();before=self.snapshot()
+            expected=self.cell(0).evaluate('e=>e._model.colors.inner')
+            self.cell(0).evaluate("e=>e._executeAction({action:'honeycomb-info',info:{text:'Nested source'}})");self.page.wait_for_function('!!hub._menuContext.info?._geometry.connector')
+            c=self.page.evaluate('hub._menuContext.info._geometry.connector');self.assertEqual(c['slot'],0);self.assertEqual(c['color'],expected)
+            self.dialog().press('Escape');self.assertEqual(self.snapshot(),before);self.back();self.settle()
+        self.assert_no_commands()
+    def test_geometry_is_fixed_across_payloads_and_live_title_footer_attributes(self):
+        self.reference();self.open({'title':{'entity':'sensor.heading','fallback':'Waiting'},'text':'Short','footer':{'entity':'sensor.energy','attribute':'unit_of_measurement','prefix':'Unit: ','fallback':'Unknown'}})
+        geometry=self.page.evaluate('JSON.stringify(hub._menuContext.info._geometry)');self.page.evaluate('pushState("sensor.heading","Live title");pushState("sensor.energy","12.4",{unit_of_measurement:"kWh"})');self.settle()
+        self.assertIn('Live title',self.dialog().get_attribute('aria-label'));self.assertIn('Unit: kWh',self.dialog().text_content());self.assert_safe();self.dialog().press('Escape')
+        self.open({'text':'Æblegrød Ørsted lang dansk tekst '*1000,'font_size':18});self.assertEqual(self.page.evaluate('JSON.stringify(hub._menuContext.info._geometry)'),geometry);self.assert_safe();self.assert_no_commands()
+    def test_connector_tracks_live_source_color_without_remeasuring_unrelated_text(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','slot':0,'colors':{'inner_border':"[[[ return entity.state === 'on' ? '#35b86a' : '#718096'; ]]]"}}]});self.settle()
+        self.cell(0).evaluate("e=>e._executeAction({action:'honeycomb-info',info:{text:'Read only'}})");self.page.wait_for_function('!!hub._menuContext.info?._geometry.connector')
+        self.page.evaluate('window.layoutBefore=hub._menuContext.info._layout;pushState("light.zone_a","off")');self.settle()
+        self.assertEqual(self.model(0)['colors']['inner'],'#718096');self.assertEqual(self.page.evaluate('hub._menuContext.info._geometry.connector.color'),'#718096')
+        self.assertTrue(self.page.evaluate('layoutBefore===hub._menuContext.info._layout'));self.assert_no_commands()
     def test_charging_plan_example(self):
         self.root();payload=json.loads((Path(__file__).resolve().parents[1]/'fixtures/info-charging-plan.json').read_text());self.open(payload);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-charging-plan.png'));self.dialog().press('Enter');self.assert_no_commands()

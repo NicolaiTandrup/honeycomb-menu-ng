@@ -6,11 +6,13 @@ they do not own coordinates, pointer handling, a new renderer or popup lifecycle
 Light remains the normal control layout reference. See [runtime](NG_RUNTIME.md),
 [shared presentation](CUBE_PRESENTATION.md) and [terminology](TERMINOLOGY.md).
 
-For read-only information in the unpublished beta.7 candidate, place
+For read-only information in the beta.8 candidate (Info first shipped in beta.7), place
 `tap_action: {action: 'honeycomb-info', info: payload}` on any ordinary menu button.
 The payload follows the [Info Cube schema](INFO_CUBE.md). Alternatively call
-`window.honeycombNG.openInfoInContext(context, payload)` with the active controller
-context. A current global/classic menu uses `window.honeycombNG.openInfo(payload)`.
+`window.honeycombNG.openInfoInContext(context, payload, sourceElement)` with the active controller
+context. The optional source element supplies the connector’s physical position
+and resolved inner-border color; declarative actions pass it automatically.
+A current global/classic menu uses `window.honeycombNG.openInfo(payload)`.
 No active menu or dashboard preview returns null without opening anything.
 
 The shared controller keeps the caller mounted, suspends its idle timer and makes

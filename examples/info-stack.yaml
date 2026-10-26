@@ -11,6 +11,10 @@ items:
     action: honeycomb-info
     info:
       mode: stack
+      scale: 0.85
+      connector:
+        color: '#f08020'
+      footer: Read only
       title: Daily overview
       spacing: 8
       blocks:

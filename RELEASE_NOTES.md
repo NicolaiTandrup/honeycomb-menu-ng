@@ -1,22 +1,32 @@
-# v1.9.0-beta.7 — unpublished Info Cube development candidate
+# v1.9.0-beta.8 — unpublished candidate
 
-- Generic `honeycomb-info` action from every existing module/menu, reusing the
-  shared cube renderer. Literal slots 0–7 are enclosed by one left-shifted hexagon.
-- Wrapped text, stacked blocks and normalized x/y/z positions; measured line widths
-  respect all six sides. Long text paginates without tiny fonts. Plain HA bindings
-  update on relevant state changes; empty/stale/unavailable remain explicit.
-- Caller remains mounted and inert with its exact stack/slots/anchor. Tap/Enter/
-  Escape returns without device commands. Fixed 30-second lifetime closes all;
-  cleanup covers repeated opens, host removal, async navigation and multiple Hubs.
-- Private Terminal & SSH installation can download/check/install manifest, loader
-  and immutable runtime with curl/jq/sha256sum, no Node or PC required on HA.
-- All beta.6 functionality remains cumulative. No public beta.7 release, stable
-  merge, production HA deployment, Climate/Car module or speculative CM API.
+- Refines published beta.7 Info Cube #140 to match owner reference designs: one
+  centered foreground hex bounded by the six natural inner notches, independently
+  configurable center fill/inner/outer borders and transparent input shield.
+  Existing background cells stay mounted, stationary, visible where uncovered
+  and inactive. Shared renderer and numeric sizing/auto pipeline preserved.
+- Optional source-facing connector defaults to the actual calling cube’s resolved
+  inner-border color; manual color override and disable supported. Physical slots
+  0–18 and nested/promoted module centers use actual screen positions.
+- Static/live HA titles, text, blocks and optional footer wrap within the hex.
+  Content never enlarges the view or shrinks fonts; bounded pagination persists.
+  Tiny panels report content limits instead of looping through empty pages.
+- Tap/keyboard exact return and fixed 30-second close-all preserved. Responsive
+  position/size observation follows host layout without polling and disposes on close.
+- Cumulative Light, Sonos, Charger, namespace, navigation and pulse remain intact.
+  No Climate/Car/CM feature, production deployment, merge or publication authorized.
 
-See [Info reference](docs/INFO_CUBE.md) and development handoff for actual validation,
-known limits and pending owner acceptance. Publication requires separate approval.
+See [candidate review](docs/V1_9_BETA8_REVIEW.md), [Info schema](docs/INFO_CUBE.md)
+and permanent development handoff for actual validation and limitations.
 
----
+# v1.9.0-beta.7 — published baseline
+
+Published from `63a9619d27fe503919389f1a51090a2a01193f80`; generic read-only Info
+Cube with three authoring modes, safe bindings, hex containment/pagination, exact
+caller preservation and fixed 30-second lifetime. Its older left-shifted enclosure
+is superseded by the beta.8 owner-approved inner-notch design, without modifying
+its immutable tag, source or assets. Optional private Terminal installer remains
+separate from the normal HACS bundle.
 
 # v1.9.0-beta.6 — published cumulative baseline
 

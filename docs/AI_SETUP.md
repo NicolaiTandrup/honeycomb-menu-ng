@@ -18,16 +18,30 @@ Never generate Charger YAML for v1.8.1 stable. Use the exact
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
-**CURRENT REVIEW — unpublished v1.9.0-beta.7 candidate:** baseline is exact published
-beta.6 `68bf88fe07aae0892705f2680a82f38c0e78848d`. Adds generic Info Cube only;
+**CURRENT REVIEW — unpublished v1.9.0-beta.8 candidate:** baseline is exact published
+beta.7 `63a9619d27fe503919389f1a51090a2a01193f80`. Refines Info Cube #140 only;
 no Climate/Car/CM integration. Use [Info Cube](INFO_CUBE.md) and
 [module authoring](MODULE_AUTHORING.md). Action is `honeycomb-info` with `info`
-payload, not an invented module type. Only `text`, `stack`, `positioned` modes;
-plain entity bindings, no HTML/JS execution. Literal slots 0–7 footprint, fixed
-30-second close-all, tap returns exact caller. Never claim beta.7 is published.
-All five copy/paste cards are in `examples/info-*.yaml`; do not fabricate actual HA
-entities. Development loader is separate from normal HACS bundle. See
-[development installation](DEVELOPMENT_BUILDS.md).
+payload, not a module type. Default text mode wraps; `stack` and `positioned`
+remain supported. Titles, body, blocks and optional `footer` accept plain strings
+or scalar HA entity/attribute bindings, including prefix/suffix/fallback; no HTML/JS.
+Geometry is centered on caller slot 0 and bounded by the six first-ring INNER
+NOTCHES, **not** a literal 0–7 enclosing polygon. At cube width 82 the maximum
+Info width/height is approximately 163.1443/188.3827 px; `scale: 0.5–1` may reduce
+it, never enlarge it. Caller numeric sizing/`size: auto` resolves the base size.
+Viewport fitting shrinks around the existing center, never translates it.
+`colors.center` = center fill, `colors.inner_border` and `colors.outer_border`
+independently override shared neutral defaults; `colors.foreground` sets text.
+`connector` defaults true and inherits the source cube's resolved inner-border
+color, not Info colors; use `connector: false` or `connector: {color: '#f08020'}`.
+The source-facing edge sits in the border gutter, not through text. Nested/promoted
+and outer source slots use actual screen geometry. Programmatic calls should pass
+the source element as optional third API argument; otherwise use the caller center.
+Tap returns exact caller; fixed 30-second close-all. Underlying cubes stay mounted,
+visible where uncovered, stationary and inert; transparent input shield prevents
+click-through. Content never changes geometry: paginate instead of shrinking fonts.
+All examples are synthetic. Normal HACS runtime is separate from optional DEV loader.
+Do not claim beta.8 is published or installable through HACS before authorization.
 
 ### Charger generation rules (1.9.0-beta.3 and later candidates)
 
