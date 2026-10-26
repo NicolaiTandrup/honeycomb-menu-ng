@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "version": "1.9.0-beta.7-dev+63a9619d27fe",
+  "commit": "63a9619d27fe503919389f1a51090a2a01193f80",
+  "file": "honeycomb-build-8c8d4f1e324c08cd3d765a28ca592a17e71ed48272c6b30d53569db78a0e1b1e.js",
+  "sha256": "8c8d4f1e324c08cd3d765a28ca592a17e71ed48272c6b30d53569db78a0e1b1e",
+  "bytes": 267694,
+  "loader_sha256": "2bd424b9d5bf831cc21751d7227e95eb30df162e43d51dd4852509458fb20f69"
+}

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "purpose": "unpublished development candidate; no beta.7 publication authorized",
+  "source_commit": "63a9619d27fe503919389f1a51090a2a01193f80",
+  "source_branch": "feature/issue140-info-cube-beta7",
+  "baseline_commit": "68bf88fe07aae0892705f2680a82f38c0e78848d",
+  "normal_bundle_sha256": "c5ca926abd3a5dd5f58b7627c65218fff5b1d682b76d97639d94b82b39a7a62e",
+  "development_bundle_sha256": "8c8d4f1e324c08cd3d765a28ca592a17e71ed48272c6b30d53569db78a0e1b1e",
+  "ci_push_run": 40358991329,
+  "ci_pr_run": 40359002833,
+  "hacs_readiness_run": 40359213589,
+  "owner_info_acceptance": "pending",
+  "source_pr": 141
+}
