@@ -18,14 +18,14 @@ Never generate Charger YAML for v1.8.1 stable. Use the exact
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
-**CURRENT REVIEW — unpublished v1.9.0-beta.6 candidate:** all cumulative beta.5
-modules remain. Adds OFF Light Hub identification and short bee version feedback;
-no Climate, Car, future Charger restructure or guest-authorization UI. Do not claim
-beta.6 or v1.9.0 stable is published/approved. Existing PR #132 is an older stable
-proposal, not this candidate's release authorization. Latest verified public beta:
-[v1.9.0-beta.5](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.5).
-Private development packages use a separate permanent loader and exact commit
-identity; see [development builds](DEVELOPMENT_BUILDS.md).
+**PUBLISHED PRERELEASE — v1.9.0-beta.6:** cumulative beta.5 modules plus OFF Light
+Hub identification and contained short bee-version feedback are published at exact
+`68bf88fe07aae0892705f2680a82f38c0e78848d`. Latest stable is still v1.8.1.
+No Climate/Car/future Charger expansion/Info Cube is included. Owner tested the
+available Light/bee features; Sonos/Charger and HACS lifecycle lack full actual-HA
+acceptance. See [release evidence/HACS](V1_9_BETA6_RELEASE.md). Do not claim stable
+v1.9.0 publication or permission to merge. Private dev packages remain separate
+with exact commit diagnostics; [development instructions](DEVELOPMENT_BUILDS.md).
 
 ### Charger generation rules (1.9.0-beta.3 and later candidates)
 
@@ -87,7 +87,7 @@ Ask for actual IDs or omit optional features. Public examples must remain synthe
 7. Emit one complete card, then list **external HA prerequisites** separately. Validate
    it using the checklist below; do not claim optional HA configuration already exists.
 
-## Light capability and OFF name rules (beta.6 candidate)
+## Light capability and OFF name rules (beta.6)
 
 - Existing item `name` supplies the **OFF Hub launcher** primary text; otherwise
   use HA `friendly_name`, then readable entity ID. Secondary is `OFF`. No

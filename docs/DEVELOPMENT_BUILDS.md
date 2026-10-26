@@ -1,8 +1,9 @@
 # Development builds and the permanent resource
 
-Current **v1.9.0-beta.6 review candidate is unpublished**. Its separate private
-build has technical identity `1.9.0-beta.6-dev+<source-commit>`. Neither this document
-nor passing CI authorizes a public release. Keep production HA/HACS resources and
+Official **v1.9.0-beta.6 is now published**; see [release evidence](V1_9_BETA6_RELEASE.md).
+Its separate optional private build has technical identity
+`1.9.0-beta.6-dev+<source-commit>`. This development facility is not the HACS asset;
+future public releases still require their own approval and guarded publication. Keep production HA/HACS resources and
 retention unchanged. Lovelace resources are instance-wide: use the independent
 development HA instance, not two NG versions in one instance.
 
@@ -100,10 +101,10 @@ Do not publish/tag a private `-dev` package or weaken public version/provenance 
 
 ## Acceptance boundary
 
-The owner has confirmed the prior development OFF names and cache refresh. New
-bee placement and the cumulative candidate still require real-HA visual checks:
+The owner has confirmed available Light/OFF and bee feedback on development HA.
+Other module/hardware and full HACS cache-lifecycle acceptance remain separate:
 short/fallback/long OFF names, ON/OFF/unavailable, cube-3 Color/White, White-only,
 Hue/Kelvin zoom/Back, bee feedback/size/reduced motion, next-build ordinary reload,
 and Sonos Radio/Join/Sleep/Charger/editor smoke checks. Synthetic tests are not
-hardware acceptance. Do not change production HA or publish beta.6 without the
-separate required owner authorization.
+hardware acceptance. Beta.6 was subsequently explicitly authorized and published from its exact source;
+this does not authorize production HA changes or any additional release.

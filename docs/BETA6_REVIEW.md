@@ -1,8 +1,9 @@
 # v1.9.0-beta.6 candidate review and boundaries
 
-**Unpublished review candidate.** The owner authorized preparation, testing and a
-separate local development package, not beta.6 publication or master/stable merge.
-Exact final source/checksums/CI are recorded in DEVELOPMENT_STATUS.md and the PR.
+**Published prerelease, 2026-10-26.** The owner subsequently authorized beta.6
+publication from exact `68bf88fe07aae0892705f2680a82f38c0e78848d`; PR #139 stays
+unmerged. See [publication evidence and HACS instructions](V1_9_BETA6_RELEASE.md).
+This records the candidate scope; publication does not authorize stable/master.
 
 ## Included / preserved
 
@@ -35,11 +36,10 @@ rather than silently shrinking/moving approved cells. Future paging/panning or a
 viewport policy needs owner design agreement; no such feature is claimed here.
 Existing `size: auto` and numeric configuration remain the sizing controls.
 
-Before publication: owner checks the contained bee text/animation and new private
-installer on development HA, palette/zoom/navigation, Sonos, Charger, editor and
-multiple instances. Review exact green candidate CI, reproducibility, package,
-version and immutable unused-tag/provenance gates; obtain separate publication
-authorization. A successful synthetic test or CI run is not that authorization.
+Publication completed after explicit beta.6 owner approval and all exact-source
+CI/reproducibility/asset/provenance guards. Owner tested available Light/OFF and bee
+functionality; other modules remain automated-only coverage. Full HACS lifecycle
+and hardware tests were not performed by Codex. Stable/merge approval is separate.
 
 ## Future modules — reviewed, excluded
 

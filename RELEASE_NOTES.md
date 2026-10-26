@@ -1,6 +1,9 @@
-# v1.9.0-beta.6 — unpublished cumulative review candidate
+# v1.9.0-beta.6 — published cumulative prerelease
 
-Publication requires separate owner approval; this is not an available HACS release.
+Published 2026-10-26 from exact owner-authorized source
+`68bf88fe07aae0892705f2680a82f38c0e78848d`; PR #139 remains unmerged.
+[Release, checksums and HACS instructions](docs/V1_9_BETA6_RELEASE.md).
+v1.8.1 remains latest stable.
 
 - OFF Light Hub cubes show the configured short name (HA friendly name/entity
   fallback) above OFF. ON presentation, rings, unknown/unavailable distinction,

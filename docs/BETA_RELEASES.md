@@ -109,3 +109,20 @@ compares committed/rebuilt/CI/staged bundles/checksums and downloaded Release as
 then publishes only a prerelease with latest stable unchanged. Any failure stops
 without rollback, overwrite, deletion or existing-draft reuse. Keep retention
 independent and disabled; no stable/master promotion before real HA owner approval.
+
+
+## Published v1.9.0-beta.6 (2026-10-26)
+
+[Public prerelease](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.6) from exact owner-authorized
+`68bf88fe07aae0892705f2680a82f38c0e78848d`, PR #139 unmerged. Normal guarded [publisher](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40334795265)
+verify/publish passed with explicit publish=true. Public assets were independently
+downloaded and matched against tag/root bytes, sums, digests and source/CI provenance.
+HACS runtime 250854 bytes, SHA256
+`707350de766c562ed95ba37246cb75f377a9a29e91b2b37043c5f5da5b72d42f`.
+It is the normal runtime, not the optional development loader.
+
+Owner tested available Light/OFF/bee functionality; other modules and full HACS
+cache lifecycle remain automated-only evidence. Previous releases/tags/assets,
+private v1.7.1-beta.5 draft, master/latest stable v1.8.1 and retention were preserved.
+See [HACS install/evidence/limitations](V1_9_BETA6_RELEASE.md). Stop after verification;
+Info Cube #140/beta.7 requires a separate run. No stable/master promotion authorized.
