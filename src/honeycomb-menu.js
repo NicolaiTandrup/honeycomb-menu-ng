@@ -3,6 +3,7 @@ import "./honeycomb-menu-item.js";
 import "./honeycomb-persistent-control.js";
 import "./honeycomb-persistent-hub.js";
 import "./xy-pad.js";
+import "./info-cube.js";
 import { objectEvalTemplate, getTemplateOrValue, stringToBool, fireEvent, lovelace_view, provideHass, honeycomb_menu_templates } from "./helpers.js";
 
 const hass = document.querySelector('home-assistant').hass;
@@ -95,6 +96,7 @@ function prepareMenuConfig(config)
 
 function openHoneycombMenu(context, config)
 {
+    if (context.info) return null; // Late async navigation cannot change a suspended caller.
     const liveHass = context.honeycomb && context.honeycomb.hass || document.querySelector('home-assistant').hass;
     const resolved = resolvePaletteRequest(config, liveHass, context.currentConfig && context.currentConfig._light_palette_view);
     if (!resolved) return null;
@@ -277,6 +279,7 @@ window.addEventListener('blur', () => {
 });
 
 window.honeycombNG.updateBase = (context, config) => {
+    if (context && context.info) return false;
     if (!context || !context.honeycomb || context.honeycomb.closing || context.stack.length || !navigationCore.isHubRoot(context.currentConfig)) return false;
     const prepared = prepareMenuConfig(config);
     context.currentConfig = merge({}, prepared);
@@ -286,6 +289,12 @@ window.honeycombNG.updateBase = (context, config) => {
 
 document.body.addEventListener("ll-custom", e => {
     const detail = e.detail || {};
+    if (detail.honeycomb_ng_info) {
+        const path=e.composedPath();
+        const owner=path.find(node=>node && node._menuContext);
+        openInfo(owner ? owner._menuContext : manager,detail.honeycomb_ng_info);
+        return;
+    }
     // Ambiguous external legacy events belong to original when it is loaded.
     // NG-owned actions use the explicit key; NG-only dashboards keep old YAML.
     const ownConfig = detail.honeycomb_ng_menu;
@@ -368,8 +377,53 @@ function showHoneycombMenu( _config, options = {} )
     return menu;
 }
 
+// Suspend, never reconstruct, the calling scene. Stack/slots/anchors stay exact.
+function dismissInfo(context, resume = true)
+{
+    const view=context && context.info;
+    if (!view) return false;
+    context.info=null;
+    view.remove();
+    const menu=context.honeycomb;
+    if (menu) {
+        menu.shadowRoot.querySelectorAll('#honeycombs,honeycomb-ng-xy-pad').forEach(node=>{node.inert=false;});
+        if (resume && !menu.closing) menu._resetIdleTimeout();
+    }
+    if (resume && context.infoFocus && context.infoFocus.isConnected) context.infoFocus.focus({preventScroll:true});
+    context.infoFocus=null;
+    notifyContext(context);
+    return true;
+}
+function openInfo(context, config, source = null)
+{
+    context=context || manager;
+    const menu=context.honeycomb;
+    if (!menu || !menu.isConnected || menu.closing || context.owner && context.owner.preview) return null;
+    require('./core/info-cube').validate(config);
+    dismissInfo(context,false);
+    const center=menu.shadowRoot.querySelector('.center-item');
+    const rect=(center || source || menu).getBoundingClientRect();
+    const view=document.createElement('honeycomb-ng-info');
+    let focused=document.activeElement;
+    while(focused && focused.shadowRoot && focused.shadowRoot.activeElement) focused=focused.shadowRoot.activeElement;
+    context.infoFocus=focused;
+    view._menuContext=context;
+    view.configure(config,{hass:menu.hass,anchor:{x:rect.left+rect.width/2,y:rect.top+rect.height/2},size:menu.sizes.item,
+        onReturn:()=>dismissInfo(context),onExpire:()=>{dismissInfo(context,false);honeycombClose(context);}});
+    context.info=view;
+    menu._clearIdleTimeout();
+    menu._dragPointerActive=false;menu._dragPointerId=null;menu._dragHoverSlot=-1;
+    menu.shadowRoot.querySelectorAll('#honeycombs,honeycomb-ng-xy-pad').forEach(node=>{node.inert=true;});
+    menu.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control').forEach(item=>item._cancelGesture());
+    document.body.append(view);
+    return view;
+}
+window.honeycombNG.openInfoInContext=(context,config)=>openInfo(context,config);
+window.honeycombNG.openInfo=config=>openInfo(manager,config);
+
 function honeycombBack(context = manager, { interaction = true } = {})
 {
+    if (dismissInfo(context)) return true;
     if( !context.honeycomb || context.honeycomb.closing || context.stack.length === 0 )
         return false;
 
@@ -411,6 +465,7 @@ function honeycombBack(context = manager, { interaction = true } = {})
 
 function honeycombClose(context = manager)
 {
+    dismissInfo(context,false);
     context.stack = [];
     context.currentConfig = null;
     navigationCore.resetNavigation(context);
@@ -422,6 +477,7 @@ function honeycombClose(context = manager)
 
 function honeycombDispose(context = manager)
 {
+    dismissInfo(context,false);
     const menu = context.honeycomb;
 
     context.stack = [];
@@ -788,6 +844,7 @@ class HoneycombMenu extends LitElement
     set hass(value)
     {
         this._hass=value;
+        if (this._menuContext && this._menuContext.info) this._menuContext.info.hass=value;
         if (this.shadowRoot) this.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control,honeycomb-ng-xy-pad')
             .forEach(item=>{item.hass=value;});
     }
@@ -942,6 +999,7 @@ class HoneycombMenu extends LitElement
         if( this._disposed )
             return;
 
+        dismissInfo(this._menuContext || manager,false);
         this._disposed = true;
         this.closing = true;
 
@@ -961,6 +1019,7 @@ class HoneycombMenu extends LitElement
 
     close( _item = null )
     {
+        dismissInfo(this._menuContext || manager,false);
         if( this.closing )
             return;
 
@@ -1328,6 +1387,7 @@ class HoneycombMenu extends LitElement
 
     _handleItemAction(e)
     {
+        if (this._menuContext && this._menuContext.info) { e.stopPropagation(); return; }
         if (this._menuContext && this._menuContext.owner && this._menuContext.owner.preview === true) return;
         if( ! e.detail.item )
             return;
@@ -1445,6 +1505,7 @@ class HoneycombMenu extends LitElement
 
     _handleGlobalPointerMove(e)
     {
+        if (this._menuContext && this._menuContext.info) return;
         if( ! this.config.drag_select )
             return;
         const context = this._menuContext || manager;
@@ -1498,6 +1559,7 @@ class HoneycombMenu extends LitElement
 
     _handleGlobalPointerUp(e)
     {
+        if (this._menuContext && this._menuContext.info) return;
         if( ! this.config.drag_select )
             return;
 
@@ -1557,6 +1619,7 @@ class HoneycombMenu extends LitElement
     _scheduleIdleTimeout()
     {
         this._clearIdleTimeout();
+        if (this._menuContext && this._menuContext.info) return;
 
         const timeout = Number(this.config && this.config.idle_timeout);
 

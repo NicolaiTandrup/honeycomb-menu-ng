@@ -952,10 +952,12 @@ class CubeElement extends LitElement
 
         if (typeof action === 'string') action = {action};
         const original = action;
-        if (!action.honeycomb_menu && !action.honeycomb_nested_menu)
+        if (!action.honeycomb_menu && !action.honeycomb_nested_menu && action.action !== 'honeycomb-info')
             action = this._value(action, original);
         const actionName = action.action || 'toggle';
         const context = (this.getRootNode().host || {})._menuContext || this._menuContext;
+        if (context && context.info) return;
+        if (actionName === 'honeycomb-info') { window.honeycombNG.openInfoInContext(context,action.info); return; }
         if ((actionName === 'honeycomb-open-nested' || actionName === 'fire-dom-event') &&
             (action.honeycomb_nested_menu || action.honeycomb_menu)) {
             const nested=merge({nested_expand:true,entity:this.config.entity}, action.honeycomb_nested_menu || action.honeycomb_menu);
