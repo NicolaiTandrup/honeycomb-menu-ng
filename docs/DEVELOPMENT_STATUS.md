@@ -56,3 +56,15 @@ include a 450px -> 900px rendered-image resize and focus return after reopening.
 The original 136-case inherited local browser group ran against the preceding
 checkpoint; only these Info-scoped lifecycle refinements follow it. Final exact-
 head GitHub CI must validate every group before claiming full candidate readiness.
+
+## Empty-payload acceptance correction
+
+Final malformed-payload checks found whitespace-only content could consume blank
+pages, and an empty positioned layout had no finite y coordinate. Corrected both
+to a single visible No information available fallback. Nine Info Node contracts
+and 48 targeted Chromium desktop/tablet/mobile cases pass; full Node is now 394
+passes / three stable-only skips. All previous normal/dev package pins and CI at
+fbefc85 are historical checkpoints; regenerate from the new tested head and await
+its matching full CI. Do not publish or silently substitute the old dev package.
+The completed inherited local full run and prior exact-head CI remain evidence,
+but are not a substitute for new-head validation.

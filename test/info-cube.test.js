@@ -51,3 +51,11 @@ test('empty and stale values remain explicit, never invented live data',()=>{
     const hass={states:{'sensor.a':{state:'3',last_updated:'2020-01-01T00:00:00Z'}}};
     assert.equal(info.value({entity:'sensor.a',max_age:30,stale_text:'Waiting for update'},hass),'Waiting for update');
 });
+
+test('whitespace-only and empty positioned payloads show one finite fallback instead of blank pages',()=>{
+    for(const c of [{text:' \n'.repeat(1000)},{mode:'stack',blocks:[]},{mode:'positioned',blocks:[]}]){
+        const r=info.layoutText(c,null,328,measure);
+        assert.equal(r.pages.length,1);assert.equal(r.text,'No information available');
+        assert.ok(r.pages[0].length>0);assert.ok(r.pages[0].every(line=>Number.isFinite(line.x)&&Number.isFinite(line.y)));
+    }
+});

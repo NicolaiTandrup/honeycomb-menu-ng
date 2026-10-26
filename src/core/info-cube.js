@@ -73,7 +73,7 @@ function resolve(config,hass){
     if(config.title!==undefined)blocks.push({text:limited(config.title),font_size:20,weight:700,align:'center'});
     if((config.mode||'text')==='text')blocks.push({text:limited(config.text)});
     else for(const block of config.blocks)blocks.push(typeof block==='string'?{text:limited(block)}:{...block,text:limited(block.text)});
-    if(!blocks.some(b=>b.text.trim()))blocks.push({text:'No information available'});
+    if(!blocks.some(b=>b.text.trim()))blocks.splice(0,blocks.length,{text:'No information available'});
     return {blocks,truncated};
 }
 // Exact enclosing regular pointy hex for literal cells; slot 7 is outer LEFT.
@@ -105,7 +105,7 @@ function layoutText(config,hass,width,measure){
     for(const [index,block] of resolved.blocks.entries()){
         const size=block.font_size||config.font_size||14,lineHeight=size*1.35,weight=block.weight||config.weight||400,align=block.align||config.align||'left';
         const font=`${weight} ${size}px sans-serif`;
-        if(positioned&&!(config.title!==undefined&&index===0))y=height*block.y/100;
+        if(positioned&&block.y!==undefined)y=height*block.y/100;
         let rest=block.text.replace(/\r\n?/g,'\n'),first=true;
         while(rest.length||first){
             first=false;

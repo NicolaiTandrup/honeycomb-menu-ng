@@ -125,6 +125,11 @@ class Info(Navigation):
         self.root();opener=self.cell(1).locator('.interaction-surface');opener.focus()
         self.open({'text':'First'});self.open({'text':'Second'})
         self.dialog().press('Escape');self.assertTrue(opener.evaluate('e=>e.getRootNode().activeElement===e'));self.assert_no_commands()
+    def test_empty_whitespace_and_positioned_payloads_have_visible_fallback(self):
+        self.root()
+        for config in [{'text':' \n'*1000},{'mode':'stack','blocks':[]},{'mode':'positioned','blocks':[]}]:
+            self.open(config);self.assertIn('No information available',self.dialog().text_content());self.assertEqual(self.page.evaluate('hub._menuContext.info._layout.pages.length'),1);self.assert_safe();self.dialog().press('Escape')
+        self.assert_no_commands()
     def test_charging_plan_example(self):
         self.root();payload=json.loads((Path(__file__).resolve().parents[1]/'fixtures/info-charging-plan.json').read_text());self.open(payload);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-charging-plan.png'));self.dialog().press('Enter');self.assert_no_commands()
