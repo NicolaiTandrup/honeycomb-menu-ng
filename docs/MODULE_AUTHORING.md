@@ -6,7 +6,7 @@ they do not own coordinates, pointer handling, a new renderer or popup lifecycle
 Light remains the normal control layout reference. See [runtime](NG_RUNTIME.md),
 [shared presentation](CUBE_PRESENTATION.md) and [terminology](TERMINOLOGY.md).
 
-For read-only information in the unpublished beta.7 candidate, place
+For read-only information in the published beta.7 prerelease, place
 `tap_action: {action: 'honeycomb-info', info: payload}` on any ordinary menu button.
 The payload follows the [Info Cube schema](INFO_CUBE.md). Alternatively call
 `window.honeycombNG.openInfoInContext(context, payload)` with the active controller

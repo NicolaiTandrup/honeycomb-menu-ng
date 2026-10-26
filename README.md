@@ -28,12 +28,12 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 
 ## v1.9.0 beta track
 
-Latest published beta: [v1.9.0-beta.6](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.6).
-The **unpublished beta.7 development candidate** adds a generic, read-only Info
+Latest published beta: [v1.9.0-beta.7](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.7).
+The **beta.7 prerelease for owner testing** adds a generic, read-only Info
 Cube: one large hexagon for wrapped text, stacked blocks or positioned x/y/z text.
 Tap returns to the exact calling menu; after 30 seconds the entire menu closes.
-[Info Cube guide and examples](docs/INFO_CUBE.md) · [development installation](docs/DEVELOPMENT_BUILDS.md).
-No stable promotion or public beta.7 publication is authorized yet.
+[Info Cube guide and examples](docs/INFO_CUBE.md) · [pinned development installation and review](docs/V1_9_BETA7_REVIEW.md).
+[Official HACS installation and verification](docs/V1_9_BETA7_RELEASE.md). No stable promotion or merge is authorized.
 
 ## What you can build
 

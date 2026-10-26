@@ -1,10 +1,13 @@
 # Development builds and the permanent resource
 
-Current candidate: **unpublished v1.9.0-beta.7**, based on immutable public beta.6
+Current candidate: **published v1.9.0-beta.7**, based on immutable public beta.6
 `68bf88fe07aae0892705f2680a82f38c0e78848d`. Info Cube needs owner development-HA
-acceptance and separate approval before public beta.7 publication. The private
+acceptance before stable approval; beta.7 is now public for testing. The private
 package embeds `1.9.0-beta.7-dev+<source-commit>`; bee feedback shows the human label
 `v1.9.0 beta 7` during its existing animation. No HACS/production resource changes.
+
+Current verified package, exact source/checksums and copy/paste Terminal command:
+[beta.7 development review](V1_9_BETA7_REVIEW.md).
 
 ## Terminal & SSH add-on installation (no PC or Node required)
 
@@ -139,5 +142,5 @@ feedback. Info Cube in beta.7 still requires owner development-HA checks: all
 three authoring modes, literal 0–7 footprint, Danish/long text, page swipe, exact
 menu return, 30-second close-all, live bindings, ordinary reload and installer.
 Broader Sonos/Charger/HACS lifecycle remains automated evidence unless separately
-owner-tested. See [Info Cube](INFO_CUBE.md). No public beta.7 publication, stable
-promotion, live production commands or PAHA01 changes are authorized.
+owner-tested. See [Info Cube](INFO_CUBE.md). Beta.7 publication was separately authorized for testing. Stable promotion, live
+production commands or production-instance changes are not authorized.

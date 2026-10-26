@@ -1,4 +1,4 @@
-# v1.9.0-beta.7 — unpublished Info Cube development candidate
+# v1.9.0-beta.7 — published Info Cube prerelease
 
 - Generic `honeycomb-info` action from every existing module/menu, reusing the
   shared cube renderer. Literal slots 0–7 are enclosed by one left-shifted hexagon.
@@ -10,11 +10,11 @@
   cleanup covers repeated opens, host removal, async navigation and multiple Hubs.
 - Private Terminal & SSH installation can download/check/install manifest, loader
   and immutable runtime with curl/jq/sha256sum, no Node or PC required on HA.
-- All beta.6 functionality remains cumulative. No public beta.7 release, stable
-  merge, production HA deployment, Climate/Car module or speculative CM API.
+- All beta.6 functionality remains cumulative. Beta.7 was owner-authorized for
+  HACS testing; no stable merge, production deployment, Climate/Car/CM implementation.
 
 See [Info reference](docs/INFO_CUBE.md) and development handoff for actual validation,
-known limits and pending owner acceptance. Publication requires separate approval.
+known limits and pending owner acceptance. [Published verification and HACS guide](docs/V1_9_BETA7_RELEASE.md). Stable still requires separate approval.
 
 ---
 

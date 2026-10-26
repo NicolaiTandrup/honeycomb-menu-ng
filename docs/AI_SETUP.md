@@ -18,16 +18,16 @@ Never generate Charger YAML for v1.8.1 stable. Use the exact
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
 dashboards. No backend, optimizer, Car or Climate module is added.
 
-**CURRENT REVIEW — unpublished v1.9.0-beta.7 candidate:** baseline is exact published
+**CURRENT BETA — published v1.9.0-beta.7 for owner testing:** baseline is exact published
 beta.6 `68bf88fe07aae0892705f2680a82f38c0e78848d`. Adds generic Info Cube only;
 no Climate/Car/CM integration. Use [Info Cube](INFO_CUBE.md) and
 [module authoring](MODULE_AUTHORING.md). Action is `honeycomb-info` with `info`
 payload, not an invented module type. Only `text`, `stack`, `positioned` modes;
 plain entity bindings, no HTML/JS execution. Literal slots 0–7 footprint, fixed
-30-second close-all, tap returns exact caller. Never claim beta.7 is published.
+30-second close-all, tap returns exact caller. Use the [verified release/HACS guide](V1_9_BETA7_RELEASE.md); do not claim stable approval.
 All five copy/paste cards are in `examples/info-*.yaml`; do not fabricate actual HA
 entities. Development loader is separate from normal HACS bundle. See
-[development installation](DEVELOPMENT_BUILDS.md).
+[pinned development installation and acceptance](V1_9_BETA7_REVIEW.md).
 
 ### Charger generation rules (1.9.0-beta.3 and later candidates)
 

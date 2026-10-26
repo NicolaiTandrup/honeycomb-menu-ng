@@ -1,3 +1,10 @@
+# Current published beta.7
+
+[v1.9.0-beta.7 release, exact source, checksums and HACS installation](V1_9_BETA7_RELEASE.md).
+Published from 63a9619d27fe503919389f1a51090a2a01193f80 with explicit owner approval;
+PR #141 remains unmerged and latest stable v1.8.1 unchanged. Owner Info acceptance
+is pending. Older entries below are historical preparation records.
+
 # Manually authorized beta publication
 
 The **Publish manually authorized beta** workflow (`release.yml`) works from

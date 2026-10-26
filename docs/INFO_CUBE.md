@@ -1,6 +1,6 @@
 # Info Cube — beta.7 development contract
 
-Available in the **unpublished v1.9.0-beta.7 development candidate**. Published
+Available in the **published v1.9.0-beta.7 prerelease**. Published
 beta.6 is the baseline; v1.8.1 remains stable. Do not generate this configuration
 for older versions. No Home Assistant helper, backend, PE/CM integration or device
 service is required. All examples use synthetic entities and mock plans.
@@ -148,5 +148,5 @@ No Climate, Car or speculative CM integration is implemented in beta.7.
 Automated Chromium covers synthetic desktop/tablet/mobile, per-line bounds,
 root/module/palette return, timeout, repeated opens, touch/keyboard, live state,
 late navigation, removal and multiple hosts. Screenshots live in CI evidence.
-Actual owner Info Cube, Terminal add-on and HACS acceptance are separate. Do not
-publish beta.7 or close #140 until owner review and explicit publication approval.
+Actual owner Info Cube, Terminal add-on and HACS acceptance are separate. Beta.7 publication was separately authorized for owner HACS testing. Do not close
+#140 or promote stable until owner acceptance and explicit further approval.

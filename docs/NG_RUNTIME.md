@@ -58,7 +58,7 @@ regressions cover Sonos Sleep/Join/Radio/artwork and Light Hue/Kelvin zoom,
 82px geometry, dynamic slots, gestures and idle/sibling navigation.
 No physical Home Assistant installation is contacted by tests.
 
-## Read-only Info view (unpublished v1.9.0-beta.7)
+## Read-only Info view (published v1.9.0-beta.7 prerelease)
 
 `honeycombNG.openInfoInContext(context, payload)` and `openInfo(payload)` share the
 [Info Cube contract](INFO_CUBE.md). A current mounted caller is required. Declarative
