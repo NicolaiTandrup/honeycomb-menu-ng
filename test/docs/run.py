@@ -30,12 +30,16 @@ Loader.add_constructor('!include',lambda loader,node:loader.construct_scalar(nod
 Loader.add_constructor('!include_dir_named',lambda loader,node:loader.construct_scalar(node))
 # Reject duplicate keys, including accidental duplicate template:/script: wrappers.
 def mapping(loader,node,deep=False):
-    result={}
-    for key,value in node.value:
+    explicit=set()
+    for key,_ in node.value:
+        if key.tag=='tag:yaml.org,2002:merge':continue
         k=loader.construct_object(key,deep=deep)
-        assert k not in result,f'duplicate YAML key: {k}'
-        result[k]=loader.construct_object(value,deep=deep)
-    return result
+        assert k not in explicit,f'duplicate YAML key: {k}'
+        explicit.add(k)
+    # YAML merge aliases deliberately allow explicit keys to override inherited
+    # defaults. Check actual duplicate source keys before flattening those merges.
+    loader.flatten_mapping(node)
+    return {loader.construct_object(key,deep=deep):loader.construct_object(value,deep=deep) for key,value in node.value}
 Loader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,mapping)
 def load(text): return yaml.load(text,Loader=Loader)
 def blocks(text):
@@ -43,7 +47,8 @@ def blocks(text):
 
 SHARED=set('entity name label icon show_name show_label show_icon energy_wave background foreground colors border styles variables custom_fields interactive off active_color show_brightness show_volume tap_action hold_action double_tap_action hold_time autoclose audio menu presets'.split())
 SONOS=set('favorites_sensor toggle_member_script members group_volume_down_script group_volume_up_script'.split())
-ITEM=SHARED|SONOS|set('type module slot slot_mode visibility show persistent'.split())
+CHARGER=set('provider entities device_id discover max_age association chargers'.split())
+ITEM=SHARED|SONOS|CHARGER|set('type module slot slot_mode visibility show persistent'.split())
 def known(value,allowed,where):
     assert isinstance(value,dict),where
     assert not set(value)-allowed,f'{where}: unsupported example keys {set(value)-allowed}'
@@ -53,14 +58,22 @@ def actions(obj):
     elif isinstance(obj,dict):
         for key,value in obj.items():
             if key in ('tap_action','hold_action','double_tap_action'):
-                known(value,set('action perform_action service data service_data target navigation_path url_path honeycomb_menu'.split()),key)
-                assert value['action'] in ('none','toggle','more-info','perform-action','call-service','navigate','url','fire-dom-event')
+                known(value,set('action perform_action service data service_data target navigation_path url_path honeycomb_menu info'.split()),key)
+                assert value['action'] in ('none','toggle','more-info','perform-action','call-service','navigate','url','fire-dom-event','honeycomb-info')
                 if value['action']=='perform-action': assert re.fullmatch(r'\w+\.\w+',value['perform_action'])
             actions(value)
 def item(value,where):
     known(value,ITEM,where)
-    assert value.get('module',value.get('type')) in ('light','sonos','media','generic'),where
-    if value.get('module',value.get('type'))!='generic' or 'entity' in value:assert re.fullmatch(r'\w+\.\w+',value['entity']),where
+    module=value.get('module',value.get('type'))
+    assert module in ('light','sonos','media','generic','charger','charging-hub'),where
+    if module=='charging-hub':
+        assert isinstance(value.get('chargers'),list),where
+        for member in value['chargers']:item(member,where+' aggregate member')
+    elif module!='generic' or 'entity' in value:assert re.fullmatch(r'\w+\.\w+',value['entity']),where
+    if module=='charger':
+        assert value.get('provider','generic') in ('easee','generic'),where
+        if 'entities' in value:known(value['entities'],set('status power enabled online connected session_energy physical_lock permanent_lock current limit'.split()),where)
+        if 'association' in value:known(value['association'],{'entity','charger_key','max_age'},where)
     if 'slot_mode' in value: assert value['slot_mode'] in ('hard','soft','priority')
     if value.get('slot_mode')=='priority': assert 'slot' in value
     if 'slot' in value: assert type(value['slot']) is int and 0<=value['slot']<=216
@@ -80,7 +93,7 @@ def card(config,where):
         known(config,{'type','name','size','logo','items','auto_open','menu','style','auto_reference_width'},where)
         for i,value in enumerate(config['items']): item(value,f'{where} item {i}')
     elif config['type']=='custom:honeycomb-persistent-control':
-        known(config,SHARED|SONOS|{'type','module','size','style','auto_reference_width'},where)
+        known(config,SHARED|SONOS|CHARGER|{'type','module','size','style','auto_reference_width'},where)
         item({k:v for k,v in config.items() if k not in ('type','size','style','auto_reference_width')},where)
     elif config['type']=='button':
         known(config,{'type','entity','name','hold_action'},where)
@@ -93,13 +106,16 @@ def card(config,where):
 def fragment(config,where):
     """Give reference fragments their documented context before checking contracts."""
     if isinstance(config,list):
+        if config and all(isinstance(v,dict) and v.get('type') in ('custom:honeycomb-persistent-hub','custom:honeycomb-persistent-control') for v in config):
+            for i,value in enumerate(config):card(value,f'{where} picture element {i}')
+            return None
         if all(isinstance(v,dict) and v.get('type') in ('light','sonos','media','generic') for v in config):
             return {'type':'custom:honeycomb-persistent-hub','items':config}
         for value in config:known(value,SHARED|{'slot','slot_mode','position','active','show'},where)
     elif 'homeassistant' in config:
         assert config=={'homeassistant':{'packages':'packages'}},where
     elif 'type' in config:
-        if config['type'] in ('light','sonos','media','generic'):
+        if config['type'] in ('light','sonos','media','generic','charger','charging-hub'):
             return {'type':'custom:honeycomb-persistent-hub','items':[config]}
         if config['type']=='picture-elements':
             known(config,{'type','image','elements'},where)
@@ -203,6 +219,14 @@ class Examples(BROWSER.Cubes):
         self.page.evaluate("pushState('light.zone_a','off',{supported_color_modes:['hs']})")
         self.assertEqual(self.controls().first.evaluate('(e)=>e._model.fill.type'),'solid')
         self.capture('docs-shared-presentation-example')
+    def test_docs_info_cards_open_read_only_and_return(self):
+        for name in ['info-text.yaml','info-stack.yaml','info-positioned.yaml','info-dynamic.yaml','info-charging-plan.yaml']:
+            if self.page.evaluate('!!window.hub'):self.page.evaluate('hub.remove()')
+            self.hub(load((ROOT/'examples'/name).read_text()));self.settle()
+            self.activate(self.page.locator('honeycomb-menu-ng [data-honeycomb-slot="0"] .interaction-surface'))
+            self.page.locator('honeycomb-ng-info .surface').wait_for();self.page.locator('honeycomb-ng-info .surface').press('Escape')
+            self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0)
+        self.assertEqual(self.page.evaluate('calls.length'),0)
     def test_docs_basic_hub_and_auto_tables(self):
         self.hub(self.examples['hub.yaml']);self.assert_visible_unique_cells(3)
         for count,without,with_logo in self.auto:
@@ -284,6 +308,20 @@ def main():
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
     for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
+    for name,count in [('charger-easee.yaml',1),('charger-multi.yaml',2)]:
+        dashboard=load((ROOT/'examples'/name).read_text())
+        assert dashboard['views'][0]['panel'] is True
+        picture=dashboard['views'][0]['cards'][0]
+        assert picture['type']=='picture-elements' and picture['image'].startswith('data:image/svg+xml,')
+        hub=picture['elements'][0]
+        assert len(hub['items'])==count+1 and hub['items'][0]['type']=='charging-hub'
+        assert len(hub['items'][0]['chargers'])==count
+        assert all(a=={k:v for k,v in b.items() if k!='slot'} for a,b in zip(hub['items'][0]['chargers'],hub['items'][1:]))
+        cards.append({'source':f'examples/{name} (complete dashboard)','config':hub})
+    for i,element in enumerate(load((ROOT/'examples/charger-elements.yaml').read_text())):
+        cards.append({'source':f'examples/charger-elements.yaml element {i}','config':element})
+    for name in ['info-text.yaml','info-stack.yaml','info-positioned.yaml','info-dynamic.yaml','info-charging-plan.yaml']:
+        cards.append({'source':'examples/'+name,'config':load((ROOT/'examples'/name).read_text())})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:
         for index,block in enumerate(blocks(file.read_text())):
@@ -320,7 +358,7 @@ def main():
     assert len(Examples.auto)==7
     assert hashlib.sha256(args.button_card.read_bytes()).hexdigest()==BROWSER.BUTTON_SHA
     server=ThreadingHTTPServer(('127.0.0.1',0),BROWSER.Handler);server.bundle=args.bundle.resolve();server.button=args.button_card.resolve()
-    threading.Thread(target=server.serve_forever,daemon=True).start();success=True
+    threading.Thread(target=server.serve_forever,daemon=True).start();success=True;browser_checks=0
     try:
         with sync_playwright() as p:
             Examples.browser=p.chromium.launch(executable_path=os.getenv('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox'])
@@ -328,10 +366,10 @@ def main():
             for width,height in [(1100,900),(390,844)]:
                 Examples.viewport={'width':width,'height':height}
                 names=[name for name in unittest.defaultTestLoader.getTestCaseNames(Examples) if name.startswith('test_docs_')]
-                result=unittest.TextTestRunner(verbosity=2,resultclass=BROWSER.CheckResult).run(unittest.TestSuite(Examples(name) for name in names));success=result.wasSuccessful() and success
+                result=unittest.TextTestRunner(verbosity=2,resultclass=BROWSER.CheckResult).run(unittest.TestSuite(Examples(name) for name in names));success=result.wasSuccessful() and success;browser_checks+=result.testsRun
             Examples.browser.close()
     finally:server.shutdown();server.server_close()
-    report={'passed':success,'yaml_blocks':yaml_count,'complete_cards':complete,'contextual_fragments':len(cards)-complete,'local_links':link_count,'canonical_browser_checks':12}
+    report={'passed':success,'yaml_blocks':yaml_count,'complete_cards':complete,'contextual_fragments':len(cards)-complete,'local_links':link_count,'canonical_browser_checks':browser_checks}
     (args.evidence_dir/'documentation-results.json').write_text(json.dumps(report,indent=2)+'\n')
     return 0 if success else 1
 if __name__=='__main__':raise SystemExit(main())

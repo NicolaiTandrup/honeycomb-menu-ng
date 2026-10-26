@@ -1,17 +1,103 @@
+## v1.9.0 stable promotion
+
+Owner-approved cumulative baseline: public beta.9 f95e5fbc7273ae06055bb5f106bdd6a3a82a183d.
+All runtime/configuration semantics below are retained in v1.9.0. Stable publication
+is authorized only after mandatory exact-source CI/release gates. Do not generate
+Climate/Car modules. See [stable evidence/checklist](V1_9_STABLE_RELEASE.md).
+
+## v1.9.0-beta.9 — Info source paint hotfix
+
+Each Info `colors.center`, `colors.inner_border`, `colors.outer_border` independently
+accepts `source`, a literal CSS color, or supported CSS linear/radial/conic gradient.
+Example: `colors: {center: source, inner_border: '#f4a0c9', outer_border: source}`.
+At opening, the actual invoking cube's rendered layer is snapshotted, including
+SVG linear/radial paint servers, direction/transforms, all stops, stop alpha and
+layer opacity. Resolved HA styling is captured, not re-evaluated as raw YAML.
+No gradient is flattened into a solid. Later HA updates do not change these three
+snapshots or restart the timeout; reopening captures fresh appearance. Missing
+source/unsupported or cyclic paint references use the normal neutral layer default.
+External paint-server URLs are never fetched; explicit CSS gradients cannot use URLs.
+The connector remains separate/live. For gradient inner borders its documented
+representative is the first stop's color (not an exact gradient/stop-opacity copy).
+Geometry, wrapping, pagination, navigation and fixed30-second lifetime are unchanged.
+
 # AI configuration guide
 
-**VERSION CONTRACT:** this is the proposed v1.8.0 stable candidate on exact
-owner-tested v1.8.0-beta.7 runtime. It is not published; latest stable remains
-v1.7.1. The sole owner/user has already migrated to the 1.8 track and selected
-v1.8.0. No separate legacy migration guide or compatibility shim is required.
-See the [candidate audit/publication gates](V1_8_RELEASE_CANDIDATE.md). Features include namespace
-isolation, one shared renderer, 40% active/logo gradients, reference-display
-autosizing, fixed numeric sizes, true hex pulse, power/fixed speed and resolved
-inner-border/default or optional explicit pulse color. See [runtime API](NG_RUNTIME.md),
+**VERSION CONTRACT:** v1.8.1 is the latest published stable maintenance release,
+with the same runtime as owner-tested v1.8.0. Stable includes NG namespace
+isolation, the shared 82px renderer, 40% active/logo gradients, reference-display
+autosizing, fixed numeric sizes, true hexagonal pulse, power/fixed speed and
+resolved inner-border/default or optional explicit pulse color. See [runtime API](NG_RUNTIME.md),
 [shared presentation](CUBE_PRESENTATION.md) and [native favorites](SONOS_NATIVE_FAVORITES.md).
-No Car/Charger/Climate, backend helper or retention activation is included.
-All prior Sonos Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior
-remains supported. No runtime code from v1.6 is imported.
+Car/Charger/Climate are not implemented in v1.8.1 stable. All existing Sonos
+Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior is supported.
+No runtime code from v1.6 is imported. Catalog inclusion is pending; use the
+HACS custom repository until accepted. [Catalog submission](HACS_CATALOG_SUBMISSION.md).
+
+**BETA EXTENSION — published v1.9.0-beta.5 (cumulative beta.3 API):** `type: charger` / `module: charger`
+and `type: charging-hub` / `module: charging-hub` are implemented in this prerelease.
+Never generate Charger YAML for v1.8.1 stable. Use the exact
+[Charger schema/entity/slot/action/freshness contract](CHARGER_MODULE.md) and the
+complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
+dashboards. No backend, optimizer, Car or Climate module is added.
+
+**CURRENT REVIEW — unpublished v1.9.0-beta.8 candidate:** baseline is exact published
+beta.7 `63a9619d27fe503919389f1a51090a2a01193f80`. Refines Info Cube #140 only;
+no Climate/Car/CM integration. Use [Info Cube](INFO_CUBE.md) and
+[module authoring](MODULE_AUTHORING.md). Action is `honeycomb-info` with `info`
+payload, not a module type. Default text mode wraps; `stack` and `positioned`
+remain supported. Titles, body, blocks and optional `footer` accept plain strings
+or scalar HA entity/attribute bindings, including prefix/suffix/fallback; no HTML/JS.
+Geometry is centered on caller slot 0 and bounded by the six first-ring INNER
+NOTCHES, **not** a literal 0–7 enclosing polygon. At cube width 82 the maximum
+Info width/height is approximately 163.1443/188.3827 px; `scale: 0.5–1` may reduce
+it, never enlarge it. Caller numeric sizing/`size: auto` resolves the base size.
+Viewport fitting shrinks around the existing center, never translates it.
+`colors.center` = center fill, `colors.inner_border` and `colors.outer_border`
+independently override shared neutral defaults; `colors.foreground` sets text.
+`connector` defaults true and inherits the source cube's resolved inner-border
+color, not Info colors; use `connector: false` or `connector: {color: '#f08020'}`.
+The source-facing edge sits in the border gutter, not through text. Nested/promoted
+and outer source slots use actual screen geometry. Programmatic calls should pass
+the source element as optional third API argument; otherwise use the caller center.
+Tap returns exact caller; fixed 30-second close-all. Underlying cubes stay mounted,
+visible where uncovered, stationary and inert; transparent input shield prevents
+click-through. Content never changes geometry: paginate instead of shrinking fonts.
+All examples are synthetic. Normal HACS runtime is separate from optional DEV loader.
+Do not claim beta.8 is published or installable through HACS before authorization.
+
+### Charger generation rules (1.9.0-beta.3 and later candidates)
+
+1. Collect real `entity` status plus explicit role mappings, provider (`easee` or
+   `generic`), friendly name and actual W/kW, Wh/kWh, A/mA units. Do not fabricate
+   installed IDs. Exact Easee platform/device/unique-ID discovery is optional;
+   a denied registry falls back to explicit mappings, never fuzzy names.
+2. Use an ordinary Hub with `logo: false`, a `charging-hub` item at `slot: 0`
+   containing `chargers: [full descriptors]`, and ordinary named `charger` items.
+   Reuse YAML anchors as in the complete examples. Zero members is supported.
+   The aggregate deduplicates physical identity/status/power; unavailable is not zero.
+3. Individual launchers use two body rows: vehicle/connection (safety errors or
+   Disabled take precedence), then fixed charger name. Fresh charging power is
+   an icon-row badge, not a third body row. Details are fixed: 0 summary/Back; 1 verified Enabled switch;
+   2 verified permanent-lock switch plus separate read-only physical lock;
+   3 session kWh; 4 current vehicle/connection; 5 current/allocation A read-only;
+   6 diagnostics/more-info. Missing capabilities stay reserved and disabled.
+4. Only intentional slot-1/2 taps call `switch.turn_on/off` with an exact entity
+   target. Never generate enable/lock on render, hold/navigation, refresh or restart.
+   No implicit retry. Pending/failed/unconfirmed are distinct from HA/hardware success.
+5. `max_age` (default 300 s, bounds 10–86400) gates measured power by timezone-aware
+   HA last_reported/last_updated. Use the existing `energy_wave` speed/color options;
+   module-derived health/power cannot be overridden to force an unsafe animation.
+6. Optional `association` has `entity: sensor.*`, exact `charger_key`, optional
+   `max_age` (same bounds/default). Attributes are assignments array with charger,
+   car, car_name, confirmed mode (auto_assigned/manual_until_disconnect), plus
+   timezone-aware updated_at. Never read lastAssignedCar, infer identity, count
+   associations as physical connections or require an absent Node-RED sensor.
+7. Preserve existing numeric size / `size: auto` + `auto_reference_width` and Hub
+   visibility/placement. Leave room for anchored detail rings on narrow floorplans.
+   Independent Car cubes are future work and must not be consumed by an association.
+8. Mark examples as synthetic and real-device acceptance as pending. Do not touch
+   owner automation or publish stable without explicit later approval.
 
 This is a configuration contract for an assistant helping an HA user. Examples
 are synthetic test fixtures, **not discovered entities**. Never silently substitute
@@ -40,12 +126,59 @@ Ask for actual IDs or omit optional features. Public examples must remain synthe
 7. Emit one complete card, then list **external HA prerequisites** separately. Validate
    it using the checklist below; do not claim optional HA configuration already exists.
 
+## Light capability and OFF name rules (beta.6 candidate)
+
+- Existing item `name` supplies the **OFF Hub launcher** primary text; otherwise
+  use HA `friendly_name`, then readable entity ID. Secondary is `OFF`. No
+  `off_name`, `display_name` or other new key exists. A short name such as `A`
+  needs no `show_name: true` for OFF identification. ON presentation is unchanged;
+  use existing `show_name` deliberately if names are also desired while ON.
+  Standalone/classic controls and promoted Back centers keep their prior behavior.
+  Explicit `label` overrides retain their existing precedence. Unknown/unavailable
+  is rendered as `Unavailable`, never guessed OFF. Long names use shared ellipsis.
+- Capabilities come from HA `supported_color_modes`: `onoff` only has no detail
+  menu; fixed `brightness`/`white` has no chromatic/Kelvin palette; `color_temp`
+  supplies White only with actual min/max; `hs`/`xy`/`rgb`/`rgbw`/`rgbww` supplies
+  Color. A Color mode plus `color_temp` supplies both. Do not infer tunable white
+  from `rgbw`, RGB attributes, friendly name or icon. Group support is not invented.
+- Cube **3**, not center 0, displays the viewed palette and supported alternative.
+  Tap opens current/viewed; hold opens opposite only when supported. Initial
+  selection follows HA `color_mode`; off/null uses reliable same-entity session
+  memory or a deterministic supported fallback. Manual navigation remains UI-only
+  until deliberate swatch tap; recursive Hue/Kelvin zoom and Back remain intact.
+- Root Hub black/status/identity fill stays unchanged. Every ordinary submenu
+  depth defaults to Light gray fill `rgba(52, 66, 78, 0.94)`, inner `#34424e`, dark
+  outer `#34383d`. Functional colors (Light swatches, station identities, active
+  controls, promoted state) and explicit per-cube `colors.center`,
+  `colors.inner_border`, `colors.outer_border` or existing styles stay valid.
+  Do not apply a global gray reset over semantic Light/Sonos colors. Selected
+  cubes become logical 0 at the same physical anchor; Back restores saved layout.
+- Bee click displays a derived short release label inside its golden cell, no
+  new cube/config key. Technical version/source stays at `window.honeycombNG`.
+  Development cache settings apply only to the optional dev loader; never emit
+  them into production/HACS resource URLs or claim a new published release.
+
+Synthetic complete example; replace IDs with actual supplied entities:
+
+```yaml
+type: custom:honeycomb-persistent-hub
+logo: auto
+items:
+  - type: light
+    entity: light.zone_a
+    name: A
+  - type: light
+    entity: light.zone_b
+    name: B
+```
+
 ## Configuration contract
 
 The table is the recommended public surface, not a schema for arbitrary button-card
 keys. Unknown YAML fields may be ignored by runtime code: acceptance by `setConfig`
 is not proof that a feature exists. Do not invent keys such as `visible_when`,
-`placement`, `center_slot`, `menu_size`, `chargers` or `onoff`.
+`placement`, `center_slot`, `menu_size` or `onoff`. `chargers` is valid only on
+the documented charging-hub descriptor, not an arbitrary root/menu.
 
 | Boundary | Keys and types |
 |---|---|
@@ -192,9 +325,16 @@ domain's `set_value`. Storing brightness converts HA 0–255 into rounded percen
 
 No helpers are needed for normal operation: apply-only defaults are 60% and 2700 K.
 The standard slot chooses HS when color-capable with both hue/saturation values,
-otherwise a supported Kelvin preset, otherwise 2700 K. It does not show separate
+otherwise a supported Kelvin preset (default 2700 K), otherwise a brightness preset. It does not show separate
 HS and Kelvin preset buttons simultaneously. Palette is 12 hues for color-capable
-Lights or 12 Kelvin steps for temperature-only Lights. Brightness-only keeps a
+Lights or 12 native Kelvin steps. In v1.9.0-beta.4 dual-capability Lights tap
+to open the current `color_mode` palette and hold to open the opposite supported
+palette. Only `supported_color_modes` grants controls: `rgbw`/`rgbww` alone does
+not grant `color_temp`. From v1.9.0-beta.5, cube 3 primary/secondary = displayed palette / supported
+alternative; no unsupported alternative label. UI switching never sends HA commands.
+An off/null mode can use entity-specific frontend-session memory, else Color when
+supported, then White; unavailable state is not inferred from RGB values. Manual
+selection survives passive updates until navigation/reopen. Brightness-only keeps a
 passive slot 3; explicitly `[onoff]` has no detail menu. Never infer `[onoff]` just
 from missing attributes on an unavailable entity. [Light details](LIGHT_MODULE.md).
 
@@ -697,3 +837,53 @@ styles or paint URLs. Node checks validate structure, not browser color support.
 Keep alpha, opacity, geometry, rate/phase, health gates and sizing unchanged.
 [Exact color contract](ENERGY_WAVE.md#contour-color--v180-beta7)
 and [complete no-hardware green/blue demo](../examples/energy-wave-color.yaml).
+
+
+## v1.9.0-beta.4 child navigation and inner-border hierarchy
+
+A promoted child stays at the selected cube's pixel center and becomes logical
+slot 0; its own children surround that anchor. Back restores the exact saved
+anchor/layout at each level. Palette expansions and Sonos sibling menus retain
+their existing module anchor and history. This is shared navigation, not a
+Charger-specific positioning engine. Numeric and `size: auto` use existing sizing.
+
+Beta.4 made Charger detail inner borders gray; beta.5 now shares the Light control
+neutral fill (`rgba(52, 66, 78, 0.94)`) and inner border (`#34424e`) at every submenu depth;
+root Charger status colors, outer borders, center fill and energy-wave semantics
+are unchanged. Explicit `colors.inner_border` overrides (including menu
+`button_defaults` and individual `buttons`) are honored at every depth. A promoted
+center preserves the selected cube's explicit visual settings; a child menu's
+explicit `promoted_center` appearance takes precedence. Do not propagate a root
+status color automatically to newly created detail actions. Existing intentional
+Light and Sonos inner colors/defaults are protected and are not reset by depth.
+No new public YAML key or module implementation is introduced.
+
+
+## v1.9.0-beta.5 palette indicator correction
+
+The Color/White primary/secondary labels and switching gestures belong to logical
+cube 3, the existing palette launcher. Slot 0 retains the original center entity,
+name/brightness, physical appearance and Back behavior. On cube 3, tap still opens
+the state-aware starting palette and hold opens only the other advertised supported
+palette. Manual selection survives passive updates; Hue/Kelvin zoom and Back keep
+the cube-3 labels synchronized with the viewed palette. White Ambiance has White
+only, an empty alternative label and no Color hold action. No new YAML key.
+
+
+## v1.9.0-beta.5 shared submenu defaults
+
+Ordinary submenu controls at every depth use the established Light theme:
+fill `rgba(52, 66, 78, 0.94)`, inner border `#34424e`, outer border `#34383d`.
+These are RGB-equivalent neutral gray fill/inner, with existing fill opacity
+preserved to avoid restyling Light. The Hub root keeps its existing black/dark
+base and meaningful status/identity colors. A promoted center keeps its functional
+entity presentation; there is no global depth-based recoloring of active centers,
+Light swatches or Sonos station/favorite/function colors.
+
+The shared fallback is renderer data, not an injected implicit `styles.card`
+background. Explicit per-cube `colors.center`, `colors.inner_border`,
+`colors.outer_border`, and card background styles remain supported at all submenu
+depths. In a submenu, explicit `colors.center` takes precedence over background
+styles; without it, an explicit card/background style wins over the shared
+fallback. Root precedence remains unchanged. Module presentations may supply
+meaningful functional colors. No new public configuration option is required.

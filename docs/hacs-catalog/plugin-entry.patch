@@ -1,0 +1,10 @@
+--- a/plugin
++++ b/plugin
+@@ -588,6 +588,7 @@
+   "ngocjohn/sidebar-organizer",
+   "ngocjohn/vehicle-info-card",
+   "ngocjohn/vehicle-status-card",
++  "NicolaiTandrup/honeycomb-menu-ng",
+   "nicosandller/easy-floorplan",
+   "nicufarmache/lovelace-big-slider-card",
+   "nielsfaber/alarmo-card",

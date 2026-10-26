@@ -7,8 +7,11 @@ const { customActionRegistry } = require('./core/action-registry.js');
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
+const {isOnOffOnly}=require('./modules/light/presentation');
+const {SUBMENU_FILL,SUBMENU_INNER}=require('./core/submenu-theme');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
+const infoPaint = require('./core/info-paint.js');
 const imageSizing = require('./core/image-sizing.js');
 const energyWave = require('./core/energy-wave.js');
 let nextFillId=0;
@@ -16,6 +19,8 @@ const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-m
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
+const buildInfo = require('./core/build-info');
+const beeVersion = require('./core/version-label').versionLabel(buildInfo.version);
 
 class CubeElement extends LitElement
 {
@@ -29,7 +34,8 @@ class CubeElement extends LitElement
         return {
             hass: { type: Object },
             config: { type: Object },
-            size: { type: Number }
+            size: { type: Number },
+            paintSnapshot: { attribute: false }
         };
     }
 
@@ -48,6 +54,7 @@ class CubeElement extends LitElement
         this._pointerStartY = 0;
         this._beeFlapping = false;
         this._beeFlapTimer = null;
+        this._beeAnimationFrame = null;
     }
 
     static get styles()
@@ -97,8 +104,16 @@ class CubeElement extends LitElement
             .external-content > * { height:100%; }
             .primary { font-size:calc(var(--honeycomb-persistent-size,82px)*.16);font-weight:650;line-height:1.1; }
             .primary,.secondary { max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+            .tertiary { max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                font-size:calc(var(--honeycomb-persistent-size,82px)*.11);line-height:1.1;margin-top:calc(var(--honeycomb-persistent-size,82px)/82*2); }
             .content.has-primary.has-secondary .secondary { font-size:calc(var(--honeycomb-persistent-size,82px)*.12); }
             .content.has-primary ha-icon { width:30%;height:30%; }
+            .content.two-row .primary { font-size:calc(var(--honeycomb-persistent-size,82px)*.12);max-width:94%; }
+            .content.two-row .secondary { font-size:calc(var(--honeycomb-persistent-size,82px)*.15);max-width:84%; }
+            .icon-with-badge { display:flex;align-items:center;justify-content:center;gap:calc(var(--honeycomb-persistent-size,82px)*.035);max-width:84%;height:25%; }
+            .content .icon-with-badge ha-icon { width:calc(var(--honeycomb-persistent-size,82px)*.22);height:calc(var(--honeycomb-persistent-size,82px)*.22);transform:none;flex-shrink:0;--mdc-icon-size:calc(var(--honeycomb-persistent-size,82px)*.22); }
+            .power-badge { font-size:calc(var(--honeycomb-persistent-size,82px)*.12);font-weight:650;white-space:nowrap; }
+            .media-background-artwork { position:absolute;left:26%;top:22%;width:48%;height:38%;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important; }
             .interaction-surface:focus-visible { outline:2px solid var(--primary-color,#2196f3);outline-offset:-5px; }
             .interaction-surface {
                 position: absolute;
@@ -143,9 +158,22 @@ class CubeElement extends LitElement
                 filter: drop-shadow(0 calc(var(--honeycomb-persistent-size,82px) / 82) calc(var(--honeycomb-persistent-size,82px) / 82) rgba(0, 0, 0, 0.18));
             }
 
+            .content.with-bee-version {
+                padding-bottom:8%;box-sizing:border-box;
+                clip-path:polygon(50% 8%,92% 29%,92% 71%,50% 92%,8% 71%,8% 29%);
+            }
+            .content.with-bee-version .bee-icon { width:34%;height:34%;flex-shrink:0; }
+            .bee-version {
+                display:flex;flex-direction:column;align-items:center;max-width:65%;
+                color:inherit;line-height:1.08;text-align:center;white-space:nowrap;
+                margin-top:calc(var(--honeycomb-persistent-size,82px)*.015);
+            }
+            .bee-version span { display:block; }
+
             .bee-icon.flap {
                 animation: honeycomb-bee-flight 430ms ease-in-out;
             }
+            @media(prefers-reduced-motion:reduce) { .bee-icon.flap { animation:none; } }
 
             @keyframes honeycomb-bee-flight {
                 0%, 100% {
@@ -262,7 +290,8 @@ class CubeElement extends LitElement
             inner:color('inner_border',presentation.colors.inner),
             outer:color('outer_border','#34383d')
         };
-        if (this.config.mode === 'generic') {
+        const explicitSubmenuCenter=this.config._submenu && configured.center && this._value(configured.center)!=='auto';
+        if (this.config.mode === 'generic' && !explicitSubmenuCenter) {
             colors.center = card.background || card['background-color'] || this._value(this.config.background, colors.center);
         }
         if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
@@ -275,14 +304,19 @@ class CubeElement extends LitElement
             customBackground:!!(card.background || card['background-color'] || this.config.background),
             disabled:!!(this.config.disabled || presentation.disabled),
             colorMix:supportsColorMix});
-        const model = {colors, fill, secondary, ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
+        const model = {colors, fill, secondary,
+            ...(presentation.iconBadge !== undefined ? {iconBadge:presentation.iconBadge} : {}),
+            ...(presentation.labelLayout !== undefined ? {labelLayout:presentation.labelLayout} : {}),
+            ...(presentation.tertiary !== undefined ? {tertiary:presentation.tertiary} : {}),
+            ...(presentation.ariaLabel !== undefined ? {ariaLabel:presentation.ariaLabel} : {}),
+            ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
             icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
             foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
             inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
-        const wave=this.config.energy_wave;
+        const wave=presentation.energyWave === false || this.config.energy_wave === false ? false : presentation.energyWave || this.config.energy_wave;
         const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
         const state=this._entityState();
         const timing=energyWave.timing(normalized);
@@ -294,11 +328,11 @@ class CubeElement extends LitElement
         else if((!waveEnabled || !this.isConnected) && this._waveCleanup){this._waveCleanup();this._waveCleanup=null;}
         // Display refresh only. The backend/device owns expiry; this never calls HA.
         const refreshAt=presentation.refreshAt || null;
-        if (refreshAt!==this._presentationRefreshAt || !this.isConnected) {
+        if (refreshAt!==this._presentationRefreshAt || !this.isConnected || refreshAt && !this._presentationTimer) {
             clearTimeout(this._presentationTimer);this._presentationTimer=null;
             this._presentationRefreshAt=refreshAt;
             if (refreshAt && this.isConnected) this._presentationTimer=setTimeout(()=>{
-                this._presentationRefreshAt=null;this._updatePresentation();
+                this._presentationTimer=null;this._presentationRefreshAt=null;this._updatePresentation();
             },Math.max(100,refreshAt-Date.now()));
         }
         const signature = JSON.stringify(model);
@@ -404,12 +438,19 @@ class CubeElement extends LitElement
         this._localPresentationUnsubscribe=null;this._localPresentationKey=null;
         clearTimeout(this._presentationTimer);this._presentationTimer=null;this._presentationRefreshAt=null;
         this._cancelGesture();
+        if (this._ownedMenuContext && this._ownedMenuContext.owner === this)
+            window.honeycombNG.disposeContext(this._ownedMenuContext);
+        this._ownedMenuContext=null;
 
         if( this._beeFlapTimer )
         {
             clearTimeout(this._beeFlapTimer);
             this._beeFlapTimer = null;
         }
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        this._beeAnimationFrame = null;
+        this._beeFlapping = false;
     }
 
     getCardSize()
@@ -478,6 +519,7 @@ class CubeElement extends LitElement
             const presentation = module.presentation.resolve({
                 config: this.config || {},
                 state: this._entityState(),
+                evaluate: value => this._value(value),
                 hass: this.hass,
                 runtime
             });
@@ -488,12 +530,13 @@ class CubeElement extends LitElement
                 return presentation;
         }
 
-        const unavailable = this.config.mode === 'generic' ? '#34424e' : (configured.unavailable || '#555b63');
+        const generic=this.config.mode === 'generic';
+        const unavailable = generic ? this.config._submenu ? SUBMENU_FILL : '#34424e' : (configured.unavailable || '#555b63');
 
         return {
             colors: {
                 center: unavailable,
-                inner: unavailable,
+                inner: generic && this.config._submenu ? SUBMENU_INNER : unavailable,
                 outer: unavailable
             },
             secondary: null
@@ -564,6 +607,8 @@ class CubeElement extends LitElement
     {
         if( ! this.config || ! this.config.menu )
             return null;
+        if (['persistent','light'].includes(this.config.mode) && isOnOffOnly(this._entityState()))
+            return null;
 
         const menu = merge({}, this.config.menu);
 
@@ -623,13 +668,9 @@ class CubeElement extends LitElement
         if( this.config.match_anchor_size !== false )
             menu.size = anchorSize * 3.586;
 
-        const persistentDefaults = {styles:{card:[{background:'rgba(52, 66, 78, 0.94)'}]}};
-
-        menu.button_defaults = merge(
-            {},
-            persistentDefaults,
-            menu.button_defaults || {}
-        );
+        // Scene preparation supplies the same neutral fallback for every
+        // submenu depth. Do not disguise a default as an explicit card style:
+        // that would override user center colors and module presentations.
 
         const center = merge({}, this.config);
         delete center.menu;
@@ -659,6 +700,7 @@ class CubeElement extends LitElement
 
     _handlePointerDown(e)
     {
+        if (this._isPreview()) return;
         if( ! this.config || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false )
             return;
 
@@ -771,13 +813,35 @@ class CubeElement extends LitElement
         const host = root && root.host ? root.host : null;
         const context = host && host._menuContext ? host._menuContext : null;
 
+        // Only genuine child promotion moves the scene. Existing Light zoom
+        // and Sonos sibling expansions deliberately retain their module center.
+        if (context && menu.nested_expand === true && menu.inherit_inner !== true &&
+            !menu._navigation_sibling && menu.promote_to_center === true) {
+            menu=merge({},menu);
+            const rect=this.getBoundingClientRect();
+            menu.anchor_x=rect.left+rect.width/2; menu.anchor_y=rect.top+rect.height/2;
+            menu.promote_to_center=true;
+            if (!menu.promoted_center) {
+                menu.promoted_center=merge({},this.config);
+                delete menu.promoted_center.menu;
+            } else {
+                // Preserve explicit selected-cube appearance, not parent colors.
+                const appearance={};
+                for (const key of ['colors','border','styles','foreground','background'])
+                    if (this.config[key] !== undefined) appearance[key]=this.config[key];
+                menu.promoted_center=merge({},appearance,menu.promoted_center);
+            }
+        }
+
         if( context && typeof window.honeycombNG.openInContext === 'function' )
             return window.honeycombNG.openInContext(context, menu);
 
         if( typeof window.honeycombNG.open !== 'function' )
             return null;
 
-        return window.honeycombNG.open(menu);
+        const opened=window.honeycombNG.open(menu,this);
+        this._ownedMenuContext=opened && opened._menuContext;
+        return opened;
     }
 
     _openMenu()
@@ -836,10 +900,17 @@ class CubeElement extends LitElement
 
     _flapBee()
     {
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        clearTimeout(this._beeFlapTimer);
+        this._beeFlapTimer = null;
         this._beeFlapping = false;
+        if( !this.isConnected ) return;
         this.requestUpdate();
 
-        requestAnimationFrame(() => {
+        this._beeAnimationFrame = requestAnimationFrame(() => {
+            this._beeAnimationFrame = null;
+            if( !this.isConnected ) return;
             this._beeFlapping = true;
             this.requestUpdate();
 
@@ -854,8 +925,15 @@ class CubeElement extends LitElement
         });
     }
 
+    _isPreview()
+    {
+        const context=(this.getRootNode().host || {})._menuContext || this._menuContext;
+        return this.preview === true || !!(context && context.owner && context.owner.preview === true);
+    }
+
     _executeAction(action)
     {
+        if (this._isPreview()) return;
         if (!action || !this.hass || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false) return;
         const name=typeof action === 'string' ? action : (action.action || 'toggle');
         this._dispatchAction(action);
@@ -870,15 +948,18 @@ class CubeElement extends LitElement
 
     _dispatchAction(action)
     {
+        if (this._isPreview()) return;
         if( ! action || ! this.hass || this.config.disabled || (this._model && this._model.disabled) || this.config.interactive === false )
             return;
 
         if (typeof action === 'string') action = {action};
         const original = action;
-        if (!action.honeycomb_menu && !action.honeycomb_nested_menu)
+        if (!action.honeycomb_menu && !action.honeycomb_nested_menu && action.action !== 'honeycomb-info')
             action = this._value(action, original);
         const actionName = action.action || 'toggle';
         const context = (this.getRootNode().host || {})._menuContext || this._menuContext;
+        if (context && context.info) return;
+        if (actionName === 'honeycomb-info') { window.honeycombNG.openInfoInContext(context,action.info,this); return; }
         if ((actionName === 'honeycomb-open-nested' || actionName === 'fire-dom-event') &&
             (action.honeycomb_nested_menu || action.honeycomb_menu)) {
             const nested=merge({nested_expand:true,entity:this.config.entity}, action.honeycomb_nested_menu || action.honeycomb_menu);
@@ -993,6 +1074,19 @@ class CubeElement extends LitElement
         }
     }
 
+    _infoLayer(key, className, points)
+    {
+        const p=this.paintSnapshot && this.paintSnapshot[key];
+        if(!p)return null;
+        const id=this._fillId+'-info-'+key;
+        if(p.type==='css')return svg`<defs><clipPath id=${id}><polygon points=${points}></polygon></clipPath></defs>
+            <foreignObject class=${className} x="0" y="0" width="100" height="115.47" clip-path=${`url(#${id})`}>
+                <div xmlns="http://www.w3.org/1999/xhtml" style=${styleMap({width:'100%',height:'100%',background:p.background})}></div>
+            </foreignObject>`;
+        return svg`${p.type==='solid'?'':svg`<defs>${infoPaint.server(p,id)}</defs>`}
+            <polygon class=${className} points=${points} fill=${p.type==='solid'?p.color:`url(#${id})`} fill-opacity=${p.opacity}></polygon>`;
+    }
+
     render()
     {
         if (!this.config || !this._model) return html``;
@@ -1006,6 +1100,9 @@ class CubeElement extends LitElement
         const points = layoutCore.persistentHexPoints('cell');
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
+        const mediaBackground=['sonos','media'].includes(this.config.mode) && !!artwork['background-image'];
+        const showBeeVersion=(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping;
+        const versionFont=Math.min(.12,.57/(Math.max(beeVersion.base.length,beeVersion.stage.length)*.65));
         const external = this.config.custom_fields || (this.config.type &&
             !['custom:button-card','custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type));
         this._externalContent = !!external;
@@ -1014,33 +1111,39 @@ class CubeElement extends LitElement
                 ${m.fill.type==='radial' ? svg`<defs><radialGradient id=${this._fillId} cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color=${m.fill.center}></stop><stop offset="100%" stop-color=${m.fill.edge}></stop>
                 </radialGradient></defs>` : ''}
-                <polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>
+                ${this._infoLayer('outer_border','hex-outer',points) || svg`<polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>`}
                 <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>
+                    ${this._infoLayer('inner_border','hex-inner',points) || svg`<polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>`}
                 </g>
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
+                    ${this._infoLayer('center','hex-fill',points) || svg`<polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>`}
                     ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
                     <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
             </svg>
-            <div class="artwork" style=${styleMap({...artwork,transform:`scale(${centerScale})`})}>
+            <div class="artwork" style=${styleMap({...(!mediaBackground ? artwork : {}),transform:`scale(${centerScale})`})}>
+                ${mediaBackground ? html`<div class="media-background-artwork" style=${styleMap(artwork)}></div>` : ''}
                 ${m.artwork ? html`<img class="station-artwork" src=${m.artwork.url} alt="" aria-hidden="true"
                     style=${styleMap(m.artwork.style || {})}
                     @error=${()=>{if(this._model.artwork && this._model.artwork.key===m.artwork.key){this._failedArtworkKey=m.artwork.key;this._updatePresentation();}}}>` : ''}
             </div>
             ${external ? html`<div class="external-content"></div>` : html`
-            <div class="content ${m.artwork ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''}"
+            <div class="content ${showBeeVersion ? 'with-bee-version' : ''} ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
                 ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
+                    : m.iconBadge ? html`<div class="icon-with-badge"><ha-icon .icon=${m.icon}></ha-icon><span class="power-badge">${m.iconBadge}</span></div>`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
+                ${showBeeVersion ? html`<span class="bee-version" role="status" aria-live="polite" aria-label=${beeVersion.text}
+                    style=${styleMap({fontSize:`calc(var(--honeycomb-persistent-size,82px)*${versionFont})`})}><span>${beeVersion.base}</span>${beeVersion.stage ? html` <span>${beeVersion.stage}</span>` : ''}</span>` : ''}
                 ${m.name ? html`<div class="primary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'n':undefined,...m.nameStyle})}>${m.name}</div>` : ''}
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
+                ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
             </div>`}
             ${this.config.interactive !== false && !this.config.disabled ? html`
-            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
                 @keydown=${e=>{
-                    const zoom=(this.config.hold_action && ['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action)) ||
+                    const zoom=(this.config.hold_action && (['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action) ||
+                            (this.config.hold_action.honeycomb_nested_menu || {})._light_palette_request === 'opposite')) ||
                         (this.config.tap_action && this.config.tap_action.action==='honeycomb-light-kelvin-apply');
                     if (zoom && e.key==='Escape') {e.preventDefault();this._dispatchAction({action:'honeycomb-close'});return;}
                     if(!m.disabled && !e.repeat && ['Enter',' '].includes(e.key)) {

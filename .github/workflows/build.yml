@@ -29,6 +29,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify stable promotion keeps retention explicitly disabled
+        env:
+          RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
+        run: |
+          node - <<'NODE'
+          const version=require('./package.json').version;
+          if (/^\d+\.\d+\.\d+$/.test(version) && process.env.RELEASE_RETENTION_ENABLED !== 'false')
+            throw new Error('Stable promotion requires RELEASE_RETENTION_ENABLED explicitly false');
+          NODE
+
       - name: Test core contracts
         run: npm test
 
@@ -39,6 +49,7 @@ jobs:
 
       - name: Verify build output
         run: |
+          set -euo pipefail
           mkdir -p "$RUNNER_TEMP/build-artifact"
           node scripts/check-release.js | tee "$RUNNER_TEMP/build-artifact/SHA256SUMS.txt"
           cp honeycomb-menu-ng.js "$RUNNER_TEMP/build-artifact/honeycomb-menu-ng.js"
@@ -92,6 +103,33 @@ jobs:
 
       - name: Verify resolved wave colors, safe overrides and live color transitions
         run: python test/browser/wave_color.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/wave-color"
+
+      - name: Verify Charger states, safe controls, navigation and complete HA dashboards
+        run: python test/browser/charger.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/charger"
+
+      - name: Verify two-row labels, padded artwork and real-card editor ownership
+        run: python test/browser/track3.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/track3"
+
+      - name: Verify radio artwork pixel bounds across ratios and hex slopes
+        run: python test/browser/radio_artwork.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/radio-artwork"
+
+      - name: Verify capability-aware palettes and anchored child navigation
+        run: python test/browser/beta4_navigation.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta4-navigation"
+
+      - name: Verify cube-3 mode indication and neutral defaults against immutable beta.4
+        run: python test/browser/beta5_ui.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta5-ui"
+
+      - name: Verify OFF lamp identity and preserved Light navigation
+        run: python test/browser/light_off.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/light-off"
+
+      - name: Verify in-cell bee version, motion safety and detached frame cleanup
+        run: python test/browser/dev_build.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/bee-version"
+
+      - name: Measure throttled state updates and anchored palette capacity
+        run: python test/browser/beta6_hardening.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta6-hardening"
+
+      - name: Verify generic Info Cube containment, caller suspension and fixed lifetime
+        run: python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/info-cube"
 
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"

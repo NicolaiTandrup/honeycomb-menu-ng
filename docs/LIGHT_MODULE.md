@@ -164,17 +164,34 @@ helpers as appropriate. The sample Kelvin bounds must match your Light capabilit
 
 ## Capability-aware Color / White
 
-The Light module checks `supported_color_modes`.
+From v1.9.0-beta.4, `supported_color_modes` determines which controls exist;
+`color_mode` determines the initial palette. No brand/model/RGB-value inference.
 
-If the light supports `xy`, `hs`, `rgb`, `rgbw` or `rgbww`:
-- slot 3 is **Color**
-- opening it adds 12 hard-positioned outer-ring colors
+| Advertised capabilities | Slot 3 / palette behavior |
+| --- | --- |
+| Color (`hs`, `xy`, `rgb`, `rgbw`, `rgbww`) plus `color_temp` | Tap opens current mode; hold opens the opposite supported palette |
+| Only `color_temp` | White only; no Color hint or alternate hold action |
+| Color without `color_temp` | Color only; no inferred Kelvin control |
+| Brightness/fixed white | Passive Light slot 3; brightness controls and brightness preset only |
+| Only `onoff` | Toggle only; no detail menu |
 
-If the light is color-temperature-only:
-- slot 3 is **White**
-- opening it adds 12 Kelvin steps between the light's own minimum/maximum temperature attributes
+From v1.9.0-beta.5, cube 3 primary/secondary text describes the **displayed palette / supported
+alternative**, not two measured states. Manual switching stays selected through
+passive HA updates. Reopening uses current device mode again. Off/null mode may
+reuse a last valid mode for the same entity in this frontend connection/session;
+otherwise Color is preferred when supported, then White. Unavailable/unknown
+states use that supported fallback without inventing a current mode. Missing or
+invalid native Kelvin bounds disable White; they never create guessed values.
 
-If the light supports neither, the palette control becomes a non-destructive Light placeholder.
+Opening/switching sends no light command. Swatch selection alone applies a value;
+stale capabilities/unavailable state reject color and Kelvin commands. Existing
+Hue/Kelvin swatches, recursive zoom, exact Back history and geometry are preserved.
+White/Kelvin requires no helpers. Configured Light preset helpers remain optional.
+
+Cube 3 is the mode indicator and tap/hold launcher, including during recursive
+zoom and manual switching. Logical slot 0 keeps its original Light presentation,
+brightness/name and Back behavior. No palette labels or alternative hint are
+assigned to the center. Existing swatches and service payloads are unchanged.
 
 ## Standard preset selection
 
@@ -183,7 +200,8 @@ Slot 4 uses `preset-standard`.
 Resolution order:
 1. color-capable light + Hue/Saturation helpers → stored HS color
 2. temperature-capable light + Kelvin helper → stored Kelvin
-3. otherwise → fallback Kelvin, default 2700 K
+3. temperature-capable without helper → fallback Kelvin, default 2700 K
+4. without color-temperature capability → brightness preset (never a Kelvin command)
 
 ## On/off-only lights
 
@@ -315,8 +333,7 @@ and numeric native `min_color_temp_kelvin` / `max_color_temp_kelvin`. Honeycomb
 uses those bounds, rounded inward to integer Kelvin; it never substitutes
 2200–6500 K or derives bounds from mireds. Missing, nonpositive, inverted or
 otherwise invalid bounds produce an explanatory **White unavailable** action
-without opening a guessed palette. Color-capable Lights retain their Color
-palette precedence. Inner controls, presets and on/off-only behavior are unchanged.
+without opening a guessed palette. Dual-capability Lights choose their current mode as described above. Inner controls, presets and on/off-only behavior are unchanged.
 
 All twelve **outer menu ring** cells (physical slots 7–18) show only approximate
 warm-to-cool Kelvin **cube fill** plus the normal **inner/outer borders**. No black

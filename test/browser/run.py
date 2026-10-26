@@ -19,7 +19,7 @@ BUTTON_SHA = '5d6e9c6afca01e8014653fa56bb5d6aa9248d832c34fb944a7f2c36329bc22d1'
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        paths = {'/station-full-bleed.svg': ROOT/'test/browser/assets/station-full-bleed.svg', '/mdi-icons.js': ROOT/'test/browser/assets/mdi-icons.js', '/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button, '/layout.svg': ROOT/'docs/assets/layout-slots.svg', '/station-a.svg': ROOT/'test/browser/assets/station-a.svg', '/station-c.svg': ROOT/'test/browser/assets/station-c.svg'}
+        paths = {**{f'/station-{shape}.svg':ROOT/f'test/browser/assets/station-{shape}.svg' for shape in ['square','wide','tall']}, '/station-full-bleed.svg': ROOT/'test/browser/assets/station-full-bleed.svg', '/mdi-icons.js': ROOT/'test/browser/assets/mdi-icons.js', '/': ROOT/'test/browser/fixture.html', '/bundle.js': self.server.bundle, '/button-card.js': self.server.button, '/layout.svg': ROOT/'docs/assets/layout-slots.svg', '/station-a.svg': ROOT/'test/browser/assets/station-a.svg', '/station-c.svg': ROOT/'test/browser/assets/station-c.svg'}
         if self.path == '/favicon.ico':
             self.send_response(204); self.end_headers(); return
         if self.path not in paths:
@@ -1466,11 +1466,11 @@ class Cubes(unittest.TestCase):
                     img=cube.locator('.station-artwork');img.wait_for(state='visible')
                     self.page.wait_for_function('()=>[...document.querySelectorAll("honeycomb-persistent-hub")].every(h=>!!h)')
                     details=img.evaluate('el=>({fit:getComputedStyle(el).objectFit,width:el.style.width,top:el.style.top,natural:[el.naturalWidth,el.naturalHeight],opacity:getComputedStyle(el).opacity})')
-                    self.assertEqual(details['fit'],'contain');self.assertEqual(details['width'],'62%');self.assertEqual(details['opacity'],'1')
+                    self.assertEqual(details['fit'],'contain');self.assertEqual(details['width'],'48%');self.assertEqual(details['opacity'],'1')
                     self.assertEqual(details['natural'],[160,80])
                     self.assertEqual(cube.bounding_box()['width'],82)
                     if state=='playing':
-                        self.assertEqual(details['top'],'14%');self.assertEqual(cube.locator('.secondary').inner_text(),f'{round(volume*100)}%')
+                        self.assertEqual(details['top'],'22%');self.assertEqual(cube.locator('.secondary').inner_text(),f'{round(volume*100)}%')
                         self.assertLess(img.bounding_box()['y']+img.bounding_box()['height'],cube.locator('.secondary').bounding_box()['y'])
                     else:
                         self.assertEqual(cube.locator('.hex-fill').get_attribute('fill'),'#202224')
@@ -1651,7 +1651,7 @@ class Cubes(unittest.TestCase):
         self.page.evaluate("pushState('sensor.unrelated','1')")
         self.page.wait_for_timeout(100);self.assertEqual(self.page.evaluate('renders'),0)
         self.page.evaluate("pushState('light.zone_a','off',{brightness:0,supported_color_modes:['hs']})")
-        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "Off"')
+        self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "OFF"')
         self.assertEqual(self.page.evaluate('renders'),1)
         self.page.evaluate("pushState('light.zone_a','unavailable')")
         self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").shadowRoot.querySelector(".secondary").textContent === "Unavailable"')
@@ -1681,7 +1681,15 @@ class Cubes(unittest.TestCase):
         self.hold(self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) .interaction-surface'))
         self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Details"]').click()
         target=self.page.locator(':is(honeycomb-menu-ng-item,honeycomb-menu-item)').filter(has=self.page.locator('.primary',has_text='Child'))
-        self.assertEqual(target.locator('.hex-fill').get_attribute('fill'),'#34424e')
+        # Beta.5 shares the existing Light fill opacity at every submenu depth.
+        # The parent explicitly uses green; it must not leak into this child.
+        self.assertEqual(target.locator('.hex-fill').get_attribute('fill'),'rgba(52, 66, 78, 0.94)')
+        self.assertEqual(target.locator('.hex-inner').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(52, 66, 78)')
+        self.assertEqual(target.locator('.hex-outer').evaluate('(e)=>getComputedStyle(e).fill'),'rgb(52, 56, 61)')
+        self.back()
+        parent=self.page.locator(':is(honeycomb-menu-ng,honeycomb-menu) [aria-label="Details"]')
+        parent.wait_for()
+        self.assertEqual(parent.evaluate('(e)=>e.getRootNode().host.shadowRoot.querySelector(".hex-fill").getAttribute("fill")'),'#174b32')
     def test_empty_placeholders_are_passive(self):
         self.page.evaluate("window.menu=ng.open({entity:'light.zone_a',animate:false,position_mode:'anchored',anchor_x:innerWidth/2,anchor_y:300,buttons:[{slot:1,slot_mode:'hard',name:'Action A',show_name:true,tap_action:{action:'none'}}]})")
         self.page.wait_for_function('window.menu.shadowRoot.querySelectorAll(":is(honeycomb-menu-ng-item,honeycomb-menu-item)").length===7')

@@ -125,6 +125,10 @@ class HoneycombPersistentHub extends CubeElement
             if (!this.isConnected || !(this._menuContext || {}).honeycomb) return;
             const rect = this.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
+            const menu=this._menuContext.honeycomb;
+            const itemSize=menu.offsetParent ? rect.width : this.size;
+            if (this.config.match_anchor_size !== false && Math.abs(menu.sizes.item-itemSize)>.01)
+                menu.resizeCubes(itemSize);
             const x=rect.left+rect.width/2, y=rect.top+rect.height/2;
             this._lastAnchorX=x; this._lastAnchorY=y;
             // Only the base follows the dashboard anchor; module centers remain locked.
@@ -135,10 +139,12 @@ class HoneycombPersistentHub extends CubeElement
             }
         };
         const schedule = () => { if (frame === null) frame=requestAnimationFrame(measure); };
-        const resize = new ResizeObserver(schedule); resize.observe(this);
+        const resize = new ResizeObserver(schedule);
         const ancestors = new MutationObserver(schedule);
-        for (let node=this;node && node !== document.body;node=node.parentElement || node.getRootNode().host)
-            ancestors.observe(node,{attributes:true,attributeFilter:['style','class']});
+        for (let node=this;node && node !== document.body;node=node.parentElement || node.getRootNode().host) {
+            resize.observe(node);
+            ancestors.observe(node,{attributes:true,attributeFilter:['style','class'],childList:true});
+        }
         window.addEventListener('resize',schedule);
         document.addEventListener('scroll',schedule,true);
         this._anchorCleanup=()=>{
@@ -353,7 +359,7 @@ class HoneycombPersistentHub extends CubeElement
     _structureBusy()
     {
         const context = this._menuContext;
-        return !!(context && (context.stack.length || context.pointers.size || context.pendingActions.size ||
+        return !!(context && (context.info || context.stack.length || context.pointers.size || context.pendingActions.size ||
             (context.currentConfig && !context.currentConfig._persistent_hub_root))) ||
             !!(this._hubMenu && this._hubMenu.closing);
     }

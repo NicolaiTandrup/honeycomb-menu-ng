@@ -70,7 +70,9 @@ class Beta5(Cubes):
   for _ in range(5):
    self.page.evaluate("second.remove();second=addOverlay({size:'auto',auto_reference_width:640,logo:false,items:[{type:'light',entity:'light.zone_a'}]},'70%','60%')")
    self.page.wait_for_timeout(30)
-  count=self.page.evaluate("obs.filter(o=>o.key==='ResizeObserver'&&o.instance.nodes.has(floor)).length");self.assertEqual(count,1)
+  # One shared image observer; each Hub also watches ancestors for editor geometry.
+  count=self.page.evaluate("obs.filter(o=>o.key==='ResizeObserver'&&o.instance.nodes.has(floor)&&!o.instance.nodes.has(hub)&&!o.instance.nodes.has(second)).length");self.assertEqual(count,1)
+  self.assertEqual(self.page.evaluate("obs.filter(o=>o.key==='ResizeObserver'&&(o.instance.nodes.has(hub)||o.instance.nodes.has(second))).length"),2)
   self.page.evaluate("floor.style.display='none'");self.page.wait_for_timeout(80);self.assertEqual(self.page.evaluate('hub.size'),82);self.assertEqual(self.page.evaluate('hub._hubMenu.style.visibility'),'hidden')
   self.page.evaluate("floor.style.display='block'");self.page.wait_for_timeout(80);self.assertEqual(self.page.evaluate('hub.size'),41)
   self.page.evaluate("floorImage.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"320\" height=\"200\"><rect width=\"320\" height=\"200\" fill=\"gray\"/></svg>')")
@@ -138,7 +140,7 @@ class Beta5(Cubes):
   if more:config['items'][0].update(more)
   self.hub(config);self.settle();return self.page.locator('honeycomb-menu-ng .center-item')
  def test_true_hex_wave_and_power_health_service_isolation(self):
-  cube=self.wave();self.page.wait_for_function('view.querySelector("honeycomb-menu-ng").shadowRoot.querySelector(".center-item").hasAttribute("energy-wave-running")')
+  cube=self.wave();self.page.wait_for_function('hub._hubMenu.shadowRoot.querySelector(".center-item").hasAttribute("energy-wave-running")')
   contour=cube.locator('.energy-contour');self.assertEqual(len(contour.get_attribute('points').split()),6);self.assertEqual(contour.get_attribute('fill'),'none');self.assertEqual(cube.locator('radialGradient').count(),0)
   self.assertEqual(self.page.evaluate('calls.length'),0)
   animation=contour.evaluate('(el)=>el.getAnimations()[0].effect.getKeyframes()');self.assertEqual(animation[0]['transform'],'scale(0.12)');self.assertEqual(animation[-1]['transform'],'scale(1.4)')

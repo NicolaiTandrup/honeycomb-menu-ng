@@ -42,7 +42,7 @@ test('Color long press opens a nested palette without HA calls; Kelvin uses its 
     let submenu;
     assert.equal(zoomColor({hass,entity:'light.zone_a',actionConfig:buttons[1].hold_action,openNested:config=>submenu=config}),true);
     assert.equal(submenu.entity,'light.zone_a');assert.equal(submenu.inherit_inner,true);
-    assert.deepEqual(submenu.buttons[1].tap_action,{action:'perform-action',perform_action:'light.turn_on',data:{hs_color:[25,85]}});
+    assert.deepEqual(submenu.buttons[1].tap_action,{action:'honeycomb-light-color-apply',data:{hs_color:[25,85]}});
     assert.equal(submenu.buttons[1].hold_action.action,'honeycomb-light-color-zoom');
     assert.ok(buildWhitePaletteButtons({minKelvin:2200,maxKelvin:6500}).every(b=>b.hold_action.action==='honeycomb-light-kelvin-zoom'));
     hass.states['light.zone_a'].state='unavailable';assert.equal(zoomColor({hass,entity:'light.zone_a',actionConfig:buttons[0].hold_action,openNested:()=>assert.fail('Unavailable')}),false);

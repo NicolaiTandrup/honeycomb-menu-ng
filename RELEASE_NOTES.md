@@ -1,3 +1,338 @@
+# v1.9.0 — Stable
+
+Promotes the complete owner-approved cumulative v1.9.0-beta.9 runtime. No module,
+style, navigation or configuration logic changed during stable promotion. Only
+stable package/banner/runtime version metadata differs in the JavaScript.
+
+- Generic Charger and Easee adapter: truthful two-row labels, individual and
+  aggregate power, connected counts, existing controls and charging pulse.
+- Shared renderer and persistent Hub: responsive numeric/auto sizing, stable
+  placement/visibility, anchored nested menus, neutral submenu defaults and original
+  Honeycomb coexistence. Dashboard editing and multi-instance lifecycle protected.
+- Light: ON/OFF/unavailable identity, capability-aware Color/White on cube3,
+  short/long press, recursive Hue/Kelvin zoom and exact Back behavior.
+- Sonos: native Browse Media Favorites, Radio/artwork containment, grouping/Join,
+  native device-owned Sleep Timer and existing media controls.
+- Info: centered natural-inner-notch geometry; independent center/inner/outer
+  paints, source connector, resolved source solid/gradient/alpha snapshots and
+  mixed overrides; static/live scalar data, hex-aware wrapping, positioned blocks,
+  pagination, exact return and fixed30-second close-all.
+- Stable approval manifest pins public beta.9 source/tree/bundle. Promotion guards
+  permit only the banner and the two literals in the canonical build-info module;
+  all other executable bytes, runtime source, dependencies and build inputs stay
+  pinned. Candidate CI additionally requires retention explicitly false.
+
+The owner approved beta.9 after real Home Assistant testing. Automated coverage
+includes synthetic desktop/tablet/mobile Chromium and mocked integration/device
+boundaries; no claim that every supported hardware/integration was physically
+exercised. No Home Assistant installation or charging commands were deployed.
+
+Known limits: Info snapshots refresh on reopen; a gradient source connector uses
+its documented first-stop color, not the complete gradient/stop-opacity. Fixed
+30s/128blocks/32768characters/64pages and explicit positioned/tiny-panel limits
+remain. Keep floorplan anchors visible. Inherited fixed410px Light palette clipping
+on390px remains. No Firefox/WebKit/physical-pinch or exhaustive device matrix claim.
+Climate, Car and unrelated roadmap features are excluded.
+
+HACS: select v1.9.0 through the normal stable update/download flow, then reload.
+Beta users can select v1.9.0 in Redownload. Keep exactly one normal NG resource
+and button-card; do not load the optional private DEV loader alongside HACS.
+
+Retention remains explicitly false. Publication preserves prior releases/tags/assets
+and Git history; post-publication retention is a dry-run only, never deletion.
+See [stable validation and checklist](docs/V1_9_STABLE_RELEASE.md).
+
+---
+
+# v1.9.0-beta.8 — unpublished candidate
+
+- Refines published beta.7 Info Cube #140 to match owner reference designs: one
+  centered foreground hex bounded by the six natural inner notches, independently
+  configurable center fill/inner/outer borders and transparent input shield.
+  Existing background cells stay mounted, stationary, visible where uncovered
+  and inactive. Shared renderer and numeric sizing/auto pipeline preserved.
+- Optional source-facing connector defaults to the actual calling cube’s resolved
+  inner-border color; manual color override and disable supported. Physical slots
+  0–18 and nested/promoted module centers use actual screen positions.
+- Static/live HA titles, text, blocks and optional footer wrap within the hex.
+  Content never enlarges the view or shrinks fonts; bounded pagination persists.
+  Tiny panels report content limits instead of looping through empty pages.
+- Tap/keyboard exact return and fixed 30-second close-all preserved. Responsive
+  position/size observation follows host layout without polling and disposes on close.
+- Cumulative Light, Sonos, Charger, namespace, navigation and pulse remain intact.
+  No Climate/Car/CM feature, production deployment, merge or publication authorized.
+
+See [candidate review](docs/V1_9_BETA8_REVIEW.md), [Info schema](docs/INFO_CUBE.md)
+and permanent development handoff for actual validation and limitations.
+
+# v1.9.0-beta.7 — published baseline
+
+Published from `63a9619d27fe503919389f1a51090a2a01193f80`; generic read-only Info
+Cube with three authoring modes, safe bindings, hex containment/pagination, exact
+caller preservation and fixed 30-second lifetime. Its older left-shifted enclosure
+is superseded by the beta.8 owner-approved inner-notch design, without modifying
+its immutable tag, source or assets. Optional private Terminal installer remains
+separate from the normal HACS bundle.
+
+# v1.9.0-beta.6 — published cumulative baseline
+
+Published from `68bf88fe07aae0892705f2680a82f38c0e78848d`; owner-tested available Light/bee behavior, broader modules automatically tested.
+
+- OFF Light Hub cubes show the configured short name (HA friendly name/entity
+  fallback) above OFF. ON presentation, rings, unknown/unavailable distinction,
+  cube-3 Color/White and recursive zoom/Back remain intact.
+- Bee interaction shows the short derived release version inside its existing
+  golden cell, then restores normal appearance. Technical build/commit metadata
+  stays in diagnostics. Reduced motion and detached/repeated animation cleanup
+  are covered without changing cube geometry.
+- Optional development-only fixed resource uses immutable builds and a verified
+  one-command atomic installer; no URL/query edits, polling or production cache
+  changes. Old files/releases/tags are retained.
+- Cumulative beta.5 shared defaults, native Sonos/Radio/Join/Sleep, Charger,
+  editor, sizing, gradient/pulse, visibility/allocation and original coexistence
+  are preserved. No unfinished Climate/Car/Charger expansion is included.
+- The known 410px fixed-size palette can clip in a 390px viewport. Anchors and
+  Back are preserved; no automatic shrink/paging or actual-device success claimed.
+
+See docs/BETA6_REVIEW.md and docs/DEVELOPMENT_BUILDS.md for scope, setup and
+acceptance gates. Stable/master/retention and production HA remain untouched.
+
+---
+
+# v1.9.0-beta.5 — Palette launcher and shared submenu defaults
+
+Cumulative from public beta.4 `8f9b1c003529b1df0db08058d26691995f3e9afe`.
+Review branches remain unmerged. No master/stable or production HA changes.
+
+- Color/White mode indication belongs to **cube 3**, the existing palette launcher.
+  Its primary/secondary labels describe the displayed/alternate supported palette;
+  tap/hold keep beta.4's live mode selection and bidirectional switching. Slot 0
+  retains its original entity, name/brightness, appearance and Back interaction.
+- White Ambiance exposes White only. Fixed-white brightness and on/off restrictions,
+  reliable off-mode session memory, no-command navigation, capability validation,
+  recursive Hue/Kelvin zoom and exact Back history remain intact.
+- Ordinary submenu cubes at every depth share the existing Light control neutral
+  fill and inner border. The dark outer border is unchanged. Charger details now
+  use that gray fill instead of the root Hub's black fill. Explicit center/inner/
+  outer/background overrides and meaningful module/active/palette colors remain
+  available. Root Hub black/dark base, status colors and promoted centers stay intact.
+- Preserve shared 82px geometry, numeric/auto sizing, anchors, visibility/allocation,
+  touch/idle/navigation, gradients, energy waves/power speed, Charger measurements/
+  safety, Radio artwork/native Favorites/Join/native Sleep and original coexistence.
+  No future Climate/Car/Charger redesign or integration is added.
+
+Complete mandatory CI covers unit/contracts, Chromium desktop/mobile and tablet
+scenarios, HACS/license/package checks, docs/YAML/links, performance and workflows.
+The guarded publisher must verify exact green source/head, metadata, reproducible
+committed/rebuilt/CI/staged/downloaded bytes, SHA256/provenance and new immutable tag.
+Public release notes/provenance record final SHA, checksum and matching runs.
+
+Known limits: mock HA and Chromium checks are not actual HA/device acceptance;
+Firefox/WebKit and real hardware remain untested. Existing small-screen anchored
+palette envelope/clipping is preserved. No YAML migration/new keys are needed.
+Retain all old releases/tags/assets and the private beta.5 draft; retention stays
+unchanged/disabled. Latest stable remains v1.8.1. No stable promotion authorization.
+
+## Owner real-HA acceptance
+
+1. HACS Redownload: enable beta versions, select `v1.9.0-beta.5`, retain the current
+   Honeycomb NG resource path and refresh the dashboard/cache. Manual installation:
+   use this release's JS and verify `SHA256SUMS.txt` before replacing the resource.
+2. On a dual-capability Light, cube 3 indicates Color/White and the alternative.
+   Tap follows current device mode; hold switches the supported view without
+   sending a command. Slot 0 remains the familiar Light center with Back and
+   name/brightness. Test off/null mode, unavailable recovery and groups.
+3. White Ambiance: no Color alternative/hold. Test Color and Kelvin recursive zoom,
+   Back restoration, and actual swatch application as separate deliberate actions.
+4. Root Hub retains its black/dark/status appearance. Charger and generic submenu
+   actions are Light-gray inside the dark outer ring at every depth. Check explicit
+   fill/border overrides, meaningful active colors, anchored promotion and Back.
+5. Smoke-test Sonos Radio artwork/Favorites/Join/Sleep, Light presets, floorplan
+   auto sizing/editor, touch/idle close and Charger power/pulse behavior.
+
+Keep #133/#134 and other acceptance issues open until owner verification. Automated
+success and public beta publication do not authorize master merge or stable.
+
+---
+
+# v1.9.0-beta.4 — Capability-aware Light and anchored submenus
+
+Cumulative prerelease from published beta.3, through the existing unmerged v1.9.0
+candidate. No master merge or stable publication. Climate/Car and later Charger
+redesign/guest authorization are excluded.
+
+- Light uses advertised HA `supported_color_modes` to expose Color and/or White.
+  For dual-capability lights, tap opens the current `color_mode` palette; hold
+  opens the other supported palette. Center labels show displayed/alternative
+  palette. UI navigation sends no light commands and manual selection survives
+  passive HA updates. Off/null mode can use bounded entity/session memory; safe
+  supported fallback otherwise. Fixed-white retains brightness, on/off-only toggle.
+- Color and Kelvin selections recheck live capabilities/unavailability. Existing
+  swatches, recursive zoom, native Kelvin limits, presets and Back remain intact.
+- Shared promotion keeps the clicked cube at its pixel center at deeper levels;
+  it becomes logical slot 0. Back restores each prior saved anchor. Existing
+  Light expansion and Sonos Radio/Join/Sleep sibling navigation remain intact.
+- Charger detail actions use neutral-gray inner borders, with explicit per-item
+  overrides respected. Root status colors, selected center, outer borders, pulse,
+  controls and current/aggregate measurements remain intact.
+- Includes all beta.3 Radio artwork containment, two-row Charger labels,
+  dashboard editor ownership, responsive sizing and coexistence fixes. Native
+  Sonos Favorites/Join/Sleep, shared 82px geometry, gradients, energy-wave color
+  and power speed, visibility/slots and pointer/touch behavior are preserved.
+
+Validation: complete mandatory Build CI and manual beta publisher must pass at the
+exact source commit. They validate unit/contracts, full Chromium desktop/mobile
+(including Light/Sonos/Charger/editor/Radio), docs/YAML, performance, HACS/license,
+workflow lint, reproducible committed/rebuilt/CI/staged bundles, SHA256 and provenance.
+Public release notes/provenance identify the exact runs and checksum.
+
+Known limits: synthetic HA tests do not establish real-device acceptance. Firefox,
+WebKit and actual hardware are not covered. Large anchored palettes retain the
+existing small-screen envelope/clipping behavior; this release does not redesign
+protected Light/Sonos geometry. No new configuration keys are required. Retention
+stays disabled; previous tags/releases/assets, including the private beta.5 draft,
+remain untouched.
+
+## Owner Home Assistant acceptance
+
+1. HACS → Honeycomb Menu NG → Redownload → show beta versions → select
+   `v1.9.0-beta.4`. Keep the existing resource path, then refresh dashboard/cache.
+   Manual install: use only this release's `honeycomb-menu-ng.js`, verify against
+   `SHA256SUMS.txt`, replace the existing local resource and refresh the browser.
+2. Dual-capability Light: open while in White, then Color; confirm short tap follows
+   mode and hold switches both ways. Check center labels, off/null mode, unavailable
+   recovery and groups. Navigation/long press must never change the lamp itself.
+3. White-only: no Color alternative. Fixed white: brightness only. On/off: toggle
+   only. Test Color and Kelvin recursive hold/Back and an actual chosen swatch.
+4. Charger overview at root and inside a real parent menu: promote different cells,
+   check no center movement and exact Back restoration; repeat at auto/fixed sizes.
+   Detail action inner borders gray; explicit overrides and root status stay correct.
+5. Smoke-test Radio artwork/favorites, Join/Back, native Sleep, Light presets,
+   touch/idle close, editor positioning, charging measurements/pulse and coexistence.
+   Use owner-approved targets for any deliberate device commands.
+
+Keep #133/#134 and relevant hardware-acceptance issues open until owner feedback.
+Stable v1.9.0 requires separate explicit owner authorization and a new approved pin.
+
+---
+
+## Historical notes (prior stable proposal remains unpublished)
+
+# v1.9.0 — Stable candidate (not published)
+
+Prepared from exact public v1.9.0-beta.3 source, with **no functional changes**.
+Latest stable remains v1.8.1. These notes and the release-approval manifest are a
+proposal for owner review, not evidence of real-HA acceptance or authorization to
+merge/publish. See the [stable checklist](docs/V1_9_RELEASE_CANDIDATE.md).
+
+- Generic Charger with explicit HA mappings and optional verified Easee discovery;
+  individual and aggregate fresh power, physical connection counts, session energy,
+  separate lock semantics, truthful unavailable/stale/partial states and safe pulses.
+- Two Charger body rows retain the vehicle/connection or safety state and fixed
+  charger name, with measured power beside the icon; no third body row.
+- Radio logos of square/wide/tall proportions remain aspect-contained inside the
+  six sloping inner-hex boundaries on launcher, promoted center and favorites.
+- Dashboard/editor overlays retain their actual card ownership, lifecycle cleanup
+  and anchoring. Numeric/automatic sizes, shared 82px geometry, 40% gradients and
+  power-sensitive true hex wave are preserved.
+- Native-only Sonos Browse Media, Radio/Join/Sleep, Light Hue/Kelvin/presets,
+  visibility, placement, classic menus, touch and original Honeycomb coexistence
+  retain their beta.3 behavior. No Climate/Car, Charger redesign or guest UI.
+
+Complete synthetic dashboards: [one charger](examples/charger-easee.yaml),
+[two chargers](examples/charger-multi.yaml), [floorplan elements](examples/charger-elements.yaml).
+External HA automation owns charging policy, scheduling and optional associations;
+this candidate does not modify HA, Node-RED or send any production command.
+
+HACS stable users will receive v1.9.0 only after owner approval and verified public
+stable publication. Existing beta users can select that stable version at the same
+repository/resource path then refresh the dashboard. No old tag, Release or asset
+is replaced. Retention remains disabled; no external catalog submission is made.
+
+---
+
+# v1.9.0-beta.3 — Radio artwork containment
+
+Focused cumulative stabilization release from immutable v1.9.0-beta.2. Owner
+real-HA acceptance confirmed Charger two-row labels, two-charger metrics/pulse
+and dashboard editor positioning in beta.2; these implementations are unchanged.
+
+- Station artwork stays inside the sloping inner hex edges on the launcher,
+  promoted Sonos center and Radio favorite cubes. One inset policy, aspect-ratio
+  containment, centered unlabeled logos and reserved name/volume text space.
+- Regression fixtures include opaque square, wide and tall logos, default/compact
+  numeric sizes, larger borders, playing/paused/idle, fallback and live recovery.
+  Assertions measure actual contained image pixels against all six polygon edges.
+- Native Radio ordering/recognition/Browse Media, Join/Sleep, Light Hue/Kelvin,
+  shared 82px geometry, reference autosizing, approved gradients, Charger and
+  editor lifecycle behavior remain intact.
+
+Latest stable/master remain v1.8.1. No master merge, stable publication, retention
+change, prior tag/release/asset rewrite or real HA/charging command. Issue #125
+remains open until owner real-HA artwork acceptance. Climate is a separate
+v1.10 development PR, never part of beta.3; Charger Level B and guest UI are deferred.
+
+---
+
+# v1.9.0-beta.2 — Charger labels, artwork padding and editor lifecycle
+
+Cumulative prerelease from immutable v1.9.0-beta.1. Latest stable remains v1.8.1;
+PR #124 and this focused fix remain unmerged. No real HA charging commands or
+Node-RED changes were performed.
+
+- Individual Charger faces have two readable body rows: vehicle/connection or
+  safety/Disabled status, then the fixed charger name. Fresh positive charging
+  power appears beside the icon. Aggregate and detail capabilities remain intact.
+- Sonos launcher/promoted artwork has additional padding and retains aspect ratio;
+  custom Sonos/Media background artwork is contained inside the border.
+- Persistent overlays belong to their actual picture-elements/editor container.
+  Detached views dispose synchronously, including already-disconnected DOM;
+  ancestor layout/scale changes update geometry. Preview interactions send no actions.
+- Desktop/mobile regressions cover numeric/auto sizes, artwork shapes, multiple
+  hubs, separate previews, transformed cards, repeated view reattachment and cleanup.
+- [Element-only example](examples/charger-elements.yaml) for existing floorplans;
+  optional exact Easee registry discovery. Wave reference power is animation
+  scaling, never an electrical load limit. Missing optional roles remain truthful.
+
+Issue #126's future forecast menu is not shipped: Brain association and Optimizer
+forecast entity contracts must be agreed and implemented externally first. Current
+session/current/diagnostic details remain. Native-only Sonos, Light Hue/Kelvin,
+navigation, shared 82px geometry, approved gradients and energy-wave behavior persist.
+Synthetic validation does not establish real-device acceptance. Owner testing and
+explicit approval remain required before any master merge or stable release.
+
+---
+
+# v1.9.0-beta.1 — Generic Charger / Easee
+
+Prerelease from published v1.8.1, using the existing shared 82px renderer, 40%
+gradients, numeric/auto sizing, dynamic placement and six-sided power-sensitive wave.
+Latest stable remains v1.8.1; no Charger code is merged into master.
+
+- Generic explicitly mapped `charger` and aggregate `charging-hub`; fresh W/kW
+  power, physical connection counts, honest unknown/partial values and deduplication.
+- Easee adapter based on verified integration source and exact same-device registry
+  keys; explicit fallback, separate physical lock and permanent-lock policy.
+- Named launchers, optional read-only vehicle associations, fixed detail slots,
+  explicit verified switch controls with pending/failed/unconfirmed feedback.
+- No charging command from navigation/render/reconnect; no retries, optimizer,
+  scheduling, vehicle inference, Node-RED edits or Car/Climate implementation.
+- Shared optional third text row and module-supplied health/dependency snapshot;
+  one-shot expiry correctly arms when a cube connects. Existing modules retained.
+- [Complete single-Easee dashboard](examples/charger-easee.yaml),
+  [complete multi-charger dashboard](examples/charger-multi.yaml),
+  [installation, entity checklist, capability sources and supervised hardware tests](docs/CHARGER_MODULE.md).
+- [HACS catalog submission package](docs/HACS_CATALOG_SUBMISSION.md) remains
+  prepared for owner review only; Charger is not advertised as stable.
+
+Synthetic unit/browser tests are not real-device acceptance. Verify installed
+Easee entity IDs/units, permission/lock semantics, fresh reporting and external
+association feed at hardware. The optional feed may be absent. HA acknowledgement
+is not independent hardware confirmation; a timeout may still have reached a device.
+Owner real-HA testing and explicit approval are required before stable publication.
+
+---
+
 # v1.8.1 — Stable
 
 Version-only maintenance release for HACS catalog readiness after successful

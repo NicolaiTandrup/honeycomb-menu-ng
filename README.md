@@ -19,14 +19,31 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **v1.8.0 stable candidate — not published.** Prepared from owner-tested
-> [beta.7](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.0-beta.7)
-> with identical runtime source. Latest public stable remains
-> [v1.7.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.7.1).
-> The owner is the sole current user, already migrated to the 1.8 track, and
-> has accepted beta.7 in real Home Assistant. Read the
-> [candidate audit and release gates](docs/V1_8_RELEASE_CANDIDATE.md).
-> Owner acceptance of beta functionality does not authorize merging or publication.
+> **Latest stable: [v1.9.0](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0).**
+> Promotes the complete owner-tested beta.9 runtime, including Charger and Info. NG includes
+> the shared renderer, native Sonos Favorites, responsive sizing and hexagonal
+> power-sensitive pulse. Official HACS validation has passed; catalog inclusion
+> is still pending. Continue using the HACS custom-repository installation below.
+> [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
+
+## v1.9.0 stable promotion
+
+Stable candidate promotes published beta.9: Info supports `source`
+independently on center fill, inner and outer border, preserving rendered gradients
+and alpha as an opening snapshot. Mix inherited layers with explicit colors/gradients.
+[Source-paint contract](docs/INFO_CUBE.md). Mandatory release gates still apply.
+
+## v1.9.0 beta track
+
+Latest published beta: [v1.9.0-beta.8](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.8).
+Published **beta.8** refines the generic, read-only Info Cube:
+a centered hex constrained by the six natural inner notches, independent fill and
+borders, and an optional source-colored connector. Surrounding cubes stay visible,
+stationary and inactive. Wrapped/stacked/positioned text and live HA bindings
+paginate at fixed readable sizes; more content never enlarges the hexagon.
+Tap returns to the exact caller; 30 seconds closes the entire menu.
+[Info Cube guide and examples](docs/INFO_CUBE.md) · [beta.8 review checklist](docs/V1_9_BETA8_REVIEW.md).
+The owner authorized stable v1.9.0 promotion after mandatory exact-source checks.
 
 ## What you can build
 
@@ -36,8 +53,18 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Car/Charger modules and charging automation are not implemented. Honeycomb calls
-configured HA actions; device automation belongs in Home Assistant.
+Car and Climate modules are not implemented. Charging automation remains external.
+The generic Charger module below is **v1.9.0 beta track only**, not part of v1.8.1 stable.
+Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
+
+Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
+is unchanged from these verified v1.8.0 captures):
+
+<img src="docs/assets/screenshots/stable-light.png" width="260" alt="Synthetic Light menu with brightness and preset controls">
+<img src="docs/assets/screenshots/stable-kelvin.png" width="260" alt="Synthetic Light White palette with twelve filled Kelvin swatches">
+
+[Capture provenance](docs/assets/screenshots/stable-provenance.json). Charger is not
+part of v1.8.1 stable.
 
 ## Install and update
 
@@ -65,6 +92,30 @@ resources:
 After updating, reload the browser/app and hard-refresh if cached JavaScript persists.
 Check the installed release and resource URL before changing YAML. Installing a stable
 release does not make newer beta-only options available.
+
+## Charger beta: complete dashboards
+
+**v1.9.0 prerelease only.** A generic Charger/Easee module shares the same
+82px renderer, gradients, sizing and power-sensitive hexagonal pulse. A Charging
+Hub sums fresh verified power and physically connected cars; named chargers open
+fixed detail menus. Permission and permanent-lock controls require deliberate taps
+on verified HA switches. Opening/Back/state updates never issue charging commands.
+
+- [Complete one-Easee dashboard](examples/charger-easee.yaml), with no vehicle feed.
+- [Complete two-charger dashboard](examples/charger-multi.yaml), with optional
+  external vehicle associations; it also works when that sensor is absent.
+- [Element-only snippet for an existing floorplan](examples/charger-elements.yaml).
+- [Installation, entity checklist, source-backed capabilities and safe HA tests](docs/CHARGER_MODULE.md).
+
+Named chargers show vehicle/connection and fixed charger name in two rows; fresh
+charging power stays visible beside the icon. Sonos launcher, promoted center and Radio favorite artwork share an inset safe
+area that avoids the sloping hex edges, preserves aspect ratio and reserves labels. Dashboard editor previews own their overlays and cannot send actions.
+
+All example IDs and screenshots are synthetic replacement points. Replace them
+with your actual integration entities. HACS prereleases must be enabled and the
+beta selected explicitly; v1.8.1 remains latest stable. No real hardware/Node-RED
+changes were performed by synthetic validation. Car identification, schedules,
+load balancing and optimization remain external; the Car module is future work.
 
 ## Start in 60 seconds
 
@@ -105,6 +156,48 @@ current coordinate tables, not inferred from button order.
 | Inner ring | `1–6` | Six immediate neighbors |
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
+
+Private local testing: [fixed development resource and build instructions](docs/DEVELOPMENT_BUILDS.md).
+[Unpublished beta.6 scope, measured limitations and future-module boundaries](docs/BETA6_REVIEW.md).
+
+### Light Hub names while OFF
+
+In the unpublished v1.9.0-beta.6 candidate and its private development build, an OFF Light Hub launcher shows its
+existing item `name` above `OFF`. Without a custom name it uses the HA
+`friendly_name`, then the readable entity ID. A short name such as `A` is valid;
+long names use the existing ellipsis. ON brightness/colors and submenu centers
+keep their existing presentation. Unknown/unavailable lights say `Unavailable`,
+never `OFF`. Existing explicit secondary-label overrides still take precedence.
+
+### Light capability reference (beta.6 candidate)
+
+Honeycomb reads HA `supported_color_modes`, never brands or names. Mode selection
+on cube **3** is UI-only; slot 0 retains its normal name/value/Back presentation.
+
+| Advertised capability | Controls | Palette launcher |
+|---|---|---|
+| `onoff` only | Toggle; no detail menu | None |
+| `brightness` or fixed `white` | Brightness/presets | No Color/Kelvin commands |
+| `color_temp` only | Brightness and White/Kelvin | White only; no Color hold |
+| `hs`, `xy`, `rgb`, `rgbw` or `rgbww` only | Brightness and Color | Color only |
+| Color plus `color_temp` | Brightness, Color and White/Kelvin | Tap current/viewed palette; hold opposite |
+| Missing/inconsistent capabilities | Only verified controls | No invented capabilities |
+
+For dual-mode lights, HA `color_mode` chooses the initial palette. Off/null uses
+reliable same-entity session memory, otherwise a deterministic supported fallback.
+A manual palette selection stays selected while browsing/zooming. White/Kelvin
+requires real min/max bounds. Opening, switching, holding and Back send no light
+command; a deliberate swatch tap applies it. Unknown/unavailable is never OFF.
+[Full Light rules and short-name examples](docs/AI_SETUP.md#light-capability-and-off-name-rules-beta6-candidate).
+
+### Bee version feedback and development updates
+
+Tap the golden bee to see a short label such as **v1.9.0 beta 6 inside the same
+hexagon** during the existing animation. It then returns to normal; reduced motion
+suppresses flight while retaining feedback. Full dev revision stays in diagnostics,
+not visual labels. [Permanent development resource, one-command installation and
+cache troubleshooting](docs/DEVELOPMENT_BUILDS.md). This is an unpublished candidate,
+not an announcement that beta.6 is available through HACS.
 
 ### Canonical visual baseline: Light module
 
@@ -291,6 +384,13 @@ White swatches are solid temperature colors: tap applies; hold refines without
 calling HA. Back restores the prior palette, and full close resets it. Native
 Kelvin bounds and integer-precision limits apply; no new YAML options are needed.
 
+In v1.9.0-beta.4, HA `supported_color_modes` selects available palettes. For a
+Color + White light, tap slot 3 for its current `color_mode`; hold for the other
+supported palette. Cube 3 names the displayed palette and its alternative (v1.9.0-beta.5).
+Navigation sends no light command. White-only exposes no Color alternative;
+fixed-white keeps brightness controls, and on/off-only keeps toggle only.
+
+
 Preset values may be writable `number.*` entities on **another relay/device or
 integration**, or `input_number.*` helpers. They need not belong to the Light.
 Brightness is 0–100%, hue 0–360, saturation 0–100, Kelvin must suit the Light.
@@ -412,3 +512,17 @@ six-sided geometry, power/fixed speed and sizing stay unchanged. Try the
 [complete synthetic green/blue demo](examples/energy-wave-color.yaml) and read
 the [color and template rules](docs/ENERGY_WAVE.md#contour-color--v180-beta7).
 This setting starts in beta.7; published beta.6 remains immutable.
+
+
+### Anchored child menus (v1.9.0-beta.4)
+
+Opening a promoted child keeps the selected cube at its exact physical position;
+it becomes that submenu's slot 0. Back restores the previous anchor and layout.
+This also applies to deeper Charger/generic menus and responsive floorplans.
+Light palettes/zoom and Sonos Radio/Join/Sleep retain their existing navigation.
+In v1.9.0-beta.5, every ordinary submenu depth defaults to the same neutral gray
+fill and inner border as Light controls; the dark outer border remains unchanged.
+Charger details use that shared gray rather than a black fill. Root Hub base
+fill/status styling and meaningful module/center/palette colors are preserved. Explicit
+`colors.inner_border` overrides still win; the promoted center keeps its selected
+appearance. Root status colors and intentional Light/Sonos colors are preserved.
