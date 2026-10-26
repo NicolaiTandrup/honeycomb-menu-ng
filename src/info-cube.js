@@ -21,7 +21,8 @@ class InfoCube extends LitElement {
         super();this._page=0;this._geometry=null;this._layout=null;
         this._resize=()=>this._relayout();
         this._keys=e=>{
-            if(!this.isConnected)return;
+            const open=document.querySelectorAll('honeycomb-ng-info');
+            if(!this.isConnected || open[open.length-1]!==this)return;
             if(['Escape','Enter',' '].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)this._return();}
             else if(['PageDown','PageUp','ArrowDown','ArrowUp'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();this._turn(['PageDown','ArrowDown'].includes(e.key)?1:-1);}
             else if(e.key==='Tab'){e.preventDefault();e.stopImmediatePropagation();this._focusSurface();}
@@ -52,7 +53,7 @@ class InfoCube extends LitElement {
     }
     _relayout(){
         if(!this.config||!this.anchor)return;
-        const footprint=info.footprint(this.cubeSize,this.config.footprint),viewport=window.visualViewport;
+        const footprint=info.footprint(this.cubeSize),viewport=window.visualViewport;
         const vw=viewport && viewport.width||innerWidth,vh=viewport && viewport.height||innerHeight;
         const width=Math.max(48,Math.min(footprint.width,vw-24,(vh-24)/1.1547));
         const height=width*1.1547,scale=width/footprint.width;
@@ -66,7 +67,7 @@ class InfoCube extends LitElement {
     _turn(delta){if(this._layout)this._page=Math.max(0,Math.min(this._layout.pages.length-1,this._page+delta));}
     render(){
         const g=this._geometry,l=this._layout;if(!g||!l)return html``;
-        const footer=l.pages.length>1?`${this._page+1}/${l.pages.length} · Scroll`:l.warnings.length?'Content limited':'Tap to return';
+        const footer=l.pages.length>1?`${this._page+1}/${l.pages.length} · ${l.warnings.length?'Limited':'Scroll'}`:l.warnings.length?'Content limited':'Tap to return';
         return html`<div class="backdrop" @pointerdown=${e=>e.stopPropagation()} @click=${e=>e.stopPropagation()}></div>
         <div class="surface" role="dialog" aria-modal="true" tabindex="0" aria-label=${info.value(this.config.title,this.hass)||'Information'} aria-describedby="info-description"
             style=${styleMap({left:g.left+'px',top:g.top+'px',width:g.width+'px',height:g.height+'px',clipPath:'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)'})}

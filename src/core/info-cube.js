@@ -3,7 +3,7 @@
 const layout=require('./layout');
 const {SUBMENU_FILL,SUBMENU_INNER,OUTER}=require('./submenu-theme');
 const LIMITS=Object.freeze({blocks:128,characters:32768,pages:64});
-const KEYS=['mode','title','text','blocks','spacing','padding','font_size','weight','align','colors','footprint'];
+const KEYS=['mode','title','text','blocks','spacing','padding','font_size','weight','align','colors'];
 const BLOCK_KEYS=['text','font_size','weight','align','color','background','x','y','z'];
 function fail(message){throw new Error('Info Cube: '+message);}
 function object(value){return value && typeof value==='object' && !Array.isArray(value);}
@@ -35,7 +35,6 @@ function validate(config){
     styles(config);
     if(config.spacing!==undefined)number(config.spacing,0,40,'spacing');
     if(config.padding!==undefined)number(config.padding,8,40,'padding');
-    if(config.footprint!==undefined&&!['slots-0-7','inner-ring'].includes(config.footprint))fail('footprint must be slots-0-7 or inner-ring.');
     if(config.colors!==undefined){
         if(!object(config.colors)||Object.keys(config.colors).some(k=>!['inner_border','outer_border','center','foreground'].includes(k)))fail('invalid colors.');
         Object.values(config.colors).forEach(color);
@@ -78,9 +77,9 @@ function resolve(config,hass){
     return {blocks,truncated};
 }
 // Exact enclosing regular pointy hex for literal cells; slot 7 is outer LEFT.
-function footprint(size=82,kind='slots-0-7'){
+function footprint(size=82){
     const origin=layout.sceneCenter(2),points=[];
-    for(let slot=0;slot<=(kind==='inner-ring'?6:7);slot++){
+    for(let slot=0;slot<=7;slot++){
         const p=slot===0?origin:layout.buttonPosition(slot-1,{inner:true,outer:true,radius:2});
         for(const pair of layout.persistentHexPoints('cell').split(' ')){
             const [x,y]=pair.split(',').map(Number);
@@ -90,7 +89,7 @@ function footprint(size=82,kind='slots-0-7'){
     const x=(Math.min(...points.map(p=>p.x))+Math.max(...points.map(p=>p.x)))/2;
     const y=(Math.min(...points.map(p=>p.y))+Math.max(...points.map(p=>p.y)))/2;
     const width=Math.max(...points.flatMap(p=>[2*Math.abs(p.x-x),Math.abs(p.x-x)+Math.sqrt(3)*Math.abs(p.y-y)]));
-    return {x,y,width,height:width*1.1547,slots:kind==='inner-ring'?[0,1,2,3,4,5,6]:[0,1,2,3,4,5,6,7]};
+    return {x,y,width,height:width*1.1547,slots:[0,1,2,3,4,5,6,7]};
 }
 // Conservative Minkowski inset: slope factor makes padding normal to all sides.
 function band(width,height,top,bottom,padding=12){

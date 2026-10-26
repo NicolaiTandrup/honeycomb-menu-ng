@@ -403,12 +403,15 @@ function openInfo(context, config, source = null)
     dismissInfo(context,false);
     const center=menu.shadowRoot.querySelector('.center-item');
     const rect=(center || source || menu).getBoundingClientRect();
+    const position=menu._computeCenterPosition();
+    const anchor=center || source ? {x:rect.left+rect.width/2,y:rect.top+rect.height/2} :
+        {x:rect.left+(position.x+.5)*menu.sizes.item,y:rect.top+(position.y+.57735)*menu.sizes.item};
     const view=document.createElement('honeycomb-ng-info');
     let focused=document.activeElement;
     while(focused && focused.shadowRoot && focused.shadowRoot.activeElement) focused=focused.shadowRoot.activeElement;
     context.infoFocus=focused;
     view._menuContext=context;
-    view.configure(config,{hass:menu.hass,anchor:{x:rect.left+rect.width/2,y:rect.top+rect.height/2},size:menu.sizes.item,
+    view.configure(config,{hass:menu.hass,anchor,size:menu.sizes.item,
         onReturn:()=>dismissInfo(context),onExpire:()=>{dismissInfo(context,false);honeycombClose(context);}});
     context.info=view;
     menu._clearIdleTimeout();

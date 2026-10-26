@@ -8,6 +8,7 @@ from playwright.sync_api import sync_playwright
 from run import Handler, CheckResult
 from beta4_navigation import Navigation
 from charger import charger
+from beta5 import FLOORPLAN
 
 class Info(Navigation):
     def root(self,extra=None):
@@ -15,7 +16,7 @@ class Info(Navigation):
     def open(self,config=None):
         if config is None:self.activate(self.cell(1).locator('.interaction-surface'))
         else:self.page.evaluate('config=>ng.openInfoInContext(hub._menuContext,config)',config)
-        self.page.wait_for_function('!!hub._menuContext.info?._layout');self.page.locator('honeycomb-ng-info .surface').wait_for()
+        self.page.wait_for_function('!!hub._menuContext.info?._layout');self.page.locator('honeycomb-ng-info .surface').last.wait_for()
     def dialog(self):return self.page.locator('honeycomb-ng-info .surface')
     def snapshot(self):
         self.page.mouse.move(0,0);self.settle()
@@ -29,6 +30,8 @@ class Info(Navigation):
             self.assertGreaterEqual(r['x']+.3,left);self.assertLessEqual(r['x']+r['width'],g['width']-left+.3)
     def test_declarative_root_safe_hex_and_tap_exact_return(self):
         self.root();before=self.snapshot();self.open();self.assertEqual(self.dialog().get_attribute('aria-label'),'Information')
+        shell=self.page.locator('honeycomb-ng-info honeycomb-menu-ng-item');self.assertAlmostEqual(shell.bounding_box()['width'],328,delta=.1)
+        self.assertAlmostEqual(shell.locator('.hex-outer').bounding_box()['width'],328,delta=.1)
         self.assertEqual(self.page.evaluate('hub._menuContext.info._geometry.footprint.slots'),list(range(8)))
         self.assertTrue(self.page.evaluate('hub._hubMenu.shadowRoot.querySelector("#honeycombs").inert'));self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-text.png'))
@@ -85,6 +88,38 @@ class Info(Navigation):
         self.page.set_viewport_size({'width':320,'height':600});self.page.wait_for_timeout(50);self.assert_safe()
         box=self.dialog().bounding_box();self.assertGreaterEqual(box['x'],11);self.assertLessEqual(box['x']+box['width'],309)
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-320px.png'));self.dialog().press('Escape');self.assert_no_commands()
+    def test_multiple_hubs_only_top_modal_handles_keyboard_and_each_disposes(self):
+        self.root();self.open({'text':'First hub'})
+        self.page.evaluate("window.firstHub=hub;makeHub({logo:'auto',items:[{type:'light',entity:'light.zone_a'}]})")
+        self.settle();self.open({'text':'Second hub'})
+        self.assertEqual(self.page.locator('honeycomb-ng-info').count(),2)
+        self.page.locator('honeycomb-ng-info').last.locator('.surface').press('Escape')
+        self.assertEqual(self.page.locator('honeycomb-ng-info').count(),1)
+        self.assertTrue(self.page.evaluate('!!firstHub._menuContext.info'));self.page.evaluate('firstHub.remove();hub.remove()')
+        self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assert_no_commands()
+    def test_real_touch_swipe_changes_page_then_tap_returns(self):
+        if self.viewport['width']>=500:return
+        self.root();self.open({'text':'A long safe payload '*150})
+        box=self.dialog().bounding_box();x=box['x']+box['width']/2;y=box['y']+box['height']/2
+        session=self.page.context.new_cdp_session(self.page)
+        try:
+            session.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':x,'y':y}]})
+            session.send('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':x,'y':y-60}]})
+            session.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
+        finally:session.detach()
+        self.page.wait_for_function('hub._menuContext.info._page===1');self.assert_safe();self.activate(self.dialog())
+        self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assert_no_commands()
+    def test_scaled_floorplan_empty_center_and_editor_cleanup(self):
+        config={'type':'custom:honeycomb-persistent-hub','size':'auto','auto_reference_width':900,'logo':False,'items':[{'type':'generic','slot':1,'name':'Info','tap_action':{'action':'honeycomb-info','info':{'text':'Scaled Info'}}}]}
+        self.page.evaluate(FLOORPLAN,config);self.page.evaluate('floor.style.width="450px";imageHost.style.height="300px"');self.page.wait_for_function('hub._hubMenu?.sizes.item===41');self.settle()
+        self.open();self.assertAlmostEqual(self.page.evaluate('hub._menuContext.info._geometry.width'),164,delta=.1);self.assert_safe()
+        self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-auto41.png'))
+        self.page.evaluate('hub.remove()');self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assert_no_commands()
+    def test_declarative_text_never_executes_javascript_and_invalid_config_is_clear(self):
+        self.hub({'logo':'auto','items':[{'type':'generic','slot':1,'name':'Info','tap_action':{'action':'honeycomb-info','info':{'text':'${window.shouldNotRun=42} [[[ return 9; ]]] <script>window.shouldNotRun=43</script>'}}}]});self.settle()
+        self.open();self.assertFalse(self.page.evaluate('!!window.shouldNotRun'));self.assertIn('${window.shouldNotRun=42}',self.dialog().text_content());self.assert_safe()
+        self.dialog().press('Escape');message=self.page.evaluate('()=>{try{ng.openInfoInContext(hub._menuContext,{text:"A",font_size:2})}catch(e){return e.message}}')
+        self.assertIn('Info Cube:',message);self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assert_no_commands()
     def test_charging_plan_example(self):
         self.root();payload=json.loads((Path(__file__).resolve().parents[1]/'fixtures/info-charging-plan.json').read_text());self.open(payload);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-charging-plan.png'));self.dialog().press('Enter');self.assert_no_commands()

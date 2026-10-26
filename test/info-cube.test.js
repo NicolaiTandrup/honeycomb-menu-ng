@@ -8,7 +8,6 @@ test('Info validates three distinct modes and actionable errors',()=>{
 });
 test('geometry includes literal 0 through 7 with left offset, never silently 0–6',()=>{
     const f=info.footprint();assert.deepEqual(f.slots,[0,1,2,3,4,5,6,7]);assert.equal(f.x,-41);assert.equal(f.width,328);
-    const i=info.footprint(82,'inner-ring');assert.ok(Math.abs(i.width-246)<.1);assert.equal(i.x,0);
     for(const size of [41,60,82,123]){const p=info.footprint(size);assert.equal(p.width,size*4);assert.equal(p.x,-size/2);}
 });
 test('Danish, long words, blank lines and extreme payload paginate within every sloped band',()=>{
@@ -45,4 +44,10 @@ test('bounds and dependency set protect performance and caching',()=>{
 });
 test('shell is shared neutral cell with noninteractive content and explicit colors only',()=>{
     const shell=info.shell({colors:{inner_border:'#abcdef'}});assert.equal(shell.interactive,false);assert.equal(shell.colors.inner_border,'#abcdef');assert.equal(shell.colors.outer_border,'#34383d');assert.equal(shell.face_mode,'cell');
+});
+
+test('empty and stale values remain explicit, never invented live data',()=>{
+    assert.equal(info.resolve({text:''},null).blocks.at(-1).text,'No information available');
+    const hass={states:{'sensor.a':{state:'3',last_updated:'2020-01-01T00:00:00Z'}}};
+    assert.equal(info.value({entity:'sensor.a',max_age:30,stale_text:'Waiting for update'},hass),'Waiting for update');
 });
