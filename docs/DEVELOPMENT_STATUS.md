@@ -1,3 +1,53 @@
+# Development status — v1.9.0-beta.8 PUBLISHED AND VERIFIED
+
+Owner explicitly authorized beta.8 publication only. Published public prerelease:
+https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.8
+
+- Exact immutable tag/source: `3c4cad33db8d47f78c3c5673d346fe40eccb8590`.
+- Normal HACS JS:270656 bytes, SHA256
+  `587ed3389a160bc60c9c8372322bdcd3e43a37fc904e5b730adde4b3bc5f4a15`.
+- Provenance SHA256: `f766f91b4478c19ceabcff91af18cbe29cf02a82888865db2ac1e3c9959b9979`.
+- SHA256SUMS.txt SHA256: `6edf02ff2091d0bf1d82415869cc0795c1515d40c669a315ca1253aac704b33b`.
+- [Guarded publisher40384106919](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40384106919): publish=true; verify AND publish jobs/every
+  step successful. Fresh exact head/green CI, version/unused-tag and reproducible
+  committed/CI/staged/draft checks passed. No safeguards altered or bypassed.
+- All3 assets independently downloaded anonymously from public release; sizes,
+  GitHub digests/sums, exact source Git bytes, provenance and normal bundle verified.
+  Tag points directly to approved source. HACS root filename/content metadata valid.
+- 53 prior API-visible releases/assets and106 prior tags verified unchanged;
+  new counts54/107. Historical private beta.5 API-visibility exception below remains
+  unconfirmed, not a new disappearance finding. No deletion/overwrite issued.
+- Stable remains v1.8.1; master remains c1f178740c8181921033d0d18e0ac8d01afc7ea7.
+  PR #142 remains open/unmerged, source branch frozen/clean; no production HA or
+  retention change. Handoff-only publication record stays on a separate branch.
+- Exact-source CI40377756453/40377766916 and preparation40381755296 remain green:
+  398 Node passes/3 stable-only skips,402 Chromium scenarios,6 Sleep contracts;
+  docs/HACS/packaging/performance/workflow/reproducibility as archived below.
+
+## HACS installation and stop point
+
+On the development HA instance, HACS → Honeycomb Menu NG → Download/Redownload →
+Show beta versions → select **v1.9.0-beta.8**. If needed first add custom repository
+NicolaiTandrup/honeycomb-menu-ng, category Dashboard. Keep button-card and exactly
+one NG JavaScript Module resource:
+`/hacsfiles/honeycomb-menu-ng/honeycomb-menu-ng.js` (retain HACS-managed query).
+Disable the optional private DEV loader resource when switching to HACS; do not
+load both NG runtimes. Reload dashboard/browser; console
+`window.honeycombNG.version` should be `1.9.0-beta.8`, no -dev suffix.
+Public release/assets/metadata satisfy HACS beta discovery/install requirements;
+no actual HACS/HA device installation test was executed by Codex.
+
+STOP. Await owner real-HA testing; keep #140 open. No additional development,
+beta.9, master merge or stable publication is authorized. Existing compact/content
+limits and inherited mobile Light clipping remain in archived acceptance notes.
+Evidence: /workspace/build-output/v19-beta8/publication/public-verification.json,
+publish-inputs.json, before/after inventories and downloaded public assets.
+
+## Archived candidate/preparation evidence
+
+The following was recorded before publication; earlier withheld-approval/absent-tag
+statements describe that checkpoint and are superseded by the verified result above.
+
 # Development status — beta.8 candidate VALIDATED; publication NOT authorized
 
 Issue #140; review PR #142: https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/142

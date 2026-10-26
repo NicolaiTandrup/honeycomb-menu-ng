@@ -1,3 +1,15 @@
+# v1.9.0-beta.8 publication notice
+
+[Public HACS prerelease](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.8) published from exact
+`3c4cad33db8d47f78c3c5673d346fe40eccb8590` through [publisher40384106919](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40384106919).
+Normal JS SHA256 `587ed3389a160bc60c9c8372322bdcd3e43a37fc904e5b730adde4b3bc5f4a15`.
+Public tag/assets/sums/provenance independently verified. Stablev1.8.1 unchanged;
+no merge or live HA test. See [current handoff/HACS steps](DEVELOPMENT_STATUS.md).
+
+The candidate report below is archived preparation evidence; its unpublished and
+approval-pending wording predates the owner's later explicit publication approval.
+Real-HA acceptance and stable approval remain outstanding.
+
 # v1.9.0-beta.8 candidate review
 
 Baseline: immutable published beta.7 `63a9619d27fe503919389f1a51090a2a01193f80`.
