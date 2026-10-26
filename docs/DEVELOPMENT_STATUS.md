@@ -1,63 +1,75 @@
-# Development status — v1.9.0-beta.8 Info visual correction IN PROGRESS
+# Development status — beta.8 candidate IMPLEMENTED; final CI in progress
 
-Baseline published beta.7 `63a9619d27fe503919389f1a51090a2a01193f80` (PR #141).
-Active branch: `feature/issue140-info-cube-beta8`; issue #140; review PR #142
-(https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/142), targeting frozen
-beta.7 branch for a scoped diff. Owner authorized
-implementation, testing, candidate PR/preparation only; NOT beta.8 publication,
-stable merge or production Home Assistant changes. Read AGENTS.md before resuming.
+Issue #140; review PR #142: https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/142
+Read AGENTS.md and fresh issue/PR/branch state before continuing. Owner authorized
+beta.8 development and preparation ONLY. No beta.8 publication, merge or stable
+promotion. Do not modify live HA, retention or existing release/tag/asset history.
 
-## Current implementation / validation
+## Exact frozen candidate
 
-- Owner final inner-notch clarification and all current issue comments read;
-  three annotated reference images reviewed in the user conversation. Synthetic
-  fixtures compare full/compact compositions without copying private names.
-- Shared CubeElement shell retained. Foreground now centered, maximum computed
-  from actual shared six first-ring cell intersections/notch half-planes.
-  At 82px: 163.1443 × 188.3827px. Smaller scale/viewport constraints never move
-  caller/center or grow with payload. Transparent shield; surrounding cells inert.
-- Actual source passed by common cube action/event path; source-facing border
-  segment inherits resolved source inner color, supports override/disable.
-- Title/body/blocks retain binding/wrapping; custom footer supports the same
-  contract. Position observer handles responsive anchor updates; all observers
-  disposed on close. Tiny panels avoid empty-page loops; report content limits.
-- 398 Node passes /3 stable-only skips; 63 targeted Info Chromium cases pass
-  across desktop/tablet/mobile. Full inherited suite remains in progress.
-  First targeted browser pass identified old
-  enclosing-footprint assumptions, a responsive observation timing bug and
-  overlapping fixture instances; corrected. A source-update ordering test also
-  verifies live source color without remeasuring unrelated text. Complete inherited validation still
-  PENDING. Do not claim completed CI or hardware tests.
+- Baseline: published beta.7 `63a9619d27fe503919389f1a51090a2a01193f80` (PR #141).
+- Feature branch: `feature/issue140-info-cube-beta8`.
+- Exact candidate/source: `3c4cad33db8d47f78c3c5673d346fe40eccb8590`.
+- Normal HACS JS: 270656 bytes, SHA256
+  `587ed3389a160bc60c9c8372322bdcd3e43a37fc904e5b730adde4b3bc5f4a15`.
+- Package/lock/release/banner all v1.9.0-beta.8. Normal module, NOT the optional
+  development loader; no -dev/hash banner. Independent production rebuild is
+  byte-identical. HACS/package/GPL/attribution and beta metadata checks pass.
+- PR #142 targets frozen beta.7 branch for a scoped follow-up diff; cumulative
+  code retains all beta.7 modules. PR #141 stays open/unmerged/head unchanged.
+- Source worktree stays clean/frozen. This handoff is on separate
+  `docs/v19-beta8-validation-handoff`; do not move source during gate preparation.
 
-## Recoverable checkpoints
+## Implemented and validated locally
 
-- `0b02e10`: centered notch geometry, shared three-layer shell, actual source path,
-  source-facing connector, safe footer/compact text handling and broad regressions.
-- `868d785`: schema/AI/reference/README and initial handoff; PR #142 created.
-- `707edb4`: source colors resolve before Info on the same HA update; targeted
-  desktop/tablet/mobile transition passes. Normal HACS bundle never uses DEV loader.
-- Follow-up before final freeze: reserve measured footer gutter while using
-  available body area, add source-color transition to full Info suite, style/scale/
-  footer YAML examples. Final source checksum recorded after full checks below.
-- 18 dedicated reference screenshots and six before/Info/return comparison strips
-  outside Git (`review/`); screenshot assertions prove text bounds, exact caller
-  geometry, no services and clean console. Browser plugin unavailable.
-- Local runner: `/tmp/honeycomb-beta-venv/bin/python /workspace/build-output/v19-beta8/run-full.py`.
-  Earlier local inherited groups began before the final Info-only refinement;
-  exact-head GitHub CI is authoritative for the final cumulative bytes.
+Owner's latest text/annotated designs reviewed in conversation. The requested
+hex is now centered at caller slot 0 and bounded by actual natural inward notch
+junctions of shared first-ring cells. Maximum at 82px: 163.1443 × 188.3827px.
+Smaller scale/viewport fitting never translates it, changes underlying layout or
+grows with content. Shared CubeElement keeps independent existing colors.center
+(center fill), inner_border, outer_border; no renderer/numeric-engine duplication.
+Transparent input shield, stationary visible/inert original cubes, source-facing
+border-gutter connector inherits actual source inner color (override/disable).
+Every source slot 0–18 and promoted/nested module centers covered. Same-update
+source color resolves before Info; unrelated text is not remeasured.
 
-## Remaining priority
+Automatic hex-aware wrapping, stack/positioned, static/live scalar title/body/
+blocks and optional custom footer; prefixes/suffixes/fallback. Fixed readable
+fonts, bounded pagination/limits; tiny sizes report content limits rather than
+empty-page loops. Existing exact tap/keyboard return and fixed 30-second close-all
+preserved. Resize/position observers dispose on teardown; no polling/services.
 
-1. Finish targeted Info tests, screenshots/geometry/text/footer containment and
-   module/source-slot return. Fix only genuine defects.
-2. Run complete existing unit/contracts/browser/docs/performance/lint/HACS suite,
-   build reproduction/checksum. Commit/push tested milestones; open beta.8 PR.
-3. Verify exact push/PR CI, guarded `publish=false` preparation and staged source/
-   asset provenance. No `publish=true` dispatch without new owner approval.
-4. Record exact commit/checksum/CI/screenshots here and in issue/PR, then stop for
-   owner review. #140 stays open for actual HA acceptance.
+- 398 Node passes /3 stable-only skips; core contract groups pass.
+- Complete local 402 Chromium scenarios including63 Info and18 docs interactions;
+  eight additional coexistence checks included. Six native Sonos Sleep contracts.
+- Full suite protects Light/Hue/Kelvin/capabilities/OFF, Sonos native Favorites/
+  Radio/Join/Sleep, Charger/editor/labels, 82px geometry, gradients/pulse/color/
+  power, autosize/numeric sizes, navigation/touch/allocation, lifecycle/performance.
+- Docs/YAML/examples/links pass (exact count in full/docs/documentation-results.json).
+  Workflow lint and core benchmark pass; no unrelated dependency allocations.
+- 18 synthetic desktop/tablet/mobile reference screenshots +6 before/Info/return
+  strips in review/. CI shared-cube-evidence includes full/compact three-cell
+  before/Info/return screenshots. No private owner configuration/images committed.
+- Local inherited groups began before the final Info-only refinement; final63
+  Info cases/docs cover final bytes. Exact-head GitHub CI remains authoritative
+  for the entire cumulative tested source. No false exact-local-all-bytes claim.
 
-## Commands
+## Required next steps — do not repeat completed implementation
+
+1. Await exact-head push CI40377756453 and PR CI40377766916. Both presently running;
+   workflow-lint green, push through full base and subsequent module groups,
+   PR browser installation completed and base scenarios running. Verify every
+   job/step success; do not dispatch against stale earlier868d785/707edb4 runs.
+2. If green, run unchanged guarded release.yml with publish=false, expected_commit
+   3c4cad33db8d47f78c3c5673d346fe40eccb8590, expected_tag v1.9.0-beta.8,
+   ref feature/issue140-info-cube-beta8. Inputs prepared outside Git; verify fresh
+   branch head/CI, staged bundle/provenance/sums and immutable unused tag/release.
+   Never publish=true: separate owner approval required.
+3. Record CI/preparation/artifact/checksum evidence in this handoff and PR #142;
+   post concise final issue #140 comment, validate Markdown/examples and push
+   handoff branch. Then stop for owner review; do not close #140 or start beta.9.
+
+## Commands / evidence
 
 ```sh
 npm test
@@ -69,12 +81,26 @@ python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card /wo
 python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/v19-beta8/docs
 ```
 
-Browser plugin unavailable; repository Playwright/Chromium used. Python environment
-`/tmp/honeycomb-beta-venv/bin/python`. Evidence outside Git:
-`/workspace/build-output/v19-beta8/`. Full inherited runner will be recorded here.
-No Firefox/WebKit/live HA/real HACS install or physical charging commands claimed.
-Stable v1.8.1/master and all previous release/tag history remain protected;
-retention untouched. No Climate/Car/CM implementation or unrelated design work.
+Python: /tmp/honeycomb-beta-venv/bin/python. All evidence outside Git:
+/workspace/build-output/v19-beta8/; run-full.py, full/validation.json and logs,
+review/, info-final.log, repro-approved/, preparation-notes.md, prepare-inputs.json.
+Browser plugin unavailable; repository Playwright Chromium fallback used.
+Source bundle link: feature/issue140-info-cube-beta8/honeycomb-menu-ng.js.
+
+## Limits / acceptance / protected state
+
+No actual HA/HACS/Terminal/device test or physical charging command was executed.
+Owner earlier Light/bee and beta.7 dynamic text feedback is separate from beta.8
+acceptance. Chromium desktop1100/tablet768/mobile390 only; no Firefox/WebKit/native
+pinch/physical Pi claim. Fixed30s,128blocks,32768chars,64pages; positioned overflow
+explicit; very small panels can limit content. Keep floorplan anchor visible.
+Existing fixed410px Light palette clipping on390px remains inherited.
+No Climate/Car/CM expansion. #140 stays open for real-HA acceptance.
+
+Latest stable v1.8.1 and master c1f178740c8181921033d0d18e0ac8d01afc7ea7 verified
+unchanged. Beta.7 source/tag and all3 assets' digests/sizes unchanged. No release/
+tag writes occurred; beta.8 tag and release absent. Private beta.5/retention never
+modified; historical API visibility exception below still needs owner confirmation.
 
 ## Preservation audit exception — owner confirmation pending
 
@@ -91,4 +117,5 @@ Do not assert it retained/deleted, recreate it, change it, or issue further rele
 mutations to hide the discrepancy. Record the owner's confirmation when available.
 
 
-[Candidate review and acceptance checklist](V1_9_BETA8_REVIEW.md).
+
+[Candidate schema/reference](INFO_CUBE.md) · [review and owner checklist](V1_9_BETA8_REVIEW.md).
