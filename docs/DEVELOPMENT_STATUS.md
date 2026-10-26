@@ -46,7 +46,7 @@ Existing Light/Sonos/Charger/module trees and physical geometry are unchanged.
 - Normal/dev/ZIP reproduction, HACS/GPL/package, metadata, docs/YAML/links,
   performance and workflow lint pass. Code-head docs: 59 YAML / 234 links;
   final Markdown handoff separately validated: 60 YAML, 45 cards + 11 fragments,
-  255 local links and 18 desktop/mobile documentation interactions. Fifteen extra representative
+  250 local links and 18 desktop/mobile documentation interactions. Fifteen extra representative
   paragraph/stack/positioned/mock-plan screenshots outside Git.
 - Official HACS repo readiness 40359213589 successful (repo/default-branch
   eligibility); candidate Build/local gates validate this actual bundle.
