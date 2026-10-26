@@ -1,7 +1,9 @@
-# Development status — beta.8 candidate IMPLEMENTED; final CI in progress
+# Development status — beta.8 candidate VALIDATED; publication NOT authorized
 
 Issue #140; review PR #142: https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/142
-Read AGENTS.md and fresh issue/PR/branch state before continuing. Owner authorized
+Read AGENTS.md and fresh issue/PR/branch state before continuing. This final
+publication-readiness handoff is separate from frozen source; source-tagged status
+necessarily predates completion of CI/preparation. Owner authorized
 beta.8 development and preparation ONLY. No beta.8 publication, merge or stable
 promotion. Do not modify live HA, retention or existing release/tag/asset history.
 
@@ -45,7 +47,8 @@ preserved. Resize/position observers dispose on teardown; no polling/services.
 - Full suite protects Light/Hue/Kelvin/capabilities/OFF, Sonos native Favorites/
   Radio/Join/Sleep, Charger/editor/labels, 82px geometry, gradients/pulse/color/
   power, autosize/numeric sizes, navigation/touch/allocation, lifecycle/performance.
-- Docs/YAML/examples/links pass (exact count in full/docs/documentation-results.json).
+- Source docs pass: 59 YAML blocks, 44 complete cards +11 fragments, 235 local
+  links and18 desktop/mobile interactions (full/docs/documentation-results.json).
   Workflow lint and core benchmark pass; no unrelated dependency allocations.
 - 18 synthetic desktop/tablet/mobile reference screenshots +6 before/Info/return
   strips in review/. CI shared-cube-evidence includes full/compact three-cell
@@ -54,20 +57,47 @@ preserved. Resize/position observers dispose on teardown; no polling/services.
   Info cases/docs cover final bytes. Exact-head GitHub CI remains authoritative
   for the entire cumulative tested source. No false exact-local-all-bytes claim.
 
-## Required next steps — do not repeat completed implementation
+## Final exact-source CI and preparation — ALL GREEN
 
-1. Await exact-head push CI40377756453 and PR CI40377766916. Both presently running;
-   workflow-lint green, push through full base and subsequent module groups,
-   PR browser installation completed and base scenarios running. Verify every
-   job/step success; do not dispatch against stale earlier868d785/707edb4 runs.
-2. If green, run unchanged guarded release.yml with publish=false, expected_commit
-   3c4cad33db8d47f78c3c5673d346fe40eccb8590, expected_tag v1.9.0-beta.8,
-   ref feature/issue140-info-cube-beta8. Inputs prepared outside Git; verify fresh
-   branch head/CI, staged bundle/provenance/sums and immutable unused tag/release.
-   Never publish=true: separate owner approval required.
-3. Record CI/preparation/artifact/checksum evidence in this handoff and PR #142;
-   post concise final issue #140 comment, validate Markdown/examples and push
-   handoff branch. Then stop for owner review; do not close #140 or start beta.9.
+- [Push CI40377756453](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40377756453)
+  and [PR CI40377766916](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40377766916):
+  exact3c4cad3/feature branch, attempt1, every build/lint job and every step successful.
+  Matching normal bundle and shared-cube-evidence artifacts present/unexpired.
+- [Guarded prepare40381755296](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40381755296):
+  explicit workflow_dispatch, publish=false, exact source/tag/branch metadata.
+  Verify job/every step successful, publish job SKIPPED. Fresh branch/CI/tag gates,
+  CI/staged/committed/rebuilt HACS byte/checksum comparisons pass. Source guards
+  were unchanged. No tag, draft or release was created.
+- [Prepared artifact12677964330](https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/40381755296/artifacts/12677964330):
+  verified-beta-3c4cad33db8d47f78c3c5673d346fe40eccb8590, 87325-byte archive,
+  archive digest dcc74bcce25d5db414cc506809eb8612114cb176e0e4aa18762646630b315f33.
+  Contains normal JS, SHA256SUMS.txt and exact source/CI release-provenance.json.
+  Archive digest is NOT the JavaScript checksum.
+- Public commit-pinned JavaScript independently downloaded and compared with
+  local committed/rebuilt bytes; normal version banner and no DEV loader verified.
+  Source tree: dad6dceef6facfa5ed4aab5e2b52ab9294962cff.
+- Staged private Actions bytes/provenance verified inside the guarded GitHub
+  runner. Independent workspace Actions-archive download was not claimed (earlier
+  workspace Azure artifact proxy limitation persists). Public pinned-source JS
+  verification above succeeded. No release asset is public before authorization.
+- Final Markdown-only handoff validation passes:59 YAML,44 cards+11 fragments,
+  238 local links and18 desktop/mobile documentation interactions.
+- After preparation: beta.8 tag/release still absent; source head3c4cad3 clean,
+  beta.7 tag/source/PR#141 and three assets unchanged, stable/master unchanged.
+
+## Next authorized step — STOP for owner review
+
+Candidate is technically ready for guarded HACS prerelease publication, but the
+owner explicitly withheld beta.8 publication approval. Do not dispatch publish=true,
+merge any PR or publish stable. Do not start beta.9/another feature. #140 stays
+open. Review [reference/schema](INFO_CUBE.md) and [owner checklist](V1_9_BETA8_REVIEW.md).
+
+After separate explicit approval, re-verify current branch/PR head, latest matching
+CI, unused tag/release, metadata/reproducibility and publisher guards. Publish
+v1.9.0-beta.8 from exact3c4cad33db8d47f78c3c5673d346fe40eccb8590 only if still
+current/tested; never silently substitute a moved commit or bypass gates. Then
+independently verify release/tag/assets/HACS before claiming publication.
+Real-HA acceptance follows on the owner's development instance, not production.
 
 ## Commands / evidence
 
@@ -102,9 +132,9 @@ unchanged. Beta.7 source/tag and all3 assets' digests/sizes unchanged. No releas
 tag writes occurred; beta.8 tag and release absent. Private beta.5/retention never
 modified; historical API visibility exception below still needs owner confirmation.
 
-## Preservation audit exception — owner confirmation pending
+## Historical beta.7 preservation audit exception — owner confirmation pending
 
-All 52 prior public release records / 81 public assets and 105 prior tags verified
+Carried from beta.7 publication, not a fresh beta.8 deletion finding: all 52 prior public release records / 81 public assets and 105 prior tags verified
 unchanged. Publisher's own before/after preservation assertions passed. No
 release/tag delete, overwrite or force command was issued; old Git history/branches
 remain. Source branch and every existing PR were left unmerged.
