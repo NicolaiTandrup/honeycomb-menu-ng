@@ -178,18 +178,34 @@ class Info(Navigation):
         self.page.evaluate('window.layoutBefore=hub._menuContext.info._layout;pushState("light.zone_a","off")');self.settle()
         self.assertEqual(self.model(0)['colors']['inner'],'#718096');self.assertEqual(self.page.evaluate('hub._menuContext.info._geometry.connector.color'),'#718096')
         self.assertTrue(self.page.evaluate('layoutBefore===hub._menuContext.info._layout'));self.assert_no_commands()
+    def test_source_paint_layers_radial_linear_alpha_snapshot_and_mixed(self):
+        self.root();self.cell(1).evaluate("""e=>{const ns='http://www.w3.org/2000/svg',svg=e.shadowRoot.querySelector('svg');const defs=document.createElementNS(ns,'defs');defs.innerHTML='<linearGradient id="synthetic-inner" x1="10%" y1="90%" x2="80%" y2="20%"><stop offset="0%" stop-color="#ff8040" stop-opacity="0.35"/><stop offset="42%" stop-color="#33aaff"/><stop offset="100%" stop-color="#112233"/></linearGradient><radialGradient id="synthetic-center" cx="30%" cy="60%" r="70%"><stop offset="0%" stop-color="#abcdef"/><stop offset="80%" stop-color="#102030" stop-opacity="0.6"/></radialGradient>';svg.prepend(defs);e.shadowRoot.querySelector('.hex-inner').style.fill='url(#synthetic-inner)';e.shadowRoot.querySelector('.hex-fill').style.fill='url(#synthetic-center)';e.shadowRoot.querySelector('.hex-outer').style.fill='rgba(20, 40, 60, .4)';}""")
+        self.cell(1).evaluate("e=>e._executeAction({action:'honeycomb-info',info:{text:'Snapshot',colors:{center:'source',inner_border:'source',outer_border:'source'}}})")
+        self.page.wait_for_function('!!hub._menuContext.info?._layout');self.settle()
+        p=self.page.evaluate('structuredClone(hub._menuContext.info.paintSnapshot)');self.assertEqual(p['center']['type'],'radialGradient');self.assertEqual(p['center']['attributes']['cx'],'30%');self.assertEqual(p['inner_border']['attributes']['x2'],'80%');self.assertEqual(self.page.evaluate('hub._menuContext.info._geometry.connector.color'),'rgb(255, 128, 64)');self.assertEqual(len(p['inner_border']['stops']),3);self.assertEqual(p['inner_border']['stops'][0]['opacity'],'0.35');self.assertIn('0.4',p['outer_border']['color'])
+        self.page.evaluate('pushState("sensor.unrelated","1")');self.assertEqual(self.page.evaluate('hub._menuContext.info.paintSnapshot'),p)
+        self.assertEqual(self.page.locator('honeycomb-ng-info honeycomb-menu-ng-item linearGradient stop').count(),3)
+        self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-source-paint.png'));self.dialog().press('Escape')
+        self.cell(1).evaluate("e=>e._executeAction({action:'honeycomb-info',info:{text:'Mixed',colors:{center:'source',inner_border:'#ab1234',outer_border:'linear-gradient(135deg, rgba(10,20,30,.3) 10%, #ffffff 70%, #333333 100%)'}}})")
+        self.page.wait_for_function('!!hub._menuContext.info?._layout');self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.info.paintSnapshot.center.type'),'radialGradient');self.assertEqual(self.page.locator('honeycomb-ng-info honeycomb-menu-ng-item .hex-inner').evaluate('e=>getComputedStyle(e).fill'),'rgb(171, 18, 52)');self.assertIn('135deg',self.page.locator('honeycomb-ng-info foreignObject div').evaluate('e=>getComputedStyle(e).backgroundImage'));self.assert_no_commands()
+    def test_source_paint_native_active_fill_and_unavailable_source_fallback(self):
+        self.light_main();self.cell(0).evaluate("e=>e._executeAction({action:'honeycomb-info',info:{text:'Active',colors:{center:'source',inner_border:'source',outer_border:'source'}}})")
+        self.page.wait_for_function('!!hub._menuContext.info?._layout');p=self.page.evaluate('structuredClone(hub._menuContext.info.paintSnapshot)');self.assertEqual(p['center']['type'],'radialGradient')
+        self.page.evaluate('pushState("light.zone_a","off")');self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.info.paintSnapshot'),p);self.dialog().press('Escape')
+        self.page.evaluate("hub._menuContext.info=null;ng.openInfoInContext(hub._menuContext,{text:'Fallback',colors:{center:'source',inner_border:'source',outer_border:'source'}},document.createElement('div'))")
+        self.page.wait_for_function('!!hub._menuContext.info?._layout');self.assertEqual(self.page.evaluate('hub._menuContext.info.paintSnapshot.inner_border.color'),'#34424e');self.assert_safe();self.assert_no_commands()
     def test_charging_plan_example(self):
         self.root();payload=json.loads((Path(__file__).resolve().parents[1]/'fixtures/info-charging-plan.json').read_text());self.open(payload);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-charging-plan.png'));self.dialog().press('Enter');self.assert_no_commands()
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--bundle',type=Path,required=True);p.add_argument('--button-card',type=Path,required=True);p.add_argument('--evidence-dir',type=Path,required=True);args=p.parse_args();args.evidence_dir.mkdir(parents=True,exist_ok=True)
+    p=argparse.ArgumentParser();p.add_argument('--source-paint-only',action='store_true');p.add_argument('--bundle',type=Path,required=True);p.add_argument('--button-card',type=Path,required=True);p.add_argument('--evidence-dir',type=Path,required=True);args=p.parse_args();args.evidence_dir.mkdir(parents=True,exist_ok=True)
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler);server.bundle=args.bundle.resolve();server.button=args.button_card.resolve();threading.Thread(target=server.serve_forever,daemon=True).start();success=True
     try:
         with sync_playwright() as p:
             Info.browser=p.chromium.launch(executable_path=os.getenv('CHROMIUM_PATH') or shutil.which('chromium'),args=['--no-sandbox']);Info.url=f'http://127.0.0.1:{server.server_port}';Info.evidence=args.evidence_dir
             for width,height in [(1100,900),(768,1024),(390,844)]:
-                Info.viewport={'width':width,'height':height};r=unittest.TextTestRunner(verbosity=2,resultclass=CheckResult).run(unittest.TestSuite(Info(n) for n in Info.__dict__ if n.startswith('test_')));success=r.wasSuccessful() and success
+                Info.viewport={'width':width,'height':height};r=unittest.TextTestRunner(verbosity=2,resultclass=CheckResult).run(unittest.TestSuite(Info(n) for n in Info.__dict__ if n.startswith('test_') and (not args.source_paint_only or n.startswith('test_source_paint_'))));success=r.wasSuccessful() and success
             Info.browser.close()
     finally:server.shutdown();server.server_close()
     return 0 if success else 1

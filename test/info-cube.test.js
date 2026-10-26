@@ -102,3 +102,20 @@ test('fixed fonts and long Danish payloads remain bounded at normal and compact 
         }
     }
 });
+
+test('Info source paints independently resolve missing layers without mutating a snapshot',()=>{
+    const paint=require('../src/core/info-paint'),snap={center:{type:'radialGradient',attributes:{cx:'25%'},stops:[{color:'red',offset:'0%'}],opacity:.4}};
+    const c={text:'A',colors:{center:'source',inner_border:'source',outer_border:'#123456'}};info.validate(c);
+    const r=paint.resolve(c,snap);assert.equal(r.center,snap.center);assert.equal(r.inner_border.color,'#34424e');assert.equal(r.outer_border,undefined);assert.equal(info.shell(c).colors.center,'rgba(52, 66, 78, 0.94)');
+    assert.deepEqual(paint.capture(null),{});assert.throws(()=>info.validate({text:'A',colors:{center:'url(https://example.org/x)'}}));
+});
+
+test('all three source fields independently combine with explicit overrides',()=>{
+    const paint=require('../src/core/info-paint'),keys=['center','inner_border','outer_border'];
+    const snap=Object.fromEntries(keys.map((k,i)=>[k,{type:'solid',color:'rgba(1,2,3,.4)',opacity:.5}]));
+    for(let mask=0;mask<8;mask++){
+        const colors=Object.fromEntries(keys.map((k,i)=>[k,mask&(1<<i)?'source':'#123456']));
+        const result=paint.resolve({colors},snap);
+        keys.forEach((k,i)=>assert.equal(result[k],mask&(1<<i)?snap[k]:undefined));
+    }
+});

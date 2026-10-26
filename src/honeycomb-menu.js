@@ -412,14 +412,15 @@ function openInfo(context, config, source = null)
     const sourceGeometry=()=>{
         if(!source || !source.isConnected)return null;
         const box=source.getBoundingClientRect(),index=source.getAttribute('data-honeycomb-slot'),slot=index===null||index==='center'?0:Number(index)+1;
-        return {x:box.left+box.width/2,y:box.top+box.height/2,slot:Number.isSafeInteger(slot)?slot:null,inner:source._model && source._model.colors.inner};
+        return {x:box.left+box.width/2,y:box.top+box.height/2,slot:Number.isSafeInteger(slot)?slot:null,inner:require('./core/info-paint').connectorColor(source)};
     };
+    const paintSnapshot=require('./core/info-paint').capture(source);
     const view=document.createElement('honeycomb-ng-info');
     let focused=document.activeElement;
     while(focused && focused.shadowRoot && focused.shadowRoot.activeElement) focused=focused.shadowRoot.activeElement;
     context.infoFocus=savedFocus && savedFocus.isConnected ? savedFocus : focused;
     view._menuContext=context;
-    view.configure(config,{hass:menu.hass,anchor,size:menu.sizes.item,observe:center || menu.shadowRoot.querySelector('#honeycombs'),positionElement:menu,
+    view.configure(config,{paintSnapshot,hass:menu.hass,anchor,size:menu.sizes.item,observe:center || menu.shadowRoot.querySelector('#honeycombs'),positionElement:menu,
         readGeometry:()=>{const point=menu._computeCenterPosition(),box=(center || menu).getBoundingClientRect();return {size:menu.sizes.item,source:sourceGeometry(),anchor:center?{x:box.left+box.width/2,y:box.top+box.height/2}:
             {x:box.left+(point.x+.5)*menu.sizes.item,y:box.top+(point.y+.57735)*menu.sizes.item}};},
         onReturn:()=>dismissInfo(context),onExpire:()=>{dismissInfo(context,false);honeycombClose(context);}});

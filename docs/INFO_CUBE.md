@@ -1,3 +1,19 @@
+## v1.9.0-beta.9 — Info source paint hotfix
+
+Each Info `colors.center`, `colors.inner_border`, `colors.outer_border` independently
+accepts `source`, a literal CSS color, or supported CSS linear/radial/conic gradient.
+Example: `colors: {center: source, inner_border: '#f4a0c9', outer_border: source}`.
+At opening, the actual invoking cube's rendered layer is snapshotted, including
+SVG linear/radial paint servers, direction/transforms, all stops, stop alpha and
+layer opacity. Resolved HA styling is captured, not re-evaluated as raw YAML.
+No gradient is flattened into a solid. Later HA updates do not change these three
+snapshots or restart the timeout; reopening captures fresh appearance. Missing
+source/unsupported or cyclic paint references use the normal neutral layer default.
+External paint-server URLs are never fetched; explicit CSS gradients cannot use URLs.
+The connector remains separate/live. For gradient inner borders its documented
+representative is the first stop's color (not an exact gradient/stop-opacity copy).
+Geometry, wrapping, pagination, navigation and fixed30-second lifetime are unchanged.
+
 # Info Cube — beta.8 review contract
 
 Info Cube first shipped in published **v1.9.0-beta.7**. This guide describes its
