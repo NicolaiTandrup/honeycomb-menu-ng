@@ -31,6 +31,7 @@ function build(outDir) {
         fs.writeFileSync(path.join(destination,'SHA256SUMS.txt'),`${sha256}  ${file}\n`);
         fs.copyFileSync(path.join(root,'docs/DEVELOPMENT_BUILDS.md'),path.join(destination,'INSTALL.md'));
         fs.copyFileSync(path.join(__dirname,'install-dev.js'),path.join(destination,'install-dev.cjs'));
+        fs.copyFileSync(path.join(__dirname,'install-dev.sh'),path.join(destination,'install-dev.sh'));
         // Deployment copies immutable bundle first and atomically replaces the
         // manifest last. Never advertise a new build before its bytes exist.
         const staged=path.join(destination,'manifest.json.tmp');
