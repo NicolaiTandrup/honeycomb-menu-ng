@@ -118,6 +118,9 @@ jobs:
       - name: Measure throttled state updates and anchored palette capacity
         run: python test/browser/beta6_hardening.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta6-hardening"
 
+      - name: Verify generic Info Cube containment, caller suspension and fixed lifetime
+        run: python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/info-cube"
+
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

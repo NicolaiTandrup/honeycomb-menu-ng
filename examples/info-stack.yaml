@@ -1,0 +1,24 @@
+# Synthetic demonstration only. No physical charging commands.
+type: custom:honeycomb-persistent-hub
+size: 82
+logo: auto
+items:
+- type: generic
+  slot: 1
+  name: Info
+  icon: mdi:information-outline
+  tap_action:
+    action: honeycomb-info
+    info:
+      mode: stack
+      title: Daily overview
+      spacing: 8
+      blocks:
+      - text: Ready
+        font_size: 20
+        weight: 700
+        align: center
+        color: '#9fe0ad'
+      - Vehicle A is connected.
+      - No automatic charging command is sent.
+      - Tap returns; after 30 seconds the entire menu closes.

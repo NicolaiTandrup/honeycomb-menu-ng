@@ -1,6 +1,26 @@
-# v1.9.0-beta.6 — unpublished cumulative review candidate
+# v1.9.0-beta.7 — unpublished Info Cube development candidate
 
-Publication requires separate owner approval; this is not an available HACS release.
+- Generic `honeycomb-info` action from every existing module/menu, reusing the
+  shared cube renderer. Literal slots 0–7 are enclosed by one left-shifted hexagon.
+- Wrapped text, stacked blocks and normalized x/y/z positions; measured line widths
+  respect all six sides. Long text paginates without tiny fonts. Plain HA bindings
+  update on relevant state changes; empty/stale/unavailable remain explicit.
+- Caller remains mounted and inert with its exact stack/slots/anchor. Tap/Enter/
+  Escape returns without device commands. Fixed 30-second lifetime closes all;
+  cleanup covers repeated opens, host removal, async navigation and multiple Hubs.
+- Private Terminal & SSH installation can download/check/install manifest, loader
+  and immutable runtime with curl/jq/sha256sum, no Node or PC required on HA.
+- All beta.6 functionality remains cumulative. No public beta.7 release, stable
+  merge, production HA deployment, Climate/Car module or speculative CM API.
+
+See [Info reference](docs/INFO_CUBE.md) and development handoff for actual validation,
+known limits and pending owner acceptance. Publication requires separate approval.
+
+---
+
+# v1.9.0-beta.6 — published cumulative baseline
+
+Published from `68bf88fe07aae0892705f2680a82f38c0e78848d`; owner-tested available Light/bee behavior, broader modules automatically tested.
 
 - OFF Light Hub cubes show the configured short name (HA friendly name/entity
   fallback) above OFF. ON presentation, rings, unknown/unavailable distinction,

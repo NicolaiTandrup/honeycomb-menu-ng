@@ -1,0 +1,15 @@
+# Synthetic demonstration only. No physical charging commands.
+type: custom:honeycomb-persistent-hub
+size: 82
+logo: auto
+items:
+- type: generic
+  slot: 1
+  name: Info
+  icon: mdi:information-outline
+  tap_action:
+    action: honeycomb-info
+    info:
+      title: Home overview
+      text: This is a read-only information surface. Æblegrød, Ørsted and long words
+        wrap inside the six-sided safe area. Tap anywhere on the hexagon to return.

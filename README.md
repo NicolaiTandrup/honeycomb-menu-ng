@@ -26,16 +26,14 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
-## v1.9.0 stable candidate — not published
+## v1.9.0 beta track
 
-This review branch prepares the exact public v1.9.0-beta.3 runtime for stable.
-Latest public stable remains **v1.8.1**. No merge or stable publication is authorized.
-The generic Charger/Easee, two-row labels, safe radio artwork and editor lifecycle
-fixes are included; Climate is a separate v1.10 candidate and is not included.
-See the [source pins, tests and owner release checklist](docs/V1_9_RELEASE_CANDIDATE.md).
-The existing beta.3 YAML contract also applies to this candidate; install beta.3
-from HACS for currently published Charger support. Owner artwork/control acceptance
-and explicit stable approval remain pending.
+Latest published beta: [v1.9.0-beta.6](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.6).
+The **unpublished beta.7 development candidate** adds a generic, read-only Info
+Cube: one large hexagon for wrapped text, stacked blocks or positioned x/y/z text.
+Tap returns to the exact calling menu; after 30 seconds the entire menu closes.
+[Info Cube guide and examples](docs/INFO_CUBE.md) · [development installation](docs/DEVELOPMENT_BUILDS.md).
+No stable promotion or public beta.7 publication is authorized yet.
 
 ## What you can build
 
@@ -46,7 +44,7 @@ and explicit stable approval remain pending.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
 Car and Climate modules are not implemented. Charging automation remains external.
-The generic Charger module below is **v1.9.0-beta.3 only**, not part of v1.8.1 stable.
+The generic Charger module below is **v1.9.0 beta track only**, not part of v1.8.1 stable.
 Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
 
 Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
@@ -87,7 +85,7 @@ release does not make newer beta-only options available.
 
 ## Charger beta: complete dashboards
 
-**v1.9.0-beta.3 prerelease only.** A generic Charger/Easee module shares the same
+**v1.9.0 prerelease only.** A generic Charger/Easee module shares the same
 82px renderer, gradients, sizing and power-sensitive hexagonal pulse. A Charging
 Hub sums fresh verified power and physically connected cars; named chargers open
 fixed detail menus. Permission and permanent-lock controls require deliberate taps
