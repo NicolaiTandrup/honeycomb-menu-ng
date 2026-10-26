@@ -132,7 +132,7 @@ class Info(Navigation):
         self.assert_no_commands()
     def reference(self,compact=False):
         self.page.evaluate('if(window.hub)hub.remove()')
-        payload={'title':'Zone A','text':'Light is on.\nRead-only overview.','align':'center','colors':{'center':'#34383d','inner_border':'#f4a0c9','outer_border':'#23282e'},'connector':{'color':'#f08020'}}
+        payload={'title':'Zone A','text':'Light is on.\nStatic overview.','align':'center','colors':{'center':'#34383d','inner_border':'#f4a0c9','outer_border':'#23282e'},'connector':{'color':'#f08020'}}
         if compact:payload['scale']=.85
         self.hub({'logo':'auto','items':[{'name':f'Light {slot}','icon':'mdi:lightbulb','slot':slot,'colors':{'center':'#948675','inner_border':'#e4d9c6'},'tap_action':{'action':'honeycomb-info','info':payload}} for slot in (range(1,4) if compact else range(1,7))]});self.settle()
         return payload

@@ -11,5 +11,10 @@ items:
     action: honeycomb-info
     info:
       title: Home overview
+      colors:
+        center: '#34383d'
+        inner_border: '#f4a0c9'
+        outer_border: '#23282e'
+      connector: true
       text: This is a read-only information surface. Æblegrød, Ørsted and long words
         wrap inside the six-sided safe area. Tap anywhere on the hexagon to return.

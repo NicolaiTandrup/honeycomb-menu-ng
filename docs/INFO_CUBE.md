@@ -22,6 +22,16 @@ items:
       action: honeycomb-info
       info:
         title: Home overview
+        colors:
+          center: '#34383d'       # Center fill; independent of both borders
+          inner_border: '#f4a0c9'
+          outer_border: '#23282e'
+        connector: true          # Inherit the originating cube's inner border
+        footer:
+          entity: sensor.energy_a
+          prefix: 'Energy: '
+          suffix: ' kWh'
+          fallback: Waiting
         text: A long plain-text message wraps safely inside this hexagon.
 ```
 

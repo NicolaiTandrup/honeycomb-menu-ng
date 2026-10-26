@@ -137,6 +137,7 @@ function band(width,height,top,bottom,padding=12){
 }
 function layoutText(config,hass,width,measure){
     const height=width*1.1547,padding=(config.padding||12)+5,spacing=config.spacing===undefined?6:config.spacing;
+    const contentBottom=Math.max(0,Math.min(height*.76,height*.84-18));
     const resolved=resolve(config,hass),pages=[[]],warnings=[];let page=pages[0],y=padding;
     const positioned=config.mode==='positioned';
     function next(){if(pages.length>=LIMITS.pages){warnings.push('Content truncated at page limit');return false;}page=[];pages.push(page);y=padding;return true;}
@@ -147,7 +148,7 @@ function layoutText(config,hass,width,measure){
         let rest=block.text.replace(/\r\n?/g,'\n'),first=true;
         while(rest.length||first){
             first=false;
-            if(y+lineHeight>height*.70){
+            if(y+lineHeight>contentBottom){
                 if(positioned){warnings.push('Positioned content truncated; use stack mode for pagination');break;}
                 if(!page.length){warnings.push('Text cannot fit at this size');y=padding-spacing;break;}
                 if(!next())break;

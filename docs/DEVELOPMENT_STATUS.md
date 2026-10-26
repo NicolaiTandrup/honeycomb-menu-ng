@@ -1,7 +1,9 @@
 # Development status — v1.9.0-beta.8 Info visual correction IN PROGRESS
 
 Baseline published beta.7 `63a9619d27fe503919389f1a51090a2a01193f80` (PR #141).
-Active branch: `feature/issue140-info-cube-beta8`; issue #140. Owner authorized
+Active branch: `feature/issue140-info-cube-beta8`; issue #140; review PR #142
+(https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/142), targeting frozen
+beta.7 branch for a scoped diff. Owner authorized
 implementation, testing, candidate PR/preparation only; NOT beta.8 publication,
 stable merge or production Home Assistant changes. Read AGENTS.md before resuming.
 
@@ -19,12 +21,30 @@ stable merge or production Home Assistant changes. Read AGENTS.md before resumin
 - Title/body/blocks retain binding/wrapping; custom footer supports the same
   contract. Position observer handles responsive anchor updates; all observers
   disposed on close. Tiny panels avoid empty-page loops; report content limits.
-- 398 Node passes /3 stable-only skips; 60 targeted Info Chromium cases pass
+- 398 Node passes /3 stable-only skips; 63 targeted Info Chromium cases pass
   across desktop/tablet/mobile. Full inherited suite remains in progress.
   First targeted browser pass identified old
   enclosing-footprint assumptions, a responsive observation timing bug and
-  overlapping fixture instances; corrected. Complete inherited validation still
+  overlapping fixture instances; corrected. A source-update ordering test also
+  verifies live source color without remeasuring unrelated text. Complete inherited validation still
   PENDING. Do not claim completed CI or hardware tests.
+
+## Recoverable checkpoints
+
+- `0b02e10`: centered notch geometry, shared three-layer shell, actual source path,
+  source-facing connector, safe footer/compact text handling and broad regressions.
+- `868d785`: schema/AI/reference/README and initial handoff; PR #142 created.
+- `707edb4`: source colors resolve before Info on the same HA update; targeted
+  desktop/tablet/mobile transition passes. Normal HACS bundle never uses DEV loader.
+- Follow-up before final freeze: reserve measured footer gutter while using
+  available body area, add source-color transition to full Info suite, style/scale/
+  footer YAML examples. Final source checksum recorded after full checks below.
+- 18 dedicated reference screenshots and six before/Info/return comparison strips
+  outside Git (`review/`); screenshot assertions prove text bounds, exact caller
+  geometry, no services and clean console. Browser plugin unavailable.
+- Local runner: `/tmp/honeycomb-beta-venv/bin/python /workspace/build-output/v19-beta8/run-full.py`.
+  Earlier local inherited groups began before the final Info-only refinement;
+  exact-head GitHub CI is authoritative for the final cumulative bytes.
 
 ## Remaining priority
 
