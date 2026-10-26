@@ -1,70 +1,74 @@
-# Development status — v1.9.0-beta.7 Info Cube IN PROGRESS
+# Development status — v1.9.0-beta.8 Info visual correction IN PROGRESS
 
-Updated 2026-10-26 (Europe/Copenhagen). User authorized implementation, tests,
-docs, PR and an independently installable development package, NOT a public
-beta.7 release, stable merge or production HA commands.
+Baseline published beta.7 `63a9619d27fe503919389f1a51090a2a01193f80` (PR #141).
+Active branch: `feature/issue140-info-cube-beta8`; issue #140. Owner authorized
+implementation, testing, candidate PR/preparation only; NOT beta.8 publication,
+stable merge or production Home Assistant changes. Read AGENTS.md before resuming.
 
-- Baseline: published v1.9.0-beta.6, exact `68bf88fe07aae0892705f2680a82f38c0e78848d`.
-- Active branch: `feature/issue140-info-cube-beta7`; issue #140; draft PR #141 (https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/141).
-- First checkpoint: generic `honeycomb-info` action, shared CubeElement shell,
-  analytic per-line hex containment, pagination, plain entity bindings, fixed
-  30-second close-all, modal input blocking, exact caller preservation/cleanup.
-- Geometry audit: literal slot 7 is outer-left, NOT part of the inner six. Default
-  enclosure is 328 x 378.7416 px at size 82, center offset -41/-0.205 px. A
-  owner explicitly confirmed this literal enclosure. Screenshot/real-HA acceptance
-  remains pending; no alternate silently substituted footprint.
-- Actual validation: current full Node run passed (393 passes, 3 stable-only skips);
-  seven new pure geometry/text/config tests passed. First browser iterations found
-  a missing shared-shell host width and clipped footer; corrected, current 30-case
-  desktop/tablet/mobile iteration passed 30 cases; final targeted 45-case run is
-  passing as it completes. Inherited core 136 browser cases plus coexistence,
-  presentation and native Favorites pass; remaining full groups/CI underway. Eight Info core and eight installer contracts
-  pass, including real local-TLS package download. Docs: 59 YAML / 234 links /
-  18 desktop/mobile interactions pass. No claim of completed CI/hardware tests.
+## Current implementation / validation
+
+- Owner final inner-notch clarification and all current issue comments read;
+  three annotated reference images reviewed in the user conversation. Synthetic
+  fixtures compare full/compact compositions without copying private names.
+- Shared CubeElement shell retained. Foreground now centered, maximum computed
+  from actual shared six first-ring cell intersections/notch half-planes.
+  At 82px: 163.1443 × 188.3827px. Smaller scale/viewport constraints never move
+  caller/center or grow with payload. Transparent shield; surrounding cells inert.
+- Actual source passed by common cube action/event path; source-facing border
+  segment inherits resolved source inner color, supports override/disable.
+- Title/body/blocks retain binding/wrapping; custom footer supports the same
+  contract. Position observer handles responsive anchor updates; all observers
+  disposed on close. Tiny panels avoid empty-page loops; report content limits.
+- 398 Node passes /3 stable-only skips; 60 targeted Info Chromium cases pass
+  across desktop/tablet/mobile. Full inherited suite remains in progress.
+  First targeted browser pass identified old
+  enclosing-footprint assumptions, a responsive observation timing bug and
+  overlapping fixture instances; corrected. Complete inherited validation still
+  PENDING. Do not claim completed CI or hardware tests.
 
 ## Remaining priority
 
-1. Complete the running full suite and fix only validated failures; source work
-   already includes fixed geometry, top-modal keyboard ownership and safe bindings.
-2. Three-mode examples, module/AI/geometry docs and mock plan implemented;
-   finalize evidence, exact SHA and PR readiness after regression completion.
-3. Terminal installer implemented/tested; after clean committed code, build and
-   deliver immutable dev package on a separate branch, with pinned command/checksums.
-4. Run full inherited browser/regression/docs/HACS/build/performance/CI checks;
-   commit/push checkpoints and prepare reviewable PR and testable dev package.
-5. Post issue/PR evidence and exact next steps. No public beta.7 publication until
-   separate owner authorization and real-HA acceptance; no merge/stable/Info-next work.
+1. Finish targeted Info tests, screenshots/geometry/text/footer containment and
+   module/source-slot return. Fix only genuine defects.
+2. Run complete existing unit/contracts/browser/docs/performance/lint/HACS suite,
+   build reproduction/checksum. Commit/push tested milestones; open beta.8 PR.
+3. Verify exact push/PR CI, guarded `publish=false` preparation and staged source/
+   asset provenance. No `publish=true` dispatch without new owner approval.
+4. Record exact commit/checksum/CI/screenshots here and in issue/PR, then stop for
+   owner review. #140 stays open for actual HA acceptance.
 
-## Commands / evidence
+## Commands
 
 ```sh
 npm test
 NODE_OPTIONS=--openssl-legacy-provider npm run build
-python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/v19-beta7/info
+node scripts/check-beta.js
+node scripts/check-hacs-package.js
+node test/performance/hub-benchmark.js
+python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/v19-beta8/info
+python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/v19-beta8/docs
 ```
 
-Evidence: `/workspace/build-output/v19-beta7/` (outside Git). Read AGENTS.md and
-latest Git/issue/PR before resuming; preserve all beta.6/master/releases, private
-beta.5 draft and retention settings. No live HA installation performed.
+Browser plugin unavailable; repository Playwright/Chromium used. Python environment
+`/tmp/honeycomb-beta-venv/bin/python`. Evidence outside Git:
+`/workspace/build-output/v19-beta8/`. Full inherited runner will be recorded here.
+No Firefox/WebKit/live HA/real HACS install or physical charging commands claimed.
+Stable v1.8.1/master and all previous release/tag history remain protected;
+retention untouched. No Climate/Car/CM implementation or unrelated design work.
 
-## Final Info lifecycle refinement
+## Preservation audit exception — owner confirmation pending
 
-Preserve the original opener focus across replacement Info views. Observe actual
-caller geometry while open so `size: auto` changes update the Info footprint
-without polling, idle extension or duplicate text measurement. Targeted tests
-include a 450px -> 900px rendered-image resize and focus return after reopening.
-The original 136-case inherited local browser group ran against the preceding
-checkpoint; only these Info-scoped lifecycle refinements follow it. Final exact-
-head GitHub CI must validate every group before claiming full candidate readiness.
+All 52 prior public release records / 81 public assets and 105 prior tags verified
+unchanged. Publisher's own before/after preservation assertions passed. No
+release/tag delete, overwrite or force command was issued; old Git history/branches
+remain. Source branch and every existing PR were left unmerged.
 
-## Empty-payload acceptance correction
+However, local authenticated REST now returns 404 and GraphQL null for the private
+v1.7.1-beta.5 draft ID 419308278 (initial inventory included it and three assets).
+Its independent preservation cannot be confirmed from this token/API result.
+This does not establish deletion or its cause. Owner UI confirmation was requested.
+Do not assert it retained/deleted, recreate it, change it, or issue further release
+mutations to hide the discrepancy. Record the owner's confirmation when available.
 
-Final malformed-payload checks found whitespace-only content could consume blank
-pages, and an empty positioned layout had no finite y coordinate. Corrected both
-to a single visible No information available fallback. Nine Info Node contracts
-and 48 targeted Chromium desktop/tablet/mobile cases pass; full Node is now 394
-passes / three stable-only skips. All previous normal/dev package pins and CI at
-fbefc85 are historical checkpoints; regenerate from the new tested head and await
-its matching full CI. Do not publish or silently substitute the old dev package.
-The completed inherited local full run and prior exact-head CI remain evidence,
-but are not a substitute for new-head validation.
+
+[Candidate review and acceptance checklist](V1_9_BETA8_REVIEW.md).
