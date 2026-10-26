@@ -6,9 +6,36 @@ test('Info validates three distinct modes and actionable errors',()=>{
     for(const config of [{text:'A'},{mode:'stack',blocks:['A',{text:'B',weight:700}]},{mode:'positioned',blocks:[{text:'C',x:50,y:50,z:2}]}])assert.equal(info.validate(config),config);
     for(const config of [{text:'A',mode:'html'},{text:42},{text:'A',timeout:3},{mode:'stack',blocks:[{text:'B',x:3}]},{mode:'positioned',blocks:[{text:'B',x:-1,y:50}]},{text:'A',font_size:8},{text:'A',colors:{center:'url(unsafe)'}},{text:{entity:'sensor.a',time_zone:'bad'}}])assert.throws(()=>info.validate(config),/Info Cube/);
 });
-test('geometry includes literal 0 through 7 with left offset, never silently 0–6',()=>{
-    const f=info.footprint();assert.deepEqual(f.slots,[0,1,2,3,4,5,6,7]);assert.equal(f.x,-41);assert.equal(f.width,328);
-    for(const size of [41,60,82,123]){const p=info.footprint(size);assert.equal(p.width,size*4);assert.equal(p.x,-size/2);}
+test('centered regular hex stays inside all six actual inner-notch half-planes',()=>{
+    const f=info.footprint();assert.equal(f.x,0);assert.equal(f.y,0);assert.equal(f.notches.length,6);
+    assert.ok(Math.abs(f.width-163.14428)<.00001);assert.ok(Math.abs(f.height-188.3827)<.00001);
+    for(const size of [24,41,60,82,123]){
+        const p=info.footprint(size);assert.ok(Math.abs(p.width/f.width-size/82)<1e-9);
+        const vertices=[[0,-p.height/2],[p.width/2,-p.height/4],[p.width/2,p.height/4],[0,p.height/2],[-p.width/2,p.height/4],[-p.width/2,-p.height/4]];
+        for(let i=0;i<6;i++){
+            const a=p.notches[i],b=p.notches[(i+1)%6],nx=b.y-a.y,ny=a.x-b.x,limit=nx*a.x+ny*a.y;
+            for(const [x,y] of vertices)assert.ok(nx*x+ny*y<=limit+1e-7);
+        }
+    }
+});
+test('source-facing connector inherits source inner color, not Info border, and stays in border gutter',()=>{
+    const g={width:164,height:164*1.1547,left:0,top:0};
+    for(let slot=0;slot<=18;slot++){
+        const angle=(slot||1)*Math.PI/3,source={slot,x:82+Math.cos(angle)*200,y:g.height/2+Math.sin(angle)*200,inner:'#12ab34'};
+        const c=info.connector({colors:{inner_border:'#ff00ff'}},source,g);
+        assert.equal(c.color,'#12ab34');assert.equal(c.slot,slot);
+        for(const [x,y] of [[c.x1,c.y1],[c.x2,c.y2]]){assert.ok(x>=0&&x<=g.width&&y>=0&&y<=g.height);}
+        assert.equal(info.connector({connector:{color:'#f08020'}},source,g).color,'#f08020');
+        assert.equal(info.connector({connector:false},source,g),null);
+    }
+    assert.equal(info.connector({},null,g),null);
+    for(const config of [{text:'A',scale:1.1},{text:'A',connector:{foo:1}},{text:'A',connector:{color:'url(x)'}}])assert.throws(()=>info.validate(config));
+});
+test('static and dynamic footer uses the same wrapping, binding and dependency contract',()=>{
+    const c={title:{entity:'sensor.title'},text:'Static paragraph',footer:{entity:'sensor.a',attribute:'unit',prefix:'Unit: ',suffix:'.'}};
+    assert.deepEqual(info.dependencies(c),['sensor.title','sensor.a']);
+    const r=info.layoutText(c,{states:{'sensor.title':{state:'Overview'},'sensor.a':{state:'1',attributes:{unit:'kWh'}}}},164,measure);
+    assert.match(r.text,/Unit: kWh\./);assert.ok(r.pages.flat().some(l=>l.text.includes('kWh')));
 });
 test('Danish, long words, blank lines and extreme payload paginate within every sloped band',()=>{
     const config={text:'Æblegrød Ørsted ål\n'+('Megetlangtordudenmellemrum'.repeat(8)+' ').repeat(70)};
@@ -57,5 +84,21 @@ test('whitespace-only and empty positioned payloads show one finite fallback ins
         const r=info.layoutText(c,null,328,measure);
         assert.equal(r.pages.length,1);assert.equal(r.text,'No information available');
         assert.ok(r.pages[0].length>0);assert.ok(r.pages[0].every(line=>Number.isFinite(line.x)&&Number.isFinite(line.y)));
+    }
+});
+
+test('small notch-bounded panels report a title that cannot fit without generating empty pages',()=>{
+    const r=info.layoutText({title:'Information',text:'State: on'},null,info.footprint(41).width,measure);
+    assert.ok(r.pages.length<5);assert.ok(r.pages[0].length);assert.ok(r.warnings.includes('Text cannot fit at this size'));
+});
+
+test('fixed fonts and long Danish payloads remain bounded at normal and compact notch sizes',()=>{
+    for(const font_size of [12,20,32])for(const width of [81.57214,138.67264,163.14428]){
+        const r=info.layoutText({font_size,text:'Æblegrød Ørsted ål '.repeat(50)},null,width,measure);
+        assert.ok(r.pages.length<=64);
+        for(const line of r.pages.flat()){
+            assert.equal(line.size,font_size);const b=info.band(width,r.height,line.top,line.bottom,17);
+            assert.ok(line.x>=b.left-.01&&line.x+line.width<=b.right+.01);
+        }
     }
 });

@@ -3,7 +3,7 @@
 const layout=require('./layout');
 const {SUBMENU_FILL,SUBMENU_INNER,OUTER}=require('./submenu-theme');
 const LIMITS=Object.freeze({blocks:128,characters:32768,pages:64});
-const KEYS=['mode','title','text','blocks','spacing','padding','font_size','weight','align','colors'];
+const KEYS=['mode','title','footer','text','blocks','spacing','padding','font_size','weight','align','colors','scale','connector'];
 const BLOCK_KEYS=['text','font_size','weight','align','color','background','x','y','z'];
 function fail(message){throw new Error('Info Cube: '+message);}
 function object(value){return value && typeof value==='object' && !Array.isArray(value);}
@@ -21,6 +21,12 @@ function validate(config){
     if(!object(config)||Object.keys(config).some(k=>!KEYS.includes(k)))fail('expected info with mode, title, text/blocks and documented style options.');
     const mode=config.mode||'text';if(!['text','stack','positioned'].includes(mode))fail('mode must be text, stack or positioned.');
     if(config.title!==undefined)textSource(config.title);
+    if(config.footer!==undefined)textSource(config.footer);
+    if(config.scale!==undefined)number(config.scale,.5,1,'scale');
+    if(config.connector!==undefined&&config.connector!==true&&config.connector!==false){
+        if(!object(config.connector)||Object.keys(config.connector).some(k=>k!=='color'))fail('connector must be true, false or {color: CSS color}.');
+        if(config.connector.color!==undefined)color(config.connector.color);
+    }
     if(mode==='text'){textSource(config.text);if(config.blocks!==undefined)fail('text mode uses text, not blocks.');}
     else{
         if(config.text!==undefined||!Array.isArray(config.blocks)||config.blocks.length>LIMITS.blocks)fail(`use up to ${LIMITS.blocks} blocks in ${mode} mode.`);
@@ -63,7 +69,7 @@ function value(source,hass){
     return (source.prefix||'')+String(result)+(source.suffix||'');
 }
 function dependencies(config){
-    const sources=[config.title,config.text,...(config.blocks||[]).map(b=>typeof b==='string'?b:b.text)];
+    const sources=[config.title,config.footer,config.text,...(config.blocks||[]).map(b=>typeof b==='string'?b:b.text)];
     return [...new Set(sources.filter(object).map(s=>s.entity))];
 }
 function resolve(config,hass){
@@ -73,23 +79,55 @@ function resolve(config,hass){
     if(config.title!==undefined)blocks.push({text:limited(config.title),font_size:20,weight:700,align:'center'});
     if((config.mode||'text')==='text')blocks.push({text:limited(config.text)});
     else for(const block of config.blocks)blocks.push(typeof block==='string'?{text:limited(block)}:{...block,text:limited(block.text)});
+    if(config.footer!==undefined)blocks.push({text:limited(config.footer),font_size:12,align:'center'});
     if(!blocks.some(b=>b.text.trim()))blocks.splice(0,blocks.length,{text:'No information available'});
     return {blocks,truncated};
 }
-// Exact enclosing regular pointy hex for literal cells; slot 7 is outer LEFT.
-function footprint(size=82){
-    const origin=layout.sceneCenter(2),points=[];
-    for(let slot=0;slot<=7;slot++){
-        const p=slot===0?origin:layout.buttonPosition(slot-1,{inner:true,outer:true,radius:2});
-        for(const pair of layout.persistentHexPoints('cell').split(' ')){
-            const [x,y]=pair.split(',').map(Number);
-            points.push({x:(p.x-origin.x+(x-50)/100)*size,y:(p.y-origin.y+(y-57.735)/100)*size});
+// Adjacent first-ring polygons meet at an inward V on the cluster perimeter.
+// Find their actual intersections (including the layout table's small overlap),
+// choosing the outward endpoint rather than the junction beside the center cell.
+function intersections(a,b){
+    const found=[],cross=(u,v)=>u.x*v.y-u.y*v.x,sub=(u,v)=>({x:u.x-v.x,y:u.y-v.y});
+    for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++){
+        const p=a[i],q=b[j],r=sub(a[(i+1)%a.length],p),s=sub(b[(j+1)%b.length],q),d=cross(r,s),v=sub(q,p);
+        if(Math.abs(d)>1e-9){const t=cross(v,s)/d,u=cross(v,r)/d;if(t>=-1e-9&&t<=1+1e-9&&u>=-1e-9&&u<=1+1e-9)found.push({x:p.x+t*r.x,y:p.y+t*r.y});}
+        else if(Math.abs(cross(v,r))<1e-9){
+            for(const point of [p,a[(i+1)%a.length],q,b[(j+1)%b.length]]){
+                const on=(x,y)=>point.x>=Math.min(x.x,y.x)-1e-9&&point.x<=Math.max(x.x,y.x)+1e-9&&point.y>=Math.min(x.y,y.y)-1e-9&&point.y<=Math.max(x.y,y.y)+1e-9;
+                if(on(p,a[(i+1)%a.length])&&on(q,b[(j+1)%b.length]))found.push(point);
+            }
         }
     }
-    const x=(Math.min(...points.map(p=>p.x))+Math.max(...points.map(p=>p.x)))/2;
-    const y=(Math.min(...points.map(p=>p.y))+Math.max(...points.map(p=>p.y)))/2;
-    const width=Math.max(...points.flatMap(p=>[2*Math.abs(p.x-x),Math.abs(p.x-x)+Math.sqrt(3)*Math.abs(p.y-y)]));
-    return {x,y,width,height:width*1.1547,slots:[0,1,2,3,4,5,6,7]};
+    return found;
+}
+let unitFootprint;
+function footprint(size=82){
+    if(unitFootprint)return {...unitFootprint,width:unitFootprint.width*size,height:unitFootprint.height*size,notches:unitFootprint.notches.map(p=>({x:p.x*size,y:p.y*size}))};
+    const origin=layout.sceneCenter(1),cell=layout.persistentHexPoints('cell').split(' ').map(pair=>{const [x,y]=pair.split(',').map(Number);return {x:(x-50)/100,y:(y-57.735)/100};});
+    const ring=Array.from({length:6},(_,i)=>{const p=layout.buttonPosition(i,{inner:true});return cell.map(v=>({x:p.x-origin.x+v.x,y:p.y-origin.y+v.y}));});
+    const notches=ring.map((p,i)=>intersections(p,ring[(i+1)%6]).sort((a,b)=>b.x*b.x+b.y*b.y-a.x*a.x-a.y*a.y)[0]);
+    // Largest centered regular hex contained in ALL six notch half-planes.
+    // Never translate the Info independently from its calling cluster.
+    let width=Infinity;
+    for(let i=0;i<6;i++){
+        const a=notches[i],b=notches[(i+1)%6],nx=b.y-a.y,ny=a.x-b.x,limit=nx*a.x+ny*a.y;
+        for(const v of cell){const projection=nx*v.x+ny*v.y;if(projection>0)width=Math.min(width,limit/projection);}
+    }
+    unitFootprint={x:0,y:0,width,height:width*1.1547,notches};
+    return footprint(size);
+}
+// A source-facing edge in the shell's border gutter. Its direction is physical,
+// not a slot-index assumption, so promoted/nested and outer slots work alike.
+function connector(config,source,geometry){
+    if(config.connector===false||!source)return null;
+    let dx=source.x-(geometry.left+geometry.width/2),dy=source.y-(geometry.top+geometry.height/2);
+    if(Math.hypot(dx,dy)<1){dx=0;dy=-1;} // center-origin: top edge marker
+    const w=geometry.width,h=geometry.height;
+    const vertices=[[0,-h/2],[w/2,-h/4],[w/2,h/4],[0,h/2],[-w/2,h/4],[-w/2,-h/4]];
+    let chosen=0,best=-Infinity;
+    vertices.forEach(([x,y],i)=>{const next=vertices[(i+1)%6],nx=next[1]-y,ny=x-next[0],score=(nx*dx+ny*dy)/Math.hypot(nx,ny);if(score>best){best=score;chosen=i;}});
+    const shrink=Math.max(0,1-4/w),a=vertices[chosen],b=vertices[(chosen+1)%6];
+    return {x1:w/2+a[0]*shrink,y1:h/2+a[1]*shrink,x2:w/2+b[0]*shrink,y2:h/2+b[1]*shrink,color:config.connector&&config.connector.color||source.inner||SUBMENU_INNER,slot:source.slot,edge:chosen};
 }
 // Conservative Minkowski inset: slope factor makes padding normal to all sides.
 function band(width,height,top,bottom,padding=12){
@@ -109,12 +147,13 @@ function layoutText(config,hass,width,measure){
         let rest=block.text.replace(/\r\n?/g,'\n'),first=true;
         while(rest.length||first){
             first=false;
-            if(y+lineHeight>height*.76){
+            if(y+lineHeight>height*.70){
                 if(positioned){warnings.push('Positioned content truncated; use stack mode for pagination');break;}
+                if(!page.length){warnings.push('Text cannot fit at this size');y=padding-spacing;break;}
                 if(!next())break;
             }
             let limits=band(width,height,y,y+lineHeight,padding);
-            if(limits.width<size*2){y+=lineHeight;if(y>=height*.76){if(positioned)break;if(!next())break;}continue;}
+            if(limits.width<size*2){y+=lineHeight;continue;}
             let anchor=align==='center'?width/2:align==='right'?limits.right:limits.left;
             if(positioned&&block.x!==undefined){
                 const requested=width*block.x/100;
@@ -142,4 +181,4 @@ function layoutText(config,hass,width,measure){
     return {pages:pages.map(p=>p.sort((a,b)=>a.z-b.z)),height,warnings:[...new Set(warnings)],text:resolved.blocks.map(b=>b.text).join('\n')||'No information available'};
 }
 function shell(config){return {mode:'generic',icon:false,name:'',label:'',show_name:false,show_label:false,interactive:false,face_mode:'cell',colors:{center:SUBMENU_FILL,inner_border:SUBMENU_INNER,outer_border:OUTER,...config.colors},border:{outer_width:3,inner_width:2}};}
-module.exports={LIMITS,validate,value,dependencies,resolve,footprint,band,layoutText,shell};
+module.exports={LIMITS,validate,value,dependencies,resolve,footprint,connector,band,layoutText,shell};

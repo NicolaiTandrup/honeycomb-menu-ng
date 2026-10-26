@@ -292,7 +292,8 @@ document.body.addEventListener("ll-custom", e => {
     if (detail.honeycomb_ng_info) {
         const path=e.composedPath();
         const owner=path.find(node=>node && node._menuContext);
-        openInfo(owner ? owner._menuContext : manager,detail.honeycomb_ng_info);
+        const source=path.find(node=>node && node.matches && node.matches('honeycomb-menu-ng-item,honeycomb-persistent-control'));
+        openInfo(owner ? owner._menuContext : manager,detail.honeycomb_ng_info,source);
         return;
     }
     // Ambiguous external legacy events belong to original when it is loaded.
@@ -403,17 +404,23 @@ function openInfo(context, config, source = null)
     const savedFocus=context.infoFocus;
     dismissInfo(context,false);
     const center=menu.shadowRoot.querySelector('.center-item');
-    const rect=(center || source || menu).getBoundingClientRect();
+    const rect=(center || menu).getBoundingClientRect();
     const position=menu._computeCenterPosition();
-    const anchor=center || source ? {x:rect.left+rect.width/2,y:rect.top+rect.height/2} :
+    const anchor=center ? {x:rect.left+rect.width/2,y:rect.top+rect.height/2} :
         {x:rect.left+(position.x+.5)*menu.sizes.item,y:rect.top+(position.y+.57735)*menu.sizes.item};
+    source=source || center;
+    const sourceGeometry=()=>{
+        if(!source || !source.isConnected)return null;
+        const box=source.getBoundingClientRect(),index=source.getAttribute('data-honeycomb-slot'),slot=index===null||index==='center'?0:Number(index)+1;
+        return {x:box.left+box.width/2,y:box.top+box.height/2,slot:Number.isSafeInteger(slot)?slot:null,inner:source._model && source._model.colors.inner};
+    };
     const view=document.createElement('honeycomb-ng-info');
     let focused=document.activeElement;
     while(focused && focused.shadowRoot && focused.shadowRoot.activeElement) focused=focused.shadowRoot.activeElement;
     context.infoFocus=savedFocus && savedFocus.isConnected ? savedFocus : focused;
     view._menuContext=context;
-    view.configure(config,{hass:menu.hass,anchor,size:menu.sizes.item,observe:center || menu.shadowRoot.querySelector('#honeycombs'),
-        readGeometry:()=>{const point=menu._computeCenterPosition(),box=(center || menu).getBoundingClientRect();return {size:menu.sizes.item,anchor:center?{x:box.left+box.width/2,y:box.top+box.height/2}:
+    view.configure(config,{hass:menu.hass,anchor,size:menu.sizes.item,observe:center || menu.shadowRoot.querySelector('#honeycombs'),positionElement:menu,
+        readGeometry:()=>{const point=menu._computeCenterPosition(),box=(center || menu).getBoundingClientRect();return {size:menu.sizes.item,source:sourceGeometry(),anchor:center?{x:box.left+box.width/2,y:box.top+box.height/2}:
             {x:box.left+(point.x+.5)*menu.sizes.item,y:box.top+(point.y+.57735)*menu.sizes.item}};},
         onReturn:()=>dismissInfo(context),onExpire:()=>{dismissInfo(context,false);honeycombClose(context);}});
     context.info=view;
@@ -424,7 +431,7 @@ function openInfo(context, config, source = null)
     document.body.append(view);
     return view;
 }
-window.honeycombNG.openInfoInContext=(context,config)=>openInfo(context,config);
+window.honeycombNG.openInfoInContext=(context,config,source)=>openInfo(context,config,source);
 window.honeycombNG.openInfo=config=>openInfo(manager,config);
 
 function honeycombBack(context = manager, { interaction = true } = {})
