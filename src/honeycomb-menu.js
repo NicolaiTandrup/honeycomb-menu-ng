@@ -857,9 +857,10 @@ class HoneycombMenu extends LitElement
     set hass(value)
     {
         this._hass=value;
-        if (this._menuContext && this._menuContext.info) this._menuContext.info.hass=value;
         if (this.shadowRoot) this.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control,honeycomb-ng-xy-pad')
             .forEach(item=>{item.hass=value;});
+        // Resolve caller colors before Info reads its source edge on this update.
+        if (this._menuContext && this._menuContext.info) this._menuContext.info.hass=value;
     }
     get hass() { return this._hass; }
 

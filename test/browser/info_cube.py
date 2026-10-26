@@ -172,6 +172,12 @@ class Info(Navigation):
         geometry=self.page.evaluate('JSON.stringify(hub._menuContext.info._geometry)');self.page.evaluate('pushState("sensor.heading","Live title");pushState("sensor.energy","12.4",{unit_of_measurement:"kWh"})');self.settle()
         self.assertIn('Live title',self.dialog().get_attribute('aria-label'));self.assertIn('Unit: kWh',self.dialog().text_content());self.assert_safe();self.dialog().press('Escape')
         self.open({'text':'Æblegrød Ørsted lang dansk tekst '*1000,'font_size':18});self.assertEqual(self.page.evaluate('JSON.stringify(hub._menuContext.info._geometry)'),geometry);self.assert_safe();self.assert_no_commands()
+    def test_connector_tracks_live_source_color_without_remeasuring_unrelated_text(self):
+        self.hub({'logo':False,'items':[{'type':'light','entity':'light.zone_a','slot':0,'colors':{'inner_border':"[[[ return entity.state === 'on' ? '#35b86a' : '#718096'; ]]]"}}]});self.settle()
+        self.cell(0).evaluate("e=>e._executeAction({action:'honeycomb-info',info:{text:'Read only'}})");self.page.wait_for_function('!!hub._menuContext.info?._geometry.connector')
+        self.page.evaluate('window.layoutBefore=hub._menuContext.info._layout;pushState("light.zone_a","off")');self.settle()
+        self.assertEqual(self.model(0)['colors']['inner'],'#718096');self.assertEqual(self.page.evaluate('hub._menuContext.info._geometry.connector.color'),'#718096')
+        self.assertTrue(self.page.evaluate('layoutBefore===hub._menuContext.info._layout'));self.assert_no_commands()
     def test_charging_plan_example(self):
         self.root();payload=json.loads((Path(__file__).resolve().parents[1]/'fixtures/info-charging-plan.json').read_text());self.open(payload);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-charging-plan.png'));self.dialog().press('Enter');self.assert_no_commands()
