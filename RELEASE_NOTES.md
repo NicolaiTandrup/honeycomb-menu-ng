@@ -1,3 +1,49 @@
+# v1.9.0 — Stable
+
+Promotes the complete owner-approved cumulative v1.9.0-beta.9 runtime. No module,
+style, navigation or configuration logic changed during stable promotion. Only
+stable package/banner/runtime version metadata differs in the JavaScript.
+
+- Generic Charger and Easee adapter: truthful two-row labels, individual and
+  aggregate power, connected counts, existing controls and charging pulse.
+- Shared renderer and persistent Hub: responsive numeric/auto sizing, stable
+  placement/visibility, anchored nested menus, neutral submenu defaults and original
+  Honeycomb coexistence. Dashboard editing and multi-instance lifecycle protected.
+- Light: ON/OFF/unavailable identity, capability-aware Color/White on cube3,
+  short/long press, recursive Hue/Kelvin zoom and exact Back behavior.
+- Sonos: native Browse Media Favorites, Radio/artwork containment, grouping/Join,
+  native device-owned Sleep Timer and existing media controls.
+- Info: centered natural-inner-notch geometry; independent center/inner/outer
+  paints, source connector, resolved source solid/gradient/alpha snapshots and
+  mixed overrides; static/live scalar data, hex-aware wrapping, positioned blocks,
+  pagination, exact return and fixed30-second close-all.
+- Stable approval manifest pins public beta.9 source/tree/bundle. Promotion guards
+  permit only the banner and the two literals in the canonical build-info module;
+  all other executable bytes, runtime source, dependencies and build inputs stay
+  pinned. Candidate CI additionally requires retention explicitly false.
+
+The owner approved beta.9 after real Home Assistant testing. Automated coverage
+includes synthetic desktop/tablet/mobile Chromium and mocked integration/device
+boundaries; no claim that every supported hardware/integration was physically
+exercised. No Home Assistant installation or charging commands were deployed.
+
+Known limits: Info snapshots refresh on reopen; a gradient source connector uses
+its documented first-stop color, not the complete gradient/stop-opacity. Fixed
+30s/128blocks/32768characters/64pages and explicit positioned/tiny-panel limits
+remain. Keep floorplan anchors visible. Inherited fixed410px Light palette clipping
+on390px remains. No Firefox/WebKit/physical-pinch or exhaustive device matrix claim.
+Climate, Car and unrelated roadmap features are excluded.
+
+HACS: select v1.9.0 through the normal stable update/download flow, then reload.
+Beta users can select v1.9.0 in Redownload. Keep exactly one normal NG resource
+and button-card; do not load the optional private DEV loader alongside HACS.
+
+Retention remains explicitly false. Publication preserves prior releases/tags/assets
+and Git history; post-publication retention is a dry-run only, never deletion.
+See [stable validation and checklist](docs/V1_9_STABLE_RELEASE.md).
+
+---
+
 # v1.9.0-beta.8 — unpublished candidate
 
 - Refines published beta.7 Info Cube #140 to match owner reference designs: one

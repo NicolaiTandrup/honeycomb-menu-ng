@@ -19,16 +19,16 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **Latest stable: [v1.8.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.1).**
-> This maintenance release preserves the owner-tested v1.8.0 runtime. NG includes
+> **Latest stable: [v1.9.0](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0).**
+> Promotes the complete owner-tested beta.9 runtime, including Charger and Info. NG includes
 > the shared renderer, native Sonos Favorites, responsive sizing and hexagonal
 > power-sensitive pulse. Official HACS validation has passed; catalog inclusion
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
-## v1.9.0-beta.9 hotfix
+## v1.9.0 stable promotion
 
-Candidate for authorized HACS testing on published beta.8: Info supports `source`
+Stable candidate promotes published beta.9: Info supports `source`
 independently on center fill, inner and outer border, preserving rendered gradients
 and alpha as an opening snapshot. Mix inherited layers with explicit colors/gradients.
 [Source-paint contract](docs/INFO_CUBE.md). Mandatory release gates still apply.
@@ -43,7 +43,7 @@ stationary and inactive. Wrapped/stacked/positioned text and live HA bindings
 paginate at fixed readable sizes; more content never enlarges the hexagon.
 Tap returns to the exact caller; 30 seconds closes the entire menu.
 [Info Cube guide and examples](docs/INFO_CUBE.md) · [beta.8 review checklist](docs/V1_9_BETA8_REVIEW.md).
-Beta.9 hotfix publication is authorized after mandatory gates; stable promotion needs separate owner approval.
+The owner authorized stable v1.9.0 promotion after mandatory exact-source checks.
 
 ## What you can build
 

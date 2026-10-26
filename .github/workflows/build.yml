@@ -29,6 +29,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify stable promotion keeps retention explicitly disabled
+        env:
+          RELEASE_RETENTION_ENABLED: ${{ vars.RELEASE_RETENTION_ENABLED }}
+        run: |
+          node - <<'NODE'
+          const version=require('./package.json').version;
+          if (/^\d+\.\d+\.\d+$/.test(version) && process.env.RELEASE_RETENTION_ENABLED !== 'false')
+            throw new Error('Stable promotion requires RELEASE_RETENTION_ENABLED explicitly false');
+          NODE
+
       - name: Test core contracts
         run: npm test
 

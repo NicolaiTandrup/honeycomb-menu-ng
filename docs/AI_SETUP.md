@@ -1,3 +1,10 @@
+## v1.9.0 stable promotion
+
+Owner-approved cumulative baseline: public beta.9 f95e5fbc7273ae06055bb5f106bdd6a3a82a183d.
+All runtime/configuration semantics below are retained in v1.9.0. Stable publication
+is authorized only after mandatory exact-source CI/release gates. Do not generate
+Climate/Car modules. See [stable evidence/checklist](V1_9_STABLE_RELEASE.md).
+
 ## v1.9.0-beta.9 — Info source paint hotfix
 
 Each Info `colors.center`, `colors.inner_border`, `colors.outer_border` independently
