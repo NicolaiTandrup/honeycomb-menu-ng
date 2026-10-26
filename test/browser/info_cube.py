@@ -114,12 +114,17 @@ class Info(Navigation):
         self.page.evaluate(FLOORPLAN,config);self.page.evaluate('floor.style.width="450px";imageHost.style.height="300px"');self.page.wait_for_function('hub._hubMenu?.sizes.item===41');self.settle()
         self.open();self.assertAlmostEqual(self.page.evaluate('hub._menuContext.info._geometry.width'),164,delta=.1);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-auto41.png'))
+        self.page.evaluate('floor.style.width="900px";imageHost.style.height="600px"');self.page.wait_for_function('hub._hubMenu.sizes.item===82 && hub._menuContext.info._geometry.width===328');self.assert_safe()
         self.page.evaluate('hub.remove()');self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assert_no_commands()
     def test_declarative_text_never_executes_javascript_and_invalid_config_is_clear(self):
         self.hub({'logo':'auto','items':[{'type':'generic','slot':1,'name':'Info','tap_action':{'action':'honeycomb-info','info':{'text':'${window.shouldNotRun=42} [[[ return 9; ]]] <script>window.shouldNotRun=43</script>'}}}]});self.settle()
         self.open();self.assertFalse(self.page.evaluate('!!window.shouldNotRun'));self.assertIn('${window.shouldNotRun=42}',self.dialog().text_content());self.assert_safe()
         self.dialog().press('Escape');message=self.page.evaluate('()=>{try{ng.openInfoInContext(hub._menuContext,{text:"A",font_size:2})}catch(e){return e.message}}')
         self.assertIn('Info Cube:',message);self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assert_no_commands()
+    def test_reopening_keeps_original_focus_and_fixed_lifetime(self):
+        self.root();opener=self.cell(1).locator('.interaction-surface');opener.focus()
+        self.open({'text':'First'});self.open({'text':'Second'})
+        self.dialog().press('Escape');self.assertTrue(opener.evaluate('e=>e.getRootNode().activeElement===e'));self.assert_no_commands()
     def test_charging_plan_example(self):
         self.root();payload=json.loads((Path(__file__).resolve().parents[1]/'fixtures/info-charging-plan.json').read_text());self.open(payload);self.assert_safe()
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-info-charging-plan.png'));self.dialog().press('Enter');self.assert_no_commands()

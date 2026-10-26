@@ -13,11 +13,12 @@ beta.7 release, stable merge or production HA commands.
   enclosure is 328 x 378.7416 px at size 82, center offset -41/-0.205 px. A
   owner explicitly confirmed this literal enclosure. Screenshot/real-HA acceptance
   remains pending; no alternate silently substituted footprint.
-- Actual validation: first full Node run passed (388 passes, 3 stable-only skips);
+- Actual validation: current full Node run passed (393 passes, 3 stable-only skips);
   seven new pure geometry/text/config tests passed. First browser iterations found
   a missing shared-shell host width and clipped footer; corrected, current 30-case
-  desktop/tablet/mobile iteration passed 30 cases. Extended 42-case run and full
-  inherited regressions are underway. Eight Info core and eight installer contracts
+  desktop/tablet/mobile iteration passed 30 cases; final targeted 45-case run is
+  passing as it completes. Inherited core 136 browser cases plus coexistence,
+  presentation and native Favorites pass; remaining full groups/CI underway. Eight Info core and eight installer contracts
   pass, including real local-TLS package download. Docs: 59 YAML / 234 links /
   18 desktop/mobile interactions pass. No claim of completed CI/hardware tests.
 
@@ -45,3 +46,13 @@ python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card /wo
 Evidence: `/workspace/build-output/v19-beta7/` (outside Git). Read AGENTS.md and
 latest Git/issue/PR before resuming; preserve all beta.6/master/releases, private
 beta.5 draft and retention settings. No live HA installation performed.
+
+## Final Info lifecycle refinement
+
+Preserve the original opener focus across replacement Info views. Observe actual
+caller geometry while open so `size: auto` changes update the Info footprint
+without polling, idle extension or duplicate text measurement. Targeted tests
+include a 450px -> 900px rendered-image resize and focus return after reopening.
+The original 136-case inherited local browser group ran against the preceding
+checkpoint; only these Info-scoped lifecycle refinements follow it. Final exact-
+head GitHub CI must validate every group before claiming full candidate readiness.

@@ -400,6 +400,7 @@ function openInfo(context, config, source = null)
     const menu=context.honeycomb;
     if (!menu || !menu.isConnected || menu.closing || context.owner && context.owner.preview) return null;
     require('./core/info-cube').validate(config);
+    const savedFocus=context.infoFocus;
     dismissInfo(context,false);
     const center=menu.shadowRoot.querySelector('.center-item');
     const rect=(center || source || menu).getBoundingClientRect();
@@ -409,9 +410,11 @@ function openInfo(context, config, source = null)
     const view=document.createElement('honeycomb-ng-info');
     let focused=document.activeElement;
     while(focused && focused.shadowRoot && focused.shadowRoot.activeElement) focused=focused.shadowRoot.activeElement;
-    context.infoFocus=focused;
+    context.infoFocus=savedFocus && savedFocus.isConnected ? savedFocus : focused;
     view._menuContext=context;
-    view.configure(config,{hass:menu.hass,anchor,size:menu.sizes.item,
+    view.configure(config,{hass:menu.hass,anchor,size:menu.sizes.item,observe:center || menu.shadowRoot.querySelector('#honeycombs'),
+        readGeometry:()=>{const point=menu._computeCenterPosition(),box=(center || menu).getBoundingClientRect();return {size:menu.sizes.item,anchor:center?{x:box.left+box.width/2,y:box.top+box.height/2}:
+            {x:box.left+(point.x+.5)*menu.sizes.item,y:box.top+(point.y+.57735)*menu.sizes.item}};},
         onReturn:()=>dismissInfo(context),onExpire:()=>{dismissInfo(context,false);honeycombClose(context);}});
     context.info=view;
     menu._clearIdleTimeout();

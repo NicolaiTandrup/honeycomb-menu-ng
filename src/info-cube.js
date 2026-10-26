@@ -34,8 +34,8 @@ class InfoCube extends LitElement {
         if(signature!==this._signature){this._signature=signature;this._relayout();}
     }
     get hass(){return this._hass;}
-    configure(config,{hass,anchor,size,onReturn,onExpire}){
-        info.validate(config);this.config=config;this.anchor=anchor;this.cubeSize=size;
+    configure(config,{hass,anchor,size,observe,readGeometry,onReturn,onExpire}){
+        info.validate(config);this.config=config;this.anchor=anchor;this.cubeSize=size;this.observe=observe;this.readGeometry=readGeometry;
         this.onReturn=onReturn;this.onExpire=onExpire;this.hass=hass;
     }
     connectedCallback(){
@@ -43,21 +43,28 @@ class InfoCube extends LitElement {
         window.visualViewport && window.visualViewport.addEventListener('resize',this._resize);
         document.addEventListener('keydown',this._keys,true);
         this._timer=setTimeout(()=>{this._timer=null;this.onExpire && this.onExpire();},30000);
+        if(typeof ResizeObserver!=='undefined' && this.observe){this._observer=new ResizeObserver(this._resize);this._observer.observe(this.observe);}
         this._relayout();this.updateComplete.then(()=>{if(this.isConnected)this._focusSurface();});
     }
     disconnectedCallback(){
         super.disconnectedCallback();clearTimeout(this._timer);this._timer=null;
         window.removeEventListener('resize',this._resize);window.visualViewport && window.visualViewport.removeEventListener('resize',this._resize);
         document.removeEventListener('keydown',this._keys,true);
-        this.onReturn=null;this.onExpire=null;
+        if(this._observer)this._observer.disconnect();this._observer=null;
+        this.observe=null;this.readGeometry=null;this.onReturn=null;this.onExpire=null;
     }
     _relayout(){
         if(!this.config||!this.anchor)return;
+        if(this.readGeometry){const current=this.readGeometry();this.anchor=current.anchor;this.cubeSize=current.size;}
         const footprint=info.footprint(this.cubeSize),viewport=window.visualViewport;
         const vw=viewport && viewport.width||innerWidth,vh=viewport && viewport.height||innerHeight;
         const width=Math.max(48,Math.min(footprint.width,vw-24,(vh-24)/1.1547));
         const height=width*1.1547,scale=width/footprint.width;
-        this._geometry={width,height,left:Math.max(12,Math.min(vw-width-12,this.anchor.x+footprint.x*scale-width/2)),top:Math.max(12,Math.min(vh-height-12,this.anchor.y+footprint.y*scale-height/2)),footprint};
+        const geometry={width,height,left:Math.max(12,Math.min(vw-width-12,this.anchor.x+footprint.x*scale-width/2)),top:Math.max(12,Math.min(vh-height-12,this.anchor.y+footprint.y*scale-height/2)),footprint};
+        const geometryKey=JSON.stringify(geometry);
+        if(geometryKey!==this._geometryKey){this._geometry=geometry;this._geometryKey=geometryKey;}
+        if(this._layout && this._layoutWidth===width && this._layoutSignature===this._signature)return;
+        this._layoutWidth=width;this._layoutSignature=this._signature;
         this._canvas=this._canvas||document.createElement('canvas');const context=this._canvas.getContext('2d');
         this._layout=info.layoutText(this.config,this.hass,width,(text,font)=>{context.font=font;return context.measureText(text).width;});
         this._page=Math.min(this._page,this._layout.pages.length-1);
