@@ -131,6 +131,9 @@ jobs:
       - name: Verify generic Info Cube containment, caller suspension and fixed lifetime
         run: python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/info-cube"
 
+      - name: Verify generic Climate capabilities, exact-target controls and nested Back
+        run: python test/browser/climate.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/climate"
+
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

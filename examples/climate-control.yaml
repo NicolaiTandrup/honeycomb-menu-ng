@@ -1,0 +1,9 @@
+# v1.10.0-beta.1 only. Native capabilities; no helpers.
+type: custom:honeycomb-persistent-control
+module: climate
+entity: climate.room_a
+name: Room A
+size: 82
+# Optional only after confirming the switch controls the intended device:
+# defrost_entity: switch.room_a_defrost
+# discover: false

@@ -1,0 +1,19 @@
+# v1.10.0-beta.1 only. Synthetic entities: replace in HA.
+type: custom:honeycomb-persistent-hub
+logo: false
+size: 82
+items:
+  - type: climate
+    entity: climate.room_a
+    name: Room A
+    slot: 0
+    slot_mode: hard
+  - type: climate
+    entity: climate.room_b
+    name: Room B
+    slot: 1
+    slot_mode: priority
+    visibility:
+      condition: state
+      entity: climate.room_b
+      state_not: unavailable
