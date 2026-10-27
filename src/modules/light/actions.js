@@ -1,6 +1,20 @@
 const kelvinActions = require('./kelvin-actions.js');
 const {refinePalette} = require('./color-zoom.js');
 const {buildColorPaletteButtons} = require('./controls.js');
+const {capabilities}=require('./palette-state');
+
+function applyColor({hass,entity,actionConfig,notify=()=>{}}) {
+    const state=hass && hass.states && hass.states[entity];
+    const hs=actionConfig && actionConfig.data && actionConfig.data.hs_color;
+    if (!state || !['on','off'].includes(state.state) || !capabilities(state).colorCapable ||
+        !Array.isArray(hs) || hs.length!==2 || !hs.every(Number.isFinite) ||
+        hs[0]<0 || hs[0]>360 || hs[1]<0 || hs[1]>100 || typeof hass.callService!=='function') return false;
+    try {
+        const request=hass.callService('light','turn_on',{hs_color:[...hs]},{entity_id:entity});
+        if (request && request.catch) request.catch(()=>notify('Home Assistant could not apply the selected color.'));
+        return true;
+    } catch (_) {notify('Home Assistant could not apply the selected color.');return false;}
+}
 
 function zoomColor({hass,entity,actionConfig,openNested})
 {
@@ -170,6 +184,7 @@ function handlePreset(mode, context)
 
 function registerActions(registry)
 {
+    registry.register('honeycomb-light-color-apply',applyColor);
     registry.register('honeycomb-light-color-zoom',zoomColor);
     kelvinActions.registerActions(registry);
     registry.register(
@@ -186,5 +201,6 @@ function registerActions(registry)
 module.exports = {
     registerActions,
     zoomColor,
+    applyColor,
     handlePreset
 };

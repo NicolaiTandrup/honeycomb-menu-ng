@@ -19,12 +19,21 @@ NG originated as a fork of [Sian Croser's honeycomb-menu](https://github.com/Sia
 and retains original code and attribution under [GPLv3](LICENSE). NG is maintained
 by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianLee).
 
-> **Latest stable: [v1.8.1](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.8.1).**
-> This maintenance release preserves the owner-tested v1.8.0 runtime. NG includes
+> **Latest stable: [v1.9.0](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0).**
+> Promotes the complete owner-tested beta.9 runtime, including Charger and Info. NG includes
 > the shared renderer, native Sonos Favorites, responsive sizing and hexagonal
 > power-sensitive pulse. Official HACS validation has passed; catalog inclusion
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
+
+## Climate beta testing — v1.10.0-beta.1
+
+This cumulative beta adds generic Home Assistant Climate controls to the complete
+v1.9.0 stable feature set. It uses the same shared renderer and navigation.
+See the [Climate guide](docs/CLIMATE_MODULE.md), [Hub example](examples/climate-hub.yaml)
+and [standalone Control](examples/climate-control.yaml). Real HVAC acceptance is pending.
+Enable beta versions in HACS and select v1.10.0-beta.1 once the release is public.
+Stable remains v1.9.0; no master merge is part of this beta.
 
 ## What you can build
 
@@ -34,11 +43,9 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Car is not implemented. Climate is an **unpublished v1.10.0 review candidate**
-on this feature branch; see the [Climate capability/slot guide](docs/CLIMATE_MODULE.md)
-and [copy/paste Hub example](examples/climate-hub.yaml). Do not use Climate YAML
-with published v1.8.1 or v1.9.0-beta.3. Charging automation remains external.
-The generic Charger module below is **v1.9.0-beta.3 only**, not part of v1.8.1 stable.
+Climate is available in the **v1.10.0-beta.1 candidate**, cumulative with v1.9.0 stable.
+See the [Climate guide](docs/CLIMATE_MODULE.md) and [Hub example](examples/climate-hub.yaml).
+Car is not implemented. Charging automation remains external.
 Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
 
 Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
@@ -79,7 +86,7 @@ release does not make newer beta-only options available.
 
 ## Charger beta: complete dashboards
 
-**v1.9.0-beta.3 prerelease only.** A generic Charger/Easee module shares the same
+**v1.9.0 prerelease only.** A generic Charger/Easee module shares the same
 82px renderer, gradients, sizing and power-sensitive hexagonal pulse. A Charging
 Hub sums fresh verified power and physically connected cars; named chargers open
 fixed detail menus. Permission and permanent-lock controls require deliberate taps
@@ -140,6 +147,48 @@ current coordinate tables, not inferred from button order.
 | Inner ring | `1–6` | Six immediate neighbors |
 | Outer / second ring | `7–18` | Twelve neighbors outside the inner ring |
 | Further Hub rings | `19–36`, `37–60`, `61–90`, `91–126`, `127–168`, `169–216` | Expand on demand |
+
+Private local testing: [fixed development resource and build instructions](docs/DEVELOPMENT_BUILDS.md).
+[Unpublished beta.6 scope, measured limitations and future-module boundaries](docs/BETA6_REVIEW.md).
+
+### Light Hub names while OFF
+
+In the unpublished v1.9.0-beta.6 candidate and its private development build, an OFF Light Hub launcher shows its
+existing item `name` above `OFF`. Without a custom name it uses the HA
+`friendly_name`, then the readable entity ID. A short name such as `A` is valid;
+long names use the existing ellipsis. ON brightness/colors and submenu centers
+keep their existing presentation. Unknown/unavailable lights say `Unavailable`,
+never `OFF`. Existing explicit secondary-label overrides still take precedence.
+
+### Light capability reference (beta.6 candidate)
+
+Honeycomb reads HA `supported_color_modes`, never brands or names. Mode selection
+on cube **3** is UI-only; slot 0 retains its normal name/value/Back presentation.
+
+| Advertised capability | Controls | Palette launcher |
+|---|---|---|
+| `onoff` only | Toggle; no detail menu | None |
+| `brightness` or fixed `white` | Brightness/presets | No Color/Kelvin commands |
+| `color_temp` only | Brightness and White/Kelvin | White only; no Color hold |
+| `hs`, `xy`, `rgb`, `rgbw` or `rgbww` only | Brightness and Color | Color only |
+| Color plus `color_temp` | Brightness, Color and White/Kelvin | Tap current/viewed palette; hold opposite |
+| Missing/inconsistent capabilities | Only verified controls | No invented capabilities |
+
+For dual-mode lights, HA `color_mode` chooses the initial palette. Off/null uses
+reliable same-entity session memory, otherwise a deterministic supported fallback.
+A manual palette selection stays selected while browsing/zooming. White/Kelvin
+requires real min/max bounds. Opening, switching, holding and Back send no light
+command; a deliberate swatch tap applies it. Unknown/unavailable is never OFF.
+[Full Light rules and short-name examples](docs/AI_SETUP.md#light-capability-and-off-name-rules-beta6-candidate).
+
+### Bee version feedback and development updates
+
+Tap the golden bee to see a short label such as **v1.9.0 beta 6 inside the same
+hexagon** during the existing animation. It then returns to normal; reduced motion
+suppresses flight while retaining feedback. Full dev revision stays in diagnostics,
+not visual labels. [Permanent development resource, one-command installation and
+cache troubleshooting](docs/DEVELOPMENT_BUILDS.md). This is an unpublished candidate,
+not an announcement that beta.6 is available through HACS.
 
 ### Canonical visual baseline: Light module
 
@@ -326,6 +375,13 @@ White swatches are solid temperature colors: tap applies; hold refines without
 calling HA. Back restores the prior palette, and full close resets it. Native
 Kelvin bounds and integer-precision limits apply; no new YAML options are needed.
 
+In v1.9.0-beta.4, HA `supported_color_modes` selects available palettes. For a
+Color + White light, tap slot 3 for its current `color_mode`; hold for the other
+supported palette. Cube 3 names the displayed palette and its alternative (v1.9.0-beta.5).
+Navigation sends no light command. White-only exposes no Color alternative;
+fixed-white keeps brightness controls, and on/off-only keeps toggle only.
+
+
 Preset values may be writable `number.*` entities on **another relay/device or
 integration**, or `input_number.*` helpers. They need not belong to the Light.
 Brightness is 0–100%, hue 0–360, saturation 0–100, Kelvin must suit the Light.
@@ -447,3 +503,17 @@ six-sided geometry, power/fixed speed and sizing stay unchanged. Try the
 [complete synthetic green/blue demo](examples/energy-wave-color.yaml) and read
 the [color and template rules](docs/ENERGY_WAVE.md#contour-color--v180-beta7).
 This setting starts in beta.7; published beta.6 remains immutable.
+
+
+### Anchored child menus (v1.9.0-beta.4)
+
+Opening a promoted child keeps the selected cube at its exact physical position;
+it becomes that submenu's slot 0. Back restores the previous anchor and layout.
+This also applies to deeper Charger/generic menus and responsive floorplans.
+Light palettes/zoom and Sonos Radio/Join/Sleep retain their existing navigation.
+In v1.9.0-beta.5, every ordinary submenu depth defaults to the same neutral gray
+fill and inner border as Light controls; the dark outer border remains unchanged.
+Charger details use that shared gray rather than a black fill. Root Hub base
+fill/status styling and meaningful module/center/palette colors are preserved. Explicit
+`colors.inner_border` overrides still win; the promoted center keeps its selected
+appearance. Root status colors and intentional Light/Sonos colors are preserved.

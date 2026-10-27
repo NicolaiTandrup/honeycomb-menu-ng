@@ -24,6 +24,21 @@ class Climate(Cubes):
  def press(self,slot):self.activate(self.cell(slot).locator('.interaction-surface'));self.settle()
  def main(self):self.press(0);self.page.wait_for_function('hub._menuContext.currentConfig._climate_frame?.view==="main"')
  def frame(self):return self.page.evaluate('hub._menuContext.currentConfig._climate_frame')
+ def test_stable_Info_modal_suspends_Climate_and_restores_exact_nested_frame(self):
+  self.start();self.main();self.press(3);self.press(3)
+  before=self.page.evaluate('JSON.stringify({config:hub._menuContext.currentConfig,stack:hub._menuContext.stack})')
+  self.page.evaluate("ng.openInfoInContext(hub._menuContext,{title:'Climate details',text:{entity:'climate.room_a',prefix:'Mode: '},colors:{center:'source',inner_border:'source',outer_border:'source'}})")
+  dialog=self.page.locator('honeycomb-ng-info .surface');dialog.wait_for();self.assertIn('Mode: heat',dialog.text_content());self.assertEqual(self.page.evaluate('calls.length'),0)
+  self.page.evaluate("ng.openInContext(hub._menuContext,{module:'climate',entity:'climate.room_b'})")
+  self.assertEqual(self.page.evaluate('JSON.stringify({config:hub._menuContext.currentConfig,stack:hub._menuContext.stack})'),before);self.capture('climate-Info-suspended')
+  dialog.press('Escape');self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assertEqual(self.page.evaluate('JSON.stringify({config:hub._menuContext.currentConfig,stack:hub._menuContext.stack})'),before)
+  self.back();self.back();self.back();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0);self.assertEqual(self.page.evaluate('calls.length'),0)
+ def test_Climate_child_from_Light_preserves_parent_palette_and_service_identity(self):
+  item={'type':'light','entity':'light.zone_a','tap_action':{'action':'honeycomb-open-nested','honeycomb_nested_menu':{'module':'climate','entity':'climate.room_b','name':'Room B'}}}
+  self.hub({'logo':False,'items':[item]});self.press(0);self.assertEqual(self.frame()['entity'],'climate.room_b');self.assertEqual(self.page.evaluate('calls.length'),0);self.press(6)
+  self.assertEqual(self.page.evaluate('calls.at(-1)[3]'),{'entity_id':'climate.room_b'});self.page.evaluate("climateUpdate('climate.room_b',{temperature:23.5})");self.back();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0)
+  self.hold(self.cell(0).locator('.interaction-surface'));self.settle();self.assertEqual(self.cell(0).evaluate('e=>e.config.entity'),'light.zone_a');self.press(3)
+  self.assertTrue(self.page.evaluate('!!hub._menuContext.currentConfig._light_palette_view'));self.assertEqual(self.page.evaluate('calls.length'),1);self.capture('climate-Light-parent-restored')
  def test_main_geometry_light_reference_native_C_and_HA_confirmation(self):
   self.start();self.assertEqual(self.cell().locator('.primary').inner_text(),'20.2°C');self.assertEqual(self.cell().locator('.secondary').inner_text(),'Set 21°C');self.assertEqual(self.page.evaluate('calls.length'),0)
   self.main();self.assertEqual(self.controls().count(),7);self.assertEqual(self.cell(1).locator('.primary').inner_text(),'+1°C');self.assertEqual(self.cell(6).locator('.primary').inner_text(),'+0.5°C')

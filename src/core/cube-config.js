@@ -44,6 +44,7 @@ function validateCubeConfig(config, {hubItems = false, placement = false} = {})
 {
     if (!config || typeof config !== 'object') throw new Error('A Honeycomb configuration is required.');
     rejectRemovedSonosOptions(config);
+    if (config.action === 'honeycomb-info') require('./info-cube').validate(config.info);
     if (!placement && (config.visibility !== undefined || config.slot_mode === 'priority'))
         throw new Error('Dynamic visibility and priority placement are supported only on Hub items.');
     validateGradient(config.colors && config.colors.fill_gradient);

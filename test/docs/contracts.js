@@ -116,7 +116,7 @@ assert.ok(readme.includes('Canonical visual baseline: Light module'));
 assert.ok(terms.includes('Shared visual design contract'));
 
 const climateGuide=fs.readFileSync('docs/CLIMATE_MODULE.md','utf8');
-for(const text of ['unpublished','climate.set_temperature','Low / High','defrost_entity','translation_key','15 seconds','honeycomb-open-nested','°F','no polling'])
+for(const text of ['v1.10.0-beta.1','climate.set_temperature','Low / High','defrost_entity','translation_key','15 seconds','honeycomb-open-nested','°F','no polling'])
  assert.ok(climateGuide.toLowerCase().includes(text.toLowerCase()),`Climate documentation: ${text}`);
 const {expandModuleMenu}=require('../../src/core/module-menu');
 let climateExamples=0,nestedModules=0;

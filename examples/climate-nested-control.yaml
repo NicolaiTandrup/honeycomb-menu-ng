@@ -1,4 +1,4 @@
-# Unpublished v1.10.0 candidate only. Standalone parent -> different Climate entity.
+# v1.10.0-beta.1 only. Standalone parent -> different Climate entity.
 # Replace both synthetic IDs with verified existing HA entities. Opening sends no command.
 type: custom:honeycomb-persistent-control
 module: generic

@@ -1,4 +1,4 @@
-# Unpublished v1.10.0 Climate review candidate only. Native capabilities; no helpers.
+# v1.10.0-beta.1 only. Native capabilities; no helpers.
 type: custom:honeycomb-persistent-control
 module: climate
 entity: climate.room_a

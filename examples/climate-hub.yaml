@@ -1,4 +1,4 @@
-# Unpublished v1.10.0 Climate review candidate only. Synthetic entities: replace in HA.
+# v1.10.0-beta.1 only. Synthetic entities: replace in HA.
 type: custom:honeycomb-persistent-hub
 logo: false
 size: 82

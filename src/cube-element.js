@@ -7,8 +7,11 @@ const { customActionRegistry } = require('./core/action-registry.js');
 const merge = require('lodash/merge');
 const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
+const {isOnOffOnly}=require('./modules/light/presentation');
+const {SUBMENU_FILL,SUBMENU_INNER}=require('./core/submenu-theme');
 const layoutCore = require('./core/layout.js');
 const cubePresentation = require('./core/cube-presentation.js');
+const infoPaint = require('./core/info-paint.js');
 const imageSizing = require('./core/image-sizing.js');
 const energyWave = require('./core/energy-wave.js');
 let nextFillId=0;
@@ -16,6 +19,8 @@ const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-m
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
 const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
+const buildInfo = require('./core/build-info');
+const beeVersion = require('./core/version-label').versionLabel(buildInfo.version);
 
 class CubeElement extends LitElement
 {
@@ -29,7 +34,8 @@ class CubeElement extends LitElement
         return {
             hass: { type: Object },
             config: { type: Object },
-            size: { type: Number }
+            size: { type: Number },
+            paintSnapshot: { attribute: false }
         };
     }
 
@@ -48,6 +54,7 @@ class CubeElement extends LitElement
         this._pointerStartY = 0;
         this._beeFlapping = false;
         this._beeFlapTimer = null;
+        this._beeAnimationFrame = null;
     }
 
     static get styles()
@@ -151,9 +158,22 @@ class CubeElement extends LitElement
                 filter: drop-shadow(0 calc(var(--honeycomb-persistent-size,82px) / 82) calc(var(--honeycomb-persistent-size,82px) / 82) rgba(0, 0, 0, 0.18));
             }
 
+            .content.with-bee-version {
+                padding-bottom:8%;box-sizing:border-box;
+                clip-path:polygon(50% 8%,92% 29%,92% 71%,50% 92%,8% 71%,8% 29%);
+            }
+            .content.with-bee-version .bee-icon { width:34%;height:34%;flex-shrink:0; }
+            .bee-version {
+                display:flex;flex-direction:column;align-items:center;max-width:65%;
+                color:inherit;line-height:1.08;text-align:center;white-space:nowrap;
+                margin-top:calc(var(--honeycomb-persistent-size,82px)*.015);
+            }
+            .bee-version span { display:block; }
+
             .bee-icon.flap {
                 animation: honeycomb-bee-flight 430ms ease-in-out;
             }
+            @media(prefers-reduced-motion:reduce) { .bee-icon.flap { animation:none; } }
 
             @keyframes honeycomb-bee-flight {
                 0%, 100% {
@@ -270,7 +290,8 @@ class CubeElement extends LitElement
             inner:color('inner_border',presentation.colors.inner),
             outer:color('outer_border','#34383d')
         };
-        if (this.config.mode === 'generic') {
+        const explicitSubmenuCenter=this.config._submenu && configured.center && this._value(configured.center)!=='auto';
+        if (this.config.mode === 'generic' && !explicitSubmenuCenter) {
             colors.center = card.background || card['background-color'] || this._value(this.config.background, colors.center);
         }
         if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
@@ -426,6 +447,10 @@ class CubeElement extends LitElement
             clearTimeout(this._beeFlapTimer);
             this._beeFlapTimer = null;
         }
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        this._beeAnimationFrame = null;
+        this._beeFlapping = false;
     }
 
     getCardSize()
@@ -494,6 +519,7 @@ class CubeElement extends LitElement
             const presentation = module.presentation.resolve({
                 config: this.config || {},
                 state: this._entityState(),
+                evaluate: value => this._value(value),
                 hass: this.hass,
                 runtime
             });
@@ -504,12 +530,13 @@ class CubeElement extends LitElement
                 return presentation;
         }
 
-        const unavailable = this.config.mode === 'generic' ? '#34424e' : (configured.unavailable || '#555b63');
+        const generic=this.config.mode === 'generic';
+        const unavailable = generic ? this.config._submenu ? SUBMENU_FILL : '#34424e' : (configured.unavailable || '#555b63');
 
         return {
             colors: {
                 center: unavailable,
-                inner: unavailable,
+                inner: generic && this.config._submenu ? SUBMENU_INNER : unavailable,
                 outer: unavailable
             },
             secondary: null
@@ -580,6 +607,8 @@ class CubeElement extends LitElement
     {
         if( ! this.config || (! moduleMenu && ! this.config.menu) )
             return null;
+        if (['persistent','light'].includes(this.config.mode) && isOnOffOnly(this._entityState()))
+            return null;
 
         const menu = merge({}, moduleMenu || this.config.menu);
 
@@ -639,13 +668,9 @@ class CubeElement extends LitElement
         if( this.config.match_anchor_size !== false )
             menu.size = anchorSize * 3.586;
 
-        const persistentDefaults = {styles:{card:[{background:'rgba(52, 66, 78, 0.94)'}]}};
-
-        menu.button_defaults = merge(
-            {},
-            persistentDefaults,
-            menu.button_defaults || {}
-        );
+        // Scene preparation supplies the same neutral fallback for every
+        // submenu depth. Do not disguise a default as an explicit card style:
+        // that would override user center colors and module presentations.
 
         const center = merge({}, moduleMenu ? menu.promoted_center : this.config);
         delete center.menu;
@@ -790,6 +815,26 @@ class CubeElement extends LitElement
         const host = root && root.host ? root.host : null;
         const context = host && host._menuContext ? host._menuContext : null;
 
+        // Only genuine child promotion moves the scene. Existing Light zoom
+        // and Sonos sibling expansions deliberately retain their module center.
+        if (context && menu.nested_expand === true && menu.inherit_inner !== true &&
+            !menu._navigation_sibling && menu.promote_to_center === true) {
+            menu=merge({},menu);
+            const rect=this.getBoundingClientRect();
+            menu.anchor_x=rect.left+rect.width/2; menu.anchor_y=rect.top+rect.height/2;
+            menu.promote_to_center=true;
+            if (!menu.promoted_center) {
+                menu.promoted_center=merge({},this.config);
+                delete menu.promoted_center.menu;
+            } else {
+                // Preserve explicit selected-cube appearance, not parent colors.
+                const appearance={};
+                for (const key of ['colors','border','styles','foreground','background'])
+                    if (this.config[key] !== undefined) appearance[key]=this.config[key];
+                menu.promoted_center=merge({},appearance,menu.promoted_center);
+            }
+        }
+
         if( context && typeof window.honeycombNG.openInContext === 'function' )
             return window.honeycombNG.openInContext(context, menu);
 
@@ -857,10 +902,17 @@ class CubeElement extends LitElement
 
     _flapBee()
     {
+        if( this._beeAnimationFrame !== null )
+            cancelAnimationFrame(this._beeAnimationFrame);
+        clearTimeout(this._beeFlapTimer);
+        this._beeFlapTimer = null;
         this._beeFlapping = false;
+        if( !this.isConnected ) return;
         this.requestUpdate();
 
-        requestAnimationFrame(() => {
+        this._beeAnimationFrame = requestAnimationFrame(() => {
+            this._beeAnimationFrame = null;
+            if( !this.isConnected ) return;
             this._beeFlapping = true;
             this.requestUpdate();
 
@@ -904,10 +956,12 @@ class CubeElement extends LitElement
 
         if (typeof action === 'string') action = {action};
         const original = action;
-        if (!action.honeycomb_menu && !action.honeycomb_nested_menu)
+        if (!action.honeycomb_menu && !action.honeycomb_nested_menu && action.action !== 'honeycomb-info')
             action = this._value(action, original);
         const actionName = action.action || 'toggle';
         const context = (this.getRootNode().host || {})._menuContext || this._menuContext;
+        if (context && context.info) return;
+        if (actionName === 'honeycomb-info') { window.honeycombNG.openInfoInContext(context,action.info,this); return; }
         if ((actionName === 'honeycomb-open-nested' || actionName === 'fire-dom-event') &&
             (action.honeycomb_nested_menu || action.honeycomb_menu)) {
             const nested=merge({nested_expand:true,entity:this.config.entity}, action.honeycomb_nested_menu || action.honeycomb_menu);
@@ -1027,6 +1081,19 @@ class CubeElement extends LitElement
         }
     }
 
+    _infoLayer(key, className, points)
+    {
+        const p=this.paintSnapshot && this.paintSnapshot[key];
+        if(!p)return null;
+        const id=this._fillId+'-info-'+key;
+        if(p.type==='css')return svg`<defs><clipPath id=${id}><polygon points=${points}></polygon></clipPath></defs>
+            <foreignObject class=${className} x="0" y="0" width="100" height="115.47" clip-path=${`url(#${id})`}>
+                <div xmlns="http://www.w3.org/1999/xhtml" style=${styleMap({width:'100%',height:'100%',background:p.background})}></div>
+            </foreignObject>`;
+        return svg`${p.type==='solid'?'':svg`<defs>${infoPaint.server(p,id)}</defs>`}
+            <polygon class=${className} points=${points} fill=${p.type==='solid'?p.color:`url(#${id})`} fill-opacity=${p.opacity}></polygon>`;
+    }
+
     render()
     {
         if (!this.config || !this._model) return html``;
@@ -1041,6 +1108,8 @@ class CubeElement extends LitElement
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
         const mediaBackground=['sonos','media'].includes(this.config.mode) && !!artwork['background-image'];
+        const showBeeVersion=(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping;
+        const versionFont=Math.min(.12,.57/(Math.max(beeVersion.base.length,beeVersion.stage.length)*.65));
         const external = this.config.custom_fields || (this.config.type &&
             !['custom:button-card','custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type));
         this._externalContent = !!external;
@@ -1049,12 +1118,12 @@ class CubeElement extends LitElement
                 ${m.fill.type==='radial' ? svg`<defs><radialGradient id=${this._fillId} cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color=${m.fill.center}></stop><stop offset="100%" stop-color=${m.fill.edge}></stop>
                 </radialGradient></defs>` : ''}
-                <polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>
+                ${this._infoLayer('outer_border','hex-outer',points) || svg`<polygon class="hex-outer" points=${points} fill=${m.colors.outer}></polygon>`}
                 <g transform="translate(50 57.735) scale(${innerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>
+                    ${this._infoLayer('inner_border','hex-inner',points) || svg`<polygon class="hex-inner" points=${points} fill=${m.colors.inner}></polygon>`}
                 </g>
                 <g transform="translate(50 57.735) scale(${centerScale}) translate(-50 -57.735)">
-                    <polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>
+                    ${this._infoLayer('center','hex-fill',points) || svg`<polygon class="hex-fill" points=${points} fill=${m.colors.center} style=${styleMap({fill:m.fill.type==='radial'?`url(#${this._fillId})`:undefined})}></polygon>`}
                     ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
                     <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
@@ -1066,11 +1135,13 @@ class CubeElement extends LitElement
                     @error=${()=>{if(this._model.artwork && this._model.artwork.key===m.artwork.key){this._failedArtworkKey=m.artwork.key;this._updatePresentation();}}}>` : ''}
             </div>
             ${external ? html`<div class="external-content"></div>` : html`
-            <div class="content ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
+            <div class="content ${showBeeVersion ? 'with-bee-version' : ''} ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
                 ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
                     : m.iconBadge ? html`<div class="icon-with-badge"><ha-icon .icon=${m.icon}></ha-icon><span class="power-badge">${m.iconBadge}</span></div>`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
+                ${showBeeVersion ? html`<span class="bee-version" role="status" aria-live="polite" aria-label=${beeVersion.text}
+                    style=${styleMap({fontSize:`calc(var(--honeycomb-persistent-size,82px)*${versionFont})`})}><span>${beeVersion.base}</span>${beeVersion.stage ? html` <span>${beeVersion.stage}</span>` : ''}</span>` : ''}
                 ${m.name ? html`<div class="primary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'n':undefined,...m.nameStyle})}>${m.name}</div>` : ''}
                 ${m.secondary ? html`<div class="secondary" style=${styleMap({'grid-area':Object.keys(m.grid).length?'l':undefined,...m.labelStyle})}>${m.secondary}</div>` : ''}
                 ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
@@ -1078,7 +1149,8 @@ class CubeElement extends LitElement
             ${this.config.interactive !== false && !this.config.disabled ? html`
             <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
                 @keydown=${e=>{
-                    const zoom=(this.config.hold_action && ['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action)) ||
+                    const zoom=(this.config.hold_action && (['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action) ||
+                            (this.config.hold_action.honeycomb_nested_menu || {})._light_palette_request === 'opposite')) ||
                         (this.config.tap_action && this.config.tap_action.action==='honeycomb-light-kelvin-apply');
                     if (zoom && e.key==='Escape') {e.preventDefault();this._dispatchAction({action:'honeycomb-close'});return;}
                     if(!m.disabled && !e.repeat && ['Enter',' '].includes(e.key)) {

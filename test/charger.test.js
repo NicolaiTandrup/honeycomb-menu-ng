@@ -138,7 +138,7 @@ test('all wave health is derived, speed/color settings are reused, and missing p
     let view=presentation.resolve({hass:f.hass,config});assert.equal(view.name,'Car connected');assert.equal(view.secondary,'Charger 1');assert.equal(view.iconBadge,'7.4 kW');assert.equal(view.tertiary,null);
     assert.equal(wave.enabled(view.energyWave),true);assert.equal(view.energyWave.max_power_w,7400);assert.equal(view.energyWave.color,'#123456');
     set(f,'online','off');view=presentation.resolve({hass:f.hass,config});assert.equal(wave.enabled(view.energyWave),false);
-    assert.equal(view.forceColors.inner,model.COLORS.fault);
+    assert.equal(view.colors.inner,model.COLORS.fault);
 });
 test('only intentional verified switches execute once; commands wait for HA confirmation and isolate charger targets',async()=>{
     const f=fixture(),config=buildCubeConfig(f.item,f.hass).menu.buttons[0],notifications=[];
@@ -203,4 +203,12 @@ test('two-row overview keeps connection priority and fixed name; live power uses
  set(f,'status','Error');assert.equal(view().name,'Fault');set(f,'online','off');assert.equal(view().name,'Offline');
  set(f,'online','on');set(f,'enabled','on');set(f,'status','Car disconnected');assert.equal(view().name,'No car');
  set(f,'status','unknown');assert.equal(view().name,'Status unknown');assert.equal(view().secondary,'Charger 1');
+});
+test('detail defaults are neutral, root status retained and explicit overrides remain renderer-owned',()=>{
+    const f=fixture(),compiled=buildCubeConfig(f.item,f.hass),root=presentation.resolve({hass:f.hass,config:compiled});
+    assert.equal(root.colors.inner,model.COLORS.connected);
+    for(const config of compiled.menu.buttons){
+        const view=presentation.resolve({hass:f.hass,config:{...config,colors:{inner_border:'#123456'}}});
+        assert.equal(view.colors.inner,'#34424e');assert.equal(view.forceColors,undefined);assert.equal(view.colors.center,'rgba(52, 66, 78, 0.94)');
+    }
 });

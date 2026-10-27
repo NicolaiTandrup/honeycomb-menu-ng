@@ -359,7 +359,7 @@ class HoneycombPersistentHub extends CubeElement
     _structureBusy()
     {
         const context = this._menuContext;
-        return !!(context && (context.stack.length || context.pointers.size || context.pendingActions.size ||
+        return !!(context && (context.info || context.stack.length || context.pointers.size || context.pendingActions.size ||
             (context.currentConfig && !context.currentConfig._persistent_hub_root))) ||
             !!(this._hubMenu && this._hubMenu.closing);
     }

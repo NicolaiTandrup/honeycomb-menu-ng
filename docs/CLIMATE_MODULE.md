@@ -1,9 +1,6 @@
-# Generic Climate module — v1.10.0 review candidate
+# Generic Climate module — v1.10.0-beta.1
 
-This feature branch implements Climate on top of published v1.9.0-beta.3. It is
-an **unpublished** review candidate, **not in v1.8.1 stable or v1.9.0-beta.3**, and is not yet a published Climate beta.
-Use the bundle from the reviewed Climate candidate only. Real thermostat/HVAC
-acceptance is pending. No Car module, vendor API, helper or backend is installed.
+Cumulative with v1.9.0 stable, including its complete approved Info/Light/Sonos/Charger functionality. This beta is for real-HA testing; hardware acceptance remains pending. No Car, vendor API, helper or backend is installed.
 
 Climate uses the same 82px renderer, inner/outer borders, gradients, actions and
 numeric/automatic sizing as Light. A Hub item uses `type: climate`; a standalone

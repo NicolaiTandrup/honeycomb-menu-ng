@@ -1,0 +1,33 @@
+# Synthetic demonstration only. No physical charging commands.
+type: custom:honeycomb-persistent-hub
+size: 82
+logo: auto
+items:
+- type: generic
+  slot: 1
+  name: Info
+  icon: mdi:information-outline
+  tap_action:
+    action: honeycomb-info
+    info:
+      mode: stack
+      title: Live energy
+      blocks:
+      - text:
+          entity: sensor.site_a_power
+          prefix: 'Power: '
+          suffix: ' kW'
+          fallback: Unavailable
+          max_age: 300
+          stale_text: Stale
+      - text:
+          entity: sensor.vehicle_a_soc
+          prefix: 'SoC: '
+          suffix: '%'
+          fallback: Unknown
+      - text:
+          entity: sensor.plan_a_updated
+          format: datetime
+          time_zone: Europe/Copenhagen
+          prefix: 'Updated: '
+          fallback: Waiting for a plan

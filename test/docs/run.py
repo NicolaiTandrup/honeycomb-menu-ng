@@ -59,8 +59,9 @@ def actions(obj):
     elif isinstance(obj,dict):
         for key,value in obj.items():
             if key in ('tap_action','hold_action','double_tap_action'):
-                known(value,set('action perform_action service data service_data target navigation_path url_path honeycomb_menu honeycomb_nested_menu'.split()),key)
-                assert value['action'] in ('none','toggle','more-info','perform-action','call-service','navigate','url','fire-dom-event','honeycomb-open-nested')
+                known(value,set('action perform_action service data service_data target navigation_path url_path honeycomb_menu honeycomb_nested_menu info'.split()),key)
+                assert value['action'] in ('none','toggle','more-info','perform-action','call-service','navigate','url','fire-dom-event','honeycomb-info','honeycomb-open-nested')
+
                 if value['action']=='perform-action': assert re.fullmatch(r'\w+\.\w+',value['perform_action'])
             actions(value)
 def item(value,where):
@@ -224,6 +225,14 @@ class Examples(BROWSER.Cubes):
         self.page.evaluate("pushState('light.zone_a','off',{supported_color_modes:['hs']})")
         self.assertEqual(self.controls().first.evaluate('(e)=>e._model.fill.type'),'solid')
         self.capture('docs-shared-presentation-example')
+    def test_docs_info_cards_open_read_only_and_return(self):
+        for name in ['info-text.yaml','info-stack.yaml','info-positioned.yaml','info-dynamic.yaml','info-charging-plan.yaml']:
+            if self.page.evaluate('!!window.hub'):self.page.evaluate('hub.remove()')
+            self.hub(load((ROOT/'examples'/name).read_text()));self.settle()
+            self.activate(self.page.locator('honeycomb-menu-ng [data-honeycomb-slot="0"] .interaction-surface'))
+            self.page.locator('honeycomb-ng-info .surface').wait_for();self.page.locator('honeycomb-ng-info .surface').press('Escape')
+            self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0)
+        self.assertEqual(self.page.evaluate('calls.length'),0)
     def test_docs_basic_hub_and_auto_tables(self):
         self.hub(self.examples['hub.yaml']);self.assert_visible_unique_cells(3)
         for count,without,with_logo in self.auto:
@@ -325,6 +334,8 @@ def main():
         cards.append({'source':f'examples/{name} (complete dashboard)','config':hub})
     for i,element in enumerate(load((ROOT/'examples/charger-elements.yaml').read_text())):
         cards.append({'source':f'examples/charger-elements.yaml element {i}','config':element})
+    for name in ['info-text.yaml','info-stack.yaml','info-positioned.yaml','info-dynamic.yaml','info-charging-plan.yaml']:
+        cards.append({'source':'examples/'+name,'config':load((ROOT/'examples'/name).read_text())})
     yaml_count=0
     for file in [ROOT/'README.md',*sorted((ROOT/'docs').glob('*.md'))]:
         for index,block in enumerate(blocks(file.read_text())):
