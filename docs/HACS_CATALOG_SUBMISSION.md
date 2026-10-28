@@ -27,6 +27,17 @@ branch, PR, maintainer message, repository detachment or history rewrite was mad
   browser tests cover both original/NG load orders. Synthetic stable screenshots
   are in the [README](../README.md), with [provenance](assets/screenshots/stable-provenance.json).
 
+## Read-only refresh — 2026-10-23
+
+Rechecked the live official inclusion/plugin rules, Marketplace catalog guide and
+PR template. The repository remains public/active with issues, description,
+topics and a GitHub-recognized GPL license. The v1.8.1 public bundle was downloaded
+again and matched the checksum above. Current upstream catalog master is
+`26677ecf6ffe5d279972542b8966e40aee3998cd`; the refreshed patch inserts one entry
+only, preserves upstream whitespace and the original Honeycomb listing, and passes
+JSON/uniqueness/casefold ordering checks. Charger beta.2 is unrelated to catalog
+eligibility. No upstream PR, fork, maintainer inquiry or release was created.
+
 ## Current first-party requirements
 
 The [HACS inclusion rules](https://github.com/hacs/documentation/blob/main/source/docs/publish/include.md),
@@ -46,7 +57,7 @@ integrations, so it does not apply here. Do not request individual reviewers.
 ## Exact proposed change
 
 Use the [one-line patch](hacs-catalog/plugin-entry.patch). At preparation, upstream
-master was `dee7a0eddd9644e8373be114cdb7818443014ba0` and the insertion was:
+master was `26677ecf6ffe5d279972542b8966e40aee3998cd` and the insertion was:
 
 ```json
   "ngocjohn/vehicle-status-card",
