@@ -1,57 +1,111 @@
-# v1.10.0-beta.2 — implementation and mandatory validation
+# v1.10.0-beta.2 — PUBLISHED AND VERIFIED; STOP
 
-Owner authorizes issues #146, #147 and #148 and guarded beta.2 publication only
-after every mandatory gate passes. No master merge/stable/production HA changes.
+Owner-authorized issues #146/#147/#148 implemented cumulatively over published beta.1
+8619c9a74f50ffbbdb6206a45b18e5b81265912d. Previous network handoff
+0985d10921104ae5686a290e967c066dd24c1397 reviewed; no implementation to reapply.
 
-Branch: feature/v1.10-beta2, based exactly on published beta.1
-8619c9a74f50ffbbdb6206a45b18e5b81265912d. Previous documentation-only network
-handoff 0985d10921104ae5686a290e967c066dd24c1397 reviewed; no code to reapply.
-GitHub API and dry-run push pass. Runtime enforced policy includes api.github.com;
-ordinary sandbox forbids proxy sockets, authorized escalated shell uses inherited
-proxy normally. No bypass or credential replacement. Published beta.1 downloaded
-and verified against SHA256SUMS and historical a6b292c1ddb9556de7c07f9cdbcc8cbc3dc8f6e1500ad5f143f2b6caa99ba4ad.
-Read current issues, comments (none), PR #131 and its successful exact-head CI.
+## Immutable source and release
 
-Implemented:
-- Climate neutral functional fill and zero default inner width; independent center.
-- Sonos Join room playback/content, own volume, accessible membership/failure
-  reasons and live launcher-source artwork, paint, gradients/alpha and borders.
-  Native/external grouping action safety and other Sonos services preserved.
-- Opt-in collapsible Hub with hard primary slot 0, both expanded center policies,
-  shared allocation/conflict validation, original primary tap, isolated hold,
-  Back/Escape/30s configurable activity deadline. Mobile top-layer overlay with
-  interaction shield, viewport/safe-area fit and original floorplan restoration.
-  Multiple contexts, nested Back, keyboard, preview and disposal covered.
-  Info from an expanded phone Hub also uses the top layer and returns to the
-  unchanged caller. Overdue idle checks while held have a bounded 250ms delay.
-  Join honors source icon hiding; keyboard expansion does not suppress its next
-  deliberate Back click (only the initiating held-pointer compatibility click).
-- YAML examples and docs; new mandatory browser workflow step. Guarded publisher,
-  stable workflow, HACS payload filename and dependencies remain unchanged.
+Feature branch: feature/v1.10-beta2 (frozen).
+PR #149 OPEN/unmerged: https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/149
+Exact tested/tagged/released commit: 8bbc45af72936630c39f87c4697a0148cc38a047.
+Public prerelease: https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.10.0-beta.2
+Release ID: 429284888. Normal HACS JS: 303003 bytes.
 
-Actual local results so far: Node 430 passes / 3 existing stable-only skips;
-36 Climate browser cases pass; 20 new beta.2 desktop/mobile cases pass including
-real CDP touch, clipping/rotation, source artwork/gradient changes and multiple
-Hubs. Package/GPL/HACS and checksum-verified actionlint pass. Official HACS workflow 41090506240 succeeded on initial implementation
-3abebb848bbad773f63c5cf1b0947cd122cb6b03; rerun for final source. PR #149 open:
-https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/149. Full mandatory suite
-RUNNING; do not treat this checkpoint as green CI or publication evidence.
-Old Join label assertions adapted to room playback/volume plus accessible failure
-reasons; grouping service/no-call safety assertions retained. Browser plugin not
-available; repository Playwright uses installed /usr/bin/chromium. Playwright CDN
-is policy-blocked, no retry/bypass needed. Synthetic services only.
+honeycomb-menu-ng.js: SHA256 d3c595891094a59625a06102d08d999e636ba2e332d33ef0a29d420e7c8399eb (303003 bytes).
 
-Evidence outside Git: /tmp/honeycomb-beta2/ (full/results.json when complete,
-features/, comparison/ before/after, Node/build logs). Screenshots are not committed.
-Next: finish full mandatory suite and any fixes, push reviewable PR, verify exact
-head green push/PR CI and official HACS readiness, reproduce committed JS, dispatch
-unchanged release.yml with expected_commit and expected_tag=v1.10.0-beta.2,
-publish=true, then verify public tag/assets/checksums/provenance/HACS compatibility.
-Keep the branch frozen during release verification; subsequent handoff on a separate
-branch. Stop after publication and verification.
+release-provenance.json: SHA256 a22d06fde883da78668fa0fb378ba1ac40e2464d5c29021888ed8f9878fac1c3 (535 bytes).
 
-Known limits: real HA/hardware acceptance pending; Firefox/WebKit not tested.
-Mobile top layer requires current Popover API support; large slot populations may
-need sub-44px cells to fit a phone. Phone behavior validated synthetically in Chromium,
-not against the owner's actual dashboard/kiosk or physical device. Existing Climate
-capability/discovery/confirmation limits still apply. No acceptance issues closed.
+SHA256SUMS.txt: SHA256 3d695d200d6c00557d9ad47d216018a9f542549c5f0aa233834a55e174c9922a (87 bytes).
+
+This documentation-only handoff is separate from the frozen feature/release head.
+Do not recreate/reapply completed work, republish beta.2, move its tag, merge master,
+publish stable, start other modules or modify production HA. Stop and await owner
+real-HA feedback. No acceptance issues were closed.
+
+## Implemented
+
+- Climate roles use neutral fill and zero default inner width; center retains its
+  independent live fill/borders. Explicit function descriptors can override styles.
+  Native units/steps/capabilities/range/commands/navigation remain unchanged.
+- Join shows actual room playback/content, individual volume and accessible group
+  status/reasons. Joined rooms inherit the opening Sonos center's artwork, full
+  configured paint, alpha/gradient, borders and icon policy; live updates retained.
+  Native/external grouping, Favorites/Radio/Sleep/volume services preserved.
+- Opt-in collapsible Hub: hard primary slot 0, original tap, isolated held-pointer
+  expansion, primary/bee policies with validated shared allocation, Back/Escape/
+  configurable 30s activity collapse. Phone top-layer/safe-area fit and interaction
+  shield preserve floorplan anchor and restore original size. Resize/rotation,
+  multiple Hubs, preview/disposal, keyboard and nested Info return validated.
+- Native YAML/docs/examples and mandatory beta2_features.py CI coverage added.
+  Shared renderer/controller reused. Publisher/stable/retention workflows, HACS
+  metadata, Light/Charger modules and Info component unchanged from beta.1.
+
+## Actual validation and publication
+
+- Node: 430 pass / 3 existing stable-only skips; no failures.
+- Chromium: 468 scenarios, including 20 new beta.2 cases, 36 Climate, 69 Info,
+  complete Light/Charger/Sonos/navigation/sizing/artwork/touch/performance regressions.
+  6 native Sonos Sleep device-boundary contracts pass.
+- Docs: 63 YAML blocks, 54 complete cards + 11 contextual fragments, 258 local
+  links, 22 browser interactions. HACS/GPL/package, pinned checksum-verified
+  actionlint and repeated deterministic production build pass.
+- Exact-head push CI 41092154490 and PR CI 41092163821, attempt 1: both build and
+  workflow-lint jobs successful; mandatory steps successful. CI bundle checksum
+  annotations independently match committed/local JS.
+- Official HACS readiness 41092153458: successful on exact final source.
+- Unchanged guarded release.yml publish=true run 41095143263: verify and publish
+  jobs successful. Workflow reproduced committed JS and matched actual CI artifact
+  and staged assets/checksum before creating a new tag/release.
+- Independent public verification: normal unauthenticated-client curl downloads
+  match GitHub digests/sizes, exact local committed JS and SHA256SUMS. Provenance
+  pins exact source/branch/repository and both CI attempts. Tagged package/HACS
+  metadata valid; downloaded public HACS JS passes desktop+phone smoke tests.
+
+CI: https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/41092154490
+PR CI: https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/41092163821
+HACS: https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/41092153458
+Publisher: https://github.com/NicolaiTandrup/honeycomb-menu-ng/actions/runs/41095143263
+
+Browser plugin not available; repository Playwright used installed Chromium, plus
+pinned CI Chromium. Local Playwright CDN denied by policy, so no repeated download
+or bypass. Local CI artifact redirects to Azure Blob are denied; matching checksum
+annotations were read through allowed GitHub API, and the guarded GitHub runner
+compared actual CI artifact bytes. All public assets independently downloaded.
+API and dry-run push permissions passed in this corrected environment; ordinary
+sandbox denied proxy sockets but authorized escalated shell used inherited proxy.
+No credential replacement, policy bypass or production Home Assistant connection.
+
+## Evidence and preservation
+
+Evidence outside Git: /tmp/honeycomb-beta2/. public/verification.json contains all
+asset digests, exact tag/source/CI and preservation results; publisher-final.json
+and ci-*-final.json record completed jobs. features-final/ and public-install/
+contain final phone/desktop collapsed/expanded screenshots; comparison/ contains
+published beta.1 before/after scenes. Final after images also in features-final/.
+CI shared-cube-evidence artifact retains full browser screenshots. No screenshots,
+secrets, production identifiers or temporary QA scripts were committed.
+
+Before/after: all 57 prior release records and assets retained; total 58. All prior
+113 tag-reference lines retained, one new beta.2 reference (114 total). Master
+unchanged at ba95dade58fa64c5183a312e0d1d00044feeb096; latest stable remains v1.9.0.
+No prior tag/release/asset overwrite/delete, history rewrite, branch deletion,
+retention mutation or cleanup workflow invocation. Historical private beta.5
+visibility uncertainty remains separate; no action taken on it.
+
+## Owner testing and limits
+
+HACS -> Honeycomb Menu NG -> Redownload -> enable beta versions -> v1.10.0-beta.2.
+Keep normal NG and button-card resources. Use examples/collapsible-hub.yaml or
+examples/collapsible-hub-bee.yaml and replace synthetic entities with verified
+ones; Climate and Sonos examples/docs remain available. Combined synthetic testing
+card: /tmp/honeycomb-beta2/home-assistant-test.yaml. Both center policies documented
+in docs/COLLAPSIBLE_HUB.md. No production configuration was edited.
+
+Real HA/hardware acceptance is pending. Firefox/WebKit, actual owner dashboard,
+kiosk and physical touch devices untested. Modern Popover API required for phone
+overlay; very large populations may need sub-44px cells to fit. Existing ordinary
+non-collapsible anchored submenus retain edge/capacity limits. Existing Climate
+registry/capability/device-permission/confirmation limitations still apply.
+
+Next action: STOP. Await owner real-HA acceptance or new authorized scope.
