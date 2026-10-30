@@ -133,3 +133,13 @@ Hue/Kelvin child zooms retain meaningful nested history. These Sonos siblings
 inherit configurable idle-close (8000 ms default, explicit zero disables it).
 Hub `persistent.menu.idle_timeout` and standalone `menu.idle_timeout` may override it.
 Only real interaction resets idle; passive HA updates, metadata refresh and asynchronous room discovery do not. Late results cannot create ghost menus or stuck overlays.
+
+## beta.2 Join room presentation
+
+Join displays each room's actual playback state and available station/title.
+Joined rooms show their individual volume percentage (or Volume unavailable),
+with membership in the accessible label. Artwork, fill, borders and supported
+gradients come from the Sonos center that opened Join, including when the
+selected player delegates grouping to a verified coordinator. Live HA updates
+refresh the view; missing metadata is not invented. Grouping, Back, Favorites,
+Radio, Sleep and volume services keep their existing behavior.

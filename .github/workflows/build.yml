@@ -134,6 +134,9 @@ jobs:
       - name: Verify generic Climate capabilities, exact-target controls and nested Back
         run: python test/browser/climate.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/climate"
 
+      - name: Verify collapsible Hub touch, mobile viewport, Climate styling and Sonos Join
+        run: python test/browser/beta2_features.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta2-features"
+
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

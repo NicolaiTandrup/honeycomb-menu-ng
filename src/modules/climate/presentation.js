@@ -23,7 +23,7 @@ function resolve({hass,config}) {
     else if(role==='choice'){const choice=value.choices[config._climate_kind];name=label(config._climate_choice);secondary=choice&&choice.selected===config._climate_choice?'Selected':'';disabled=pending||!choice||!choice.writable||!choice.values.includes(config._climate_choice);}
     else if(role==='defrost'){name='Defrost';secondary=!value.defrost.available?'Unavailable':value.defrost.state.state==='on'?'On':'Off';disabled=pending||!value.defrost.writable;}
     if(role&&record){secondary=record.phase==='sending'?'Sending…':record.phase==='pending'?'Awaiting HA':record.phase==='failed'?'Command failed':'Not confirmed';}
-    return {name,secondary,disabled:role?disabled:false,active:!role&&active,colors:{center:!role&&active?color:neutral,inner:color,outer:'#34383d'},
+    return {name,secondary,disabled:role?disabled:false,active:!role&&active,colors:{center:!role&&active?color:neutral,inner:role?neutral:color,outer:'#34383d'},
         ariaLabel:[options.name,name,secondary,label(value.mode),label(value.action)].join(', ')};
 }
 function diagnostics({hass,config}){const value=model.state(hass,config._climate);return {available:value.available,range:value.range,unit_known:!!value.unit,temperature_writable:value.writable,defrost_source:value.defrost.reason,categories:Object.entries(value.choices).filter(([,v])=>v.values.length).map(([k])=>k)};}

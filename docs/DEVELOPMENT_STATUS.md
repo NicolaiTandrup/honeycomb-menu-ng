@@ -1,29 +1,51 @@
-# Climate v1.10.0-beta.1 integration — validation pending
+# v1.10.0-beta.2 — implementation and mandatory validation
 
-Active PR #131, feature/v1.10-climate. Existing validated Climate d965f41214085abb1eb52d25948fb5a7d47bd020 is being integrated with exact v1.9.0 stable ba95dade58fa64c5183a312e0d1d00044feeb096 by normal merge into the feature branch. Master is not modified. No wholesale rollback of stable source; merge conflicts preserve all stable tests and Info/palette navigation.
+Owner authorizes issues #146, #147 and #148 and guarded beta.2 publication only
+after every mandatory gate passes. No master merge/stable/production HA changes.
 
-Owner explicitly authorizes public beta.1 only after full matching CI and guarded publisher verification. No merge to master, stable publication, Car development, production HA command, retention change or deletion/overwrite. AGENTS.md applies.
+Branch: feature/v1.10-beta2, based exactly on published beta.1
+8619c9a74f50ffbbdb6206a45b18e5b81265912d. Previous documentation-only network
+handoff 0985d10921104ae5686a290e967c066dd24c1397 reviewed; no code to reapply.
+GitHub API and dry-run push pass. Runtime enforced policy includes api.github.com;
+ordinary sandbox forbids proxy sockets, authorized escalated shell uses inherited
+proxy normally. No bypass or credential replacement. Published beta.1 downloaded
+and verified against SHA256SUMS and historical a6b292c1ddb9556de7c07f9cdbcc8cbc3dc8f6e1500ad5f143f2b6caa99ba4ad.
+Read current issues, comments (none), PR #131 and its successful exact-head CI.
 
-Prior Climate tests passed on the old base; new cumulative validation is PENDING. Do not infer completion from implementation. Next run npm test, reproducible NODE_OPTIONS=--openssl-legacy-provider npm run build, all mandatory browser/documentation/packaging/lint tests, then exact-head push/PR CI before release.yml. Read docs/CLIMATE_MODULE.md, issue #87, PR #131. Real HVAC acceptance remains pending.
+Implemented:
+- Climate neutral functional fill and zero default inner width; independent center.
+- Sonos Join room playback/content, own volume, accessible membership/failure
+  reasons and live launcher-source artwork, paint, gradients/alpha and borders.
+  Native/external grouping action safety and other Sonos services preserved.
+- Opt-in collapsible Hub with hard primary slot 0, both expanded center policies,
+  shared allocation/conflict validation, original primary tap, isolated hold,
+  Back/Escape/30s configurable activity deadline. Mobile top-layer overlay with
+  interaction shield, viewport/safe-area fit and original floorplan restoration.
+  Multiple contexts, nested Back, keyboard, preview and disposal covered.
+- YAML examples and docs; new mandatory browser workflow step. Guarded publisher,
+  stable workflow, HACS payload filename and dependencies remain unchanged.
 
-Evidence: /workspace/build-output/v110-beta1/. Preserve old worktrees/releases. Record exact validated commit, checksums, CI and actual publication before final handoff.
+Actual local results so far: Node 430 passes / 3 existing stable-only skips;
+36 Climate browser cases pass; 16 new beta.2 desktop/mobile cases pass including
+real CDP touch, clipping/rotation, source artwork/gradient changes and multiple
+Hubs. Package/GPL/HACS and checksum-verified actionlint pass. Full mandatory suite
+RUNNING; do not treat this checkpoint as green CI or publication evidence.
+Old Join label assertions adapted to room playback/volume plus accessible failure
+reasons; grouping service/no-call safety assertions retained. Browser plugin not
+available; repository Playwright uses installed /usr/bin/chromium. Playwright CDN
+is policy-blocked, no retry/bypass needed. Synthetic services only.
 
-## Integration checkpoint
+Evidence outside Git: /tmp/honeycomb-beta2/ (full/results.json when complete,
+features/, comparison/ before/after, Node/build logs). Screenshots are not committed.
+Next: finish full mandatory suite and any fixes, push reviewable PR, verify exact
+head green push/PR CI and official HACS readiness, reproduce committed JS, dispatch
+unchanged release.yml with expected_commit and expected_tag=v1.10.0-beta.2,
+publish=true, then verify public tag/assets/checksums/provenance/HACS compatibility.
+Keep the branch frozen during release verification; subsequent handoff on a separate
+branch. Stop after publication and verification.
 
-427 Node passes / 3 stable-only skips; same production rebuild bytes, 292933 bytes,
-SHA256 a6b292c1ddb9556de7c07f9cdbcc8cbc3dc8f6e1500ad5f143f2b6caa99ba4ad.
-Targeted original32 Climate browser scenarios and22 documentation interactions;
-new4 desktop/mobile integration cases pass (Info suspends/restores nested Climate;
-Light parent -> different Climate child -> restored Light Color/White menu with
-correct service identity). Docs63 YAML/52 cards+11 fragments/250 local links pass.
-Full cumulative local suite and exact-head CI still pending. Existing v1.9.0 module
-source files remain byte-identical; only module registration, nested descriptor
-expansion and standalone-child bridge are integrated. Guarded release.yml unchanged.
-
-Commands: npm test; NODE_OPTIONS=--openssl-legacy-provider npm run build;
-node scripts/check-beta.js; node scripts/check-hacs-package.js;
-python /workspace/build-output/v110-beta1/run-full.py (local complete suite driver);
-/tmp/honeycomb-beta-venv/bin/python test/browser/climate.py --bundle honeycomb-menu-ng.js --button-card /workspace/build-output/test-dependencies/button-card.js --evidence-dir /workspace/build-output/v110-beta1/climate.
-Evidence/screenshots stay outside Git. Browser plugin absent: repository Playwright.
-Native HAVC hardware, Firefox/WebKit and physical multi-integration permissions are
-not validated by these mocks. No live service calls have been sent.
+Known limits: real HA/hardware acceptance pending; Firefox/WebKit not tested.
+Mobile top layer requires current Popover API support; large slot populations may
+need sub-44px cells to fit a phone. Phone behavior validated synthetically in Chromium,
+not against the owner's actual dashboard/kiosk or physical device. Existing Climate
+capability/discovery/confirmation limits still apply. No acceptance issues closed.

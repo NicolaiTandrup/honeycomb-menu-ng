@@ -96,7 +96,9 @@ def item(value,where):
 def card(config,where):
     assert isinstance(config,dict),where
     if config['type']=='custom:honeycomb-persistent-hub':
-        known(config,{'type','name','size','logo','items','auto_open','menu','style','auto_reference_width'},where)
+        if 'collapsible' in config:
+            subprocess.run(['node','-e',"require('./src/core/collapsible-hub').settings(JSON.parse(process.argv[1]))",json.dumps(config['collapsible'])],check=True,cwd=ROOT)
+        known(config,{'type','name','size','logo','items','auto_open','menu','style','auto_reference_width','collapsible'},where)
         for i,value in enumerate(config['items']): item(value,f'{where} item {i}')
     elif config['type']=='custom:honeycomb-persistent-control':
         known(config,SHARED|SONOS|CHARGER|CLIMATE|{'type','module','size','style','auto_reference_width'},where)
@@ -320,7 +322,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml','climate-hub.yaml','climate-control.yaml','climate-nested.yaml','climate-nested-control.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml','climate-hub.yaml','climate-control.yaml','climate-nested.yaml','climate-nested-control.yaml','collapsible-hub.yaml','collapsible-hub-bee.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     for name,count in [('charger-easee.yaml',1),('charger-multi.yaml',2)]:
         dashboard=load((ROOT/'examples'/name).read_text())

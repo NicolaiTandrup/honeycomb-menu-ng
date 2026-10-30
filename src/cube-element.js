@@ -278,11 +278,18 @@ class CubeElement extends LitElement
             this._localPresentationUnsubscribe=key ? presentationUpdates.subscribe(this.hass,()=>this._updatePresentation()) : null;
         }
         const presentation = this._resolvePresentation();
-        const style = key => Object.assign({}, ...(this._value((this.config.styles || {})[key], []) || []));
+        const visualConfig=presentation.visualConfig || this.config;
+        const visualValue=(value,fallback)=>{
+            if(!presentation.visualConfig)return this._value(value,fallback);
+            if(value===undefined || value===null)return fallback;
+            try{return getTemplateOrValue(this.hass || {states:{}},((this.hass || {}).states || {})[visualConfig.entity],visualConfig.variables || {},typeof value==='object'?merge(Array.isArray(value)?[]:{},value):value);}
+            catch(_){return fallback;}
+        };
+        const style = key => Object.assign({}, ...(visualValue((visualConfig.styles || {})[key], []) || []));
         const card = style('card');
-        const configured = this.config.colors || {};
+        const configured = visualConfig.colors || {};
         const color = (key, fallback) => {
-            const value = this._value(configured[key], fallback);
+            const value = visualValue(configured[key], fallback);
             return !value || value === 'auto' ? fallback : value;
         };
         const colors = {
@@ -299,11 +306,12 @@ class CubeElement extends LitElement
             ? this._value(this.config.label) : presentation.secondary;
         const fill=cubePresentation.resolveFill({colors,active:presentation.active===true,
             decorative:this.config._decorative_logo===true,
-            gradient:this._value(configured.fill_gradient,undefined),
-            explicitCenter:!!(configured.center && this._value(configured.center)!=='auto'),
-            customBackground:!!(card.background || card['background-color'] || this.config.background),
+            gradient:visualValue(configured.fill_gradient,undefined),
+            explicitCenter:!!(configured.center && visualValue(configured.center)!=='auto'),
+            customBackground:!!(card.background || card['background-color'] || visualConfig.background),
             disabled:!!(this.config.disabled || presentation.disabled),
             colorMix:supportsColorMix});
+        this._visualBorder=visualConfig.border || {};
         const model = {colors, fill, secondary,
             ...(presentation.iconBadge !== undefined ? {iconBadge:presentation.iconBadge} : {}),
             ...(presentation.labelLayout !== undefined ? {labelLayout:presentation.labelLayout} : {}),
@@ -311,11 +319,11 @@ class CubeElement extends LitElement
             ...(presentation.ariaLabel !== undefined ? {ariaLabel:presentation.ariaLabel} : {}),
             ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
-            icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
-            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
+            icon:this.config.show_icon === false || presentation.artwork ? null : visualValue(presentation.sourceIcon || this.config.icon, 'mdi:hexagon-outline'),
+            foreground:visualValue(visualConfig.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
-            outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
-            inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
+            outer:Math.max(0,Number(visualValue((visualConfig.border || {}).outer_width,3)) || 0),
+            inner:Math.max(0,Number(visualValue((visualConfig.border || {}).inner_width,3)) || 0)};
         const wave=presentation.energyWave === false || this.config.energy_wave === false ? false : presentation.energyWave || this.config.energy_wave;
         const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
         const state=this._entityState();
@@ -961,6 +969,8 @@ class CubeElement extends LitElement
         const actionName = action.action || 'toggle';
         const context = (this.getRootNode().host || {})._menuContext || this._menuContext;
         if (context && context.info) return;
+        if(actionName==='honeycomb-hub-expand'){if(context && context.owner)context.owner._expandHub();return;}
+        if(actionName==='honeycomb-hub-collapse'){if(context && context.owner)context.owner._collapseHub();return;}
         if (actionName === 'honeycomb-info') { window.honeycombNG.openInfoInContext(context,action.info,this); return; }
         if ((actionName === 'honeycomb-open-nested' || actionName === 'fire-dom-event') &&
             (action.honeycomb_nested_menu || action.honeycomb_menu)) {
@@ -1099,7 +1109,7 @@ class CubeElement extends LitElement
         if (!this.config || !this._model) return html``;
         const m = this._model;
         // Default widths are design pixels at 82; explicit numeric widths stay pixels.
-        const border=this.config.border || {};
+        const border=this._visualBorder || this.config.border || {};
         const outer=border.outer_width===undefined?m.outer*this.size/82:m.outer;
         const inner=border.inner_width===undefined?m.inner*this.size/82:m.inner;
         const innerScale = Math.max(.55, 1-outer*2/this.size);
@@ -1107,7 +1117,7 @@ class CubeElement extends LitElement
         const points = layoutCore.persistentHexPoints('cell');
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
-        const mediaBackground=['sonos','media'].includes(this.config.mode) && !!artwork['background-image'];
+        const mediaBackground=['sonos','media','sonos-join'].includes(this.config.mode) && !!artwork['background-image'];
         const showBeeVersion=(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping;
         const versionFont=Math.min(.12,.57/(Math.max(beeVersion.base.length,beeVersion.stage.length)*.65));
         const external = this.config.custom_fields || (this.config.type &&
@@ -1149,12 +1159,13 @@ class CubeElement extends LitElement
             ${this.config.interactive !== false && !this.config.disabled ? html`
             <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
                 @keydown=${e=>{
+                    const hubExpand=this.config.hold_action && this.config.hold_action.action==='honeycomb-hub-expand';
                     const zoom=(this.config.hold_action && (['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action) ||
                             (this.config.hold_action.honeycomb_nested_menu || {})._light_palette_request === 'opposite')) ||
                         (this.config.tap_action && this.config.tap_action.action==='honeycomb-light-kelvin-apply');
                     if (zoom && e.key==='Escape') {e.preventDefault();this._dispatchAction({action:'honeycomb-close'});return;}
                     if(!m.disabled && !e.repeat && ['Enter',' '].includes(e.key)) {
-                        e.preventDefault();this._executeAction(zoom && e.shiftKey ? this.config.hold_action : this.config.tap_action || {action:'toggle'});
+                        e.preventDefault();this._executeAction((zoom || hubExpand) && e.shiftKey ? this.config.hold_action : this.config.tap_action || {action:'toggle'});
                     }
                 }}
                 @pointerdown=${this._handlePointerDown} @pointermove=${this._handlePointerMove}

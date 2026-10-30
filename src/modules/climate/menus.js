@@ -3,7 +3,7 @@ const ICONS={hvac:'mdi:thermostat',preset:'mdi:star',fan:'mdi:fan',swing:'mdi:sw
 const NAMES={hvac:'HVAC mode',preset:'Presets',fan:'Fan',swing:'Swing',horizontal:'Horizontal',defrost:'Defrost'};
 function face(options,role,extra={}) {
     return {entity:options.entity,mode:role?'climate-field':'climate',_climate:options,_climate_role:role||null,
-        icon:ICONS[role]||'mdi:thermometer',show_name:true,show_label:true,show_brightness:'never',show_volume:'never',autoclose:false,...extra};
+        ...(role?{border:{inner_width:0}}:{}),icon:ICONS[role]||'mdi:thermometer',show_name:true,show_label:true,show_brightness:'never',show_volume:'never',autoclose:false,...extra};
 }
 function base(options,view,bound=null) {
     return {entity:options.entity,nested_expand:true,promote_to_center:true,promoted_center:face(options,null,{_climate_bound:bound}),

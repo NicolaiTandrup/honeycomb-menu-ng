@@ -438,6 +438,7 @@ window.honeycombNG.openInfo=config=>openInfo(manager,config);
 function honeycombBack(context = manager, { interaction = true } = {})
 {
     if (dismissInfo(context)) return true;
+    if(context.owner && context.owner._hubExpanded && context.stack.length===0)return context.owner._collapseHub();
     if( !context.honeycomb || context.honeycomb.closing || context.stack.length === 0 )
         return false;
 
@@ -479,6 +480,7 @@ function honeycombBack(context = manager, { interaction = true } = {})
 
 function honeycombClose(context = manager)
 {
+    if(context.owner && context.owner._hubExpanded){dismissInfo(context,false);return context.owner._collapseHub();}
     dismissInfo(context,false);
     context.stack = [];
     context.currentConfig = null;
@@ -685,10 +687,17 @@ class HoneycombMenu extends LitElement
             :host {
                 position: absolute;
                 z-index: 8;
+                --hub-safe-top:env(safe-area-inset-top,0px);
+                --hub-safe-right:env(safe-area-inset-right,0px);
+                --hub-safe-bottom:env(safe-area-inset-bottom,0px);
+                --hub-safe-left:env(safe-area-inset-left,0px);
             }
             :host([closing]), :host([closing]) * {
                 pointer-events: none !important;
             }
+            :host([popover])::backdrop {background:rgba(0,0,0,.55);pointer-events:auto !important;}
+            .hub-shield {position:fixed;inset:0;pointer-events:all;z-index:-1;}
+            .hub-collapse {position:absolute;left:50%;bottom:100%;transform:translateX(-50%);min-width:64px;min-height:44px;z-index:10;border:1px solid #858b94;border-radius:12px;background:#202224;color:white;font:inherit;cursor:pointer;}
             .shade {
                 position: fixed;
                 top: 0;
@@ -791,6 +800,8 @@ class HoneycombMenu extends LitElement
                     @honeycomb-ng-drag-end=${this._handleXYPad}>
                 </honeycomb-ng-xy-pad>`:''}
 
+            ${this.hasAttribute('popover') ? html`<div class="hub-shield" @click=${()=>this._menuContext.owner._collapseHub()}></div>`:''}
+            ${this._menuContext && this._menuContext.owner && this._menuContext.owner._hubExpanded ? html`<button class="hub-collapse" aria-label="Collapse Hub" @click=${()=>this._menuContext.owner._collapseHub()}>Back</button>`:''}
             <div id="honeycombs" class="honeycombs">
                 ${this.config.persistent_center ? html`
                     <honeycomb-persistent-control
@@ -981,6 +992,8 @@ class HoneycombMenu extends LitElement
 
         this._scheduleIdleTimeout();
         this.requestUpdate();
+        const owner=this._menuContext && this._menuContext.owner;
+        if(owner && owner._hubExpanded)queueMicrotask(()=>owner._fitExpansion());
     }
 
     // Geometry-only refresh: do not reset idle, rebuild navigation, or reopen actions.
@@ -1636,7 +1649,8 @@ class HoneycombMenu extends LitElement
         this._clearIdleTimeout();
         if (this._menuContext && this._menuContext.info) return;
 
-        const timeout = Number(this.config && this.config.idle_timeout);
+        const hubOwner=this._menuContext && this._menuContext.owner;
+        const timeout = Number(hubOwner && hubOwner._hubExpanded ? hubOwner._collapseOptions.idle_timeout : this.config && this.config.idle_timeout);
 
         if( ! Number.isFinite(timeout) || timeout <= 0 || this.closing )
             return;
@@ -1649,6 +1663,10 @@ class HoneycombMenu extends LitElement
 
             const context = this._menuContext || manager;
 
+            if(context.owner && context.owner._hubExpanded){
+                if(context.pointers.size || context.pendingActions.size){this._scheduleIdleTimeout();return;}
+                context.owner._collapseHub();return;
+            }
             if( context.local === true && context.stack.length > 0 )
             {
                 // A persistent Hub never disappears on idle. Unwind nested
