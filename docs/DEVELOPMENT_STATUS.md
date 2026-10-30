@@ -24,11 +24,13 @@ Implemented:
   Multiple contexts, nested Back, keyboard, preview and disposal covered.
   Info from an expanded phone Hub also uses the top layer and returns to the
   unchanged caller. Overdue idle checks while held have a bounded 250ms delay.
+  Join honors source icon hiding; keyboard expansion does not suppress its next
+  deliberate Back click (only the initiating held-pointer compatibility click).
 - YAML examples and docs; new mandatory browser workflow step. Guarded publisher,
   stable workflow, HACS payload filename and dependencies remain unchanged.
 
 Actual local results so far: Node 430 passes / 3 existing stable-only skips;
-36 Climate browser cases pass; 18 new beta.2 desktop/mobile cases pass including
+36 Climate browser cases pass; 20 new beta.2 desktop/mobile cases pass including
 real CDP touch, clipping/rotation, source artwork/gradient changes and multiple
 Hubs. Package/GPL/HACS and checksum-verified actionlint pass. Official HACS workflow 41090506240 succeeded on initial implementation
 3abebb848bbad773f63c5cf1b0947cd122cb6b03; rerun for final source. PR #149 open:

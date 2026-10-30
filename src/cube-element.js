@@ -319,7 +319,7 @@ class CubeElement extends LitElement
             ...(presentation.ariaLabel !== undefined ? {ariaLabel:presentation.ariaLabel} : {}),
             ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
-            icon:this.config.show_icon === false || presentation.artwork ? null : visualValue(presentation.sourceIcon || this.config.icon, 'mdi:hexagon-outline'),
+            icon:visualConfig.show_icon === false || presentation.artwork ? null : visualValue(presentation.sourceIcon !== undefined ? presentation.sourceIcon : this.config.icon, 'mdi:hexagon-outline'),
             foreground:visualValue(visualConfig.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
             outer:Math.max(0,Number(visualValue((visualConfig.border || {}).outer_width,3)) || 0),
@@ -969,7 +969,7 @@ class CubeElement extends LitElement
         const actionName = action.action || 'toggle';
         const context = (this.getRootNode().host || {})._menuContext || this._menuContext;
         if (context && context.info) return;
-        if(actionName==='honeycomb-hub-expand'){if(context && context.owner)context.owner._expandHub();return;}
+        if(actionName==='honeycomb-hub-expand'){if(context && context.owner)context.owner._expandHub({pointerId:this._pointerId});return;}
         if(actionName==='honeycomb-hub-collapse'){if(context && context.owner)context.owner._collapseHub();return;}
         if (actionName === 'honeycomb-info') { window.honeycombNG.openInfoInContext(context,action.info,this); return; }
         if ((actionName === 'honeycomb-open-nested' || actionName === 'fire-dom-event') &&

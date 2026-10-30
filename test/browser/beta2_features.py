@@ -66,6 +66,7 @@ class Beta2(Cubes):
   self.page.evaluate('hubA._expandHub()');self.settle();self.assertTrue(self.page.evaluate('hubA._hubExpanded'));self.assertFalse(self.page.evaluate('!!hubB._hubExpanded'))
   self.page.evaluate('hubA._collapseHub();hubB.remove()');self.settle()
   surface=self.cell().locator('.interaction-surface');surface.focus();surface.press('Shift+Enter');self.settle();self.assertTrue(self.page.evaluate('hubA._hubExpanded'))
+  self.page.locator('.hub-collapse').focus();self.page.locator('.hub-collapse').press('Enter');self.settle();self.assertFalse(self.page.evaluate('hubA._hubExpanded'));surface.focus();surface.press('Shift+Enter');self.settle()
   self.page.evaluate('hubA.setConfig({...hubA.config,collapsible:false})');self.settle();self.assertFalse(self.page.evaluate('hubA._hubExpanded'));self.assertEqual(self.page.locator('[popover]').count(),0);self.assert_visible_unique_cells(2)
   self.page.evaluate('hubA.preview=true');self.hold_input(surface);self.settle();self.assertEqual(self.page.evaluate('calls.length'),0)
  def test_join_artwork_gradient_alpha_border_and_live_source_changes(self):
@@ -85,6 +86,11 @@ class Beta2(Cubes):
   if self.viewport['width']<500:self.assertTrue(self.page.locator('honeycomb-ng-info').evaluate("e=>e.matches(':popover-open')"))
   self.activate(dialog);self.settle();self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assertTrue(self.page.evaluate('hub._hubExpanded'));self.assert_visible_unique_cells(2)
   self.back();self.settle();self.assert_visible_unique_cells(1)
+
+ def test_join_honors_source_hidden_icon_policy(self):
+  self.sonos_open({**self.sonos_item(),'show_icon':False});self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.settle()
+  self.assertEqual(self.cell().locator('ha-icon,.station-artwork').count(),0);self.assertEqual(self.cell(7).locator('ha-icon,.station-artwork').count(),0)
+  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'20%')
 
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--bundle',type=Path,required=True);parser.add_argument('--button-card',type=Path,required=True);parser.add_argument('--evidence-dir',type=Path,required=True);parser.add_argument('--test-filter');args=parser.parse_args();args.evidence_dir.mkdir(parents=True,exist_ok=True)

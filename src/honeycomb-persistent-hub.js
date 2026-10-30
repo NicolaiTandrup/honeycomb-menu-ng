@@ -348,11 +348,11 @@ class HoneycombPersistentHub extends CubeElement
         return menu;
     }
 
-    _expandHub()
+    _expandHub({pointerId=null}={})
     {
         if(!this._collapseOptions || this._hubExpanded || this.preview)return;
         this._hubExpanded=true;
-        this._expansionReadyAt=Date.now()+500;
+        this._expansionReadyAt=pointerId===null?0:Date.now()+500;
         this._expansionCapture=e=>{
             if(Date.now()<this._expansionReadyAt){this._expansionReadyAt=0;e.preventDefault();e.stopImmediatePropagation();}
         };
