@@ -1,0 +1,22 @@
+type: custom:honeycomb-persistent-hub
+name: Room A
+size: auto
+auto_reference_width: 1200
+logo: false
+style:
+  left: 50%
+  top: 50%
+  transform: translate(-50%, -50%)
+collapsible:
+  expanded_center: bee
+  primary_slot: 1
+  mobile: true
+  expanded_size: 100
+  idle_timeout: 30000
+items:
+  - type: light
+    entity: light.room_a
+    slot: 0
+  - type: light
+    entity: light.room_b
+    slot: 2

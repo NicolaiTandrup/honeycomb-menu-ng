@@ -177,8 +177,8 @@ module.exports = {
     aliases: ['media-sonos'],
     priority: 400,
     launcherKind: 'persistent',
-    persistentModes: ['sonos','sonos-sleep','sonos-favorite'],
-    presentation: {observe:notify=>provider.observe(notify),resolve:context=>context.config.mode==='sonos-sleep' ? sleep.resolve(context) : context.config.mode==='sonos-favorite' ? resolveFavorite(context) : station.resolve(context),
+    persistentModes: ['sonos','sonos-sleep','sonos-favorite','sonos-join'],
+    presentation: {observe:notify=>provider.observe(notify),resolve:context=>context.config.mode==='sonos-join' ? require('./join-presentation').resolve(context) : context.config.mode==='sonos-sleep' ? sleep.resolve(context) : context.config.mode==='sonos-favorite' ? resolveFavorite(context) : station.resolve(context),
         diagnostics:context=>context.config.mode==='sonos-sleep' ? {ready:sleep.status(context.hass,context.config._sleep || {}).ready} : station.diagnostics(context)},
 
     // Backwards compatible: existing type: media continues to mean the
