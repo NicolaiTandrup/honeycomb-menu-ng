@@ -1,3 +1,42 @@
+# Honeycomb NG v1.10.0-beta.2 — Climate, Sonos Join and collapsible Hub
+
+Cumulative over published v1.10.0-beta.1; development PR remains unmerged.
+Latest stable remains v1.9.0. No master/stable/production HA changes.
+
+- Climate function cells use neutral dark gray, no default inner border, and
+  normal outer borders. Independent center paint and thermostat services remain.
+- Sonos Join lists actual room playback and available content. Joined rooms use
+  the opening Sonos source's artwork and resolved visual settings, show their own
+  volume percentage, and retain accessible membership information. Grouping stays
+  authoritative from HA; no optimistic group changes.
+- Optional collapsible Hub: primary-only collapsed view; tap for primary action,
+  hold to expand; primary/bee center policies; validated slot conflicts; Back,
+  Escape and configurable activity timeout; enlarged phone top-layer overlay.
+  See [configuration and limits](docs/COLLAPSIBLE_HUB.md).
+
+Validation includes Node contracts, Chromium touch/hold and phone resize/rotation,
+Climate controls, Sonos grouping/artwork, existing Light/Charger/Info/navigation,
+documentation, HACS packaging and guarded reproducible release checks.
+Real HA/hardware acceptance and Firefox/WebKit are not claimed. Very large Hub
+populations can require smaller touch targets to fit a phone. Modern Popover API
+support is required for the phone top-layer presentation.
+
+# Honeycomb NG v1.10.0-beta.1 — Climate testing
+
+Cumulative with v1.9.0 stable; preserves Info Cube, Light Color/White and zoom, Sonos native Favorites/Join/Sleep, Charger/Easee, namespace isolation, layout, visibility and navigation.
+
+Adds generic HA Climate to Hub and standalone Control using the existing shared 82px renderer. Displays current/target temperatures and heating/cooling status; respects native units, increments, min/max and explicit Low/High range selection. Menus offer only advertised HVAC, preset, fan and swing capabilities. Native climate services are used only on explicit interaction.
+
+A different-entity nested Climate view retains its own entity and returns to its parent. Defrost uses explicit mapping, native exact preset, or unambiguous verified metadata; no brand/name guessing. Pending, failed and unconfirmed states are distinct; no automatic command retries.
+
+Setup: see docs/CLIMATE_MODULE.md and examples/climate-*.yaml. No HA helpers or backend integration required. Registry access is optional; denial disables automatic separate-switch discovery safely.
+
+Validation results and immutable source/checksum will be recorded in the PR and release publication evidence after the mandatory cumulative suite completes. Real thermostat/HVAC hardware acceptance is pending; synthetic Chromium testing does not establish physical operation. No Firefox/WebKit validation claimed. Humidity, auxiliary heat and vendor-only controls are outside this first beta.
+
+This is an unmerged prerelease for HACS testing, not v1.10.0 stable. Car, Charger redesign, production HA changes and retention cleanup are excluded. Prior releases/tags/assets and stable/master are preserved.
+
+---
+
 # v1.9.0 — Stable
 
 Promotes the complete owner-approved cumulative v1.9.0-beta.9 runtime. No module,

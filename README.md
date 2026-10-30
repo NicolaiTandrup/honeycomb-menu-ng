@@ -26,24 +26,25 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
-## v1.9.0 stable promotion
+## v1.10.0-beta.2: collapsible Hub and Sonos Join
 
-Stable candidate promotes published beta.9: Info supports `source`
-independently on center fill, inner and outer border, preserving rendered gradients
-and alpha as an opening snapshot. Mix inherited layers with explicit colors/gradients.
-[Source-paint contract](docs/INFO_CUBE.md). Mandatory release gates still apply.
+Optional [collapsible Hubs](docs/COLLAPSIBLE_HUB.md) show one functional cube:
+tap for the primary action, hold for the full Hub. Phone expansion escapes
+floorplan clipping and keeps the original anchor. Both center policies have
+[ready-to-paste examples](examples/collapsible-hub.yaml).
+Sonos Join shows room playback/content and each joined room's own volume, with
+artwork and gradients inherited from the Sonos source that opened Join.
+Climate functions use neutral gray with no default inner border; center styling
+and thermostat controls remain independent. Latest stable stays v1.9.0.
 
-## v1.9.0 beta track
+## Climate beta testing — v1.10.0-beta.2
 
-Latest published beta: [v1.9.0-beta.8](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.8).
-Published **beta.8** refines the generic, read-only Info Cube:
-a centered hex constrained by the six natural inner notches, independent fill and
-borders, and an optional source-colored connector. Surrounding cubes stay visible,
-stationary and inactive. Wrapped/stacked/positioned text and live HA bindings
-paginate at fixed readable sizes; more content never enlarges the hexagon.
-Tap returns to the exact caller; 30 seconds closes the entire menu.
-[Info Cube guide and examples](docs/INFO_CUBE.md) · [beta.8 review checklist](docs/V1_9_BETA8_REVIEW.md).
-The owner authorized stable v1.9.0 promotion after mandatory exact-source checks.
+This cumulative beta adds generic Home Assistant Climate controls to the complete
+v1.9.0 stable feature set. It uses the same shared renderer and navigation.
+See the [Climate guide](docs/CLIMATE_MODULE.md), [Hub example](examples/climate-hub.yaml)
+and [standalone Control](examples/climate-control.yaml). Real HVAC acceptance is pending.
+Enable beta versions in HACS and select v1.10.0-beta.2 once the release is public.
+Stable remains v1.9.0; no master merge is part of this beta.
 
 ## What you can build
 
@@ -53,8 +54,9 @@ The owner authorized stable v1.9.0 promotion after mandatory exact-source checks
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Car and Climate modules are not implemented. Charging automation remains external.
-The generic Charger module below is **v1.9.0 beta track only**, not part of v1.8.1 stable.
+Climate is available in the **v1.10.0-beta.2 candidate**, cumulative with v1.9.0 stable.
+See the [Climate guide](docs/CLIMATE_MODULE.md) and [Hub example](examples/climate-hub.yaml).
+Car is not implemented. Charging automation remains external.
 Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
 
 Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime

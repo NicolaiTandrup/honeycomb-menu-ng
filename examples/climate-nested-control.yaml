@@ -1,0 +1,13 @@
+# v1.10.0-beta.1 only. Standalone parent -> different Climate entity.
+# Replace both synthetic IDs with verified existing HA entities. Opening sends no command.
+type: custom:honeycomb-persistent-control
+module: generic
+entity: sensor.value_a
+name: Parent A
+size: 82
+tap_action:
+  action: honeycomb-open-nested
+  honeycomb_nested_menu:
+    module: climate
+    entity: climate.room_b
+    name: Room B

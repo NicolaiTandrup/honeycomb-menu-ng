@@ -1,0 +1,18 @@
+type: custom:honeycomb-persistent-hub
+name: Room A
+size: 82
+logo: false
+collapsible:
+  expanded_center: primary
+  idle_timeout: 30000
+  mobile: true
+  expanded_size: 100
+items:
+  - type: light
+    entity: light.room_a
+    name: Main light
+    slot: 0
+  - type: light
+    entity: light.room_b
+    name: Accent light
+    slot: 2
