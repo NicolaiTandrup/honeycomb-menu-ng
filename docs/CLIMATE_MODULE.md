@@ -201,9 +201,10 @@ real HVAC validation. Before a Climate beta/stable approval, verify in real HA:
 No merge, stable release, production HVAC/charging command or owner hardware
 acceptance is implied by this review candidate.
 
-## beta.2 function styling
+## beta.3 function styling
 
-Function cubes default to neutral `#202224` with `border.inner_width: 0` and
+Function cubes reuse shared `SUBMENU_FILL` (`rgba(52, 66, 78, 0.94)`) with
+`border.inner_width: 0` and
 normal outer borders. The center keeps independent fill/borders and live status.
 Explicit function `colors`, `border` and shared `button_defaults` remain available.
 Controls, native temperature units, capability checks and exact service targets

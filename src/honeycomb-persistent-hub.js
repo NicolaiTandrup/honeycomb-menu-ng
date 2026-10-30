@@ -48,6 +48,11 @@ class HoneycombPersistentHub extends CubeElement
 
     _openHoneycombMenu(menu)
     {
+        if(this._collapseOptions && !this._hubExpanded && this.config.size==='auto' && menu._persistent_hub_root){
+            const size=this._floorplanSize();
+            menu.size=size*3.586;
+            if(menu.persistent_center)menu.persistent_center.size=size;
+        }
         const context = this._ensureMenuContext();
 
         if( context && typeof window.honeycombNG.openInContext === 'function' )
@@ -118,6 +123,19 @@ class HoneycombPersistentHub extends CubeElement
         this._pendingStructure = false;
     }
 
+    _floorplanSize(rect=this.getBoundingClientRect())
+    {
+        // Auto is already resolved by the shared image-sizing engine. A layout
+        // box or an expanded scene must never become its numeric size source.
+        return this.config.match_anchor_size===false || this.config.size==='auto' && this._imageAutoResolved ? this.size : rect.width;
+    }
+
+    _resizeAutoMenu(menu,size)
+    {
+        if(this._hubExpanded && this._collapseOptions.mobile && window.innerWidth<=600)this._fitExpansion();
+        else super._resizeAutoMenu(menu,size);
+    }
+
     _watchAnchor()
     {
         if (this._anchorCleanup) this._anchorCleanup();
@@ -129,7 +147,7 @@ class HoneycombPersistentHub extends CubeElement
             if (!rect.width || !rect.height) return;
             const menu=this._menuContext.honeycomb;
             if(this._hubExpanded && this._collapseOptions && this._collapseOptions.mobile && window.innerWidth<=600){this._fitExpansion();return;}
-            const itemSize=menu.offsetParent ? rect.width : this.size;
+            const itemSize=this._collapseOptions && this.config.size==='auto'?this._floorplanSize(rect):menu.offsetParent?rect.width:this.size;
             if (this.config.match_anchor_size !== false && Math.abs(menu.sizes.item-itemSize)>.01)
                 menu.resizeCubes(itemSize);
             const x=rect.left+rect.width/2, y=rect.top+rect.height/2;
@@ -322,9 +340,11 @@ class HoneycombPersistentHub extends CubeElement
             menu._collapsible_hub=true;
             const primary=this._hubEntries.find(entry=>entry.slot===0);
             if(!this._hubExpanded) {
+                const size=this._floorplanSize();
+                menu.size=size*3.586;
                 menu.buttons=[];
                 const descriptor=toCenterDescriptor(primary.module,primary.launcher);
-                const center=merge({},descriptor.config,{hold_action:{action:'honeycomb-hub-expand'},autoclose:false});
+                const center=merge({},descriptor.config,{size,hold_action:{action:'honeycomb-hub-expand'},autoclose:false});
                 if(!this._placements.has(primary.id)){menu.persistent_center=null;menu.center_button=false;}
                 else if(descriptor.kind==='persistent'){menu.persistent_center=center;menu.center_button=null;}
                 else {menu.center_button=center;menu.persistent_center=null;}
@@ -389,7 +409,7 @@ class HoneycombPersistentHub extends CubeElement
         } else {
             this._hideExpansionPopover(menu);
             const rect=this.getBoundingClientRect();
-            menu.resizeCubes(this.config.match_anchor_size!==false?rect.width:this.size);
+            menu.resizeCubes(this._floorplanSize(rect));
             menu.reanchor(rect.left+rect.width/2,rect.top+rect.height/2);
         }
     }
@@ -426,7 +446,7 @@ class HoneycombPersistentHub extends CubeElement
         config.anchor_x=rect.left+rect.width/2;config.anchor_y=rect.top+rect.height/2;
         require('./core/navigation-context').resetNavigation(context);
         window.honeycombNG.updateBase(context,config);
-        menu.resizeCubes(this.config.match_anchor_size!==false?rect.width:this.size);
+        menu.resizeCubes(this._floorplanSize(rect));
         menu.reanchor(config.anchor_x,config.anchor_y);
         this._flushStructure();
         return true;

@@ -1,3 +1,29 @@
+# Honeycomb NG v1.10.0-beta.3 — Real-HA stabilization
+
+Focused fixes over exact published beta.2 `8bbc45af72936630c39f87c4697a0148cc38a047`.
+No master merge, stable promotion or production Home Assistant changes.
+
+- Climate roles reuse the approved shared `SUBMENU_FILL` token, including alpha;
+  default inner width stays zero, outer border and independent center remain.
+- Sonos Join keeps room state/own volume on one readable line, station/title on
+  another, and a visible joined checkmark. HA room attributes supply transport
+  and individual volume; opening-source data supplies only artwork/visual paint.
+  Missing/unavailable metadata is not replaced with the opening room's content.
+- Collapsible auto-sized Hubs use the shared image-sizing result independently
+  of CSS layout width and temporary overlay geometry. Resize during expansion
+  preserves the mobile touch size; Back/timeout restores current floorplan size
+  and original position. Both center policies remain supported.
+
+Node/browser tests cover the owner-supplied 1200-reference configuration, layout
+width overrides, portrait/landscape, Back/timeout, multiple Hubs/editing, shared
+Climate pixel reference and P4 at individual 4% alongside a different source.
+The supplied complete picture-elements YAML is tested with the exact public demo
+image and sanitized entity IDs. Sonos fixtures are synthetic and HA-shaped; the
+owner supplied a template rather than its rendered attribute values. Actual
+Android DOM/runtime data was not available at implementation time. Automated passes do not
+establish owner real-device acceptance. Existing very-large-Hub/ordinary anchored
+menu limits and modern Popover API requirement remain.
+
 # Honeycomb NG v1.10.0-beta.2 — Climate, Sonos Join and collapsible Hub
 
 Cumulative over published v1.10.0-beta.1; development PR remains unmerged.

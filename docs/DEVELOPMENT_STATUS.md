@@ -1,57 +1,61 @@
-# v1.10.0-beta.2 — implementation and mandatory validation
+# v1.10.0-beta.3 — real-HA stabilization in validation
 
-Owner authorizes issues #146, #147 and #148 and guarded beta.2 publication only
-after every mandatory gate passes. No master merge/stable/production HA changes.
+Owner authorizes focused fixes for #146/#147/#148 and guarded beta.3 publication
+only after mandatory gates pass. No master merge, stable release or production HA.
+Branch: fix/v1.10-beta3-real-ha. Exact published beta.2 baseline:
+8bbc45af72936630c39f87c4697a0148cc38a047 (tag/release and assets independently read).
+Previous published handoff c122685 reviewed; no beta.2 work recreated/reapplied.
+Read AGENTS.md, current issues/owner comments and PR #149; GitHub API and dry-run
+push permission pass. Managed policy explicitly allows api.github.com; normal
+inherited-proxy access needs the existing authorized escalated shell.
 
-Branch: feature/v1.10-beta2, based exactly on published beta.1
-8619c9a74f50ffbbdb6206a45b18e5b81265912d. Previous documentation-only network
-handoff 0985d10921104ae5686a290e967c066dd24c1397 reviewed; no code to reapply.
-GitHub API and dry-run push pass. Runtime enforced policy includes api.github.com;
-ordinary sandbox forbids proxy sockets, authorized escalated shell uses inherited
-proxy normally. No bypass or credential replacement. Published beta.1 downloaded
-and verified against SHA256SUMS and historical a6b292c1ddb9556de7c07f9cdbcc8cbc3dc8f6e1500ad5f143f2b6caa99ba4ad.
-Read current issues, comments (none), PR #131 and its successful exact-head CI.
+Focused changes:
+- Climate roles reuse actual shared SUBMENU_FILL/SUBMENU_INNER/OUTER, including
+  alpha; no invented gray. No default inner width, independent center preserved.
+- Join uses each listed room's HA state/metadata/own volume, on separate readable
+  status-volume and station/title lines; visible joined checkmark and accessible
+  membership/reasons. Opening Sonos source remains visual/artwork inheritance only.
+  Missing/unavailable metadata is not substituted with launcher data or zero.
+- Collapsible Hub resolves collapsed size from the shared image-sizing result,
+  independently of temporary scene size and incidental layout-box widths. Auto
+  image updates during mobile expansion refit the overlay, not the floorplan size.
+  Both policies and original Back/timeout/anchor/lifecycle paths preserved.
+  Shared auto observer reports resolution validity; unsupported-image fallback
+  retains existing behavior. Normal non-collapsible sizing remains unchanged.
 
-Implemented:
-- Climate neutral functional fill and zero default inner width; independent center.
-- Sonos Join room playback/content, own volume, accessible membership/failure
-  reasons and live launcher-source artwork, paint, gradients/alpha and borders.
-  Native/external grouping action safety and other Sonos services preserved.
-- Opt-in collapsible Hub with hard primary slot 0, both expanded center policies,
-  shared allocation/conflict validation, original primary tap, isolated hold,
-  Back/Escape/30s configurable activity deadline. Mobile top-layer overlay with
-  interaction shield, viewport/safe-area fit and original floorplan restoration.
-  Multiple contexts, nested Back, keyboard, preview and disposal covered.
-  Info from an expanded phone Hub also uses the top layer and returns to the
-  unchanged caller. Overdue idle checks while held have a bounded 250ms delay.
-  Join honors source icon hiding; keyboard expansion does not suppress its next
-  deliberate Back click (only the initiating held-pointer compatibility click).
-- YAML examples and docs; new mandatory browser workflow step. Guarded publisher,
-  stable workflow, HACS payload filename and dependencies remain unchanged.
+Data/provenance and acceptance boundary:
+- Owner supplied complete picture-elements YAML with the public demo floorplan,
+  size:auto, reference 1200, primary center, 100px overlay. Test fixture sanitizes
+  private IDs/names and compares an ordinary Hub on the same image. Exact public
+  image pinned to frontend commit c695f577ff088e90d83c5bb7482f30f2c5cad7c7, SHA256
+  25187fe9fdc4f9d15f28f9f57c4c26a7525c1f979f72eff689d26b0596c449ad.
+- Standard beta.2 basic auto fixture initially matched normal size. Additional
+  layout-width/containing-block regression exposes conflicting size sources;
+  complete supplied card, both center policies, Back, timeout and rotation covered.
+  Do not claim the owner's exact Android failure was reproduced from actual DOM.
+- Owner supplied a Sonos Jinja template, not its evaluated attribute values.
+  Rendered output requested asynchronously; currently unavailable. P4/4% fixture
+  is HA-shaped synthetic input based on owner observation, not a captured payload.
+  HA core Sonos source reviewed: media comes through coordinator, volume comes from
+  individual speaker. Reference commit 2e3af9ead42a9921f41b0e49bfaf5759b466945d.
+- No actual HA services/connections or private IDs committed. Fixtures alone do not
+  establish real HA/device/Android acceptance. Keep acceptance issues open.
 
-Actual local results so far: Node 430 passes / 3 existing stable-only skips;
-36 Climate browser cases pass; 20 new beta.2 desktop/mobile cases pass including
-real CDP touch, clipping/rotation, source artwork/gradient changes and multiple
-Hubs. Package/GPL/HACS and checksum-verified actionlint pass. Official HACS workflow 41090506240 succeeded on initial implementation
-3abebb848bbad773f63c5cf1b0947cd122cb6b03; rerun for final source. PR #149 open:
-https://github.com/NicolaiTandrup/honeycomb-menu-ng/pull/149. Full mandatory suite
-RUNNING; do not treat this checkpoint as green CI or publication evidence.
-Old Join label assertions adapted to room playback/volume plus accessible failure
-reasons; grouping service/no-call safety assertions retained. Browser plugin not
-available; repository Playwright uses installed /usr/bin/chromium. Playwright CDN
-is policy-blocked, no retry/bypass needed. Synthetic services only.
+Actual checks so far: 433 Node passes, 3 existing stable-only skips. Existing 20
+beta.2 feature cases pass. New 10 regression cases plus 2 supplied-card cases pass
+in targeted runs, including shared Climate pixel comparison and explicit overrides.
+Full mandatory local suite RUNNING. HACS/package/GPL, pinned actionlint and release
+integrity checked; exact-head CI/PR, official HACS and publication are PENDING.
+Guarded release.yml, stable/retention workflows and dependencies remain unchanged.
 
-Evidence outside Git: /tmp/honeycomb-beta2/ (full/results.json when complete,
-features/, comparison/ before/after, Node/build logs). Screenshots are not committed.
-Next: finish full mandatory suite and any fixes, push reviewable PR, verify exact
-head green push/PR CI and official HACS readiness, reproduce committed JS, dispatch
-unchanged release.yml with expected_commit and expected_tag=v1.10.0-beta.2,
-publish=true, then verify public tag/assets/checksums/provenance/HACS compatibility.
-Keep the branch frozen during release verification; subsequent handoff on a separate
-branch. Stop after publication and verification.
+Evidence outside Git: /tmp/honeycomb-beta3/ (Node/build logs, features/, supplied-card
+screenshots, full/results.json when complete). Browser plugin absent; repository
+Playwright and installed Chromium used. CI downloads checksum-pinned demo image.
+Existing local artifact redirect/CDN network limitations do not authorize bypass.
 
-Known limits: real HA/hardware acceptance pending; Firefox/WebKit not tested.
-Mobile top layer requires current Popover API support; large slot populations may
-need sub-44px cells to fit a phone. Phone behavior validated synthetically in Chromium,
-not against the owner's actual dashboard/kiosk or physical device. Existing Climate
-capability/discovery/confirmation limits still apply. No acceptance issues closed.
+Next: finish mandatory checks, create reviewable development PR and freeze final
+head; await green exact-head push/PR CI and official HACS; dispatch unchanged
+release.yml with expected_tag=v1.10.0-beta.3, exact expected_commit, publish=true.
+Independently download/verify all public assets, source/provenance/HACS metadata,
+and prior stable/master/release/tag preservation. Stop after beta.3 verification;
+write publication handoff separately without moving released feature head.

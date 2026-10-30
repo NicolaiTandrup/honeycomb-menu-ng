@@ -471,22 +471,28 @@ class CubeElement extends LitElement
         if(this._imageSizingCleanup){this._imageSizingCleanup();this._imageSizingCleanup=null;}
         if(this.config && this.config.size==='auto' && this.isConnected){
             if(this._imageOriginalTranslate===undefined)this._imageOriginalTranslate=this.style.translate;
-            this._imageSizingCleanup=imageSizing.observeImage(this,({size,dx,dy,visible=true})=>{
+            this._imageSizingCleanup=imageSizing.observeImage(this,({size,dx,dy,visible=true,resolved=false})=>{
                 if(!this.isConnected || this.config.size!=='auto')return;
                 // Preserve the HA -50% transform. Correct only auto percentage anchors.
                 if(!this._imageOriginalTranslate){const translate=dx||dy?`${dx}px ${dy}px`:'';if(this.style.translate!==translate)this.style.translate=translate;}
                 this._imageFrameVisible=visible;
+                this._imageAutoResolved=resolved;
                 const menu=this._menuContext && this._menuContext.honeycomb || this._autoSizedMenu;
                 if(menu && menu.isConnected)menu.style.visibility=visible?'':'hidden';
                 if(Math.abs(this.size-size)<.001)return;
                 this.size=size;this._anchorRenderedSize=null;
                 this.style.setProperty('--honeycomb-persistent-size',`${size}px`);
-                if(menu && menu.isConnected && !menu.closing && this.config.match_anchor_size!==false)menu.resizeCubes(size);
+                if(menu && menu.isConnected && !menu.closing && this.config.match_anchor_size!==false)this._resizeAutoMenu(menu,size);
                 this.requestUpdate();
             });
         }else if(this._imageOriginalTranslate!==undefined){
             this.style.translate=this._imageOriginalTranslate;this._imageOriginalTranslate=undefined;
         }
+    }
+
+    _resizeAutoMenu(menu,size)
+    {
+        menu.resizeCubes(size);
     }
 
     _entityState()

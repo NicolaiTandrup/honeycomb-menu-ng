@@ -322,7 +322,7 @@ def main():
     os.chdir(ROOT);args.evidence_dir.mkdir(parents=True,exist_ok=True)
     examples={p.name:load(p.read_text()) for p in sorted((ROOT/'examples/v1.7').glob('*.yaml'))}
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
-    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml','climate-hub.yaml','climate-control.yaml','climate-nested.yaml','climate-nested-control.yaml','collapsible-hub.yaml','collapsible-hub-bee.yaml'):
+    for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml','climate-hub.yaml','climate-control.yaml','climate-nested.yaml','climate-nested-control.yaml','collapsible-hub.yaml','collapsible-hub-bee.yaml','collapsible-hub-auto.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
     for name,count in [('charger-easee.yaml',1),('charger-multi.yaml',2)]:
         dashboard=load((ROOT/'examples'/name).read_text())

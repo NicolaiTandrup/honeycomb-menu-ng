@@ -49,14 +49,14 @@ class Beta2(Cubes):
  def test_climate_neutral_functions_center_and_overrides(self):
   self.page.evaluate(SEED);self.hub({'logo':False,'items':[{'type':'climate','entity':'climate.room_a','slot':0}]});self.activate(self.cell().locator('.interaction-surface'));self.settle()
   for slot in range(1,7):
-   self.assertEqual(self.cell(slot).locator('.hex-fill').get_attribute('fill'),'#202224');self.assertEqual(self.cell(slot).evaluate('e=>e._model.inner'),0)
+   self.assertEqual(self.cell(slot).locator('.hex-fill').get_attribute('fill'),'rgba(52, 66, 78, 0.94)');self.assertEqual(self.cell(slot).evaluate('e=>e._model.inner'),0)
   self.assertEqual(self.cell().locator('.hex-inner').get_attribute('fill'),'#ef8c2f');self.capture('climate-after')
   self.activate(self.cell(6).locator('.interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)[3].entity_id'),'climate.room_a')
  def test_sonos_join_own_volume_live_content_and_source_gradient(self):
   self.sonos_open();self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.settle()
-  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'20%');self.assertIn('Joined',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
+  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'Idle · 20%');self.assertIn('Joined',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
   self.page.evaluate("pushState('media_player.player_b','paused',{volume_level:.13,group_members:['media_player.player_a','media_player.player_b'],media_title:'Synthetic track'})");self.settle()
-  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'13%');self.assertIn('Synthetic track',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
+  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'Paused · 13%');self.assertIn('Synthetic track',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
   source=self.cell().evaluate('e=>e._model.colors');self.assertEqual(self.cell(7).evaluate('e=>e._model.colors'),source)
   self.capture('sonos-after');self.activate(self.cell(7).locator('.interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)[0]'),'script')
 
@@ -78,7 +78,7 @@ class Beta2(Cubes):
   self.capture('sonos-artwork-after')
   self.page.evaluate("stationUpdate('playing',{media_content_id:'favorite_c'});pushState('media_player.player_b','idle',{volume_level:.07,group_members:['media_player.player_a','media_player.player_b']})");self.settle()
   self.page.wait_for_function("hub._hubMenu.shadowRoot.querySelector('[data-honeycomb-slot=\"6\"]')._model.artwork?.url==='/station-c.svg'")
-  self.assertEqual(room.locator('.secondary').inner_text(),'7%')
+  self.assertEqual(room.locator('.secondary').inner_text(),'Idle · 7%')
 
  def test_mobile_expanded_Info_stays_above_overlay_and_returns_to_same_scene(self):
   self.hub(self.config());self.expand();self.page.evaluate("ng.openInfoInContext(hub._menuContext,{title:'Room information',text:'Synthetic room details',colors:{center:'source'}})")
@@ -90,7 +90,7 @@ class Beta2(Cubes):
  def test_join_honors_source_hidden_icon_policy(self):
   self.sonos_open({**self.sonos_item(),'show_icon':False});self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.settle()
   self.assertEqual(self.cell().locator('ha-icon,.station-artwork').count(),0);self.assertEqual(self.cell(7).locator('ha-icon,.station-artwork').count(),0)
-  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'20%')
+  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'Idle · 20%')
 
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--bundle',type=Path,required=True);parser.add_argument('--button-card',type=Path,required=True);parser.add_argument('--evidence-dir',type=Path,required=True);parser.add_argument('--test-filter');args=parser.parse_args();args.evidence_dir.mkdir(parents=True,exist_ok=True)

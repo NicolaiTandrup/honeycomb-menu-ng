@@ -41,3 +41,16 @@ Real HA/device acceptance, Safari and Firefox remain separate from Chromium QA.
 
 See [configuration](../README.md), [Climate](CLIMATE_MODULE.md) and
 [Sonos](SONOS_MODULE.md).
+
+## beta.3 auto-size stabilization
+
+For a floorplan element, `size: auto` and `auto_reference_width: 1200` use the
+ordinary shared image-sizing engine. Collapsed size is independent of the
+expanded overlay's `expanded_size`; an incidental layout width must not replace
+a valid auto-size result. Back and inactivity restore the current auto size and
+original picture-elements anchor, including after rotation while expanded.
+Unsupported transformed images retain the existing normal sizing fallback.
+
+[Auto-sized element example](../examples/collapsible-hub-auto.yaml): paste into
+your existing picture-elements `elements` list and replace synthetic entities.
+The containing card supplies the floorplan image.
