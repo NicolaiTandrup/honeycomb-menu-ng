@@ -79,6 +79,13 @@ class Beta2(Cubes):
   self.page.wait_for_function("hub._hubMenu.shadowRoot.querySelector('[data-honeycomb-slot=\"6\"]')._model.artwork?.url==='/station-c.svg'")
   self.assertEqual(room.locator('.secondary').inner_text(),'7%')
 
+ def test_mobile_expanded_Info_stays_above_overlay_and_returns_to_same_scene(self):
+  self.hub(self.config());self.expand();self.page.evaluate("ng.openInfoInContext(hub._menuContext,{title:'Room information',text:'Synthetic room details',colors:{center:'source'}})")
+  dialog=self.page.locator('honeycomb-ng-info .surface');dialog.wait_for()
+  if self.viewport['width']<500:self.assertTrue(self.page.locator('honeycomb-ng-info').evaluate("e=>e.matches(':popover-open')"))
+  self.activate(dialog);self.settle();self.assertEqual(self.page.locator('honeycomb-ng-info').count(),0);self.assertTrue(self.page.evaluate('hub._hubExpanded'));self.assert_visible_unique_cells(2)
+  self.back();self.settle();self.assert_visible_unique_cells(1)
+
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--bundle',type=Path,required=True);parser.add_argument('--button-card',type=Path,required=True);parser.add_argument('--evidence-dir',type=Path,required=True);parser.add_argument('--test-filter');args=parser.parse_args();args.evidence_dir.mkdir(parents=True,exist_ok=True)
  server=ThreadingHTTPServer(('127.0.0.1',0),Handler);server.bundle=args.bundle.resolve();server.button=args.button_card.resolve();threading.Thread(target=server.serve_forever,daemon=True).start();success=True

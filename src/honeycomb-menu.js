@@ -429,7 +429,13 @@ function openInfo(context, config, source = null)
     menu._dragPointerActive=false;menu._dragPointerId=null;menu._dragHoverSlot=-1;
     menu.shadowRoot.querySelectorAll('#honeycombs,honeycomb-ng-xy-pad').forEach(node=>{node.inert=true;});
     menu.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control').forEach(item=>item._cancelGesture());
+    const topLayer=menu.hasAttribute('popover') && typeof menu.showPopover==='function' && menu.matches(':popover-open');
+    if(topLayer){
+        view.setAttribute('popover','manual');
+        view.style.cssText='margin:0;padding:0;border:0;background:transparent;width:auto;height:auto;max-width:none;max-height:none;';
+    }
     document.body.append(view);
+    if(topLayer)view.showPopover();
     return view;
 }
 window.honeycombNG.openInfoInContext=(context,config,source)=>openInfo(context,config,source);
@@ -1644,7 +1650,7 @@ class HoneycombMenu extends LitElement
         this._scheduleIdleTimeout();
     }
 
-    _scheduleIdleTimeout()
+    _scheduleIdleTimeout(minimumDelay=0)
     {
         this._clearIdleTimeout();
         if (this._menuContext && this._menuContext.info) return;
@@ -1664,7 +1670,7 @@ class HoneycombMenu extends LitElement
             const context = this._menuContext || manager;
 
             if(context.owner && context.owner._hubExpanded){
-                if(context.pointers.size || context.pendingActions.size){this._scheduleIdleTimeout();return;}
+                if(context.pointers.size || context.pendingActions.size){this._scheduleIdleTimeout(250);return;}
                 context.owner._collapseHub();return;
             }
             if( context.local === true && context.stack.length > 0 )
@@ -1684,7 +1690,7 @@ class HoneycombMenu extends LitElement
             context.stack = [];
             context.currentConfig = null;
             this.close();
-        }, Math.max(0, (Number.isFinite(this._lastInteractionAt) ? this._lastInteractionAt : Date.now()) + timeout - Date.now()));
+        }, Math.max(minimumDelay, (Number.isFinite(this._lastInteractionAt) ? this._lastInteractionAt : Date.now()) + timeout - Date.now()));
     }
 
     _playButtonSound( _item )

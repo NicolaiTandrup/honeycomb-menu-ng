@@ -362,7 +362,7 @@ class HoneycombPersistentHub extends CubeElement
         this._expansionResize=()=>this._fitExpansion();
         window.addEventListener('resize',this._expansionResize);
         if(window.visualViewport){visualViewport.addEventListener('resize',this._expansionResize);visualViewport.addEventListener('scroll',this._expansionResize);}
-        this._expansionEscape=e=>{if(e.key==='Escape'){e.preventDefault();this._collapseHub();}};
+        this._expansionEscape=e=>{if(e.key==='Escape' && !e.defaultPrevented && !this._menuContext.info){e.preventDefault();this._collapseHub();}};
         document.addEventListener('keydown',this._expansionEscape);
         this._fitExpansion();
     }
