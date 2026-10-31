@@ -37,8 +37,8 @@ class Beta6(Cubes):
    self.assertEqual(self.page.evaluate('floorImage.naturalWidth'),natural)
    for width in [1500,1125,750,2250]:
     self.page.evaluate('w=>{floor.style.width=w+"px";imageHost.style.height=w*2/3+"px"}',width);self.page.wait_for_timeout(70)
-    self.assertAlmostEqual(self.page.evaluate('hub.size'),82*width/1500,delta=.002)
-    self.assertAlmostEqual(self.page.evaluate('hub._hubMenu.sizes.item'),82*width/1500,delta=.002)
+    self.assertAlmostEqual(self.page.evaluate('hub.size'),min(82,82*width/1500),delta=.002)
+    self.assertAlmostEqual(self.page.evaluate('hub._hubMenu.sizes.item'),min(82,82*width/1500),delta=.002)
    self.page.evaluate("floor.style.width='1500px';imageHost.style.height='1000px'");self.page.wait_for_timeout(70);self.capture(f'beta6-resolution-{natural}-baseline-82')
   self.page.evaluate("floor.style.width='750px';imageHost.style.height='500px'");self.page.wait_for_timeout(70);self.capture('beta6-display-750-cube-41')
  def test_first_mobile_reload_default_and_independent_references(self):

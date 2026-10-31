@@ -2,8 +2,7 @@
 
 Owner-approved cumulative baseline: public beta.9 f95e5fbc7273ae06055bb5f106bdd6a3a82a183d.
 All runtime/configuration semantics below are retained in v1.9.0. Stable publication
-is authorized only after mandatory exact-source CI/release gates. Do not generate
-Climate/Car modules. See [stable evidence/checklist](V1_9_STABLE_RELEASE.md).
+is authorized only after mandatory exact-source CI/release gates. Climate is a v1.10.0-beta.1 extension below; do not generate Car modules. See [stable evidence/checklist](V1_9_STABLE_RELEASE.md).
 
 ## v1.9.0-beta.9 — Info source paint hotfix
 
@@ -23,8 +22,8 @@ Geometry, wrapping, pagination, navigation and fixed30-second lifetime are uncha
 
 # AI configuration guide
 
-**VERSION CONTRACT:** v1.8.1 is the latest published stable maintenance release,
-with the same runtime as owner-tested v1.8.0. Stable includes NG namespace
+**VERSION CONTRACT:** v1.9.0 is the latest stable. It includes the complete approved
+Charger and Info Cube features described below, plus NG namespace
 isolation, the shared 82px renderer, 40% active/logo gradients, reference-display
 autosizing, fixed numeric sizes, true hexagonal pulse, power/fixed speed and
 resolved inner-border/default or optional explicit pulse color. See [runtime API](NG_RUNTIME.md),
@@ -34,16 +33,14 @@ Sleep/Join/Radio, Light Hue/Kelvin and dynamic placement behavior is supported.
 No runtime code from v1.6 is imported. Catalog inclusion is pending; use the
 HACS custom repository until accepted. [Catalog submission](HACS_CATALOG_SUBMISSION.md).
 
-**BETA EXTENSION — published v1.9.0-beta.5 (cumulative beta.3 API):** `type: charger` / `module: charger`
-and `type: charging-hub` / `module: charging-hub` are implemented in this prerelease.
+**STABLE EXTENSION — v1.9.0 (cumulative beta.9):** `type: charger` / `module: charger`
+and `type: charging-hub` / `module: charging-hub` are implemented in v1.9.0 stable.
 Never generate Charger YAML for v1.8.1 stable. Use the exact
 [Charger schema/entity/slot/action/freshness contract](CHARGER_MODULE.md) and the
 complete [single](../examples/charger-easee.yaml) / [multi](../examples/charger-multi.yaml)
-dashboards. No backend, optimizer, Car or Climate module is added.
+dashboards. No backend, optimizer or Car module is added.
 
-**CURRENT REVIEW — unpublished v1.9.0-beta.8 candidate:** baseline is exact published
-beta.7 `63a9619d27fe503919389f1a51090a2a01193f80`. Refines Info Cube #140 only;
-no Climate/Car/CM integration. Use [Info Cube](INFO_CUBE.md) and
+**INFO CUBE — v1.9.0 stable:** Includes the approved beta.9 Info behavior. Use [Info Cube](INFO_CUBE.md) and
 [module authoring](MODULE_AUTHORING.md). Action is `honeycomb-info` with `info`
 payload, not a module type. Default text mode wraps; `stack` and `positioned`
 remain supported. Titles, body, blocks and optional `footer` accept plain strings
@@ -64,7 +61,44 @@ Tap returns exact caller; fixed 30-second close-all. Underlying cubes stay mount
 visible where uncovered, stationary and inert; transparent input shield prevents
 click-through. Content never changes geometry: paginate instead of shrinking fonts.
 All examples are synthetic. Normal HACS runtime is separate from optional DEV loader.
-Do not claim beta.8 is published or installable through HACS before authorization.
+The full Info API is available in v1.9.0 stable and this cumulative Climate beta.
+
+**CLIMATE — v1.10.0-beta.1 candidate, cumulative with v1.9.0 stable:**
+`type: climate` / `module: climate` use real `climate.*` entities, not brand names.
+Use only after installing the published beta; real-device acceptance remains pending.
+Use the [precise Climate contract](CLIMATE_MODULE.md) and complete
+[Hub](../examples/climate-hub.yaml), [Control](../examples/climate-control.yaml),
+[nested child](../examples/climate-nested.yaml),
+[standalone parent](../examples/climate-nested-control.yaml) examples only with the candidate bundle.
+
+### Climate generation rules (v1.10.0-beta.1)
+
+1. Obtain the user's actual climate entity, current/target or low/high attributes,
+   `temperature_unit` (or HA unit system), `target_temp_step`, min/max,
+   `supported_features`, advertised modes and available HA services. Never invent
+   capability lists or convert numeric Celsius increments into Fahrenheit.
+2. Main physical slots: 0 current/target/Back, 1 +2 steps, 2 advertised HVAC mode
+   chooser, 3 capability categories, 4 −2 steps, 5 −1 step, 6 +1 step.
+   Missing target/unit/bounds/features/services means inert adjustment controls.
+3. Dual targets require explicit Low/High selection. Each change sends both bounds,
+   changes just the selected bound and never crosses min/max or the other bound.
+   Current-temperature display is distinct from target and actual HVAC action.
+4. Modes, presets, fan, swing and horizontal swing use exact advertised values and
+   the matching official climate service, flags and live validation. Do not guess
+   restoration modes, implement arbitrary power toggles or fabricate Defrost presets.
+5. Only new Climate keys are `defrost_entity: switch.*` and `discover: boolean`
+   (default true). Explicit verified mapping overrides native exact Defrost, which
+   overrides an unambiguous metadata-verified same-device switch. No name/area/brand
+   heuristics. Registry denial/missing semantics requires explicit confirmation and
+   mapping; native Climate controls need no registry access or HA helpers.
+6. Generic child action is `action: honeycomb-open-nested` with
+   `honeycomb_nested_menu: {module: climate, entity: climate.room_b, name: Room B}`.
+   The explicit child ID wins; preserve parent/child identity and meaningful Back.
+   No Car implementation or extra special-purpose navigation key is required.
+7. Pending service result is not hardware success. Describe Sending/Awaiting HA,
+   failed/unconfirmed, 15-second confirmation timeout and no automatic retries.
+   Rendering/navigation never operates the equipment; tests use synthetic services.
+8. Real-HA acceptance is separate from automated testing; stable requires owner approval.
 
 ### Charger generation rules (1.9.0-beta.3 and later candidates)
 
@@ -782,10 +816,13 @@ For v1.8 beta.2 only, see the [shared presentation contract](CUBE_PRESENTATION.m
 
 ## v1.8.0-beta.5 sizing and energy capability
 
-For persistent Hub/Control, `size: auto` derives 82 × displayed floorplan image
-width / reference display width (auto_reference_width, default1536), entering the existing numeric geometry engine.
+For persistent Hub/Control, `size: auto` derives min(82, 82 × displayed floorplan
+image width / reference display width), with auto_reference_width default1536,
+entering the existing numeric geometry engine. The 82px auto maximum is current
+v1.10.0-beta.4 behavior; enlarged Collapsible overlays are independent.
 Use only inside a standard picture-elements image frame; safe fixed-82 fallback
-otherwise. Numeric size remains fixed; omitted size remains fixed 82. Do not
+otherwise. Numeric size remains fixed; omitted size remains fixed 82 except
+Collapsible Hubs, which implicitly use auto. Do not
 invent responsive_scale/global configuration or another CSS transform. Percent
 left/top use actual image offsets for supported contain/cover. No minimum clamp.
 See [tested complete YAML and limits](FLOORPLAN_SIZING.md).
@@ -802,11 +839,15 @@ overrides remain available. See [shared presentation](CUBE_PRESENTATION.md).
 ## v1.8.0-beta.6 correction: display reference and wave rate
 
 Beta.5 natural-image scaling is superseded. Persistent size:auto now uses
-82 × actual rendered image width / auto_reference_width. The optional literal
+min(82, 82 × actual rendered image width / auto_reference_width) in current
+v1.10.0-beta.4. The optional literal
 positive reference defaults to1536 CSS pixels and stays identical across clients.
 For a1500px design set auto_reference_width:1500 on each overlay. Never derive
 reference from raster pixels or each client's first frame. Numeric size and
-omitted fixed82 remain unchanged. See [complete YAML](FLOORPLAN_SIZING.md).
+omitted fixed82 remain unchanged for non-collapsible installations.
+For a Collapsible room Hub, collapsible:true plus an explicit slot-0 primary is
+sufficient: responsive sizing, small-screen overlay and 30s timeout are defaults,
+and expanded center is Back. See [minimal complete example and overrides](COLLAPSIBLE_HUB.md). See [complete YAML](FLOORPLAN_SIZING.md).
 
 Energy speed settings: literal speed_mode power/fixed; fixed cycle_ms defaults
 to3000 for compatibility. Power mode requires max_power_w per cube, with optional

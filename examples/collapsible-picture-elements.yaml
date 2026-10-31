@@ -1,0 +1,13 @@
+type: picture-elements
+image: https://demo.home-assistant.io/stub_config/floorplan.png
+elements:
+  - type: custom:honeycomb-persistent-hub
+    style: {left: 50%, top: 50%}
+    collapsible: true
+    items:
+      - type: light
+        entity: light.room_a
+        slot: 0
+      - type: light
+        entity: light.room_b
+        slot: 2

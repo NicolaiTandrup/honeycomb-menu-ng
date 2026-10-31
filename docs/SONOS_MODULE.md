@@ -133,3 +133,20 @@ Hue/Kelvin child zooms retain meaningful nested history. These Sonos siblings
 inherit configurable idle-close (8000 ms default, explicit zero disables it).
 Hub `persistent.menu.idle_timeout` and standalone `menu.idle_timeout` may override it.
 Only real interaction resets idle; passive HA updates, metadata refresh and asynchronous room discovery do not. Late results cannot create ghost menus or stuck overlays.
+
+## beta.4 Join room presentation
+
+Recognized station artwork is compact, above the room name and its individual
+volume percentage. Two P4 rooms at 1% and 4% retain their own volumes. Playing,
+Paused, Idle and Unavailable status and full available content remain in the
+accessible label/title. Joined rooms have a small checkmark by their name.
+
+Recognition reuses the trusted Favorites map and native Browse metadata, including
+verified coordinator membership. Unjoined rooms use their own recognized source.
+Joined rooms inherit opening-source colors, borders, gradients and transparency;
+matching verified station artwork comes from that source. A conflicting verified
+room station wins over stale opening artwork. No fuzzy title match, guessed P4,
+stream scraping or substitution of coordinator volume is used. Without reliable
+artwork, a concise available station/title line is shown. Missing volume is “—”;
+unavailable rooms clear stale artwork/content. Hidden icons and custom backgrounds
+remain respected. Grouping, Radio/Favorites, Sleep and Back contracts are unchanged.

@@ -1,14 +1,14 @@
 {
   "name": "honeycomb-menu-ng",
   "private": true,
-  "version": "1.9.0",
+  "version": "1.10.0-beta.4",
   "description": "Modular Honeycomb controls for Home Assistant with persistent hubs, Light, Sonos and media modules.",
   "scripts": {
     "build": "webpack",
     "build:dev": "node scripts/build-dev.js",
     "install:dev": "node scripts/install-dev.js",
     "watch": "webpack --watch --mode=development",
-    "test": "node test/run-tests.js && node --test test/shared-engine.test.js test/hub-state.test.js test/release-retention.test.js test/stable-release.test.js test/beta-release.test.js test/sonos.test.js test/color-zoom.test.js test/kelvin-zoom.test.js test/sleep-timer.test.js test/stable-approval.test.js test/cube-presentation.test.js test/native-favorites.test.js test/image-sizing.test.js test/energy-wave.test.js test/charger.test.js test/light-palette.test.js test/light-off.test.js test/dev-build.test.js test/install-dev.test.js test/info-cube.test.js",
+    "test": "node test/run-tests.js && node --test test/shared-engine.test.js test/hub-state.test.js test/release-retention.test.js test/stable-release.test.js test/beta-release.test.js test/sonos.test.js test/color-zoom.test.js test/kelvin-zoom.test.js test/sleep-timer.test.js test/stable-approval.test.js test/cube-presentation.test.js test/native-favorites.test.js test/image-sizing.test.js test/energy-wave.test.js test/charger.test.js test/light-palette.test.js test/light-off.test.js test/dev-build.test.js test/install-dev.test.js test/info-cube.test.js test/climate.test.js test/collapsible-hub.test.js test/sonos-join-room.test.js",
     "prepare:brand": "node scripts/generate-bee-asset.js",
     "pretest": "npm run prepare:brand",
     "prebuild": "npm run prepare:brand",

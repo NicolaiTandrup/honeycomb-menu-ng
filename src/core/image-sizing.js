@@ -8,7 +8,7 @@ function referenceWidth(value) {
         throw new Error('auto_reference_width must be a positive finite CSS-pixel number.');
     return value;
 }
-function effectiveSize(frame,reference=DEFAULT_REFERENCE_WIDTH){return frame?DEFAULT_SIZE*frame.width/referenceWidth(reference):DEFAULT_SIZE;}
+function effectiveSize(frame,reference=DEFAULT_REFERENCE_WIDTH){return frame?Math.min(DEFAULT_SIZE,DEFAULT_SIZE*frame.width/referenceWidth(reference)):DEFAULT_SIZE;}
 function numericSize(value) {
     if(value==='auto' || value===undefined)return DEFAULT_SIZE;
     const size=Number(value);
@@ -93,7 +93,7 @@ function createRecord(card){
                 }
             }
             const bounds=card.getBoundingClientRect();
-            callback({size:effectiveSize(frame,(host.config || {}).auto_reference_width),dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
+            callback({resolved:!!frame,size:effectiveSize(frame,(host.config || {}).auto_reference_width),dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
         }
     }
     resize.observe(card);mutation.observe(card,{childList:true});

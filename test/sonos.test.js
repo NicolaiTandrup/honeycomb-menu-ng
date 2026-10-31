@@ -99,19 +99,24 @@ test('unnamed candidates use live friendly names with a literal ID fallback',()=
     hass.states[member].attributes.friendly_name='Room B';
     assert.equal(evaluate(button.name,hass),'Room B');
 });
-test('membership labels and colors follow actual HA state, including in-place updates',()=>{
-    const hass=fixture(), button=buildJoinMenu(options).buttons[0];
-    assert.equal(evaluate(button.label,hass),'Not joined');
-    const background=button.styles.card[0].background;
-    const solo=evaluate(background,hass);
+test('Join room playback, own volume and launcher paint follow authoritative live state',()=>{
+    const hass=fixture(),source={entity:player,mode:'sonos',colors:{center:'#123456',inner_border:'#abcdef'},border:{inner_width:7}};
+    const button=buildJoinMenu(options,null,source).buttons[0];
+    const resolve=()=>require('../src/modules/sonos/join-presentation').resolve({hass,config:button});
+    assert.equal(resolve().secondary,'—');
+    hass.states[member].attributes.media_title='Track A';
+    assert.equal(resolve().tertiary,'Track A');
     hass.states[player].attributes.group_members=[player,member];
     hass.states[member].attributes.group_members=[player,member];
-    assert.equal(evaluate(button.label,hass),'Joined');
-    assert.notEqual(evaluate(background,hass),solo);
+    hass.states[member].attributes.volume_level=.17;
+    hass.states[player].attributes.volume_level=.89;
+    assert.equal(resolve().secondary,'17%');
+    assert.match(resolve().ariaLabel,/Joined/);
+    assert.deepEqual(resolve().visualConfig,source);
     hass.states[player].attributes.group_members=[player];
-    assert.equal(evaluate(button.label,hass),'Updating group');
-    hass.states[member].attributes.group_members=[member];
-    assert.equal(evaluate(button.label,hass),'Not joined');
+    assert.equal(resolve().visualConfig,null);
+    hass.states[member].state='unavailable';
+    assert.match(resolve().secondary,/Unavailable/);
 });
 test('inner Join summary distinguishes solo, grouped, unknown and unavailable state',()=>{
     const hass=fixture();
@@ -218,7 +223,7 @@ test('Join without members/script discovers native candidates; native join/unjoi
     hass.services.media_player={join:{},unjoin:{}};let menu;
     await openJoin({hass,actionConfig:{sonos_item:{entity:player}},openNested:config=>menu=config});
     const action=menu.buttons[0].tap_action,calls=[];hass.callService=async(...args)=>calls.push(args);
-    assert.equal(action.member,member);assert.equal(evaluate(menu.buttons[0].label,hass),'Not joined');
+    assert.equal(action.member,member);assert.equal(menu.buttons[0].mode,'sonos-join');
     await toggleMember({hass,actionConfig:action});assert.deepEqual(calls.pop(),['media_player','join',{group_members:[member]},{entity_id:player}]);
     hass.states[player].attributes.group_members=[player,member];hass.states[member].attributes.group_members=[player,member];
     await toggleMember({hass,actionConfig:action});assert.deepEqual(calls.pop(),['media_player','unjoin',{}, {entity_id:member}]);

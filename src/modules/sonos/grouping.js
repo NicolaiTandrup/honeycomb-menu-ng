@@ -48,7 +48,7 @@ function memberTemplate(item, member, expression, nativeAllowed)
     return `[[[ const status = (${memberState.toString()})(hass, ${JSON.stringify(item.entity)}, ${JSON.stringify(member.entity)}, ${JSON.stringify(item.toggle_member_script || '')}, ${!!nativeAllowed}); return ${expression}; ]]]`;
 }
 
-function buildJoinMenu(item, discovery = null)
+function buildJoinMenu(item, discovery = null, source = null)
 {
     // Explicit candidates override discovery. Domain/area names alone never
     // establish platform identity; native automatic choices come from registry.
@@ -75,14 +75,15 @@ function buildJoinMenu(item, discovery = null)
             slot: index + 7,
             slot_mode: 'hard',
             entity: member.entity,
+            mode:'sonos-join',
+            _sonos:source && source._sonos || require('./station').settings(item),
+            _sonos_join:{coordinator:item.entity,script:item.toggle_member_script || '',nativeAllowed,source},
             icon: member.icon || (member.entity.includes('tv') ? 'mdi:television-speaker' : 'mdi:speaker'),
             name: member.name || `[[[ return entity?.attributes?.friendly_name || ${JSON.stringify(member.entity)}; ]]]`,
-            label: memberTemplate(item, member, 'status.label', nativeAllowed),
             show_name: true,
             show_label: true,
             autoclose: false,
-            styles: sonosButtonStyles({background: memberTemplate(item, member,
-                "status.joined ? 'rgba(45, 105, 116, 0.96)' : !status.enabled ? 'rgba(70, 74, 80, 0.92)' : 'rgba(52, 66, 78, 0.92)'", nativeAllowed)}),
+
             tap_action: {
                 action: 'honeycomb-sonos-toggle-member',
                 coordinator: item.entity,
@@ -174,7 +175,7 @@ async function openJoin({hass,actionConfig,openNested,isCurrent=()=>true,getHass
                 item._selected_entity=item.entity;item.entity=leader;
             }
         }
-        openNested(buildJoinMenu(item,discovery));
+        openNested(buildJoinMenu(item,discovery,menuConfig && menuConfig.persistent_center || null));
         return true;
     } finally {
         clearTimeout(timeout);

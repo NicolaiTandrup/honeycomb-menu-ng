@@ -1,0 +1,9 @@
+type: custom:honeycomb-persistent-hub
+collapsible: true
+items:
+  - type: light
+    entity: light.room_a
+    slot: 0
+  - type: light
+    entity: light.room_b
+    slot: 2

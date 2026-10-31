@@ -1,3 +1,90 @@
+# Honeycomb NG v1.10.0-beta.4 — minimal room controls
+
+Cumulative from exact published beta.3. Hubs without collapsible keep their
+existing defaults; explicit numeric sizes retain their meaning.
+
+- `collapsible: true` defaults to responsive floorplan sizing, small-screen
+  enlargement and 30-second inactivity collapse. Root center is Back; no separate
+  Back rectangle. Both primary and bee center policies remain supported.
+- Normal `size: auto` cubes cap at 82px. Overlay sizing is independent. New
+  `small_screen` setting retains legacy `mobile`; contradictory values fail.
+- Join uses trusted Favorites/native Browse station artwork, compact room name
+  and individual volume. Playback/full content remain accessible; joined source
+  styling, hidden icons and grouping behavior are preserved.
+- Climate upper slots request ±1.0°, lower slots ±0.1°, in HA's native temperature
+  unit. Unrepresentable deltas and limits disable the action instead of rounding.
+- Keyboard focus follows the hex; mouse/touch clear focus paint. No accessibility
+  or keyboard navigation removal.
+
+Chromium phone/tablet/desktop tests use synthetic HA states, not physical Android
+acceptance. Modern Popover API, ordinary anchored-menu and very-large-Hub limits
+remain. No master merge, stable publication or production Home Assistant changes.
+
+# Honeycomb NG v1.10.0-beta.3 — Real-HA stabilization
+
+Focused fixes over exact published beta.2 `8bbc45af72936630c39f87c4697a0148cc38a047`.
+No master merge, stable promotion or production Home Assistant changes.
+
+- Climate roles reuse the approved shared `SUBMENU_FILL` token, including alpha;
+  default inner width stays zero, outer border and independent center remain.
+- Sonos Join keeps room state/own volume on one readable line, station/title on
+  another, and a visible joined checkmark. HA room attributes supply transport
+  and individual volume; opening-source data supplies only artwork/visual paint.
+  Missing/unavailable metadata is not replaced with the opening room's content.
+- Collapsible auto-sized Hubs use the shared image-sizing result independently
+  of CSS layout width and temporary overlay geometry. Resize during expansion
+  preserves the mobile touch size; Back/timeout restores current floorplan size
+  and original position. Both center policies remain supported.
+
+Node/browser tests cover the owner-supplied 1200-reference configuration, layout
+width overrides, portrait/landscape, Back/timeout, multiple Hubs/editing, shared
+Climate pixel reference and P4 at individual 4% alongside a different source.
+The supplied complete picture-elements YAML is tested with the exact public demo
+image and sanitized entity IDs. Sonos fixtures are synthetic and HA-shaped; the
+owner supplied a template rather than its rendered attribute values. Actual
+Android DOM/runtime data was not available at implementation time. Automated passes do not
+establish owner real-device acceptance. Existing very-large-Hub/ordinary anchored
+menu limits and modern Popover API requirement remain.
+
+# Honeycomb NG v1.10.0-beta.2 — Climate, Sonos Join and collapsible Hub
+
+Cumulative over published v1.10.0-beta.1; development PR remains unmerged.
+Latest stable remains v1.9.0. No master/stable/production HA changes.
+
+- Climate function cells use neutral dark gray, no default inner border, and
+  normal outer borders. Independent center paint and thermostat services remain.
+- Sonos Join lists actual room playback and available content. Joined rooms use
+  the opening Sonos source's artwork and resolved visual settings, show their own
+  volume percentage, and retain accessible membership information. Grouping stays
+  authoritative from HA; no optimistic group changes.
+- Optional collapsible Hub: primary-only collapsed view; tap for primary action,
+  hold to expand; primary/bee center policies; validated slot conflicts; Back,
+  Escape and configurable activity timeout; enlarged phone top-layer overlay.
+  See [configuration and limits](docs/COLLAPSIBLE_HUB.md).
+
+Validation includes Node contracts, Chromium touch/hold and phone resize/rotation,
+Climate controls, Sonos grouping/artwork, existing Light/Charger/Info/navigation,
+documentation, HACS packaging and guarded reproducible release checks.
+Real HA/hardware acceptance and Firefox/WebKit are not claimed. Very large Hub
+populations can require smaller touch targets to fit a phone. Modern Popover API
+support is required for the phone top-layer presentation.
+
+# Honeycomb NG v1.10.0-beta.1 — Climate testing
+
+Cumulative with v1.9.0 stable; preserves Info Cube, Light Color/White and zoom, Sonos native Favorites/Join/Sleep, Charger/Easee, namespace isolation, layout, visibility and navigation.
+
+Adds generic HA Climate to Hub and standalone Control using the existing shared 82px renderer. Displays current/target temperatures and heating/cooling status; respects native units, increments, min/max and explicit Low/High range selection. Menus offer only advertised HVAC, preset, fan and swing capabilities. Native climate services are used only on explicit interaction.
+
+A different-entity nested Climate view retains its own entity and returns to its parent. Defrost uses explicit mapping, native exact preset, or unambiguous verified metadata; no brand/name guessing. Pending, failed and unconfirmed states are distinct; no automatic command retries.
+
+Setup: see docs/CLIMATE_MODULE.md and examples/climate-*.yaml. No HA helpers or backend integration required. Registry access is optional; denial disables automatic separate-switch discovery safely.
+
+Validation results and immutable source/checksum will be recorded in the PR and release publication evidence after the mandatory cumulative suite completes. Real thermostat/HVAC hardware acceptance is pending; synthetic Chromium testing does not establish physical operation. No Firefox/WebKit validation claimed. Humidity, auxiliary heat and vendor-only controls are outside this first beta.
+
+This is an unmerged prerelease for HACS testing, not v1.10.0 stable. Car, Charger redesign, production HA changes and retention cleanup are excluded. Prior releases/tags/assets and stable/master are preserved.
+
+---
+
 # v1.9.0 — Stable
 
 Promotes the complete owner-approved cumulative v1.9.0-beta.9 runtime. No module,

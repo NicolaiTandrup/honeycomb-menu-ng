@@ -4,7 +4,7 @@
 const KEYS = ['name','label','icon','colors','border','styles','background','foreground','variables','custom_fields','energy_wave'];
 const {moduleRegistry}=require('../modules/index');
 function presentationDependencies(config) {
-    let wildcard = !!config.custom_fields;
+    let wildcard = !!config.custom_fields || config.mode==='sonos-join';
     const visit = value => {
         if (typeof value === 'string' && /\[\[\[|HCJS:|\$\{/.test(value)) wildcard = true;
         else if (value && typeof value === 'object') Object.values(value).forEach(visit);
