@@ -439,7 +439,7 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
-        this.removeAttribute('keyboard-focus');
+        this._pointerFocus=false;this.removeAttribute('keyboard-focus');
         if(this._waveCleanup)this._waveCleanup();this._waveCleanup=null;
         if(this._imageSizingCleanup)this._imageSizingCleanup();
         this._imageSizingCleanup=null;
