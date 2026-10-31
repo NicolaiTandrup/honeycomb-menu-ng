@@ -114,3 +114,13 @@ for(const [,slot,x,y] of anatomyCells){
 assert.ok(readme.includes('Latest stable version'));
 assert.ok(readme.includes('Canonical visual baseline: Light module'));
 assert.ok(terms.includes('Shared visual design contract'));
+
+const climateGuide=fs.readFileSync('docs/CLIMATE_MODULE.md','utf8');
+for(const text of ['v1.10.0-beta.1','climate.set_temperature','Low / High','defrost_entity','translation_key','15 seconds','honeycomb-open-nested','°F','no polling'])
+ assert.ok(climateGuide.toLowerCase().includes(text.toLowerCase()),`Climate documentation: ${text}`);
+const {expandModuleMenu}=require('../../src/core/module-menu');
+let climateExamples=0,nestedModules=0;
+for(const entry of input.cards){
+ const visit=value=>{if(!value||typeof value!=='object')return;if(value.module==='climate'&&value.entity){assert.equal(expandModuleMenu(value,hass).entity,value.entity);nestedModules++;}for(const [key,child]of Object.entries(value)){if(key==='type'&&child==='climate'){assert.equal(buildCubeConfig(value,hass).mode,'climate');climateExamples++;}if(child&&typeof child==='object')visit(child);}};visit(entry.config);
+}
+assert.ok(climateExamples>=2&&nestedModules>=2,'Climate YAML and nested descriptors compile against production module');

@@ -1,0 +1,14 @@
+type: custom:honeycomb-persistent-hub
+name: Room A
+collapsible:
+  expanded_center: bee
+  primary_slot: 1
+items:
+  - type: light
+    entity: light.room_a
+    name: Main light
+    slot: 0
+  - type: light
+    entity: light.room_b
+    name: Accent light
+    slot: 2

@@ -7,6 +7,10 @@ const _defaults = require('lodash/defaults');
 const { moduleRegistry } = require('./modules/index.js');
 const { toCenterDescriptor } = require('./core/hub-launcher.js');
 const { VisibilityIndex } = require('./core/visibility.js');
+const collapsibleHub=require('./core/collapsible-hub');
+const expandedLayout=require('./core/expanded-layout');
+const bee=require('./core/bee');
+const navigationCore=require('./core/navigation-context');
 const { allocateHubSlots } = require('./core/hub-allocation.js');
 
 class HoneycombPersistentHub extends CubeElement
@@ -47,6 +51,11 @@ class HoneycombPersistentHub extends CubeElement
 
     _openHoneycombMenu(menu)
     {
+        if(this._collapseOptions && !this._hubExpanded && this.config.size==='auto' && menu._persistent_hub_root){
+            const size=this._floorplanSize();
+            menu.size=size*3.586;
+            if(menu.persistent_center)menu.persistent_center.size=size;
+        }
         const context = this._ensureMenuContext();
 
         if( context && typeof window.honeycombNG.openInContext === 'function' )
@@ -107,6 +116,7 @@ class HoneycombPersistentHub extends CubeElement
         else if( this._hubMenu && this._hubMenu.isConnected )
             this._hubMenu.remove();
 
+        this._clearExpansion();
         super.disconnectedCallback();
         this._hubOpenScheduled = false;
         this._hubMenu = null;
@@ -114,6 +124,22 @@ class HoneycombPersistentHub extends CubeElement
         this._lastAnchorY = null;
         this._menuContext = null;
         this._pendingStructure = false;
+    }
+
+    _floorplanSize(rect=this.getBoundingClientRect())
+    {
+        // Auto is already resolved by the shared image-sizing engine. A layout
+        // box or an expanded scene must never become its numeric size source.
+        return this.config.match_anchor_size===false || this.config.size==='auto' && this._imageAutoResolved ? this.size : rect.width;
+    }
+
+    _observeImageGeometry() { return super._observeImageGeometry() || !!this._collapseOptions; }
+    _imageGeometryChanged() { if(this._hubExpanded)this._fitExpansion();else if(this._scheduleAnchorMeasure)this._scheduleAnchorMeasure(); }
+
+    _resizeAutoMenu(menu,size)
+    {
+        if(this._hubExpanded)this._fitExpansion();
+        else super._resizeAutoMenu(menu,size);
     }
 
     _watchAnchor()
@@ -126,7 +152,8 @@ class HoneycombPersistentHub extends CubeElement
             const rect = this.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
             const menu=this._menuContext.honeycomb;
-            const itemSize=menu.offsetParent ? rect.width : this.size;
+            if(this._hubExpanded && this._collapseOptions){this._fitExpansion();return;}
+            const itemSize=this._collapseOptions && this.config.size==='auto'?this._floorplanSize(rect):menu.offsetParent?rect.width:this.size;
             if (this.config.match_anchor_size !== false && Math.abs(menu.sizes.item-itemSize)>.01)
                 menu.resizeCubes(itemSize);
             const x=rect.left+rect.width/2, y=rect.top+rect.height/2;
@@ -139,6 +166,7 @@ class HoneycombPersistentHub extends CubeElement
             }
         };
         const schedule = () => { if (frame === null) frame=requestAnimationFrame(measure); };
+        this._scheduleAnchorMeasure=schedule;
         const resize = new ResizeObserver(schedule);
         const ancestors = new MutationObserver(schedule);
         for (let node=this;node && node !== document.body;node=node.parentElement || node.getRootNode().host) {
@@ -148,6 +176,7 @@ class HoneycombPersistentHub extends CubeElement
         window.addEventListener('resize',schedule);
         document.addEventListener('scroll',schedule,true);
         this._anchorCleanup=()=>{
+            this._scheduleAnchorMeasure=null;
             if (frame !== null) cancelAnimationFrame(frame);
             resize.disconnect(); ancestors.disconnect();
             window.removeEventListener('resize',schedule); document.removeEventListener('scroll',schedule,true);
@@ -272,20 +301,11 @@ class HoneycombPersistentHub extends CubeElement
 
         if( showLogo )
         {
-            menu.persistent_center = merge(
-                {},
-                menu.persistent_center || {},
-                {
-                    icon: 'honeycomb:bee',
-                    interactive: true,
-                    tap_action: { action: 'honeycomb-bee-flap' },
-                    show_brightness: 'never',
-                    mode: 'hub',
-                    _decorative_logo: true,
-                    colors: {fill_gradient: (this.config.colors || {}).fill_gradient === undefined ? (this._logoExplicitCenter ? false : {type:'radial'}) : this.config.colors.fill_gradient},
-                    face_mode: this.config.base_face_mode || 'cell'
-                }
-            );
+            menu.persistent_center=bee.descriptor(merge({},menu.persistent_center || {},{
+                colors:this.config.colors,border:this.config.border,styles:this.config.styles,interactive:true,
+                tap_action:{action:'honeycomb-bee-flap'},hold_action:{action:'honeycomb-bee-flap'},
+                face_mode:this.config.base_face_mode || 'cell'
+            }),{explicitCenter:this._logoExplicitCenter});
             menu.center_button = null;
         }
         else
@@ -315,7 +335,152 @@ class HoneycombPersistentHub extends CubeElement
             }
         }
 
+        if(this._collapseOptions) {
+            menu._collapsible_hub=true;
+            const primary=this._hubEntries.find(entry=>entry.slot===0);
+            if(!this._hubExpanded) {
+                const size=this._floorplanSize();
+                menu.size=size*3.586;
+                menu.buttons=[];
+                const descriptor=toCenterDescriptor(primary.module,primary.launcher);
+                const center=merge({},descriptor.config,{size,hold_action:{action:'honeycomb-hub-expand'},autoclose:false});
+                if(!this._placements.has(primary.id)){menu.persistent_center=null;menu.center_button=false;}
+                else if(descriptor.kind==='persistent'){menu.persistent_center=center;menu.center_button=null;}
+                else {menu.center_button=center;menu.persistent_center=null;}
+            } else {
+                const entries=this._hubEntries.map(entry=>({...entry,visible:this._placements.has(entry.id)}));
+                const allocation=collapsibleHub.expandedAllocation(entries,primary,this._collapseOptions,this._expandedPlacements);
+                this._expandedPlacements=allocation.placements;
+                menu.buttons=entries.filter(entry=>allocation.placements.has(entry.id)&&allocation.placements.get(entry.id)!==0)
+                    .map(entry=>({...entry.launcher,slot:allocation.placements.get(entry.id),slot_mode:'hard',autoclose:false}));
+                if(this._collapseOptions.expanded_center==='bee') {
+                    menu.persistent_center=bee.descriptor({colors:this.config.colors,border:this.config.border,styles:this.config.styles,background:this.config.background,foreground:this.config.foreground},
+                        {collapse:true,explicitCenter:this._logoExplicitCenter});
+                    menu.center_button=null;
+                } else {
+                    const center=menu.persistent_center || menu.center_button;
+                    if(center){center.autoclose=false;center.tap_action={action:'honeycomb-hub-collapse'};center.hold_action={action:'none'};delete center.double_tap_action;}
+                }
+                menu.idle_timeout=this._collapseOptions.idle_timeout;
+            }
+        }
         return menu;
+    }
+
+    _expandHub({pointerId=null}={})
+    {
+        if(!this._collapseOptions || this._hubExpanded || this.preview)return;
+        this._hubExpanded=true;
+        this._expansionReadyAt=pointerId===null?0:Date.now()+500;
+        this._expansionCapture=e=>{
+            if(Date.now()<this._expansionReadyAt){this._expansionReadyAt=0;e.preventDefault();e.stopImmediatePropagation();}
+        };
+        this._hubMenu.addEventListener('click',this._expansionCapture,true);
+        window.honeycombNG.updateBase(this._menuContext,this._persistentMenuConfig());
+        this._hubMenu._resetIdleTimeout();
+        this._expansionResize=()=>this._fitExpansion();
+        window.addEventListener('resize',this._expansionResize);
+        if(window.visualViewport){visualViewport.addEventListener('resize',this._expansionResize);visualViewport.addEventListener('scroll',this._expansionResize);}
+        this._expansionEscape=e=>{if(e.key==='Escape' && !e.defaultPrevented && !this._menuContext.info){e.preventDefault();window.honeycombNG.backInContext(this._menuContext);}};
+        document.addEventListener('keydown',this._expansionEscape);
+        this._expansionChromeResize=new ResizeObserver(this._expansionResize);
+        this._expansionChromeMutation=new MutationObserver(this._expansionResize);
+        for(const el of [...expandedLayout.chromeElements(this),document.documentElement]){
+            this._expansionChromeResize.observe(el);this._expansionChromeMutation.observe(el,{attributes:true,attributeFilter:['class','style','hidden']});
+        }
+        this._fitExpansion();
+    }
+
+    _expansionEnvironment() { return expandedLayout.environment(this._hubMenu,this,this._floorplanImageRect); }
+
+    _fitExpansion(options={})
+    {
+        const context=this._menuContext,menu=context && context.honeycomb;
+        if(!this._hubExpanded || !menu || menu.closing || context.info)return;
+        // Only an explicit legacy opt-out retains the old compact phone mode.
+        // Default enlargement and desktop fitting never depend on a breakpoint.
+        const compact=this._collapseOptions.small_screen===false && window.innerWidth<=600;
+        if(compact)this._hideExpansionPopover(menu);
+        else if(!menu.hasAttribute('popover')) {
+            menu.setAttribute('popover','manual');
+            menu.style.cssText+=';margin:0;padding:0;border:0;overflow:visible;background:transparent;inset:auto;';
+            menu.showPopover();
+            const openedAt=Date.now();
+            this._expansionOutside=e=>{if(Date.now()-openedAt>500)this._handleExpansionOutside(e);};
+            this._expansionPointerStart=e=>{const target=e.composedPath()[0];this._expansionOutsideDown=target===menu || !!(target.classList && target.classList.contains('hub-shield'));};
+            menu.addEventListener('pointerdown',this._expansionPointerStart,true);
+            menu.addEventListener('click',this._expansionOutside);
+        }
+        const environment=this._expansionEnvironment();
+        if(navigationCore.isHubRoot(context.currentConfig)) {
+            const f=expandedLayout.footprint(menu),rect=this.getBoundingClientRect(),key=environment.key+JSON.stringify(f)+(compact?JSON.stringify([rect.left,rect.top,this.size]):'');
+            if(this._expandedRoot && this._expandedRoot.key===key && !options.entering){
+                if(Math.abs(menu.sizes.item-this._expandedRoot.size)>.001)menu.resizeCubes(this._expandedRoot.size,{preserveStack:true});
+                menu.reanchor(this._expandedRoot.x,this._expandedRoot.y);return;
+            }
+            const result=compact?{x:rect.left+rect.width/2,y:rect.top+rect.height/2,size:this._floorplanSize(rect),region:{...environment.viewport,key:'compact'}}:expandedLayout.place(f,environment.viewport,environment.image,this._collapseOptions.expanded_size,this._expandedRoot);
+            this._expandedRoot={...result,footprint:f,key};
+            menu.resizeCubes(result.size,{preserveStack:true});menu.reanchor(result.x,result.y);
+        } else {
+            const root=this._expandedRoot;
+            if(!root)return;
+            const rect=this.getBoundingClientRect(),key=environment.key+JSON.stringify(root.footprint)+(compact?JSON.stringify([rect.left,rect.top,this.size]):'');
+            if(root.key!==key) {
+                const result=compact?{x:rect.left+rect.width/2,y:rect.top+rect.height/2,size:this._floorplanSize(rect),region:{...environment.viewport,key:'compact'}}:expandedLayout.place(root.footprint,environment.viewport,environment.image,this._collapseOptions.expanded_size,root);
+                this._expandedRoot={...result,footprint:root.footprint,key};
+                const base=context.stack[0] && (context.stack[0].config || context.stack[0]);
+                if(base){base.anchor_x=this._expandedRoot.x;base.anchor_y=this._expandedRoot.y;base.size=this._expandedRoot.size*3.586;if(base.persistent_center)base.persistent_center.size=this._expandedRoot.size;}
+            }
+            navigationCore.fitExpandedMenu(context,menu,environment,this._expandedRoot,options);
+        }
+    }
+
+    _handleExpansionOutside(event)
+    {
+        const menu=this._menuContext && this._menuContext.honeycomb,target=event.composedPath()[0];
+        const outside=target===menu || !!(target.classList && target.classList.contains('hub-shield'));
+        if(outside && this._expansionOutsideDown){this._expansionOutsideDown=false;this._collapseHub();}
+    }
+
+    _hideExpansionPopover(menu)
+    {
+        if(menu && menu.hasAttribute('popover')) {
+            menu.hidePopover();menu.removeAttribute('popover');
+            menu.removeEventListener('click',this._expansionOutside);
+            menu.removeEventListener('pointerdown',this._expansionPointerStart,true);this._expansionOutsideDown=false;
+        }
+    }
+
+    _clearExpansion()
+    {
+        if(this._expansionChromeResize)this._expansionChromeResize.disconnect();
+        if(this._expansionChromeMutation)this._expansionChromeMutation.disconnect();
+        window.removeEventListener('resize',this._expansionResize);
+        if(window.visualViewport){visualViewport.removeEventListener('resize',this._expansionResize);visualViewport.removeEventListener('scroll',this._expansionResize);}
+        document.removeEventListener('keydown',this._expansionEscape);
+        this._hideExpansionPopover(this._menuContext && this._menuContext.honeycomb);
+        if(this._hubMenu)this._hubMenu.removeEventListener('click',this._expansionCapture,true);
+        this._hubExpanded=false;this._expandedRoot=null;
+    }
+
+    _collapseHub()
+    {
+        if(!this._hubExpanded)return false;
+        const context=this._menuContext;
+        if(context.info)return false;
+        const menu=context.honeycomb;
+        for(const item of menu.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control'))item._cancelGesture();
+        context.stack=[];
+        context.currentConfig._persistent_hub_root=true;
+        this._clearExpansion();
+        const rect=this.getBoundingClientRect(),config=this._persistentMenuConfig();
+        config.anchor_x=rect.left+rect.width/2;config.anchor_y=rect.top+rect.height/2;
+        require('./core/navigation-context').resetNavigation(context);
+        window.honeycombNG.updateBase(context,config);
+        menu.resizeCubes(this._floorplanSize(rect));
+        menu.reanchor(config.anchor_x,config.anchor_y);
+        this._flushStructure();
+        return true;
     }
 
     _launcherButton(item, index, slot, resolvedModule = null)
@@ -443,27 +608,26 @@ class HoneycombPersistentHub extends CubeElement
             throw new Error('Honeycomb Persistent Hub requires a configuration.');
 
         validateCubeConfig(config, {hubItems:true});
+        const collapseOptions=collapsibleHub.settings(config.collapsible);
+        if(this._hubExpanded)this._collapseHub();
+        this._collapseOptions=collapseOptions;
         if (!this._hasHassProvider) { this._hasHassProvider=true; provideHass(this); }
         const next = merge({}, config);
         this._logoExplicitCenter=!!(config.colors && config.colors.center && config.colors.center!=='auto');
+        next._bee_explicit_center=this._logoExplicitCenter;
 
         _defaults(next, {
             mode: 'hub',
-            size: 82,
+            size: collapseOptions ? 'auto' : 82,
             icon: 'honeycomb:bee',
             name: 'Honeycomb',
             items: [],
             auto_open: true,
-            logo: 'auto',
+            logo: collapseOptions ? false : 'auto',
             base_face_mode: 'cell',
             tap_action: { action: 'honeycomb-bee-flap' },
             show_brightness: 'never',
-            colors: {
-                center: '#f2b705',
-                inner_border: '#17191c',
-                outer_border: '#34383d',
-                unavailable: '#20262d'
-            }
+            colors: bee.COLORS
         });
 
         this._hubBaseFaceMode = next.base_face_mode || 'cell';
@@ -496,6 +660,11 @@ class HoneycombPersistentHub extends CubeElement
             return {id, index, item, module, launcher, slot, mode, visibility:item.visibility, show,
                 liveShow:typeof show === 'string' && /\[\[\[|HCJS:|\$\{/.test(show)};
         });
+        if(collapseOptions) {
+            const primary=entries.filter(entry=>entry.slot===0);
+            if(primary.length!==1 || primary[0].mode!=='hard')throw Error('collapsible requires exactly one hard primary item in slot 0.');
+            collapsibleHub.expandedAllocation(entries.map(entry=>({...entry,visible:true})),primary[0],collapseOptions);
+        }
         const visibilityIndex = new VisibilityIndex(entries, this.hass);
         this._hubEntries = entries;
         this._hubShowLogo = showLogo;

@@ -74,6 +74,8 @@ jobs:
           python -m pip install -r test/browser/requirements.txt
           python -m playwright install --with-deps chromium
           curl --fail --location --retry 2 https://github.com/custom-cards/button-card/releases/download/v7.0.1/button-card.js --output "$RUNNER_TEMP/button-card.js"
+          curl --fail --location --retry 2 https://raw.githubusercontent.com/home-assistant/frontend/c695f577ff088e90d83c5bb7482f30f2c5cad7c7/demo/public/stub_config/floorplan.png --output "$RUNNER_TEMP/floorplan.png"
+          echo "25187fe9fdc4f9d15f28f9f57c4c26a7525c1f979f72eff689d26b0596c449ad  $RUNNER_TEMP/floorplan.png" | sha256sum --check -
 
       - name: Validate native Sonos Sleep Timer device-boundary contracts
         run: python test/sleep_timer/run.py
@@ -131,6 +133,19 @@ jobs:
       - name: Verify generic Info Cube containment, caller suspension and fixed lifetime
         run: python test/browser/info_cube.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/info-cube"
 
+      - name: Verify generic Climate capabilities, exact-target controls and nested Back
+        run: python test/browser/climate.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/climate"
+
+      - name: Verify collapsible Hub touch, mobile viewport, Climate styling and Sonos Join
+        run: python test/browser/beta2_features.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta2-features"
+
+      - name: Verify beta.3 real-HA regression classes and mobile auto-size lifecycle
+        run: python test/browser/beta3_real_ha.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --floorplan "$RUNNER_TEMP/floorplan.png" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta3-real-ha"
+
+      - name: Verify beta.4 minimal defaults, center Back, P4 volume and accessible hex focus
+        run: python test/browser/beta4_defaults.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta4-defaults"
+      - name: Verify beta.5 universal expansion, free-image regions, promotion and shared Bee
+        run: python test/browser/beta5_geometry.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta5-geometry"
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

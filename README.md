@@ -26,24 +26,49 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
-## v1.9.0 stable promotion
+## v1.10.0-beta.5: responsive room controls
 
-Stable candidate promotes published beta.9: Info supports `source`
-independently on center fill, inner and outer border, preserving rendered gradients
-and alpha as an opening snapshot. Mix inherited layers with explicit colors/gradients.
-[Source-paint contract](docs/INFO_CUBE.md). Mandatory release gates still apply.
+Add `collapsible: true` and a primary item in slot 0 to place a compact,
+responsive room control on a floorplan. Tap performs its action; hold expands.
+On phones, tablets and PCs, the Hub opens at a comfortable size. It prefers
+space beside the floorplan, and fits safely in the viewport when there is no room.
+Tap its center to return. No extra sizing or positioning options are needed.
 
-## v1.9.0 beta track
+```yaml
+type: custom:honeycomb-persistent-hub
+style: {left: 50%, top: 50%}
+collapsible: true
+items:
+  - type: light
+    entity: light.room_a
+    slot: 0
+  - type: light
+    entity: light.room_b
+    slot: 2
+```
 
-Latest published beta: [v1.9.0-beta.8](https://github.com/NicolaiTandrup/honeycomb-menu-ng/releases/tag/v1.9.0-beta.8).
-Published **beta.8** refines the generic, read-only Info Cube:
-a centered hex constrained by the six natural inner notches, independent fill and
-borders, and an optional source-colored connector. Surrounding cubes stay visible,
-stationary and inactive. Wrapped/stacked/positioned text and live HA bindings
-paginate at fixed readable sizes; more content never enlarges the hexagon.
-Tap returns to the exact caller; 30 seconds closes the entire menu.
-[Info Cube guide and examples](docs/INFO_CUBE.md) · [beta.8 review checklist](docs/V1_9_BETA8_REVIEW.md).
-The owner authorized stable v1.9.0 promotion after mandatory exact-source checks.
+See [complete picture-elements examples and optional settings](docs/COLLAPSIBLE_HUB.md).
+Normal collapsed auto sizing caps at 82px; expanded cubes target 100px independently.
+Selected module cubes stay in place when their submenus fit; constrained views
+fall back to the expanded root center. Back restores the parent layout exactly.
+Explicit numeric sizes are unchanged. Legacy
+`collapsible.mobile` remains an alias for `small_screen`; conflicting values fail
+clearly. Hubs without `collapsible` keep their existing defaults.
+
+Sonos Join prefers trusted station artwork with room name and individual volume.
+Climate adjustments are ±1.0 and ±0.1 in HA's temperature unit; unsupported
+precision is disabled. Keyboard focus follows the hex, with no pointer rectangle.
+Enable beta versions in HACS and select v1.10.0-beta.5 after publication.
+Latest stable remains v1.9.0; physical-device acceptance is separate from QA.
+
+## Climate beta testing — v1.10.0-beta.5
+
+This cumulative beta adds generic Home Assistant Climate controls to the complete
+v1.9.0 stable feature set. It uses the same shared renderer and navigation.
+See the [Climate guide](docs/CLIMATE_MODULE.md), [Hub example](examples/climate-hub.yaml)
+and [standalone Control](examples/climate-control.yaml). Real HVAC acceptance is pending.
+Enable beta versions in HACS and select v1.10.0-beta.5 once the release is public.
+Stable remains v1.9.0; no master merge is part of this beta.
 
 ## What you can build
 
@@ -53,8 +78,9 @@ The owner authorized stable v1.9.0 promotion after mandatory exact-source checks
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Car and Climate modules are not implemented. Charging automation remains external.
-The generic Charger module below is **v1.9.0 beta track only**, not part of v1.8.1 stable.
+Climate is available in the **v1.10.0-beta.5 candidate**, cumulative with v1.9.0 stable.
+See the [Climate guide](docs/CLIMATE_MODULE.md) and [Hub example](examples/climate-hub.yaml).
+Car is not implemented. Charging automation remains external.
 Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
 
 Representative stable Light controls (synthetic HA fixtures; the v1.8.1 runtime
@@ -192,12 +218,14 @@ command; a deliberate swatch tap applies it. Unknown/unavailable is never OFF.
 
 ### Bee version feedback and development updates
 
-Tap the golden bee to see a short label such as **v1.9.0 beta 6 inside the same
-hexagon** during the existing animation. It then returns to normal; reduced motion
-suppresses flight while retaining feedback. Full dev revision stays in diagnostics,
-not visual labels. [Permanent development resource, one-command installation and
-cache troubleshooting](docs/DEVELOPMENT_BUILDS.md). This is an unpublished candidate,
-not an announcement that beta.6 is available through HACS.
+Tap the standard Honeycomb Bee to reveal the actual installed version inside its
+hexagon for three seconds. Hold works too. At the expanded Collapsible root,
+short tap is Back/Collapse; hold or Shift+Enter reveals the same version without
+collapsing. Enter/Space remains Back. Alt+V provides keyboard version inspection
+on Bee icons that retain another contextual action. Reduced motion suppresses
+flight while retaining readable version feedback. All use one canonical mascot
+asset and shared rendering/version code. [Shared Bee guide](docs/SHARED_BEE.md).
+[Development installation and cache troubleshooting](docs/DEVELOPMENT_BUILDS.md).
 
 ### Canonical visual baseline: Light module
 
@@ -421,7 +449,8 @@ and [the complete card](examples/v1.7/sonos.yaml). `members` and a custom
 
 Sonos inner slots are **1 Radio,
 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
-room membership or an explicit setup/availability state. Radio's outer submenu
+station artwork, room name and individual volume, with membership/playback
+available in accessible labels and an explicit setup/availability state. Radio's outer submenu
 retains its ordering, artwork and playback, with new stable favorite accent rings.
 A reliably identified favorite can provide native launcher artwork and playing
 color; pause/stop remains neutral. See [matching limits and styling precedence](docs/SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
@@ -473,7 +502,7 @@ source remain. Tags, branches and source history are never cleanup targets.
 Candidate reference: [v1.8 runtime namespace and mixed-install routing](docs/NG_RUNTIME.md).
 Stable v1.7.1 remains published and unchanged until separate owner approval.
 
-The v1.8.0 candidate includes [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and the omitted fixed-82 default stay unchanged.
+The v1.8.0 candidate includes [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and non-collapsible omitted fixed-82 defaults stay unchanged.
 
 ### Floorplan sizing in v1.8.0-beta.6
 
@@ -494,7 +523,9 @@ separate from installing this beta as a custom repository.
 `size: auto` uses a stable **display/design reference width**, default1536 CSS
 pixels. Use `auto_reference_width: 1500` for82px at a1500px displayed floorplan,
 41px at750px. High-resolution source images no longer make cubes start tiny.
-This corrects beta.5; numeric60/82 and omitted fixed82 remain. Read the
+Current beta.4 caps normal auto sizing at 82px. Explicit numeric sizes remain
+fixed; ordinary omitted size remains 82px, while Collapsible Hubs default to auto.
+Read the
 [complete floorplan YAML and migration](docs/FLOORPLAN_SIZING.md).
 
 The [power-speed demo](examples/energy-wave-power.yaml) keeps true hexagonal

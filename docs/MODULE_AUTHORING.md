@@ -26,3 +26,12 @@ Bindings are explicit scalar HA entities/attributes; no module-specific cache,
 backend API, live charging command or guessed identity is part of Info Cube.
 Never pass unbounded external objects or private production payloads into public
 fixtures. Capture actual automated validation separately from owner device tests.
+
+## Expanded Collapsible navigation
+
+Use the existing nested/promotion descriptors. Shared navigation measures the
+child footprint at the selected anchor, then the expanded root anchor, with
+safe fitting when required. Do not implement per-module positioning. Saved
+parents retain independent size/anchor snapshots; Back restores them. Outside
+expanded Collapsible contexts, existing navigation behavior is unchanged. Shared
+Bee descriptors live in `src/core/bee.js`; see [Bee contract](SHARED_BEE.md).

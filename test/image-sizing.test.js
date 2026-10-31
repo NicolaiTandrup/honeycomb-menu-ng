@@ -26,7 +26,7 @@ test('display reference is stable across image resolutions and independent clien
  assert.equal(DEFAULT_REFERENCE_WIDTH,1536);assert.equal(referenceWidth(),1536);
  for(const naturalWidth of [1500,3000,6000])for(const displayedWidth of [1500,750,1125,2250]){
   const frame=imageFrame({width:displayedWidth,height:displayedWidth*2/3,naturalWidth,naturalHeight:naturalWidth*2/3});
-  assert.equal(effectiveSize(frame,1500),82*displayedWidth/1500);
+  assert.equal(effectiveSize(frame,1500),Math.min(82,82*displayedWidth/1500));
  }
  assert.equal(effectiveSize({width:1536}),82);assert.equal(effectiveSize({width:768}),41);assert.equal(effectiveSize(null,1500),82);
  for(const value of [null,'1500',0,-1,NaN,Infinity,'HCJS: return 1500'])assert.throws(()=>referenceWidth(value));

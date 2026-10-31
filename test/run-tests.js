@@ -633,7 +633,8 @@ function testSharedBeeBranding()
         'utf8'
     );
 
-    assert.ok(persistentControlSource.includes('HONEYCOMB_BEE_PNG'));
+    assert.ok(persistentControlSource.includes('bee.asset'));
+    assert.strictEqual(require('../src/core/bee').asset,HONEYCOMB_BEE_PNG);
     assert.strictEqual(persistentControlSource.includes('<svg class="bee-icon'), false);
     assert.strictEqual(persistentControlSource.includes('bee-wing-left'), false);
 }

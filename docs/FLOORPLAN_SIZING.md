@@ -1,9 +1,11 @@
-# Floorplan sizing — v1.8.0-beta.6
+# Floorplan sizing — v1.10.0-beta.5
 
-`size: auto` is opt-in for persistent Hub and Control inside Home Assistant
+`size: auto` is opt-in for ordinary persistent Hub and Control inside Home Assistant
 `picture-elements`. It reads the **actual rendered image** in the nearest
 picture-elements card, including the image's open `hui-image` shadow root.
-The effective size is `82 × rendered image width / reference display width`.
+A Collapsible Hub implicitly uses auto sizing when `size` is omitted.
+The effective size is `min(82, 82 × rendered image width / reference display width)`.
+Normal auto cubes cap at 82px; enlarged Collapsible Hub overlays are independent.
 The stable default reference is **1536 CSS pixels**. Set `auto_reference_width`
 when your intended design view has another width, e.g. 1500. It is not the
 source image resolution or a client-specific first observed width.
@@ -47,11 +49,13 @@ Sonos template/cache is supported. Honeycomb does not edit live HA files.
 ## Fixed mode stays fixed
 
 Use `size: 60`, `size: 82` or another finite positive number for fixed CSS pixels,
-inside or outside a floorplan. Omitting `size` still means **fixed 82px**.
-There is no new artificial numeric maximum/minimum. Very small cubes remain
+inside or outside a floorplan. Omitting `size` means **fixed 82px** for ordinary
+Hub/Control; an opted-in Collapsible Hub defaults to responsive auto sizing.
+Explicit numeric sizes have no new maximum/minimum; only normal auto sizing
+has the 82px maximum. Very small cubes remain
 mathematically valid but may be unreadable or hard to touch. Auto uses no hidden
 minimum, which would break alignment: at 50% of the reference display width cubes are 41px, at 75%
-61.5px, at 100% 82px. Prefer an appropriately detailed mobile floorplan or fixed
+61.5px, at 100% or above 82px. Prefer an appropriately detailed mobile floorplan or fixed
 mode if touch targets become too small. Default ring widths, icon/label spacing and shadows now consume the existing
 numeric size variable too, keeping the 82px design proportions at smaller sizes.
 Explicit numeric border widths and pixel styles remain explicit pixels.
@@ -90,7 +94,8 @@ Explicit numeric border widths and pixel styles remain explicit pixels.
   its anchor while module centers keep their existing navigation anchor rule.
 
 For an ordinary card with no identifiable floorplan, `size: auto` is harmless
-fixed 82px. Each independent card opts in; use the same auto_reference_width on all
+fixed 82px. Ordinary cards opt into auto explicitly; Collapsible Hubs do so by default.
+Use the same auto_reference_width on all
 overlays belonging to the same design. There is no global YAML inheritance. `logo: auto` needs no special configuration.
 
 ## Owner acceptance
@@ -115,7 +120,7 @@ Beta.5 incorrectly used natural image width for that purpose. Beta.6 corrects
 this deliberately: omitted auto_reference_width means the documented constant
 1536, on every client and reload. Explicit auto_reference_width is a literal
 positive finite CSS-pixel number, not a template or image-resolution setting.
-At reference 1500: displayed1500 → 82px;1125 → 61.5px;750 → 41px;2250 → 123px,
+At reference 1500: displayed1500 → 82px;1125 → 61.5px;750 → 41px;2250 → 82px (capped),
 regardless of equivalent 1500/3000/6000px source image resolution. Height follows
 the same aspect-preserved image frame; contain/cover offsets still govern both
 position and size. Numeric size mode ignores a valid reference setting. Invalid
@@ -125,3 +130,15 @@ Migration from beta.5: choose the normal intended floorplan display width once
 and copy that reference to every auto overlay. Do not copy the source bitmap
 resolution or generate a reference independently on each client. The 1536
 default is a predictable convention, not automatic knowledge of your design.
+
+## Expanded room Hubs
+
+`collapsible: true` keeps the compact image-relative cube but expands independently
+on phones, tablets and PCs. It reuses this image observer's visible image rectangle
+and the existing slot layout to prefer space below/above/beside the image.
+Scrolling/clipping ancestors restrict the visible image rectangle; shared root
+scroll listeners also work across Home Assistant shadow-root boundaries. It fits
+the full visible group, not the scene's reserved empty rings or a single cube.
+Unsupported image geometry falls back to safe viewport placement. No second image
+observation pipeline or new floorplan calibration is introduced. See
+[automatic placement and overrides](COLLAPSIBLE_HUB.md).

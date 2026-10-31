@@ -1,0 +1,38 @@
+{
+  "type": "picture-elements",
+  "image": "https://demo.home-assistant.io/stub_config/floorplan.png",
+  "elements": [
+    {
+      "type": "custom:honeycomb-persistent-hub",
+      "name": "Room test",
+      "size": "auto",
+      "auto_reference_width": 1200,
+      "logo": false,
+      "style": {
+        "left": "50%",
+        "top": "50%"
+      },
+      "collapsible": {
+        "expanded_center": "primary",
+        "idle_timeout": 30000,
+        "mobile": true,
+        "expanded_size": 100
+      },
+      "items": [
+        {
+          "type": "light",
+          "entity": "light.zone_a",
+          "name": "Room A",
+          "slot": 0,
+          "slot_mode": "hard"
+        },
+        {
+          "type": "light",
+          "entity": "light.zone_b",
+          "name": "Room B",
+          "slot": 2
+        }
+      ]
+    }
+  ]
+}

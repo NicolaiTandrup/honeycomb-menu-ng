@@ -97,10 +97,10 @@ function prepareMenuConfig(config)
 function openHoneycombMenu(context, config)
 {
     if (context.info) return null; // Late async navigation cannot change a suspended caller.
-    const liveHass = context.honeycomb && context.honeycomb.hass || document.querySelector('home-assistant').hass;
+    const liveHass = context.honeycomb && context.honeycomb.hass || context.owner && context.owner.hass || document.querySelector('home-assistant').hass;
     const resolved = resolvePaletteRequest(config, liveHass, context.currentConfig && context.currentConfig._light_palette_view);
     if (!resolved) return null;
-    const honeycombConfig = prepareMenuConfig(resolved);
+    const honeycombConfig = prepareMenuConfig(require('./core/module-menu').expandModuleMenu(resolved, liveHass));
 
     // If a menu is already open, treat a newly opened menu as a nested menu.
     // nested_expand keeps the current Honeycomb element alive and only updates
@@ -220,6 +220,12 @@ function openHoneycombMenu(context, config)
 
         context.currentConfig = merge({}, honeycombConfig);
         context.honeycomb.replaceConfig(honeycombConfig);
+
+        if(context.owner && context.owner._hubExpanded) {
+            delete context.currentConfig._expanded_fit;
+            context.owner._fitExpansion({entering:true,preferred:navigationCore.readAnchor(honeycombConfig)});
+            return context.honeycomb;
+        }
 
         if(
             Number.isFinite(Number(honeycombConfig.anchor_x)) &&
@@ -390,6 +396,7 @@ function dismissInfo(context, resume = true)
         menu.shadowRoot.querySelectorAll('#honeycombs,honeycomb-ng-xy-pad').forEach(node=>{node.inert=false;});
         if (resume && !menu.closing) menu._resetIdleTimeout();
     }
+    if(resume && context.owner && context.owner._hubExpanded && typeof context.owner._fitExpansion==='function')context.owner._fitExpansion();
     if (resume && context.infoFocus && context.infoFocus.isConnected) context.infoFocus.focus({preventScroll:true});
     context.infoFocus=null;
     notifyContext(context);
@@ -429,7 +436,13 @@ function openInfo(context, config, source = null)
     menu._dragPointerActive=false;menu._dragPointerId=null;menu._dragHoverSlot=-1;
     menu.shadowRoot.querySelectorAll('#honeycombs,honeycomb-ng-xy-pad').forEach(node=>{node.inert=true;});
     menu.shadowRoot.querySelectorAll('honeycomb-menu-ng-item,honeycomb-persistent-control').forEach(item=>item._cancelGesture());
+    const topLayer=menu.hasAttribute('popover') && typeof menu.showPopover==='function' && menu.matches(':popover-open');
+    if(topLayer){
+        view.setAttribute('popover','manual');
+        view.style.cssText='margin:0;padding:0;border:0;background:transparent;width:auto;height:auto;max-width:none;max-height:none;';
+    }
     document.body.append(view);
+    if(topLayer)view.showPopover();
     return view;
 }
 window.honeycombNG.openInfoInContext=(context,config,source)=>openInfo(context,config,source);
@@ -438,6 +451,7 @@ window.honeycombNG.openInfo=config=>openInfo(manager,config);
 function honeycombBack(context = manager, { interaction = true } = {})
 {
     if (dismissInfo(context)) return true;
+    if(context.owner && context.owner._hubExpanded && context.stack.length===0)return context.owner._collapseHub();
     if( !context.honeycomb || context.honeycomb.closing || context.stack.length === 0 )
         return false;
 
@@ -450,6 +464,10 @@ function honeycombBack(context = manager, { interaction = true } = {})
         context.currentConfig = merge({}, previous.config);
         context.honeycomb.replaceConfig(previous.config);
         if (interaction) context.honeycomb._resetIdleTimeout();
+
+        if(context.owner && context.owner._hubExpanded) {
+            context.owner._fitExpansion();notifyContext(context);return true;
+        }
 
         if(
             Number.isFinite(Number(previous.config && previous.config.anchor_x)) &&
@@ -479,6 +497,7 @@ function honeycombBack(context = manager, { interaction = true } = {})
 
 function honeycombClose(context = manager)
 {
+    if(context.owner && context.owner._hubExpanded){dismissInfo(context,false);return context.owner._collapseHub();}
     dismissInfo(context,false);
     context.stack = [];
     context.currentConfig = null;
@@ -685,10 +704,16 @@ class HoneycombMenu extends LitElement
             :host {
                 position: absolute;
                 z-index: 8;
+                --hub-safe-top:env(safe-area-inset-top,0px);
+                --hub-safe-right:env(safe-area-inset-right,0px);
+                --hub-safe-bottom:env(safe-area-inset-bottom,0px);
+                --hub-safe-left:env(safe-area-inset-left,0px);
             }
             :host([closing]), :host([closing]) * {
                 pointer-events: none !important;
             }
+            :host([popover])::backdrop {background:rgba(0,0,0,.55);pointer-events:auto !important;}
+            .hub-shield {position:fixed;inset:0;pointer-events:all;z-index:-1;}
             .shade {
                 position: fixed;
                 top: 0;
@@ -791,6 +816,7 @@ class HoneycombMenu extends LitElement
                     @honeycomb-ng-drag-end=${this._handleXYPad}>
                 </honeycomb-ng-xy-pad>`:''}
 
+            ${this.hasAttribute('popover') ? html`<div class="hub-shield" @click=${e=>this._menuContext.owner._handleExpansionOutside(e)}></div>`:''}
             <div id="honeycombs" class="honeycombs">
                 ${this.config.persistent_center ? html`
                     <honeycomb-persistent-control
@@ -981,10 +1007,12 @@ class HoneycombMenu extends LitElement
 
         this._scheduleIdleTimeout();
         this.requestUpdate();
+        const owner=this._menuContext && this._menuContext.owner;
+        if(owner && owner._hubExpanded && navigationCore.isHubRoot(this.config))queueMicrotask(()=>owner._fitExpansion());
     }
 
     // Geometry-only refresh: do not reset idle, rebuild navigation, or reopen actions.
-    resizeCubes(size)
+    resizeCubes(size,{preserveStack=false}={})
     {
         if(this.closing || !Number.isFinite(size) || size<=0)return;
         const ratio=size/this.sizes.item;
@@ -992,7 +1020,7 @@ class HoneycombMenu extends LitElement
         const context=this._menuContext;
         const update=config=>{if(!config)return;config.size=size*3.586;if(config.persistent_center)config.persistent_center.size=size;};
         update(this.config);
-        if(context){update(context.currentConfig);for(const entry of context.stack)update(entry.config || entry);}
+        if(context){update(context.currentConfig);if(!preserveStack)for(const entry of context.stack)update(entry.config || entry);}
         this._setCssVars();
         if(this._anchorX!==null && this._anchorY!==null)this._setPosition(this._anchorX,this._anchorY);
         this.requestUpdate();
@@ -1631,12 +1659,13 @@ class HoneycombMenu extends LitElement
         this._scheduleIdleTimeout();
     }
 
-    _scheduleIdleTimeout()
+    _scheduleIdleTimeout(minimumDelay=0)
     {
         this._clearIdleTimeout();
         if (this._menuContext && this._menuContext.info) return;
 
-        const timeout = Number(this.config && this.config.idle_timeout);
+        const hubOwner=this._menuContext && this._menuContext.owner;
+        const timeout = Number(hubOwner && hubOwner._hubExpanded ? hubOwner._collapseOptions.idle_timeout : this.config && this.config.idle_timeout);
 
         if( ! Number.isFinite(timeout) || timeout <= 0 || this.closing )
             return;
@@ -1649,6 +1678,10 @@ class HoneycombMenu extends LitElement
 
             const context = this._menuContext || manager;
 
+            if(context.owner && context.owner._hubExpanded){
+                if(context.pointers.size || context.pendingActions.size){this._scheduleIdleTimeout(250);return;}
+                context.owner._collapseHub();return;
+            }
             if( context.local === true && context.stack.length > 0 )
             {
                 // A persistent Hub never disappears on idle. Unwind nested
@@ -1666,7 +1699,7 @@ class HoneycombMenu extends LitElement
             context.stack = [];
             context.currentConfig = null;
             this.close();
-        }, Math.max(0, (Number.isFinite(this._lastInteractionAt) ? this._lastInteractionAt : Date.now()) + timeout - Date.now()));
+        }, Math.max(minimumDelay, (Number.isFinite(this._lastInteractionAt) ? this._lastInteractionAt : Date.now()) + timeout - Date.now()));
     }
 
     _playButtonSound( _item )

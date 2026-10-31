@@ -18,9 +18,8 @@ let nextFillId=0;
 const supportsColorMix=typeof CSS!=='undefined' && CSS.supports('color','color-mix(in srgb, red 80%, black)');
 const { presentationDependencies, presentationSnapshot } = require('./core/presentation-dependencies.js');
 const presentationUpdates = require('./core/presentation-updates.js');
-const { HONEYCOMB_BEE_PNG } = require('./brand/bee.generated.js');
-const buildInfo = require('./core/build-info');
-const beeVersion = require('./core/version-label').versionLabel(buildInfo.version);
+const bee=require('./core/bee');
+const beeVersion=bee.version;
 
 class CubeElement extends LitElement
 {
@@ -114,7 +113,9 @@ class CubeElement extends LitElement
             .content .icon-with-badge ha-icon { width:calc(var(--honeycomb-persistent-size,82px)*.22);height:calc(var(--honeycomb-persistent-size,82px)*.22);transform:none;flex-shrink:0;--mdc-icon-size:calc(var(--honeycomb-persistent-size,82px)*.22); }
             .power-badge { font-size:calc(var(--honeycomb-persistent-size,82px)*.12);font-weight:650;white-space:nowrap; }
             .media-background-artwork { position:absolute;left:26%;top:22%;width:48%;height:38%;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important; }
-            .interaction-surface:focus-visible { outline:2px solid var(--primary-color,#2196f3);outline-offset:-5px; }
+            .keyboard-focus { display:none;fill:none;stroke:var(--primary-color,#2196f3);stroke-width:3;stroke-linejoin:round; }
+            .keyboard-focus-halo { stroke:#fff;stroke-width:6; }
+            :host([keyboard-focus]) .keyboard-focus { display:block; }
             .interaction-surface {
                 position: absolute;
                 inset: 0;
@@ -149,8 +150,8 @@ class CubeElement extends LitElement
             }
 
             .bee-icon {
-                width: 58%;
-                height: 58%;
+                width: ${bee.ICON_PERCENT}%;
+                height: ${bee.ICON_PERCENT}%;
                 display: block;
                 object-fit: contain;
                 overflow: visible;
@@ -162,7 +163,7 @@ class CubeElement extends LitElement
                 padding-bottom:8%;box-sizing:border-box;
                 clip-path:polygon(50% 8%,92% 29%,92% 71%,50% 92%,8% 71%,8% 29%);
             }
-            .content.with-bee-version .bee-icon { width:34%;height:34%;flex-shrink:0; }
+            .content.with-bee-version .bee-icon { width:${bee.VERSION_ICON_PERCENT}%;height:${bee.VERSION_ICON_PERCENT}%;flex-shrink:0; }
             .bee-version {
                 display:flex;flex-direction:column;align-items:center;max-width:65%;
                 color:inherit;line-height:1.08;text-align:center;white-space:nowrap;
@@ -171,7 +172,7 @@ class CubeElement extends LitElement
             .bee-version span { display:block; }
 
             .bee-icon.flap {
-                animation: honeycomb-bee-flight 430ms ease-in-out;
+                animation: honeycomb-bee-flight ${bee.FLIGHT_MS}ms ease-in-out;
             }
             @media(prefers-reduced-motion:reduce) { .bee-icon.flap { animation:none; } }
 
@@ -235,7 +236,7 @@ class CubeElement extends LitElement
         this._configInputSignature = signature;
         this._presentationDependencies = null;
         this._entitySnapshot = undefined;
-        this._config = value ? merge({mode:'generic',variables:{},face_mode:'cell'}, value,
+        this._config = value ? merge({mode:'generic',variables:{},face_mode:'cell'}, bee.isBrand(value)?bee.descriptor(value,{explicitCenter:value._bee_explicit_center}):value,
             Object.keys(value).length === 0 || value.type === 'break' ? {disabled:true} : {}) : null;
         this._contentConfigDirty=true;
         this._presentationSignature = null;
@@ -278,11 +279,18 @@ class CubeElement extends LitElement
             this._localPresentationUnsubscribe=key ? presentationUpdates.subscribe(this.hass,()=>this._updatePresentation()) : null;
         }
         const presentation = this._resolvePresentation();
-        const style = key => Object.assign({}, ...(this._value((this.config.styles || {})[key], []) || []));
+        const visualConfig=presentation.visualConfig || this.config;
+        const visualValue=(value,fallback)=>{
+            if(!presentation.visualConfig)return this._value(value,fallback);
+            if(value===undefined || value===null)return fallback;
+            try{return getTemplateOrValue(this.hass || {states:{}},((this.hass || {}).states || {})[visualConfig.entity],visualConfig.variables || {},typeof value==='object'?merge(Array.isArray(value)?[]:{},value):value);}
+            catch(_){return fallback;}
+        };
+        const style = key => Object.assign({}, ...(visualValue((visualConfig.styles || {})[key], []) || []));
         const card = style('card');
-        const configured = this.config.colors || {};
+        const configured = visualConfig.colors || {};
         const color = (key, fallback) => {
-            const value = this._value(configured[key], fallback);
+            const value = visualValue(configured[key], fallback);
             return !value || value === 'auto' ? fallback : value;
         };
         const colors = {
@@ -291,7 +299,7 @@ class CubeElement extends LitElement
             outer:color('outer_border','#34383d')
         };
         const explicitSubmenuCenter=this.config._submenu && configured.center && this._value(configured.center)!=='auto';
-        if (this.config.mode === 'generic' && !explicitSubmenuCenter) {
+        if ((this.config.mode === 'generic' || bee.isBrand(this.config)) && !explicitSubmenuCenter) {
             colors.center = card.background || card['background-color'] || this._value(this.config.background, colors.center);
         }
         if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
@@ -299,11 +307,12 @@ class CubeElement extends LitElement
             ? this._value(this.config.label) : presentation.secondary;
         const fill=cubePresentation.resolveFill({colors,active:presentation.active===true,
             decorative:this.config._decorative_logo===true,
-            gradient:this._value(configured.fill_gradient,undefined),
-            explicitCenter:!!(configured.center && this._value(configured.center)!=='auto'),
-            customBackground:!!(card.background || card['background-color'] || this.config.background),
+            gradient:visualValue(configured.fill_gradient,undefined),
+            explicitCenter:!!(configured.center && visualValue(configured.center)!=='auto'),
+            customBackground:!!(card.background || card['background-color'] || visualConfig.background),
             disabled:!!(this.config.disabled || presentation.disabled),
             colorMix:supportsColorMix});
+        this._visualBorder=visualConfig.border || {};
         const model = {colors, fill, secondary,
             ...(presentation.iconBadge !== undefined ? {iconBadge:presentation.iconBadge} : {}),
             ...(presentation.labelLayout !== undefined ? {labelLayout:presentation.labelLayout} : {}),
@@ -311,11 +320,11 @@ class CubeElement extends LitElement
             ...(presentation.ariaLabel !== undefined ? {ariaLabel:presentation.ariaLabel} : {}),
             ...(presentation.disabled ? {disabled:true} : {}), artwork:presentation.artwork || null,
             name:presentation.name !== undefined ? presentation.name : this.config.show_name ? this._value(this.config.name) : '',
-            icon:this.config.show_icon === false || presentation.artwork ? null : this._value(this.config.icon, 'mdi:hexagon-outline'),
-            foreground:this._value(this.config.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
+            icon:visualConfig.show_icon === false || presentation.artwork ? null : visualValue(presentation.sourceIcon !== undefined ? presentation.sourceIcon : this.config.icon, 'mdi:hexagon-outline'),
+            foreground:visualValue(visualConfig.foreground, presentation.foreground || this._foregroundForBackground(fill.center)),
             card, grid:style('grid'), iconStyle:style('icon'), nameStyle:style('name'), labelStyle:style('label'),
-            outer:Math.max(0,Number(this._value((this.config.border || {}).outer_width,3)) || 0),
-            inner:Math.max(0,Number(this._value((this.config.border || {}).inner_width,3)) || 0)};
+            outer:Math.max(0,Number(visualValue((visualConfig.border || {}).outer_width,3)) || 0),
+            inner:Math.max(0,Number(visualValue((visualConfig.border || {}).inner_width,3)) || 0)};
         const wave=presentation.energyWave === false || this.config.energy_wave === false ? false : presentation.energyWave || this.config.energy_wave;
         const normalized=wave && Object.fromEntries(Object.entries(wave).map(([k,v])=>[k,this._value(v)]));
         const state=this._entityState();
@@ -429,6 +438,7 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        this._pointerFocus=false;this.removeAttribute('keyboard-focus');
         if(this._waveCleanup)this._waveCleanup();this._waveCleanup=null;
         if(this._imageSizingCleanup)this._imageSizingCleanup();
         this._imageSizingCleanup=null;
@@ -461,24 +471,35 @@ class CubeElement extends LitElement
     _syncImageSizing()
     {
         if(this._imageSizingCleanup){this._imageSizingCleanup();this._imageSizingCleanup=null;}
-        if(this.config && this.config.size==='auto' && this.isConnected){
+        if(this.config && this._observeImageGeometry() && this.isConnected){
             if(this._imageOriginalTranslate===undefined)this._imageOriginalTranslate=this.style.translate;
-            this._imageSizingCleanup=imageSizing.observeImage(this,({size,dx,dy,visible=true})=>{
-                if(!this.isConnected || this.config.size!=='auto')return;
+            this._imageSizingCleanup=imageSizing.observeImage(this,({size,dx,dy,visible=true,resolved=false,imageRect=null})=>{
+                if(!this.isConnected || !this._observeImageGeometry())return;
+                this._floorplanImageRect=imageRect;this._imageGeometryChanged();
+                if(this.config.size!=='auto')return;
                 // Preserve the HA -50% transform. Correct only auto percentage anchors.
                 if(!this._imageOriginalTranslate){const translate=dx||dy?`${dx}px ${dy}px`:'';if(this.style.translate!==translate)this.style.translate=translate;}
                 this._imageFrameVisible=visible;
+                this._imageAutoResolved=resolved;
                 const menu=this._menuContext && this._menuContext.honeycomb || this._autoSizedMenu;
                 if(menu && menu.isConnected)menu.style.visibility=visible?'':'hidden';
                 if(Math.abs(this.size-size)<.001)return;
                 this.size=size;this._anchorRenderedSize=null;
                 this.style.setProperty('--honeycomb-persistent-size',`${size}px`);
-                if(menu && menu.isConnected && !menu.closing && this.config.match_anchor_size!==false)menu.resizeCubes(size);
+                if(menu && menu.isConnected && !menu.closing && this.config.match_anchor_size!==false)this._resizeAutoMenu(menu,size);
                 this.requestUpdate();
             });
         }else if(this._imageOriginalTranslate!==undefined){
             this.style.translate=this._imageOriginalTranslate;this._imageOriginalTranslate=undefined;
         }
+    }
+
+    _observeImageGeometry() { return this.config && this.config.size==='auto'; }
+    _imageGeometryChanged() {}
+
+    _resizeAutoMenu(menu,size)
+    {
+        menu.resizeCubes(size);
     }
 
     _entityState()
@@ -603,19 +624,19 @@ class CubeElement extends LitElement
         return luminance > 0.42 ? '#17212b' : '#f6f7f9';
     }
 
-    _persistentMenuConfig()
+    _persistentMenuConfig(moduleMenu = null)
     {
-        if( ! this.config || ! this.config.menu )
+        if( ! this.config || (! moduleMenu && ! this.config.menu) )
             return null;
         if (['persistent','light'].includes(this.config.mode) && isOnOffOnly(this._entityState()))
             return null;
 
-        const menu = merge({}, this.config.menu);
+        const menu = merge({}, moduleMenu || this.config.menu);
 
         if( ! menu.entity )
             menu.entity = this.config.entity;
 
-        if( this.config.presets )
+        if( ! moduleMenu && this.config.presets )
             menu.presets = merge({}, this.config.presets, menu.presets || {});
 
         menu.position_mode = 'anchored';
@@ -672,15 +693,17 @@ class CubeElement extends LitElement
         // submenu depth. Do not disguise a default as an explicit card style:
         // that would override user center colors and module presentations.
 
-        const center = merge({}, this.config);
+        const center = merge({}, moduleMenu ? menu.promoted_center : this.config);
         delete center.menu;
-        center.interactive = false;
+        center.interactive = !!moduleMenu;
+        // The standalone parent is a dashboard cube, not a Back-stack entry.
+        if (moduleMenu) center.tap_action = {action:'honeycomb-close'};
         center.size = this.size;
 
         if( ! center.off )
             center.off = {};
 
-        if( this._lastKnownColor )
+        if( ! moduleMenu && this._lastKnownColor )
             center.off.preview_color = this._lastKnownColor;
 
         menu.persistent_center = center;
@@ -844,9 +867,9 @@ class CubeElement extends LitElement
         return opened;
     }
 
-    _openMenu()
+    _openMenu(moduleMenu = null)
     {
-        const menu = this._persistentMenuConfig();
+        const menu = this._persistentMenuConfig(moduleMenu);
 
         if( ! menu || typeof window.honeycombNG.open !== 'function' )
             return;
@@ -921,7 +944,7 @@ class CubeElement extends LitElement
                 this._beeFlapping = false;
                 this._beeFlapTimer = null;
                 this.requestUpdate();
-            }, 430);
+            }, bee.REVEAL_MS);
         });
     }
 
@@ -959,12 +982,19 @@ class CubeElement extends LitElement
         const actionName = action.action || 'toggle';
         const context = (this.getRootNode().host || {})._menuContext || this._menuContext;
         if (context && context.info) return;
+        if(actionName==='honeycomb-hub-expand'){if(context && context.owner)context.owner._expandHub({pointerId:this._pointerId});return;}
+        if(actionName==='honeycomb-hub-collapse'){if(context && context.owner)context.owner._collapseHub();return;}
         if (actionName === 'honeycomb-info') { window.honeycombNG.openInfoInContext(context,action.info,this); return; }
         if ((actionName === 'honeycomb-open-nested' || actionName === 'fire-dom-event') &&
             (action.honeycomb_nested_menu || action.honeycomb_menu)) {
             const nested=merge({nested_expand:true,entity:this.config.entity}, action.honeycomb_nested_menu || action.honeycomb_menu);
             nested.variables=merge({},this.config.variables || {},nested.variables || {});
-            this._openHoneycombMenu(nested);
+            // A dashboard Control has no menu scene to supply numeric size or
+            // anchor. Use its existing persistent-menu pipeline for a module
+            // child, preserving the child's own center/entity and real Back.
+            if (!context && nested.module && nested.buttons === undefined)
+                this._openMenu(require('./core/module-menu').expandModuleMenu(nested,this.hass));
+            else this._openHoneycombMenu(nested);
             return;
         }
         if (actionName === 'honeycomb-close') { window.honeycombNG.closeInContext(context); return; }
@@ -1092,7 +1122,7 @@ class CubeElement extends LitElement
         if (!this.config || !this._model) return html``;
         const m = this._model;
         // Default widths are design pixels at 82; explicit numeric widths stay pixels.
-        const border=this.config.border || {};
+        const border=this._visualBorder || this.config.border || {};
         const outer=border.outer_width===undefined?m.outer*this.size/82:m.outer;
         const inner=border.inner_width===undefined?m.inner*this.size/82:m.inner;
         const innerScale = Math.max(.55, 1-outer*2/this.size);
@@ -1100,9 +1130,9 @@ class CubeElement extends LitElement
         const points = layoutCore.persistentHexPoints('cell');
         const artwork = Object.fromEntries(Object.entries(m.card).filter(([key])=>
             key.startsWith('background-') && key !== 'background-color'));
-        const mediaBackground=['sonos','media'].includes(this.config.mode) && !!artwork['background-image'];
+        const mediaBackground=['sonos','media','sonos-join'].includes(this.config.mode) && !!artwork['background-image'];
         const showBeeVersion=(m.icon === '' || m.icon === 'honeycomb:bee') && this._beeFlapping;
-        const versionFont=Math.min(.12,.57/(Math.max(beeVersion.base.length,beeVersion.stage.length)*.65));
+        const versionFont=bee.versionFont();
         const external = this.config.custom_fields || (this.config.type &&
             !['custom:button-card','custom:honeycomb-persistent-control','custom:honeycomb-persistent-hub'].includes(this.config.type));
         this._externalContent = !!external;
@@ -1120,6 +1150,7 @@ class CubeElement extends LitElement
                     ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
                     <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
+                <g transform="translate(50 57.735) scale(.9) translate(-50 -57.735)"><polygon class="keyboard-focus keyboard-focus-halo" points=${points}></polygon><polygon class="keyboard-focus" points=${points}></polygon></g>
             </svg>
             <div class="artwork" style=${styleMap({...(!mediaBackground ? artwork : {}),transform:`scale(${centerScale})`})}>
                 ${mediaBackground ? html`<div class="media-background-artwork" style=${styleMap(artwork)}></div>` : ''}
@@ -1130,7 +1161,7 @@ class CubeElement extends LitElement
             ${external ? html`<div class="external-content"></div>` : html`
             <div class="content ${showBeeVersion ? 'with-bee-version' : ''} ${m.artwork || mediaBackground ? 'has-artwork' : ''} ${m.secondary ? 'has-secondary' : ''} ${m.name ? 'has-primary' : ''} ${m.labelLayout === 'two-row' ? 'two-row' : ''}"
                 style=${styleMap(Object.keys(m.grid).length ? {display:'grid',...m.grid} : {})}>
-                ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${HONEYCOMB_BEE_PNG} alt="" aria-hidden="true">`
+                ${m.icon === '' || m.icon === 'honeycomb:bee' ? html`<img class="bee-icon ${this._beeFlapping?'flap':''}" src=${bee.asset} alt="" aria-hidden="true">`
                     : m.iconBadge ? html`<div class="icon-with-badge"><ha-icon .icon=${m.icon}></ha-icon><span class="power-badge">${m.iconBadge}</span></div>`
                     : m.icon ? html`<ha-icon style=${styleMap({'grid-area':Object.keys(m.grid).length?'i':undefined,...m.iconStyle})} .icon=${m.icon}></ha-icon>` : ''}
                 ${showBeeVersion ? html`<span class="bee-version" role="status" aria-live="polite" aria-label=${beeVersion.text}
@@ -1140,17 +1171,23 @@ class CubeElement extends LitElement
                 ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
             </div>`}
             ${this.config.interactive !== false && !this.config.disabled ? html`
-            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${bee.isBee(this.config) ? bee.accessible(this.config,m.ariaLabel || m.name) : this.config.tap_action && this.config.tap_action.action==='honeycomb-hub-collapse' ? 'Back / Collapse Hub' : this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+                @focus=${e=>this.toggleAttribute('keyboard-focus',!this._pointerFocus && e.currentTarget.matches(':focus-visible'))}
+                @blur=${()=>{this._pointerFocus=false;this.removeAttribute('keyboard-focus');}}
                 @keydown=${e=>{
+                    this._pointerFocus=false;this.setAttribute('keyboard-focus','');
+                    if(bee.isBee(this.config) && e.altKey && e.key.toLowerCase()==='v'){e.preventDefault();this._executeAction({action:'honeycomb-bee-flap'});return;}
+                    const beeVersionHold=bee.isBee(this.config) && this.config.hold_action && this.config.hold_action.action==='honeycomb-bee-flap';
+                    const hubExpand=this.config.hold_action && this.config.hold_action.action==='honeycomb-hub-expand';
                     const zoom=(this.config.hold_action && (['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action) ||
                             (this.config.hold_action.honeycomb_nested_menu || {})._light_palette_request === 'opposite')) ||
                         (this.config.tap_action && this.config.tap_action.action==='honeycomb-light-kelvin-apply');
                     if (zoom && e.key==='Escape') {e.preventDefault();this._dispatchAction({action:'honeycomb-close'});return;}
                     if(!m.disabled && !e.repeat && ['Enter',' '].includes(e.key)) {
-                        e.preventDefault();this._executeAction(zoom && e.shiftKey ? this.config.hold_action : this.config.tap_action || {action:'toggle'});
+                        e.preventDefault();this._executeAction((zoom || hubExpand || beeVersionHold) && e.shiftKey ? this.config.hold_action : this.config.tap_action || {action:'toggle'});
                     }
                 }}
-                @pointerdown=${this._handlePointerDown} @pointermove=${this._handlePointerMove}
+                @pointerdown=${e=>{this._pointerFocus=true;this.removeAttribute('keyboard-focus');this._handlePointerDown(e);}} @pointermove=${this._handlePointerMove}
                 @pointerup=${this._handlePointerUp} @pointercancel=${this._handlePointerCancel}
                 @contextmenu=${e=>e.preventDefault()}></div>` : ''}
         </div>`;
