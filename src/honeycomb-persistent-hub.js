@@ -134,7 +134,7 @@ class HoneycombPersistentHub extends CubeElement
     }
 
     _observeImageGeometry() { return super._observeImageGeometry() || !!this._collapseOptions; }
-    _imageGeometryChanged() { if(this._hubExpanded)this._fitExpansion(); }
+    _imageGeometryChanged() { if(this._hubExpanded)this._fitExpansion();else if(this._scheduleAnchorMeasure)this._scheduleAnchorMeasure(); }
 
     _resizeAutoMenu(menu,size)
     {
@@ -166,6 +166,7 @@ class HoneycombPersistentHub extends CubeElement
             }
         };
         const schedule = () => { if (frame === null) frame=requestAnimationFrame(measure); };
+        this._scheduleAnchorMeasure=schedule;
         const resize = new ResizeObserver(schedule);
         const ancestors = new MutationObserver(schedule);
         for (let node=this;node && node !== document.body;node=node.parentElement || node.getRootNode().host) {
@@ -175,6 +176,7 @@ class HoneycombPersistentHub extends CubeElement
         window.addEventListener('resize',schedule);
         document.addEventListener('scroll',schedule,true);
         this._anchorCleanup=()=>{
+            this._scheduleAnchorMeasure=null;
             if (frame !== null) cancelAnimationFrame(frame);
             resize.disconnect(); ancestors.disconnect();
             window.removeEventListener('resize',schedule); document.removeEventListener('scroll',schedule,true);
@@ -352,7 +354,7 @@ class HoneycombPersistentHub extends CubeElement
                 menu.buttons=entries.filter(entry=>allocation.placements.has(entry.id)&&allocation.placements.get(entry.id)!==0)
                     .map(entry=>({...entry.launcher,slot:allocation.placements.get(entry.id),slot_mode:'hard',autoclose:false}));
                 if(this._collapseOptions.expanded_center==='bee') {
-                    menu.persistent_center=bee.descriptor({colors:this.config.colors,border:this.config.border,styles:this.config.styles},
+                    menu.persistent_center=bee.descriptor({colors:this.config.colors,border:this.config.border,styles:this.config.styles,background:this.config.background,foreground:this.config.foreground},
                         {collapse:true,explicitCenter:this._logoExplicitCenter});
                     menu.center_button=null;
                 } else {

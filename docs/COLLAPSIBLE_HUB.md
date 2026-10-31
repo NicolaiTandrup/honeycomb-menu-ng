@@ -54,7 +54,8 @@ it tries the original expanded root center, then a usable image-free or safely
 fitted viewport placement. Larger Radio/palette children can fit independently
 without resizing their saved parents. Back restores parent sizes, anchors and
 slots exactly; after a viewport change, the restored parent is fitted to the new
-geometry. This is shared navigation, with no Sonos/slot-specific rule.
+geometry. Info Cube keeps the caller suspended while open; returning refits it
+if the viewport changed. This is shared navigation, with no Sonos/slot-specific rule.
 
 Center is Back at the expanded root. The default keeps the primary's live visual
 appearance there; tapping it collapses instead of performing its primary action.

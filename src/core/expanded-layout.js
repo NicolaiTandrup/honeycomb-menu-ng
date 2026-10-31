@@ -43,8 +43,10 @@ function place(f,viewport,image,desired=100,previous=null) {
     return {...centerIn(f,best.size,best.region),...best};
 }
 function submenu(f,viewport,root,preferred,desired,image=null) {
-    if(fits(f,desired,preferred,viewport))return {...preferred,size:desired,reason:'selected'};
-    if(fits(f,desired,root,viewport))return {x:root.x,y:root.y,size:desired,reason:'root'};
+    const region=root.region && !['viewport','compact'].includes(root.region.key) && fittedSize(f,root.region,desired)>=desired-.001?root.region:viewport;
+    if(fits(f,desired,preferred,region))return {...preferred,size:desired,reason:'selected'};
+    if(fits(f,desired,root,region))return {x:root.x,y:root.y,size:desired,reason:'root'};
+    if(region!==viewport)return {...centerIn(f,desired,region,root),size:desired,reason:'region'};
     const alternate=place(f,viewport,image,desired,root);
     if(alternate.region.key!=='viewport')return {...alternate,reason:'region'};
     const size=fittedSize(f,viewport,desired);
@@ -56,18 +58,28 @@ function chromeElements(owner) {
         const root=node.getRootNode();if(root)roots.add(root);if(node.shadowRoot)roots.add(node.shadowRoot);
     }
     const elements=new Set();
-    for(const root of roots)if(root.querySelectorAll)for(const el of root.querySelectorAll('header,#header,#footer,.header,.toolbar,app-header,app-toolbar,ha-top-app-bar-fixed,ha-tabs,ha-sidebar,[data-honeycomb-viewport-inset]'))elements.add(el);
+    for(const root of roots)if(root.querySelectorAll)for(const el of root.querySelectorAll('header,footer,#header,#footer,.header,.toolbar,app-header,app-toolbar,ha-top-app-bar-fixed,ha-tabs,ha-sidebar,[data-honeycomb-viewport-inset]'))elements.add(el);
     return [...elements].slice(0,64);
 }
 function environment(menu,owner,image=null) {
     const v=window.visualViewport || {width:innerWidth,height:innerHeight,offsetLeft:0,offsetTop:0};
     const style=getComputedStyle(menu),safe=side=>16+(parseFloat(style.getPropertyValue('--hub-safe-'+side))||0);
     const viewport={left:v.offsetLeft+safe('left'),right:v.offsetLeft+v.width-safe('right'),top:v.offsetTop+safe('top'),bottom:v.offsetTop+v.height-safe('bottom')};
+    const chrome=[];
     for(const el of chromeElements(owner)) {
-        const css=getComputedStyle(el);if(css.display==='none'||css.visibility==='hidden'||!['fixed','sticky'].includes(css.position))continue;
-        const b=el.getBoundingClientRect();if(!b.width||!b.height)continue;
-        if(b.width>=v.width*.5){if(b.top<=v.offsetTop+1&&b.bottom>viewport.top)viewport.top=Math.min(viewport.bottom-1,b.bottom+16);if(b.bottom>=v.offsetTop+v.height-1&&b.top<viewport.bottom)viewport.bottom=Math.max(viewport.top+1,b.top-16);}
-        if(b.height>=v.height*.5){if(b.left<=v.offsetLeft+1&&b.right>viewport.left)viewport.left=Math.min(viewport.right-1,b.right+16);if(b.right>=v.offsetLeft+v.width-1&&b.left<viewport.right)viewport.right=Math.max(viewport.left+1,b.left-16);}
+        const css=getComputedStyle(el);
+        if(css.display==='none'||css.visibility==='hidden'||!(['fixed','sticky'].includes(css.position)||['app-header','ha-tabs','ha-sidebar'].includes(el.localName)))continue;
+        const box=el.getBoundingClientRect();
+        if(box.width && box.height && !(box.width>=v.width*.95 && box.height>=v.height*.95))chrome.push(box);
+    }
+    // Connected header/tab/footer bands may be stacked in either DOM order.
+    for(let pass=0;pass<4;pass++) {
+        const before=JSON.stringify(viewport);
+        for(const b of chrome) {
+            if(b.width>=v.width*.5){if(b.top<=viewport.top+1&&b.bottom>viewport.top)viewport.top=Math.min(viewport.bottom-1,b.bottom+16);if(b.bottom>=viewport.bottom-1&&b.top<=viewport.bottom)viewport.bottom=Math.max(viewport.top+1,b.top-16);}
+            if(b.height>=v.height*.5){if(b.left<=viewport.left+1&&b.right>viewport.left)viewport.left=Math.min(viewport.right-1,b.right+16);if(b.right>=viewport.right-1&&b.left<viewport.right)viewport.right=Math.max(viewport.left+1,b.left-16);}
+        }
+        if(JSON.stringify(viewport)===before)break;
     }
     return {viewport,image,key:JSON.stringify([viewport,image])};
 }

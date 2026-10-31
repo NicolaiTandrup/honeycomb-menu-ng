@@ -135,7 +135,9 @@ default is a predictable convention, not automatic knowledge of your design.
 
 `collapsible: true` keeps the compact image-relative cube but expands independently
 on phones, tablets and PCs. It reuses this image observer's visible image rectangle
-and the existing slot layout to prefer space below/above/beside the image. It fits
+and the existing slot layout to prefer space below/above/beside the image.
+Scrolling/clipping ancestors restrict the visible image rectangle; shared root
+scroll listeners also work across Home Assistant shadow-root boundaries. It fits
 the full visible group, not the scene's reserved empty rings or a single cube.
 Unsupported image geometry falls back to safe viewport placement. No second image
 observation pipeline or new floorplan calibration is introduced. See

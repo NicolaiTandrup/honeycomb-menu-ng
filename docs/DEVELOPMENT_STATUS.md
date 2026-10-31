@@ -43,14 +43,19 @@ Provisional assumption stated in commentary: retain explicit legacy false up to
 600px while default expansion and all desktop expansion remain universal. Legacy
 mobile alias/conflict validation preserved. Do not silently ignore a later reply.
 
-Validation so far: Node 448 passes / 3 existing stable-only skips; focused pure
+Validation so far: Node 449 passes / 3 existing stable-only skips; focused pure
 geometry/image clipping/Bee tests pass. Initial beta.4 reproduction recorded 27px
 expanded desktop cubes and selected Sonos anchor snap; current desktop test shows
 100px, exact promotion and Back. Existing Bee tests pass with 3s readable version.
+49-case geometry matrix rerun passes; additional stacked header/footer, shadow
+scroll/clipping and Info-rotation focused reruns pass. Explicit Bee background
+forwarding failure was resolved and all seven focused viewport cases pass.
 New seven-viewport matrix: 390x844,430x932,800x1280,1280x800,1440x900,1920x1080,
 650x900; default placement, modules, Radio, Bee and lifecycle tests in progress.
 Added sparse hard/soft/priority and nested-rotation checks. Full mandatory local
-suite RUNNING (24 groups); no final CI or publication success implied.
+suite completed (24 groups); all pre-existing groups pass. The original geometry
+group captured the resolved background failure; the complete rerun passes. Final
+exact-head CI and official HACS are PENDING; no publication implied.
 
 Evidence outside Git: /tmp/honeycomb-beta5/ (before/, before.json, current/,
 features*, radio/promotion reruns, comparison/verification.json, full/ logs).

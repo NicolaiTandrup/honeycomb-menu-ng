@@ -24,6 +24,10 @@ test('selected anchor wins by actual fit; constrained child uses root then safe 
  const r=g.submenu(f,viewport,root,{x:300,y:100},100);assert.equal(r.reason,'root');assert.deepEqual([r.x,r.y,r.size],[195,422,100]);
  const large={left:-3,right:3,top:-2,bottom:2};const shrink=g.submenu(large,viewport,root,{x:300,y:100},100);assert.equal(shrink.reason,'viewport');assert.ok(shrink.size<100);assert.ok(g.fits(large,shrink.size,shrink,viewport));
 });
+test('child preserves a usable image-free region rather than crossing its edge unnecessarily',()=>{
+ const f={left:-1.5,right:1.5,top:-1.44,bottom:1.44},root={x:195,y:620,region:{left:16,right:374,top:404,bottom:828,key:'below'}};
+ const r=g.submenu(f,viewport,root,{x:195,y:530},100);assert.equal(r.reason,'root');assert.ok(g.fits(f,r.size,r,root.region));
+});
 test('displayed image rectangle excludes contain letterboxes and clips cover outside its image/card box',()=>{
  const box={left:10,top:20,right:410,bottom:420};assert.deepEqual(displayedRect({x:0,y:100,width:400,height:200},box),{left:10,top:120,right:410,bottom:320});
  assert.deepEqual(displayedRect({x:-200,y:0,width:800,height:400},box,{left:0,top:0,right:300,bottom:500}),{left:10,top:20,right:300,bottom:420});assert.equal(displayedRect(null,box),null);
@@ -33,5 +37,5 @@ test('stable placement survives tiny viewport changes and keeps a useful previou
 });
 test('one Bee preset keeps asset, default paint and live build version while contextual action changes',()=>{
  const normal=bee.descriptor(),back=bee.descriptor({}, {collapse:true});assert.deepEqual(normal.colors,back.colors);assert.equal(normal.tap_action.action,'honeycomb-bee-flap');assert.equal(back.tap_action.action,'honeycomb-hub-collapse');assert.equal(back.hold_action.action,'honeycomb-bee-flap');assert.equal(bee.asset,require('../src/brand/bee.generated').HONEYCOMB_BEE_PNG);assert.equal(typeof bee.version.text,'string');assert.ok(bee.REVEAL_MS>=3000);
- const explicit=bee.descriptor({colors:{center:'#123456'},border:{inner_width:7}});assert.equal(explicit.colors.center,'#123456');assert.equal(explicit.colors.fill_gradient,false);assert.equal(explicit.border.inner_width,7);
+ const explicit=bee.descriptor({colors:{center:'#123456'},border:{inner_width:7}});assert.equal(explicit.colors.center,'#123456');assert.equal(explicit.colors.fill_gradient,false);assert.equal(explicit.border.inner_width,7);assert.equal(bee.descriptor({background:'#123456'}).colors.fill_gradient,false);assert.equal(bee.descriptor({styles:{card:[{'background-color':'#123456'}]}}).colors.fill_gradient,false);
 });

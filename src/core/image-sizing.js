@@ -55,6 +55,7 @@ function observeImage(host,notify) {
 }
 function createRecord(card){
     const clients=new Map();let raf=null,image=null,root=null,imageHost=null;
+    const scrollTargets=new Set([document]);for(let node=card;node;node=composedParent(node))scrollTargets.add(node.getRootNode());
     const schedule=()=>{if(raf===null)raf=requestAnimationFrame(measure);};
     const resize=new ResizeObserver(schedule),mutation=new MutationObserver(schedule);
     const observed=new Set();
@@ -76,13 +77,19 @@ function createRecord(card){
     function watchClient(host){mutation.observe(host,{attributes:true,attributeFilter:['style','class']});}
     function measure(){
         raf=null;watch();let frame=null,rect=null,rootRect=null;
+        const bounds=card.getBoundingClientRect();let clip={left:bounds.left,right:bounds.right,top:bounds.top,bottom:bounds.bottom};
         if(image && image.complete && image.naturalWidth && root){
             rect=image.getBoundingClientRect();rootRect=root.getBoundingClientRect();
             const style=getComputedStyle(image);
             // Reject borders/padding, CSS scaling/rotation/skew/mirroring.
             let supported=['paddingLeft','paddingRight','paddingTop','paddingBottom','borderLeftWidth','borderTopWidth','borderRightWidth','borderBottomWidth'].every(k=>parseFloat(style[k])===0);
             for(let n=image;n && supported;n=composedParent(n)){
-                const t=getComputedStyle(n).transform;
+                const css=getComputedStyle(n),t=css.transform;
+                if(n!==image && ['overflowX','overflowY'].some(k=>['hidden','clip','auto','scroll'].includes(css[k]))){
+                    const box=n.getBoundingClientRect();
+                    if(n.clientWidth>0 && ['hidden','clip','auto','scroll'].includes(css.overflowX)){clip.left=Math.max(clip.left,box.left+n.clientLeft);clip.right=Math.min(clip.right,box.left+n.clientLeft+n.clientWidth);}
+                    if(n.clientHeight>0 && ['hidden','clip','auto','scroll'].includes(css.overflowY)){clip.top=Math.max(clip.top,box.top+n.clientTop);clip.bottom=Math.min(clip.bottom,box.top+n.clientTop+n.clientHeight);}
+                }
                 if(t && t!=='none'){try{const m=new DOMMatrixReadOnly(t);supported=m.is2D && Math.abs(m.b)<.0001 && Math.abs(m.c)<.0001 && m.a>0 && Math.abs(m.a-1)<.0001 && Math.abs(m.d-1)<.0001;}catch(_){supported=false;}}
             }
             if(supported)frame=imageFrame({width:rect.width,height:rect.height,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight,fit:style.objectFit,objectPosition:style.objectPosition});
@@ -98,13 +105,12 @@ function createRecord(card){
                     dy=rect.top+frame.y+y*frame.height-(rootRect.top+root.clientTop+y*root.clientHeight);
                 }
             }
-            const bounds=card.getBoundingClientRect();
-            callback({imageRect:displayedRect(frame,rect,bounds),resolved:!!frame,size:effectiveSize(frame,(host.config || {}).auto_reference_width),dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
+            callback({imageRect:displayedRect(frame,rect,clip),resolved:!!frame,size:effectiveSize(frame,(host.config || {}).auto_reference_width),dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
         }
     }
     resize.observe(card);mutation.observe(card,{childList:true});
     if(card.shadowRoot)mutation.observe(card.shadowRoot,{childList:true,subtree:true});
-    window.addEventListener('resize',schedule);document.addEventListener('visibilitychange',schedule);document.addEventListener('scroll',schedule,true);
-    return {clients,schedule,watchClient,rewatch:()=>watch(true),dispose(){if(raf!==null)cancelAnimationFrame(raf);resize.disconnect();mutation.disconnect();if(image)image.removeEventListener('load',schedule);window.removeEventListener('resize',schedule);document.removeEventListener('visibilitychange',schedule);document.removeEventListener('scroll',schedule,true);}};
+    window.addEventListener('resize',schedule);document.addEventListener('visibilitychange',schedule);for(const node of scrollTargets)node.addEventListener('scroll',schedule,true);
+    return {clients,schedule,watchClient,rewatch:()=>watch(true),dispose(){if(raf!==null)cancelAnimationFrame(raf);resize.disconnect();mutation.disconnect();if(image)image.removeEventListener('load',schedule);window.removeEventListener('resize',schedule);document.removeEventListener('visibilitychange',schedule);for(const node of scrollTargets)node.removeEventListener('scroll',schedule,true);}};
 }
 module.exports={numericSize,imageFrame,displayedRect,effectiveSize,referenceWidth,DEFAULT_REFERENCE_WIDTH,observeImage,pictureCard,diagnostics:()=>({imageObservers:activeRecords})};

@@ -396,6 +396,7 @@ function dismissInfo(context, resume = true)
         menu.shadowRoot.querySelectorAll('#honeycombs,honeycomb-ng-xy-pad').forEach(node=>{node.inert=false;});
         if (resume && !menu.closing) menu._resetIdleTimeout();
     }
+    if(resume && context.owner && context.owner._hubExpanded && typeof context.owner._fitExpansion==='function')context.owner._fitExpansion();
     if (resume && context.infoFocus && context.infoFocus.isConnected) context.infoFocus.focus({preventScroll:true});
     context.infoFocus=null;
     notifyContext(context);

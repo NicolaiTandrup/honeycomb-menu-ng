@@ -12,7 +12,8 @@ function descriptor(overrides={},options={}) {
     const colors={...COLORS,...overrides.colors};
     for(const key of ['center','inner_border','outer_border'])if(!colors[key]||colors[key]==='auto')colors[key]=COLORS[key];
     const explicit=options.explicitCenter!==undefined?options.explicitCenter:!!(overrides.colors && overrides.colors.center && overrides.colors.center!=='auto');
-    if(colors.fill_gradient===undefined)colors.fill_gradient=explicit?false:{type:'radial'};
+    const background=overrides.background!==undefined || ((overrides.styles || {}).card || []).some(rule=>['background','background-color','backgroundColor'].some(key=>Object.prototype.hasOwnProperty.call(rule,key)));
+    if(colors.fill_gradient===undefined)colors.fill_gradient=explicit || background?false:{type:'radial'};
     return merge({mode:'hub',icon:'honeycomb:bee',_decorative_logo:true,interactive:true,autoclose:false,
         show_name:false,show_label:false,show_brightness:'never',show_volume:'never',face_mode:'cell',
         tap_action:{action:'honeycomb-bee-flap'},hold_action:{action:'honeycomb-bee-flap'}},overrides,{colors,_bee_explicit_center:explicit},

@@ -299,7 +299,7 @@ class CubeElement extends LitElement
             outer:color('outer_border','#34383d')
         };
         const explicitSubmenuCenter=this.config._submenu && configured.center && this._value(configured.center)!=='auto';
-        if (this.config.mode === 'generic' && !explicitSubmenuCenter) {
+        if ((this.config.mode === 'generic' || bee.isBrand(this.config)) && !explicitSubmenuCenter) {
             colors.center = card.background || card['background-color'] || this._value(this.config.background, colors.center);
         }
         if (presentation.forceColors) Object.assign(colors, presentation.forceColors);
