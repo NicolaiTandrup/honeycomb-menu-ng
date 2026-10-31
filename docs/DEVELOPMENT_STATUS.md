@@ -1,61 +1,51 @@
-# v1.10.0-beta.3 — real-HA stabilization in validation
+# v1.10.0-beta.4 — mandatory validation in progress
 
-Owner authorizes focused fixes for #146/#147/#148 and guarded beta.3 publication
-only after mandatory gates pass. No master merge, stable release or production HA.
-Branch: fix/v1.10-beta3-real-ha. Exact published beta.2 baseline:
-8bbc45af72936630c39f87c4697a0148cc38a047 (tag/release and assets independently read).
-Previous published handoff c122685 reviewed; no beta.2 work recreated/reapplied.
-Read AGENTS.md, current issues/owner comments and PR #149; GitHub API and dry-run
-push permission pass. Managed policy explicitly allows api.github.com; normal
-inherited-proxy access needs the existing authorized escalated shell.
+Owner explicitly authorizes focused fixes for #146/#147/#148/#151 and guarded
+beta.4 publication after mandatory gates. No master merge, stable promotion,
+production HA work, cleanup or unrelated development.
 
-Focused changes:
-- Climate roles reuse actual shared SUBMENU_FILL/SUBMENU_INNER/OUTER, including
-  alpha; no invented gray. No default inner width, independent center preserved.
-- Join uses each listed room's HA state/metadata/own volume, on separate readable
-  status-volume and station/title lines; visible joined checkmark and accessible
-  membership/reasons. Opening Sonos source remains visual/artwork inheritance only.
-  Missing/unavailable metadata is not substituted with launcher data or zero.
-- Collapsible Hub resolves collapsed size from the shared image-sizing result,
-  independently of temporary scene size and incidental layout-box widths. Auto
-  image updates during mobile expansion refit the overlay, not the floorplan size.
-  Both policies and original Back/timeout/anchor/lifecycle paths preserved.
-  Shared auto observer reports resolution validity; unsupported-image fallback
-  retains existing behavior. Normal non-collapsible sizing remains unchanged.
+Baseline: exact published beta.3 c50890d91b6236bd12ab07c8e0a378d1af0a7548;
+branch fix/v1.10-beta4-defaults. Previous handoff 09af0fa reviewed. GitHub API
+and push permissions verified. Read AGENTS.md, PR #150, latest issues/comments.
+Owner accepts beta.3 Android sizing; this path is preserved, no acceptance claim
+for new beta.4 behavior until owner tests actual devices.
 
-Data/provenance and acceptance boundary:
-- Owner supplied complete picture-elements YAML with the public demo floorplan,
-  size:auto, reference 1200, primary center, 100px overlay. Test fixture sanitizes
-  private IDs/names and compares an ordinary Hub on the same image. Exact public
-  image pinned to frontend commit c695f577ff088e90d83c5bb7482f30f2c5cad7c7, SHA256
-  25187fe9fdc4f9d15f28f9f57c4c26a7525c1f979f72eff689d26b0596c449ad.
-- Standard beta.2 basic auto fixture initially matched normal size. Additional
-  layout-width/containing-block regression exposes conflicting size sources;
-  complete supplied card, both center policies, Back, timeout and rotation covered.
-  Do not claim the owner's exact Android failure was reproduced from actual DOM.
-- Owner supplied a Sonos Jinja template, not its evaluated attribute values.
-  Rendered output requested asynchronously; currently unavailable. P4/4% fixture
-  is HA-shaped synthetic input based on owner observation, not a captured payload.
-  HA core Sonos source reviewed: media comes through coordinator, volume comes from
-  individual speaker. Reference commit 2e3af9ead42a9921f41b0e49bfaf5759b466945d.
-- No actual HA services/connections or private IDs committed. Fixtures alone do not
-  establish real HA/device/Android acceptance. Keep acceptance issues open.
+Changes:
+- Collapsible opt-in defaults to size:auto/logo:false; requires exactly one hard
+  slot-0 primary (no ambiguous first-item inference). Other Hub defaults unchanged.
+- Normal auto sizing keeps shared 1536px reference semantics, capped at 82px.
+  Explicit numeric sizes remain uncapped; unresolved image fallback stays 82px.
+- small_screen defaults true; mobile boolean alias retained; matching duplicate
+  settings accepted, contradictions rejected. Expanded overlay remains independent.
+- Expanded root center collapses immediately, preserving primary visuals or bee
+  policy. Separate rectangular Back removed. Nested Back/Escape follows parent
+  before collapse; original floorplan geometry restored on Back/timeout/rotation.
+- Climate explicit deltas ±1.0 and ±0.1 in reported HA unit, not step multiples.
+  Requested target must be exactly representable on min/step grid and within
+  single/dual bounds; otherwise disabled with an explicit precision/limit label.
+  Shared neutral fill, center, native services and acknowledgement guards preserved.
+- Sonos Join uses trusted existing Favorites/native Browse recognition per room,
+  including verified coordinator transport; own room volume never substituted.
+  Compact art/name/volume; state/full content accessible; concise fallback when
+  unrecognized; opening visual styling inherited, conflicting verified room source
+  wins over stale art, hidden icon/background overrides preserved.
+- Focus reproduced on exact beta.3: keyboard/programmatic focus then touch/mouse
+  on same cube retains focus-visible blue rectangular 2px outline in Chromium.
+  New SVG hex ring plus local input-modality cleanup retains keyboard navigation,
+  clears pointer focus paint and resets on detach. No global listener lifecycle.
 
-Actual checks so far: 433 Node passes, 3 existing stable-only skips. Existing 20
-beta.2 feature cases pass. New 10 regression cases plus 2 supplied-card cases pass
-in targeted runs, including shared Climate pixel comparison and explicit overrides.
-Full mandatory local suite RUNNING. HACS/package/GPL, pinned actionlint and release
-integrity checked; exact-head CI/PR, official HACS and publication are PENDING.
-Guarded release.yml, stable/retention workflows and dependencies remain unchanged.
+Focused validation: 441 Node passes with 3 existing stable-only skips; new exact
+C/F step/representability and alias tests. New 18 browser cases across phone390,
+tablet768 and desktop1800; fixed multi-Hub test overlap, focused alias pass.
+Existing assertions updated only for intentional labels/deltas/auto cap/center Back;
+service identity/group guards retained. Full mandatory local suite RUNNING; no
+publication or CI success implied. Browser plugin absent; repository Playwright
+and installed Chromium used. Fixtures/services/artwork are synthetic, not actual
+HA payloads or physical Android acceptance. Evidence /tmp/honeycomb-beta4/.
 
-Evidence outside Git: /tmp/honeycomb-beta3/ (Node/build logs, features/, supplied-card
-screenshots, full/results.json when complete). Browser plugin absent; repository
-Playwright and installed Chromium used. CI downloads checksum-pinned demo image.
-Existing local artifact redirect/CDN network limitations do not authorize bypass.
-
-Next: finish mandatory checks, create reviewable development PR and freeze final
-head; await green exact-head push/PR CI and official HACS; dispatch unchanged
-release.yml with expected_tag=v1.10.0-beta.3, exact expected_commit, publish=true.
-Independently download/verify all public assets, source/provenance/HACS metadata,
-and prior stable/master/release/tag preservation. Stop after beta.3 verification;
-write publication handoff separately without moving released feature head.
+Next: finish full local Node/Chromium/native/docs/HACS/actionlint/release-integrity
+suite; resolve failures, create development PR, freeze final source, wait for exact
+head push/PR CI and official HACS. Dispatch unchanged guarded release.yml for a new
+v1.10.0-beta.4 tag only after gates pass. Independently download/verify assets,
+commit/provenance/checksums/HACS and prior release/tag/master/stable preservation.
+Write publication handoff separately without moving released head; stop afterward.

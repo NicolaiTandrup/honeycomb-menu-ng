@@ -13,10 +13,11 @@ function resolve({hass,config}) {
     let name=model.text(value.current,value.unit||''),secondary=value.range?'Set '+model.text(value.low)+'–'+model.text(value.high,value.unit||''):'Set '+model.text(value.target,value.unit||''),disabled=false;
     if(!value.available){name='Unavailable';secondary=options.name;}
     if(role==='adjust'){
-        const multiple=config._climate_multiple;
-        name=value.step?(multiple>0?'+':'−')+model.text(Math.abs(multiple)*value.step,value.unit||''):'—';
-        secondary=value.range&&!config._climate_bound?'Select Low/High':config._climate_bound?label(config._climate_bound):multiple>0?'Raise':'Lower';
-        disabled=pending||!value.writable||!!(config._climate_bound&&!value.range)||!!(!value.range||config._climate_bound)&&!model.adjustment(value,multiple,config._climate_bound);
+        const delta=config._climate_delta;
+        name=(delta>0?'+':'−')+Math.abs(delta).toFixed(1)+(value.unit||'');
+        secondary=value.range&&!config._climate_bound?'Select Low/High':config._climate_bound?label(config._climate_bound):delta>0?'Raise':'Lower';
+        disabled=pending||!value.writable||!!(config._climate_bound&&!value.range)||!!(!value.range||config._climate_bound)&&!model.adjustment(value,delta,config._climate_bound);
+        if(disabled && !pending && value.writable && (!value.range || config._climate_bound))secondary='Step / limit unavailable';
     } else if(role==='hvac'){name=label(value.mode);secondary=value.action?label(value.action):'HVAC modes';disabled=!value.available||!value.choices.hvac.values.length;}
     else if(role==='categories'){name='Modes';secondary='Presets / Fan';disabled=!value.available||!Object.values(value.choices).some(v=>v.values.length)&&!value.defrost.entity;}
     else if(role==='category'){const choice=value.choices[config._climate_kind];name=NAMES[config._climate_kind];secondary=choice&&choice.selected?label(choice.selected):'Choose';disabled=!choice||!choice.values.length;}

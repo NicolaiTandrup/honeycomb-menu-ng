@@ -703,7 +703,6 @@ class HoneycombMenu extends LitElement
             }
             :host([popover])::backdrop {background:rgba(0,0,0,.55);pointer-events:auto !important;}
             .hub-shield {position:fixed;inset:0;pointer-events:all;z-index:-1;}
-            .hub-collapse {position:absolute;left:50%;bottom:100%;transform:translateX(-50%);min-width:64px;min-height:44px;z-index:10;border:1px solid #858b94;border-radius:12px;background:#202224;color:white;font:inherit;cursor:pointer;}
             .shade {
                 position: fixed;
                 top: 0;
@@ -807,7 +806,6 @@ class HoneycombMenu extends LitElement
                 </honeycomb-ng-xy-pad>`:''}
 
             ${this.hasAttribute('popover') ? html`<div class="hub-shield" @click=${()=>this._menuContext.owner._collapseHub()}></div>`:''}
-            ${this._menuContext && this._menuContext.owner && this._menuContext.owner._hubExpanded ? html`<button class="hub-collapse" aria-label="Collapse Hub" @click=${()=>this._menuContext.owner._collapseHub()}>Back</button>`:''}
             <div id="honeycombs" class="honeycombs">
                 ${this.config.persistent_center ? html`
                     <honeycomb-persistent-control

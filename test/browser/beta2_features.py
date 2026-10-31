@@ -24,7 +24,7 @@ class Beta2(Cubes):
   self.expand();self.assertEqual(self.page.evaluate('calls.length'),1);self.assert_visible_unique_cells(2);self.capture('hub-expanded')
   if self.viewport['width']<500:
    self.assertTrue(self.page.locator('honeycomb-menu-ng').evaluate("e=>e.matches(':popover-open')"));self.assertGreater(self.cell().bounding_box()['width'],80)
-  self.page.locator('.hub-collapse').click();self.settle();self.assert_visible_unique_cells(1);self.assertFalse(self.page.evaluate('hub._hubExpanded'))
+  self.cell().locator('.interaction-surface').click();self.settle();self.assert_visible_unique_cells(1);self.assertFalse(self.page.evaluate('hub._hubExpanded'))
   self.assertAlmostEqual(self.cell().bounding_box()['width'],41,delta=.2)
   self.page.evaluate("pushState('light.zone_a','off',{brightness:0})");self.settle();self.assertEqual(self.cell().locator('.secondary').inner_text(),'OFF')
  def test_bee_allocation_nested_back_timeout_and_cleanup(self):
@@ -54,9 +54,9 @@ class Beta2(Cubes):
   self.activate(self.cell(6).locator('.interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)[3].entity_id'),'climate.room_a')
  def test_sonos_join_own_volume_live_content_and_source_gradient(self):
   self.sonos_open();self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.settle()
-  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'Idle · 20%');self.assertIn('Joined',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
+  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'20%');self.assertIn('Joined',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
   self.page.evaluate("pushState('media_player.player_b','paused',{volume_level:.13,group_members:['media_player.player_a','media_player.player_b'],media_title:'Synthetic track'})");self.settle()
-  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'Paused · 13%');self.assertIn('Synthetic track',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
+  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'13%');self.assertIn('Synthetic track',self.cell(7).locator('.interaction-surface').get_attribute('aria-label'))
   source=self.cell().evaluate('e=>e._model.colors');self.assertEqual(self.cell(7).evaluate('e=>e._model.colors'),source)
   self.capture('sonos-after');self.activate(self.cell(7).locator('.interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)[0]'),'script')
 
@@ -66,7 +66,7 @@ class Beta2(Cubes):
   self.page.evaluate('hubA._expandHub()');self.settle();self.assertTrue(self.page.evaluate('hubA._hubExpanded'));self.assertFalse(self.page.evaluate('!!hubB._hubExpanded'))
   self.page.evaluate('hubA._collapseHub();hubB.remove()');self.settle()
   surface=self.cell().locator('.interaction-surface');surface.focus();surface.press('Shift+Enter');self.settle();self.assertTrue(self.page.evaluate('hubA._hubExpanded'))
-  self.page.locator('.hub-collapse').focus();self.page.locator('.hub-collapse').press('Enter');self.settle();self.assertFalse(self.page.evaluate('hubA._hubExpanded'));surface.focus();surface.press('Shift+Enter');self.settle()
+  self.page.locator('honeycomb-menu-ng .center-item .interaction-surface').focus();self.page.locator('honeycomb-menu-ng .center-item .interaction-surface').press('Enter');self.settle();self.assertFalse(self.page.evaluate('hubA._hubExpanded'));surface.focus();surface.press('Shift+Enter');self.settle()
   self.page.evaluate('hubA.setConfig({...hubA.config,collapsible:false})');self.settle();self.assertFalse(self.page.evaluate('hubA._hubExpanded'));self.assertEqual(self.page.locator('[popover]').count(),0);self.assert_visible_unique_cells(2)
   self.page.evaluate('hubA.preview=true');self.hold_input(surface);self.settle();self.assertEqual(self.page.evaluate('calls.length'),0)
  def test_join_artwork_gradient_alpha_border_and_live_source_changes(self):
@@ -78,7 +78,7 @@ class Beta2(Cubes):
   self.capture('sonos-artwork-after')
   self.page.evaluate("stationUpdate('playing',{media_content_id:'favorite_c'});pushState('media_player.player_b','idle',{volume_level:.07,group_members:['media_player.player_a','media_player.player_b']})");self.settle()
   self.page.wait_for_function("hub._hubMenu.shadowRoot.querySelector('[data-honeycomb-slot=\"6\"]')._model.artwork?.url==='/station-c.svg'")
-  self.assertEqual(room.locator('.secondary').inner_text(),'Idle · 7%')
+  self.assertEqual(room.locator('.secondary').inner_text(),'7%')
 
  def test_mobile_expanded_Info_stays_above_overlay_and_returns_to_same_scene(self):
   self.hub(self.config());self.expand();self.page.evaluate("ng.openInfoInContext(hub._menuContext,{title:'Room information',text:'Synthetic room details',colors:{center:'source'}})")
@@ -90,7 +90,7 @@ class Beta2(Cubes):
  def test_join_honors_source_hidden_icon_policy(self):
   self.sonos_open({**self.sonos_item(),'show_icon':False});self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.settle()
   self.assertEqual(self.cell().locator('ha-icon,.station-artwork').count(),0);self.assertEqual(self.cell(7).locator('ha-icon,.station-artwork').count(),0)
-  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'Idle · 20%')
+  self.assertEqual(self.cell(7).locator('.secondary').inner_text(),'20%')
 
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--bundle',type=Path,required=True);parser.add_argument('--button-card',type=Path,required=True);parser.add_argument('--evidence-dir',type=Path,required=True);parser.add_argument('--test-filter');args=parser.parse_args();args.evidence_dir.mkdir(parents=True,exist_ok=True)

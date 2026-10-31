@@ -14,12 +14,12 @@ function main(options,bound=null) {
     const menu=base(options,'main',bound);menu.idle_timeout=8000;
     menu.promoted_center.hold_action=openAction('targets');
     menu.buttons=[
-        face(options,'adjust',{slot:1,slot_mode:'hard',icon:'mdi:chevron-double-up',_climate_multiple:2,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',multiple:2,bound}}),
+        face(options,'adjust',{slot:1,slot_mode:'hard',icon:'mdi:chevron-double-up',_climate_delta:1.0,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',delta:1.0,bound}}),
         face(options,'hvac',{slot:2,slot_mode:'hard',tap_action:openAction('hvac')}),
         face(options,'categories',{slot:3,slot_mode:'hard',icon:'mdi:tune',tap_action:openAction('categories')}),
-        face(options,'adjust',{slot:4,slot_mode:'hard',icon:'mdi:chevron-double-down',_climate_multiple:-2,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',multiple:-2,bound}}),
-        face(options,'adjust',{slot:5,slot_mode:'hard',icon:'mdi:minus',_climate_multiple:-1,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',multiple:-1,bound}}),
-        face(options,'adjust',{slot:6,slot_mode:'hard',icon:'mdi:plus',_climate_multiple:1,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',multiple:1,bound}})
+        face(options,'adjust',{slot:4,slot_mode:'hard',icon:'mdi:chevron-double-down',_climate_delta:-1.0,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',delta:-1.0,bound}}),
+        face(options,'adjust',{slot:5,slot_mode:'hard',icon:'mdi:minus',_climate_delta:-0.1,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',delta:-0.1,bound}}),
+        face(options,'adjust',{slot:6,slot_mode:'hard',icon:'mdi:plus',_climate_delta:0.1,_climate_bound:bound,tap_action:{action:'honeycomb-climate-adjust',delta:0.1,bound}})
     ];return menu;
 }
 function build(options,value,view) {

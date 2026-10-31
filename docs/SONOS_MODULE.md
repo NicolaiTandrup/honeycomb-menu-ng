@@ -134,20 +134,19 @@ inherit configurable idle-close (8000 ms default, explicit zero disables it).
 Hub `persistent.menu.idle_timeout` and standalone `menu.idle_timeout` may override it.
 Only real interaction resets idle; passive HA updates, metadata refresh and asynchronous room discovery do not. Late results cannot create ghost menus or stuck overlays.
 
-## beta.3 Join room presentation
+## beta.4 Join room presentation
 
-Each room shows its actual HA playback state and individual volume on a readable
-line (for example, `Playing · 4%`), with station/title on a separate line. A
-checkmark beside its name visibly marks Joined membership; the accessible label
-also names membership and grouping failure reasons. Missing volume is not treated
-as zero. Unavailable devices do not display stale media/volume as current data.
+Recognized station artwork is compact, above the room name and its individual
+volume percentage. Two P4 rooms at 1% and 4% retain their own volumes. Playing,
+Paused, Idle and Unavailable status and full available content remain in the
+accessible label/title. Joined rooms have a small checkmark by their name.
 
-HA Sonos exposes coordinator media through each room entity, while `volume_level`
-is per speaker. Join reads the listed room's attributes for status/content/volume;
-it never substitutes the opening Sonos entity's volume or content. Artwork,
-colors, borders and gradients still inherit from that opening Sonos cube when
-joined. Live group/media updates refresh the existing shared renderer.
-
-The owner-reported P4/4% case is covered by synthetic HA-shaped fixtures, not a
-recording of the owner's system. No station is inferred from a room name or raw
-content URI. Actual device acceptance is separate from automated tests.
+Recognition reuses the trusted Favorites map and native Browse metadata, including
+verified coordinator membership. Unjoined rooms use their own recognized source.
+Joined rooms inherit opening-source colors, borders, gradients and transparency;
+matching verified station artwork comes from that source. A conflicting verified
+room station wins over stale opening artwork. No fuzzy title match, guessed P4,
+stream scraping or substitution of coordinator volume is used. Without reliable
+artwork, a concise available station/title line is shown. Missing volume is “—”;
+unavailable rooms clear stale artwork/content. Hidden icons and custom backgrounds
+remain respected. Grouping, Radio/Favorites, Sleep and Back contracts are unchanged.

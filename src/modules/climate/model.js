@@ -35,10 +35,12 @@ function state(hass,options) {
     return {options,source,available,features,unit,step,minimum,maximum,low,high,target,range,current:numeric(a.current_temperature),action:source&&source.state==='off'?'off':a.hvac_action||null,mode:source&&source.state,choices,defrost,
         writable:!!(available&&options.interactive&&validBounds&&validTarget&&hasService(hass,'climate','set_temperature'))};
 }
-function adjustment(value,multiple,bound) {
-    if(!value.writable||![-2,-1,1,2].includes(multiple)||value.range&&!['low','high'].includes(bound))return null;
+function adjustment(value,delta,bound) {
+    if(!value.writable||![-1,-.1,.1,1].includes(delta)||value.range&&!['low','high'].includes(bound))return null;
     const current=value.range?value[bound]:value.target;
-    const next=Number((value.minimum+Math.round((current+multiple*value.step-value.minimum)/value.step)*value.step).toFixed(6));
+    const requested=current+delta;
+    const next=Number((value.minimum+Math.round((requested-value.minimum)/value.step)*value.step).toFixed(6));
+    if(Math.abs(next-requested)>1e-6)return null;
     if(next<value.minimum-1e-6||next>value.maximum+1e-6||Math.abs(next-current)<1e-6||value.range&&(bound==='low'?next>value.high:next<value.low))return null;
     return value.range?{target_temp_low:bound==='low'?next:value.low,target_temp_high:bound==='high'?next:value.high}:{temperature:next};
 }

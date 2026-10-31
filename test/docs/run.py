@@ -136,6 +136,8 @@ def fragment(config,where):
     elif set(config)<={'presets'} or set(config)<=SONOS:
         return {'type':'custom:honeycomb-persistent-control','module':'light' if 'presets' in config else 'sonos',
                 'entity':'light.zone_a' if 'presets' in config else 'media_player.player_a',**config}
+    elif 'collapsible' in config:
+        return {'type':'custom:honeycomb-persistent-hub','items':[{'type':'light','entity':'light.zone_a','slot':0}],**config}
     elif 'visibility' in config:
         return {'type':'custom:honeycomb-persistent-hub','items':[{'type':'generic','entity':'sensor.value_a',**config}]}
     elif 'input_number' in config:
@@ -299,10 +301,10 @@ class Examples(BROWSER.Cubes):
         self.assertEqual(self.page.evaluate('calls[0]'),['homeassistant','toggle',{}, {'entity_id':'light.switch_a'}])
         self.capture('docs-onoff')
     def climate_seed(self):
-        self.page.evaluate("()=>{hass.config={unit_system:{temperature:'°C'}};hass.services.climate={set_temperature:{},set_hvac_mode:{}};for(const entity of ['climate.room_a','climate.room_b'])pushState(entity,'heat',{supported_features:1,current_temperature:20.2,temperature:21,min_temp:7,max_temp:35,target_temp_step:.5,hvac_modes:['off','heat'],hvac_action:'heating'})}")
+        self.page.evaluate("()=>{hass.config={unit_system:{temperature:'°C'}};hass.services.climate={set_temperature:{},set_hvac_mode:{}};for(const entity of ['climate.room_a','climate.room_b'])pushState(entity,'heat',{supported_features:1,current_temperature:20.2,temperature:21,min_temp:7,max_temp:35,target_temp_step:.1,hvac_modes:['off','heat'],hvac_action:'heating'})}")
     def test_docs_climate_Hub_Control_and_exact_service(self):
         self.climate_seed();self.hub(load((ROOT/'examples/climate-hub.yaml').read_text()));self.assert_visible_unique_cells(2);self.activate(self.page.locator('honeycomb-menu-ng .center-item .interaction-surface'));self.settle();self.assertEqual(self.page.locator('honeycomb-menu-ng .center-item .primary').inner_text(),'20.2°C');self.capture('docs-climate-Hub');self.page.evaluate('hub.remove()')
-        self.page.evaluate('config=>makeControl(config)',load((ROOT/'examples/climate-control.yaml').read_text()));self.activate(self.page.locator('body > honeycomb-persistent-control .interaction-surface'));self.settle();self.activate(self.page.locator('honeycomb-menu-ng [data-honeycomb-slot="5"] .interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)'),['climate','set_temperature',{'temperature':21.5},{'entity_id':'climate.room_a'}]);self.capture('docs-climate-Control')
+        self.page.evaluate('config=>makeControl(config)',load((ROOT/'examples/climate-control.yaml').read_text()));self.activate(self.page.locator('body > honeycomb-persistent-control .interaction-surface'));self.settle();self.activate(self.page.locator('honeycomb-menu-ng [data-honeycomb-slot="5"] .interaction-surface'));self.assertEqual(self.page.evaluate('calls.at(-1)'),['climate','set_temperature',{'temperature':21.1},{'entity_id':'climate.room_a'}]);self.capture('docs-climate-Control')
     def test_docs_climate_nested_entity_and_one_level_Back(self):
         self.climate_seed();self.hub(load((ROOT/'examples/climate-nested.yaml').read_text()));self.activate(self.page.locator('honeycomb-menu-ng .center-item .interaction-surface'));self.settle();self.activate(self.page.locator('honeycomb-menu-ng [data-honeycomb-slot="0"] .interaction-surface'));self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.currentConfig.entity'),'climate.room_b');self.assertEqual(self.page.evaluate('calls.length'),0);self.capture('docs-climate-nested');self.back();self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.currentConfig.entity'),'sensor.value_a');self.back();self.settle();self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0)
         self.page.evaluate('hub.remove()');self.page.evaluate('config=>makeControl(config)',load((ROOT/'examples/climate-nested-control.yaml').read_text()));source=self.page.locator('body > honeycomb-persistent-control');self.activate(source.locator('.interaction-surface'));self.settle();self.assertAlmostEqual(self.page.locator('honeycomb-menu-ng .center-item').bounding_box()['width'],82,delta=.05);self.assertEqual(self.page.locator('honeycomb-menu-ng .center-item .primary').inner_text(),'20.2°C');self.assertEqual(self.page.evaluate('calls.length'),0);self.activate(self.page.locator('honeycomb-menu-ng .center-item .interaction-surface'));self.page.wait_for_selector('honeycomb-menu-ng',state='detached');self.assertTrue(source.is_visible())
@@ -324,6 +326,9 @@ def main():
     cards=[{'source':f'examples/v1.7/{name}','config':config} for name,config in examples.items()]
     for name in ('persistent-hub.yaml','light-presets.yaml','presentation-light.yaml','sonos-native-favorites.yaml','energy-wave.yaml','energy-wave-power.yaml','energy-wave-color.yaml','climate-hub.yaml','climate-control.yaml','climate-nested.yaml','climate-nested-control.yaml','collapsible-hub.yaml','collapsible-hub-bee.yaml','collapsible-hub-auto.yaml'):
         cards.append({'source':f'examples/{name}','config':load((ROOT/'examples'/name).read_text())})
+    picture=load((ROOT/'examples/collapsible-picture-elements.yaml').read_text())
+    fragment(picture,'examples/collapsible-picture-elements.yaml')
+    cards.extend({'source':'examples/collapsible-picture-elements.yaml element','config':element} for element in picture['elements'])
     for name,count in [('charger-easee.yaml',1),('charger-multi.yaml',2)]:
         dashboard=load((ROOT/'examples'/name).read_text())
         assert dashboard['views'][0]['panel'] is True

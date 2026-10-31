@@ -10,7 +10,7 @@ style:
 collapsible:
   expanded_center: bee
   primary_slot: 1
-  mobile: true
+  small_screen: true
   expanded_size: 100
   idle_timeout: 30000
 items:

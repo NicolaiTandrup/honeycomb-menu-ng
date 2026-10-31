@@ -1,3 +1,25 @@
+# Honeycomb NG v1.10.0-beta.4 — minimal room controls
+
+Cumulative from exact published beta.3. Hubs without collapsible keep their
+existing defaults; explicit numeric sizes retain their meaning.
+
+- `collapsible: true` defaults to responsive floorplan sizing, small-screen
+  enlargement and 30-second inactivity collapse. Root center is Back; no separate
+  Back rectangle. Both primary and bee center policies remain supported.
+- Normal `size: auto` cubes cap at 82px. Overlay sizing is independent. New
+  `small_screen` setting retains legacy `mobile`; contradictory values fail.
+- Join uses trusted Favorites/native Browse station artwork, compact room name
+  and individual volume. Playback/full content remain accessible; joined source
+  styling, hidden icons and grouping behavior are preserved.
+- Climate upper slots request ±1.0°, lower slots ±0.1°, in HA's native temperature
+  unit. Unrepresentable deltas and limits disable the action instead of rounding.
+- Keyboard focus follows the hex; mouse/touch clear focus paint. No accessibility
+  or keyboard navigation removal.
+
+Chromium phone/tablet/desktop tests use synthetic HA states, not physical Android
+acceptance. Modern Popover API, ordinary anchored-menu and very-large-Hub limits
+remain. No master merge, stable publication or production Home Assistant changes.
+
 # Honeycomb NG v1.10.0-beta.3 — Real-HA stabilization
 
 Focused fixes over exact published beta.2 `8bbc45af72936630c39f87c4697a0148cc38a047`.

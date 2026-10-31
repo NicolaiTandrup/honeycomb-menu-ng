@@ -37,10 +37,10 @@ async function command(context) {
     const prior=recordFor(hass,value);if(prior&&['sending','pending'].includes(prior.phase))return false;
     let domain='climate',service,data={},target=options.entity,expected={};
     if(actionConfig.action==='honeycomb-climate-adjust') {
-        if(itemConfig._climate_role!=='adjust'||actionConfig.multiple!==itemConfig._climate_multiple||actionConfig.bound!==itemConfig._climate_bound)return false;
+        if(itemConfig._climate_role!=='adjust'||actionConfig.delta!==itemConfig._climate_delta||actionConfig.bound!==itemConfig._climate_bound)return false;
         if(value.range&&!actionConfig.bound)return open({...context,actionConfig:{view:'targets'}});
         if(!value.range&&actionConfig.bound)return false;
-        data=model.adjustment(value,actionConfig.multiple,actionConfig.bound);if(!data)return false;
+        data=model.adjustment(value,actionConfig.delta,actionConfig.bound);if(!data)return false;
         service='set_temperature';expected={...data};
     } else {
         const kind=actionConfig.kind;

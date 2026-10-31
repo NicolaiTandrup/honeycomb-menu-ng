@@ -142,6 +142,8 @@ jobs:
       - name: Verify beta.3 real-HA regression classes and mobile auto-size lifecycle
         run: python test/browser/beta3_real_ha.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --floorplan "$RUNNER_TEMP/floorplan.png" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta3-real-ha"
 
+      - name: Verify beta.4 minimal defaults, center Back, P4 volume and accessible hex focus
+        run: python test/browser/beta4_defaults.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta4-defaults"
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

@@ -114,7 +114,9 @@ class CubeElement extends LitElement
             .content .icon-with-badge ha-icon { width:calc(var(--honeycomb-persistent-size,82px)*.22);height:calc(var(--honeycomb-persistent-size,82px)*.22);transform:none;flex-shrink:0;--mdc-icon-size:calc(var(--honeycomb-persistent-size,82px)*.22); }
             .power-badge { font-size:calc(var(--honeycomb-persistent-size,82px)*.12);font-weight:650;white-space:nowrap; }
             .media-background-artwork { position:absolute;left:26%;top:22%;width:48%;height:38%;background-position:center!important;background-repeat:no-repeat!important;background-size:contain!important; }
-            .interaction-surface:focus-visible { outline:2px solid var(--primary-color,#2196f3);outline-offset:-5px; }
+            .keyboard-focus { display:none;fill:none;stroke:var(--primary-color,#2196f3);stroke-width:3;stroke-linejoin:round; }
+            .keyboard-focus-halo { stroke:#fff;stroke-width:6; }
+            :host([keyboard-focus]) .keyboard-focus { display:block; }
             .interaction-surface {
                 position: absolute;
                 inset: 0;
@@ -437,6 +439,7 @@ class CubeElement extends LitElement
     disconnectedCallback()
     {
         super.disconnectedCallback();
+        this.removeAttribute('keyboard-focus');
         if(this._waveCleanup)this._waveCleanup();this._waveCleanup=null;
         if(this._imageSizingCleanup)this._imageSizingCleanup();
         this._imageSizingCleanup=null;
@@ -1143,6 +1146,7 @@ class CubeElement extends LitElement
                     ${m.energyWave ? svg`<defs><clipPath id=${this._fillId+'-wave'}><polygon points=${points}></polygon></clipPath></defs>
                     <g clip-path=${`url(#${this._fillId}-wave)`}><polygon class="energy-contour" points=${points} fill="none" stroke="currentColor" style=${styleMap({color:m.energyWaveColor})} stroke-width="6" stroke-linejoin="round"></polygon></g>` : ''}
                 </g>
+                <g transform="translate(50 57.735) scale(.9) translate(-50 -57.735)"><polygon class="keyboard-focus keyboard-focus-halo" points=${points}></polygon><polygon class="keyboard-focus" points=${points}></polygon></g>
             </svg>
             <div class="artwork" style=${styleMap({...(!mediaBackground ? artwork : {}),transform:`scale(${centerScale})`})}>
                 ${mediaBackground ? html`<div class="media-background-artwork" style=${styleMap(artwork)}></div>` : ''}
@@ -1163,8 +1167,11 @@ class CubeElement extends LitElement
                 ${m.tertiary ? html`<div class="tertiary">${m.tertiary}</div>` : ''}
             </div>`}
             ${this.config.interactive !== false && !this.config.disabled ? html`
-            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+            <div class="interaction-surface" role="button" tabindex=${m.disabled ? -1 : 0} aria-disabled=${m.disabled ? "true" : "false"} title=${m.ariaLabel || ''} aria-label=${this.config.tap_action && this.config.tap_action.action==='honeycomb-hub-collapse' ? 'Back / Collapse Hub' : this.config.tap_action && this.config.tap_action.action==='honeycomb-back' ? 'Back' : m.ariaLabel || m.name || this._value(this.config.name,'') || String(m.secondary || this.config.entity || 'Honeycomb')}
+                @focus=${e=>this.toggleAttribute('keyboard-focus',!this._pointerFocus && e.currentTarget.matches(':focus-visible'))}
+                @blur=${()=>{this._pointerFocus=false;this.removeAttribute('keyboard-focus');}}
                 @keydown=${e=>{
+                    this._pointerFocus=false;this.setAttribute('keyboard-focus','');
                     const hubExpand=this.config.hold_action && this.config.hold_action.action==='honeycomb-hub-expand';
                     const zoom=(this.config.hold_action && (['honeycomb-light-color-zoom','honeycomb-light-kelvin-zoom'].includes(this.config.hold_action.action) ||
                             (this.config.hold_action.honeycomb_nested_menu || {})._light_palette_request === 'opposite')) ||
@@ -1174,7 +1181,7 @@ class CubeElement extends LitElement
                         e.preventDefault();this._executeAction((zoom || hubExpand) && e.shiftKey ? this.config.hold_action : this.config.tap_action || {action:'toggle'});
                     }
                 }}
-                @pointerdown=${this._handlePointerDown} @pointermove=${this._handlePointerMove}
+                @pointerdown=${e=>{this._pointerFocus=true;this.removeAttribute('keyboard-focus');this._handlePointerDown(e);}} @pointermove=${this._handlePointerMove}
                 @pointerup=${this._handlePointerUp} @pointercancel=${this._handlePointerCancel}
                 @contextmenu=${e=>e.preventDefault()}></div>` : ''}
         </div>`;

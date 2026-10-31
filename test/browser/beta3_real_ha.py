@@ -28,7 +28,7 @@ class Beta3(Cubes):
    self.setup_floor(policy,True);before=self.assert_collapsed();self.capture('collapsed-'+policy)
    self.hold_input(self.cell().locator('.interaction-surface'));self.settle();self.assertTrue(self.page.evaluate('hub._hubExpanded'));self.assertEqual(self.page.evaluate('calls.length'),0);self.capture('expanded-'+policy)
    if self.viewport['width']<500:self.assertGreaterEqual(self.cell().bounding_box()['width'],80)
-   self.page.wait_for_timeout(550);self.page.locator('.hub-collapse').click();self.settle();after=self.assert_collapsed();self.assertAlmostEqual(after['center']['width'],before['center']['width'],delta=.12);self.capture('collapsed-again-'+policy)
+   self.page.wait_for_timeout(550);self.page.locator('honeycomb-menu-ng').first.locator('.center-item .interaction-surface').click();self.settle();after=self.assert_collapsed();self.assertAlmostEqual(after['center']['width'],before['center']['width'],delta=.12);self.capture('collapsed-again-'+policy)
    for axis in ['x','y']:self.assertAlmostEqual(after['center'][axis],before['center'][axis],delta=.15)
    self.page.evaluate('hub.remove();reference.remove();floor.remove();calls.length=0')
  def test_resize_while_expanded_then_rotation_and_timeout_restore_current_auto_size(self):
@@ -61,8 +61,8 @@ class Beta3(Cubes):
  def test_room_P4_four_percent_joined_and_unjoined_no_source_metadata_substitution(self):
   self.sonos_open();self.page.evaluate("pushState('media_player.player_b','playing',{friendly_name:'Room B',media_channel:'P4',media_title:'DR P4 — synthetic programme',media_content_id:'x-sonosapi-radio:synthetic',volume_level:.04,group_members:['media_player.player_b']});pushState('media_player.player_a','playing',{...hass.states['media_player.player_a'].attributes,group_members:['media_player.player_a'],volume_level:.89,media_channel:'Other station'})")
   self.activate(self.sonos_slot(3).locator('.interaction-surface'));self.settle()
-  room=self.cell(7);self.assertEqual(room.locator('.secondary').inner_text(),'Playing · 4%');self.assertTrue(room.locator('.tertiary').inner_text().startswith('P4'));self.assertNotIn('89%',room.inner_text());self.assertTrue(room.locator('.secondary').evaluate('e=>e.scrollWidth<=e.clientWidth+1'));self.capture('sonos-P4-unjoined')
-  self.page.evaluate("pushState('media_player.player_a','playing',{...hass.states['media_player.player_a'].attributes,group_members:['media_player.player_a','media_player.player_b']});pushState('media_player.player_b','playing',{...hass.states['media_player.player_b'].attributes,group_members:['media_player.player_a','media_player.player_b']})");self.settle();self.assertTrue(room.locator('.primary').inner_text().startswith('✓ '));self.assertEqual(room.locator('.secondary').inner_text(),'Playing · 4%');self.capture('sonos-P4-joined')
+  room=self.cell(7);self.assertEqual(room.locator('.secondary').inner_text(),'4%');self.assertTrue(room.locator('.tertiary').inner_text().startswith('P4'));self.assertNotIn('89%',room.inner_text());self.assertTrue(room.locator('.secondary').evaluate('e=>e.scrollWidth<=e.clientWidth+1'));self.capture('sonos-P4-unjoined')
+  self.page.evaluate("pushState('media_player.player_a','playing',{...hass.states['media_player.player_a'].attributes,group_members:['media_player.player_a','media_player.player_b']});pushState('media_player.player_b','playing',{...hass.states['media_player.player_b'].attributes,group_members:['media_player.player_a','media_player.player_b']})");self.settle();self.assertTrue(room.locator('.primary').inner_text().startswith('✓ '));self.assertEqual(room.locator('.secondary').inner_text(),'4%');self.capture('sonos-P4-joined')
   self.page.evaluate("pushState('media_player.player_b','unavailable',{...hass.states['media_player.player_b'].attributes})");self.settle();self.assertEqual(room.locator('.secondary').inner_text(),'Unavailable');self.assertEqual(room.locator('.tertiary').count(),0)
 
  def test_supplied_complete_picture_elements_card_and_normal_Hub_comparison(self):
@@ -82,7 +82,7 @@ class Beta3(Cubes):
   read="()=>({primary:hub._hubMenu.shadowRoot.querySelector('.center-item').getBoundingClientRect().toJSON(),normal:normal._hubMenu.shadowRoot.querySelector('.center-item').getBoundingClientRect().toJSON(),numeric:hub.size})"
   before=self.page.evaluate(read);self.assertAlmostEqual(before['primary']['width'],before['normal']['width'],delta=.12);self.assertAlmostEqual(before['primary']['width'],before['numeric'],delta=.12);self.capture('supplied-card-collapsed')
   self.hold_input(self.page.locator('honeycomb-menu-ng').first.locator('.center-item .interaction-surface'));self.settle();self.assertTrue(self.page.evaluate('hub._hubExpanded'));self.capture('supplied-card-expanded')
-  self.page.wait_for_timeout(550);self.page.locator('.hub-collapse').click();self.settle();after=self.page.evaluate(read)
+  self.page.wait_for_timeout(550);self.page.locator('honeycomb-menu-ng').first.locator('.center-item .interaction-surface').click();self.settle();after=self.page.evaluate(read)
   for key in ['x','y','width','height']:self.assertAlmostEqual(after['primary'][key],before['primary'][key],delta=.15)
   self.assertAlmostEqual(after['primary']['width'],after['normal']['width'],delta=.12);self.assertEqual(self.page.evaluate('calls.length'),0);self.capture('supplied-card-collapsed-again')
 

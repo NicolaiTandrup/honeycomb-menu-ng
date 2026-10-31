@@ -10,7 +10,7 @@ const presentation=require('../src/modules/climate/presentation');
 const entity='climate.room_a';
 function fixture(extra={}){
  const connection=new EventTarget();connection.connected=true;
- const hass={connection,config:{unit_system:{temperature:'°C'}},entities:{},states:{[entity]:{entity_id:entity,state:'heat',attributes:{supported_features:1|8|16|32|512,temperature_unit:'°C',current_temperature:20.2,temperature:21,min_temp:7,max_temp:35,target_temp_step:.5,hvac_action:'heating',hvac_modes:['off','heat','cool','heat_cool'],fan_modes:['auto','low','high'],fan_mode:'auto',preset_modes:['eco','comfort'],preset_mode:'eco',swing_modes:['off','on'],swing_horizontal_modes:['off','on'],...extra}}},services:{climate:Object.fromEntries(['set_temperature','set_hvac_mode','set_preset_mode','set_fan_mode','set_swing_mode','set_swing_horizontal_mode'].map(x=>[x,{}])),switch:{turn_on:{},turn_off:{}}},calls:[]};
+ const hass={connection,config:{unit_system:{temperature:'°C'}},entities:{},states:{[entity]:{entity_id:entity,state:'heat',attributes:{supported_features:1|8|16|32|512,temperature_unit:'°C',current_temperature:20.2,temperature:21,min_temp:7,max_temp:35,target_temp_step:.1,hvac_action:'heating',hvac_modes:['off','heat','cool','heat_cool'],fan_modes:['auto','low','high'],fan_mode:'auto',preset_modes:['eco','comfort'],preset_mode:'eco',swing_modes:['off','on'],swing_horizontal_modes:['off','on'],...extra}}},services:{climate:Object.fromEntries(['set_temperature','set_hvac_mode','set_preset_mode','set_fan_mode','set_swing_mode','set_swing_horizontal_mode'].map(x=>[x,{}])),switch:{turn_on:{},turn_off:{}}},calls:[]};
  hass.callService=async(...args)=>{hass.calls.push(args);};return hass;
 }
 function field(hass,slot=6,item={}){return buildCubeConfig({type:'climate',entity,...item},hass).menu.buttons.find(b=>b.slot===slot);}
@@ -22,7 +22,7 @@ test('Hub and Control share Climate menu, 82px pipeline and approved slots; open
  assert.deepEqual(hub,control);assert.equal(hub.mode,'climate');assert.deepEqual(hub.menu.buttons.map(b=>b.slot),[1,2,3,4,5,6]);assert.equal(hub.menu.buttons[1].tap_action.view,'hvac');assert.equal(hub.menu.promoted_center.entity,entity);assert.equal(hub.menu.idle_timeout,8000);assert.equal(h.calls.length,0);
 });
 for(const [unit,step,target,min,max]of [['°C',.5,21,7,35],['°C',.1,20.2,16,30],['°C',1,20,7,35],['°F',1,70,45,95]])test('native unit and exact step '+unit+step,async()=>{
- const h=fixture({temperature_unit:unit,target_temp_step:step,temperature:target,min_temp:min,max_temp:max});const f=field(h);await actions.command(context(h,f));assert.equal(h.calls.length,1);assert.equal(h.calls[0][1],'set_temperature');assert.deepEqual(h.calls[0][3],{entity_id:entity});assert.ok(Math.abs(h.calls[0][2].temperature-(target+step))<1e-6);cleanup(h);
+ const h=fixture({temperature_unit:unit,target_temp_step:step,temperature:target,min_temp:min,max_temp:max});const f=field(h,1);await actions.command(context(h,f));assert.equal(h.calls.length,1);assert.equal(h.calls[0][1],'set_temperature');assert.deepEqual(h.calls[0][3],{entity_id:entity});assert.ok(Math.abs(h.calls[0][2].temperature-(target+1))<1e-6);cleanup(h);
 });
 test('HA frontend fallback step is .5 C / 1 F; invalid units/bounds/features/services are read-only',()=>{
  for(const unit of ['°C','°F']){const h=fixture({temperature_unit:unit,target_temp_step:undefined});assert.equal(model.state(h,model.settings({entity})).step,unit==='°C'?.5:1);}
@@ -38,7 +38,7 @@ test('min/max and range crossings do not emit writes; unknown values are not zer
 test('dual targets require explicit selection; only selected bound changes and both exact bounds are sent',async()=>{
  const h=fixture({supported_features:2,temperature:null,target_temp_low:18,target_temp_high:24});h.states[entity].state='heat_cool';
  let opened;const unbound=field(h);await actions.command({...context(h,unbound),openNested:m=>opened=m});assert.equal(h.calls.length,0);assert.equal(opened._climate_frame.view,'targets');
- const options=model.settings({entity}),f=menus.main(options,'low').buttons[5];await actions.command(context(h,f));assert.deepEqual(h.calls[0][2],{target_temp_low:18.5,target_temp_high:24});cleanup(h);
+ const options=model.settings({entity}),f=menus.main(options,'low').buttons[5];await actions.command(context(h,f));assert.deepEqual(h.calls[0][2],{target_temp_low:18.1,target_temp_high:24});cleanup(h);
  assert.equal(model.adjustment({...model.state(h,options),low:24},1,'low'),null);
 });
 test('range choice is scoped to its frame and becomes inert after target capability changes',async()=>{
@@ -49,7 +49,7 @@ for(const kind of ['hvac','preset','fan','swing','horizontal'])test('exact adver
  h.calls=[];h.states[entity].attributes[model.CHOICES[kind][0]]=[];await actions.command(context(h,item));assert.equal(h.calls.length,0);
 });
 test('pending serializes presses; service success awaits HA state; acknowledged state allows next step',async()=>{
- const h=fixture(),f=field(h);await actions.command(context(h,f));await actions.command(context(h,f));assert.equal(h.calls.length,1);let v=model.state(h,f._climate);assert.equal(actions.recordFor(h,v).phase,'pending');h.states[entity].attributes.temperature=21.5;assert.equal(actions.recordFor(h,v),null);await actions.command(context(h,f));assert.equal(h.calls[1][2].temperature,22);cleanup(h);
+ const h=fixture(),f=field(h);await actions.command(context(h,f));await actions.command(context(h,f));assert.equal(h.calls.length,1);let v=model.state(h,f._climate);assert.equal(actions.recordFor(h,v).phase,'pending');h.states[entity].attributes.temperature=21.1;assert.equal(actions.recordFor(h,v),null);await actions.command(context(h,f));assert.equal(h.calls[1][2].temperature,21.2);cleanup(h);
 });
 test('failed/unconfirmed requests have clear state, no retry and no stale completion navigation',async()=>{
  const h=fixture(),f=field(h);let message;h.callService=async(...args)=>{h.calls.push(args);throw Error('synthetic failure');};await actions.command({...context(h,f),notify:m=>message=m});assert.equal(h.calls.length,1);assert.equal(actions.recordFor(h,model.state(h,f._climate)).phase,'failed');assert.match(message,/no automatic retry/);cleanup(h);
@@ -89,15 +89,27 @@ test('generic nested module expansion binds child entity, leaves ordinary menus 
 
 test('HA acknowledgement wins over a late rejected transport response without false failure or retry',async()=>{
  const h=fixture(),f=field(h);let reject,notices=[];h.callService=(...args)=>{h.calls.push(args);return new Promise((_,fail)=>reject=fail);};
- const pending=actions.command({...context(h,f),notify:m=>notices.push(m)});h.states[entity].attributes.temperature=21.5;assert.equal(actions.recordFor(h,model.state(h,f._climate)),null);
+ const pending=actions.command({...context(h,f),notify:m=>notices.push(m)});h.states[entity].attributes.temperature=21.1;assert.equal(actions.recordFor(h,model.state(h,f._climate)),null);
  reject(Error('late transport rejection'));assert.equal(await pending,true);assert.deepEqual(notices,[]);assert.equal(h.calls.length,1);assert.equal(registry.session(h).commands.size,0);cleanup(h);
 });
 test('missing temperature cannot acknowledge a pending zero-degree target; real zero can',async()=>{
- const h=fixture({temperature:-.5,min_temp:-10,max_temp:20}),f=field(h);await actions.command(context(h,f));assert.deepEqual(h.calls[0][2],{temperature:0});h.states[entity].attributes.temperature=null;assert.equal(actions.recordFor(h,model.state(h,f._climate)).phase,'pending');h.states[entity].attributes.temperature=0;assert.equal(actions.recordFor(h,model.state(h,f._climate)),null);cleanup(h);
+ const h=fixture({temperature:-.1,min_temp:-10,max_temp:20}),f=field(h);await actions.command(context(h,f));assert.deepEqual(h.calls[0][2],{temperature:0});h.states[entity].attributes.temperature=null;assert.equal(actions.recordFor(h,model.state(h,f._climate)).phase,'pending');h.states[entity].attributes.temperature=0;assert.equal(actions.recordFor(h,model.state(h,f._climate)),null);cleanup(h);
 });
 
 test('nested child presentation reuses compiled overrides without inheriting the parent or a recursive menu',()=>{
  const h=fixture(),menu=expandModuleMenu({module:'climate',entity,icon:'mdi:fan',colors:{inner_border:'#e040fb'},border:{inner_width:4}},h);
  for(const face of [menu.promoted_center,menu.persistent_center]){assert.equal(face.icon,'mdi:fan');assert.equal(face.colors.inner_border,'#e040fb');assert.equal(face.border.inner_width,4);assert.equal(face.entity,entity);assert.equal(face.menu,undefined);assert.equal(face.hold_action.view,'targets');}
  assert.equal(menu.persistent_center.tap_action.action,'honeycomb-back');assert.equal(h.calls.length,0);
+});
+for(const unit of ['°C','°F'])for(const step of [.1,.5,1])test('absolute delta labels, representability and exact service '+unit+step,async()=>{
+ for(const [slot,delta] of [[1,1],[4,-1],[6,.1],[5,-.1]]){
+  const h=fixture({temperature_unit:unit,target_temp_step:step,temperature:20,min_temp:0,max_temp:100}),f=field(h,slot);
+  const p=presentation.resolve({hass:h,config:f});assert.equal(p.name,(delta>0?'+':'−')+Math.abs(delta).toFixed(1)+unit);
+  const expressible=step===.1 || Math.abs(delta)===1;assert.equal(p.disabled,!expressible);
+  await actions.command(context(h,f));assert.equal(h.calls.length,expressible?1:0);
+  if(expressible)assert.deepEqual(h.calls[0][2],{temperature:20+delta});cleanup(h);
+ }
+});
+test('absolute delta rejects off-grid target instead of rounding into a different action',()=>{
+ const v=model.state(fixture({target_temp_step:.5,temperature:20.1}),model.settings({entity}));assert.equal(model.adjustment(v,1),null);
 });

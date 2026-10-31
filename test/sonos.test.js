@@ -103,14 +103,14 @@ test('Join room playback, own volume and launcher paint follow authoritative liv
     const hass=fixture(),source={entity:player,mode:'sonos',colors:{center:'#123456',inner_border:'#abcdef'},border:{inner_width:7}};
     const button=buildJoinMenu(options,null,source).buttons[0];
     const resolve=()=>require('../src/modules/sonos/join-presentation').resolve({hass,config:button});
-    assert.equal(resolve().secondary,'Idle');
+    assert.equal(resolve().secondary,'—');
     hass.states[member].attributes.media_title='Track A';
     assert.equal(resolve().tertiary,'Track A');
     hass.states[player].attributes.group_members=[player,member];
     hass.states[member].attributes.group_members=[player,member];
     hass.states[member].attributes.volume_level=.17;
     hass.states[player].attributes.volume_level=.89;
-    assert.equal(resolve().secondary,'Idle · 17%');
+    assert.equal(resolve().secondary,'17%');
     assert.match(resolve().ariaLabel,/Joined/);
     assert.deepEqual(resolve().visualConfig,source);
     hass.states[player].attributes.group_members=[player];

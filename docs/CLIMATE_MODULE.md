@@ -47,19 +47,22 @@ renderer precedence. No custom Climate geometry or CSS is introduced.
 | Physical slot | Action |
 | --- | --- |
 | 0 | Current temperature / target or range; Back in a nested view. Hold for Low/High on a dual-target device. |
-| 1 | Raise target by two native steps. |
+| 1 | Raise target by 1.0° in the reported unit. |
 | 2 | Open advertised HVAC modes; never guess a previous mode to turn on. |
 | 3 | Open supported Modes / Presets / Fan / Swing categories. |
-| 4 | Lower target by two native steps. |
-| 5 | Lower target by one native step. |
-| 6 | Raise target by one native step. |
+| 4 | Lower target by 1.0° in the reported unit. |
+| 5 | Lower target by 0.1° in the reported unit. |
+| 6 | Raise target by 0.1° in the reported unit. |
 
-With a 0.5°C step these are +1, −1, −0.5 and +0.5°C. With a 1°F step they are
-+2, −2, −1 and +1°F. Reported `target_temp_step` wins; if absent the HA frontend's
-0.5°C / 1°F fallback is used. Explicit invalid/null steps, unknown units, missing
-targets/bounds, unavailable entities or missing services disable temperature writes.
-No silent Celsius conversion or invented target is allowed. Adjustments align
-to the minimum/step lattice, stay inside min/max and never cross a range boundary.
+Labels and requested deltas are always +1.0, −1.0, −0.1 and +0.1 in HA's
+reported °C or °F unit. They are absolute temperature changes, never multiples
+of a native step. `target_temp_step` controls representability: 0.1° devices can
+use all four; 0.5° and 1.0° devices can use the 1.0° controls, while 0.1° controls
+are disabled with “Step / limit unavailable.” No rounding into a different action.
+If the step is absent, HA's 0.5°C / 1°F fallback applies. Invalid steps, unknown
+units, missing targets/bounds/services or unavailable entities disable writes.
+Targets must align with the minimum/step lattice and stay inside min/max without
+crossing a range boundary. No silent unit conversion or invented target.
 
 Dual-setpoint entities first open an explicit **Low / High** choice when +/− is
 tapped. Selecting a bound opens its adjustment view. Each write sends the new

@@ -76,6 +76,7 @@ function buildJoinMenu(item, discovery = null, source = null)
             slot_mode: 'hard',
             entity: member.entity,
             mode:'sonos-join',
+            _sonos:source && source._sonos || require('./station').settings(item),
             _sonos_join:{coordinator:item.entity,script:item.toggle_member_script || '',nativeAllowed,source},
             icon: member.icon || (member.entity.includes('tv') ? 'mdi:television-speaker' : 'mdi:speaker'),
             name: member.name || `[[[ return entity?.attributes?.friendly_name || ${JSON.stringify(member.entity)}; ]]]`,

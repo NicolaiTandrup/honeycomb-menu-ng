@@ -17,14 +17,27 @@ function resolve({config,hass,runtime={},evaluate=value=>value}) {
     const status=memberState(hass,options.coordinator,config.entity,options.script,options.nativeAllowed);
     const details=roomDetails(hass,config.entity);
     const name=evaluate(config.name)||(room && room.attributes || {}).friendly_name||config.entity;
-    // Keep transport/own volume separate from content: a long radio title must
-    // not push the room volume or station name off the end of the same line.
-    const secondary=details.playback+(details.available && (details.volumeText || status.joined)?' · '+(details.volumeText || '—'):'');
+    // Each room is recognized by the existing Favorites/native Browse pipeline,
+    // which verifies coordinator membership. Volume always stays individual.
+    const roomConfig={...config,_sonos:config._sonos || options.source && options.source._sonos};
+    const roomVisual=station.resolve({config:roomConfig,state:room,hass,runtime});
+    const roomFavorite=station.recognizedFavorite(hass,roomConfig);
     const source=options.source;
-    const visual=status.joined && source?station.resolve({config:source,state:states[source.entity],hass,runtime}):
-        {colors:{center:'#202224',inner:'#202224',outer:'#34383d'}};
-    return {...visual,...(visual.artwork?{artwork:{...visual.artwork,style:{...visual.artwork.style,top:'12%',height:'28%'}}}:{}),
-        name:(status.joined?'✓ ':'')+name,secondary,tertiary:details.content.join(' · ')||null,
+    const sourceVisual=status.joined && source?station.resolve({config:source,state:states[source.entity],hass,runtime}):null;
+    const sourceFavorite=sourceVisual && station.recognizedFavorite(hass,source);
+    const visual=sourceVisual || roomVisual;
+    // Opening-source styling is inherited, but an independently verified room
+    // station wins over conflicting opening-source artwork during transitions.
+    const sameGroup=source && room && Array.isArray((room.attributes || {}).group_members) &&
+        room.attributes.group_members.includes(source.entity) &&
+        Array.isArray((states[source.entity] && states[source.entity].attributes || {}).group_members) &&
+        states[source.entity].attributes.group_members.includes(config.entity);
+    let artwork=roomVisual.artwork;
+    if(sourceVisual && sameGroup && sourceFavorite && roomFavorite && sourceFavorite.id===roomFavorite.id)artwork=sourceVisual.artwork;
+    if(!details.available || sourceVisual && (source.show_icon===false || source.icon===false || source.custom_fields || ((source.styles || {}).card || []).some(rule=>Object.prototype.hasOwnProperty.call(rule,'background-image'))))artwork=null;
+    const secondary=details.available?(details.volumeText || '—'):'Unavailable';
+    return {...visual,artwork:artwork?{...artwork,style:{...artwork.style,top:'12%',height:'28%'}}:null,
+        name:(status.joined?'✓ ':'')+name,secondary,tertiary:artwork?null:details.content[0]||null,
         visualConfig:status.joined?source:null,sourceIcon:status.joined && source?source.icon:undefined,
         ariaLabel:[name,status.joined?'Joined':'Not joined',details.playback,...details.content,details.volumeText || 'Volume unavailable',status.enabled?'':status.label,status.enabled?'':status.reason].filter(Boolean).join(', ')};
 }

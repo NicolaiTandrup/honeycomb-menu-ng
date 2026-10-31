@@ -17,9 +17,18 @@ test('phone geometry fits both orientations without changing configured source s
  const menu={sizes:{item:41,containerWidth:205,containerHeight:189.83}};
  for(const [width,height] of [[320,568],[390,844],[568,320]]){
   const result=mobileGeometry(menu,{width,height,offsetLeft:0,offsetTop:0});
-  assert.ok(result.size>=44);assert.ok(result.size*5<=width-32);assert.ok(result.size*4.63<=height-112+.01);
+  assert.ok(result.size>=44);assert.ok(result.size*5<=width-32);assert.ok(result.size*4.63<=height-32+.01);
  }
  const safe=mobileGeometry(menu,{width:568,height:320,offsetLeft:5,offsetTop:8},100,{left:44,right:44,bottom:21});
- assert.ok(safe.size*5<=568-120);assert.ok(safe.size*4.63<=320-133+.01);
+ assert.ok(safe.size*5<=568-120);assert.ok(safe.size*4.63<=320-53+.01);
  assert.equal(menu.sizes.item,41);
+});
+test('small_screen defaults on; legacy alias and conflicts are explicit',()=>{
+ assert.equal(settings(true).small_screen,true);
+ for(const v of [true,false]){
+  assert.equal(settings({small_screen:v}).small_screen,v);assert.equal(settings({mobile:v}).small_screen,v);
+  assert.equal(settings({mobile:v,small_screen:v}).small_screen,v);
+  assert.throws(()=>settings({mobile:v,small_screen:!v}),/Conflicting/);
+ }
+ for(const v of [null,0,'true'])assert.throws(()=>settings({small_screen:v}));
 });

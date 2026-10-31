@@ -132,7 +132,7 @@ class HoneycombPersistentHub extends CubeElement
 
     _resizeAutoMenu(menu,size)
     {
-        if(this._hubExpanded && this._collapseOptions.mobile && window.innerWidth<=600)this._fitExpansion();
+        if(this._hubExpanded && this._collapseOptions.small_screen && window.innerWidth<=600)this._fitExpansion();
         else super._resizeAutoMenu(menu,size);
     }
 
@@ -146,7 +146,7 @@ class HoneycombPersistentHub extends CubeElement
             const rect = this.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
             const menu=this._menuContext.honeycomb;
-            if(this._hubExpanded && this._collapseOptions && this._collapseOptions.mobile && window.innerWidth<=600){this._fitExpansion();return;}
+            if(this._hubExpanded && this._collapseOptions && this._collapseOptions.small_screen && window.innerWidth<=600){this._fitExpansion();return;}
             const itemSize=this._collapseOptions && this.config.size==='auto'?this._floorplanSize(rect):menu.offsetParent?rect.width:this.size;
             if (this.config.match_anchor_size !== false && Math.abs(menu.sizes.item-itemSize)>.01)
                 menu.resizeCubes(itemSize);
@@ -360,7 +360,7 @@ class HoneycombPersistentHub extends CubeElement
                     menu.center_button=null;
                 } else {
                     const center=menu.persistent_center || menu.center_button;
-                    if(center)center.autoclose=false;
+                    if(center){center.autoclose=false;center.tap_action={action:'honeycomb-hub-collapse'};center.hold_action={action:'none'};delete center.double_tap_action;}
                 }
                 menu.idle_timeout=this._collapseOptions.idle_timeout;
             }
@@ -382,7 +382,7 @@ class HoneycombPersistentHub extends CubeElement
         this._expansionResize=()=>this._fitExpansion();
         window.addEventListener('resize',this._expansionResize);
         if(window.visualViewport){visualViewport.addEventListener('resize',this._expansionResize);visualViewport.addEventListener('scroll',this._expansionResize);}
-        this._expansionEscape=e=>{if(e.key==='Escape' && !e.defaultPrevented && !this._menuContext.info){e.preventDefault();this._collapseHub();}};
+        this._expansionEscape=e=>{if(e.key==='Escape' && !e.defaultPrevented && !this._menuContext.info){e.preventDefault();window.honeycombNG.backInContext(this._menuContext);}};
         document.addEventListener('keydown',this._expansionEscape);
         this._fitExpansion();
     }
@@ -391,7 +391,7 @@ class HoneycombPersistentHub extends CubeElement
     {
         const menu=this._menuContext && this._menuContext.honeycomb;
         if(!this._hubExpanded || !menu || menu.closing)return;
-        const mobile=this._collapseOptions.mobile && window.innerWidth<=600;
+        const mobile=this._collapseOptions.small_screen && window.innerWidth<=600;
         if(mobile) {
             if(!menu.hasAttribute('popover')) {
                 menu.setAttribute('popover','manual');
@@ -586,12 +586,12 @@ class HoneycombPersistentHub extends CubeElement
 
         _defaults(next, {
             mode: 'hub',
-            size: 82,
+            size: collapseOptions ? 'auto' : 82,
             icon: 'honeycomb:bee',
             name: 'Honeycomb',
             items: [],
             auto_open: true,
-            logo: 'auto',
+            logo: collapseOptions ? false : 'auto',
             base_face_mode: 'cell',
             tap_action: { action: 'honeycomb-bee-flap' },
             show_brightness: 'never',
