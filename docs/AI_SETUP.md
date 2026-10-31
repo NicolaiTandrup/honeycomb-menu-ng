@@ -816,10 +816,13 @@ For v1.8 beta.2 only, see the [shared presentation contract](CUBE_PRESENTATION.m
 
 ## v1.8.0-beta.5 sizing and energy capability
 
-For persistent Hub/Control, `size: auto` derives 82 × displayed floorplan image
-width / reference display width (auto_reference_width, default1536), entering the existing numeric geometry engine.
+For persistent Hub/Control, `size: auto` derives min(82, 82 × displayed floorplan
+image width / reference display width), with auto_reference_width default1536,
+entering the existing numeric geometry engine. The 82px auto maximum is current
+v1.10.0-beta.4 behavior; enlarged Collapsible overlays are independent.
 Use only inside a standard picture-elements image frame; safe fixed-82 fallback
-otherwise. Numeric size remains fixed; omitted size remains fixed 82. Do not
+otherwise. Numeric size remains fixed; omitted size remains fixed 82 except
+Collapsible Hubs, which implicitly use auto. Do not
 invent responsive_scale/global configuration or another CSS transform. Percent
 left/top use actual image offsets for supported contain/cover. No minimum clamp.
 See [tested complete YAML and limits](FLOORPLAN_SIZING.md).
@@ -836,11 +839,15 @@ overrides remain available. See [shared presentation](CUBE_PRESENTATION.md).
 ## v1.8.0-beta.6 correction: display reference and wave rate
 
 Beta.5 natural-image scaling is superseded. Persistent size:auto now uses
-82 × actual rendered image width / auto_reference_width. The optional literal
+min(82, 82 × actual rendered image width / auto_reference_width) in current
+v1.10.0-beta.4. The optional literal
 positive reference defaults to1536 CSS pixels and stays identical across clients.
 For a1500px design set auto_reference_width:1500 on each overlay. Never derive
 reference from raster pixels or each client's first frame. Numeric size and
-omitted fixed82 remain unchanged. See [complete YAML](FLOORPLAN_SIZING.md).
+omitted fixed82 remain unchanged for non-collapsible installations.
+For a Collapsible room Hub, collapsible:true plus an explicit slot-0 primary is
+sufficient: responsive sizing, small-screen overlay and 30s timeout are defaults,
+and expanded center is Back. See [minimal complete example and overrides](COLLAPSIBLE_HUB.md). See [complete YAML](FLOORPLAN_SIZING.md).
 
 Energy speed settings: literal speed_mode power/fixed; fixed cycle_ms defaults
 to3000 for compatibility. Power mode requires max_power_w per cube, with optional

@@ -443,7 +443,8 @@ and [the complete card](examples/v1.7/sonos.yaml). `members` and a custom
 
 Sonos inner slots are **1 Radio,
 2 Play/Pause, 3 Solo/Join, 4 Sleep, 5 Volume Down, 6 Volume Up**. Join shows live
-room membership or an explicit setup/availability state. Radio's outer submenu
+station artwork, room name and individual volume, with membership/playback
+available in accessible labels and an explicit setup/availability state. Radio's outer submenu
 retains its ordering, artwork and playback, with new stable favorite accent rings.
 A reliably identified favorite can provide native launcher artwork and playing
 color; pause/stop remains neutral. See [matching limits and styling precedence](docs/SONOS_MODULE.md#v171-beta-station-accents-and-launcher-artwork).
@@ -495,7 +496,7 @@ source remain. Tags, branches and source history are never cleanup targets.
 Candidate reference: [v1.8 runtime namespace and mixed-install routing](docs/NG_RUNTIME.md).
 Stable v1.7.1 remains published and unchanged until separate owner approval.
 
-The v1.8.0 candidate includes [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and the omitted fixed-82 default stay unchanged.
+The v1.8.0 candidate includes [40% active depth and decorative logo gradients](docs/CUBE_PRESENTATION.md), [image-aligned `size: auto`](docs/FLOORPLAN_SIZING.md), and an opt-in [six-sided energy pulse](docs/ENERGY_WAVE.md). Inactive physical cubes remain solid. Numeric sizes and non-collapsible omitted fixed-82 defaults stay unchanged.
 
 ### Floorplan sizing in v1.8.0-beta.6
 
@@ -516,7 +517,9 @@ separate from installing this beta as a custom repository.
 `size: auto` uses a stable **display/design reference width**, default1536 CSS
 pixels. Use `auto_reference_width: 1500` for82px at a1500px displayed floorplan,
 41px at750px. High-resolution source images no longer make cubes start tiny.
-This corrects beta.5; numeric60/82 and omitted fixed82 remain. Read the
+Current beta.4 caps normal auto sizing at 82px. Explicit numeric sizes remain
+fixed; ordinary omitted size remains 82px, while Collapsible Hubs default to auto.
+Read the
 [complete floorplan YAML and migration](docs/FLOORPLAN_SIZING.md).
 
 The [power-speed demo](examples/energy-wave-power.yaml) keeps true hexagonal
