@@ -38,7 +38,7 @@ class Beta4(Beta3):
    self.assertEqual(self.page.locator('honeycomb-menu-ng').first.evaluate("e=>e.matches(':popover-open')"),self.viewport['width']<=600 and list(options.values())[0]);self.back();self.settle()
   errors=self.page.evaluate("()=>[()=>hub.setConfig({...hub.config,collapsible:{mobile:true,small_screen:false}}),()=>hub.setConfig({...hub.config,collapsible:true,items:[{type:'light',entity:'light.zone_a',slot:2}]})].map(f=>{try{f();return null}catch(e){return e.message}})");self.assertTrue(all(errors))
  def test_bee_nested_Back_rotation_edit_cleanup_no_clickthrough(self):
-  self.minimal({'collapsible':{'expanded_center':'bee','primary_slot':1}});self.expand();self.page.wait_for_timeout(550);self.assertEqual(self.cell(1).evaluate('e=>e.config.entity'),'light.zone_a');self.hold_input(self.cell(1).locator('.interaction-surface'));self.settle();self.assertGreater(self.page.evaluate('hub._menuContext.stack.length'),0);self.back();self.settle();self.assertTrue(self.page.evaluate('hub._hubExpanded'))
+  self.minimal({'collapsible':{'expanded_center':'bee','primary_slot':1}});self.expand();self.page.wait_for_timeout(550);self.assertEqual(self.cell(1).evaluate('e=>e.config.entity'),'light.zone_a');self.hold_input(self.cell(1).locator('.interaction-surface'));self.settle();self.assertGreater(self.page.evaluate('hub._menuContext.stack.length'),0);self.page.keyboard.press('Escape');self.settle();self.assertTrue(self.page.evaluate('hub._hubExpanded'));self.assertEqual(self.page.evaluate('hub._menuContext.stack.length'),0)
   if self.viewport['width']<=600:
    for w,h in [(320,568),(568,320),(390,844)]:
     self.page.set_viewport_size({'width':w,'height':h});self.resize_floor(w-32)

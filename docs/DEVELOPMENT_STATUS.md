@@ -38,7 +38,11 @@ Focused validation: 441 Node passes with 3 existing stable-only skips; new exact
 C/F step/representability and alias tests. New 18 browser cases across phone390,
 tablet768 and desktop1800; fixed multi-Hub test overlap, focused alias pass.
 Existing assertions updated only for intentional labels/deltas/auto cap/center Back;
-service identity/group guards retained. Full mandatory local suite RUNNING; no
+service identity/group guards retained. Full local suite completed: 498 Chromium/documentation cases across 23 groups
+(including native/performance groups). Two viewport instances of one stale
+missing-volume expectation failed; corrected targeted desktop/phone reruns pass.
+All other groups pass. Node 441 passes/3 existing skips; 6 native contracts,
+HACS/package/actionlint/reproducibility pass. Exact final-head CI PENDING; no
 publication or CI success implied. Browser plugin absent; repository Playwright
 and installed Chromium used. Fixtures/services/artwork are synthetic, not actual
 HA payloads or physical Android acceptance. Evidence /tmp/honeycomb-beta4/.
