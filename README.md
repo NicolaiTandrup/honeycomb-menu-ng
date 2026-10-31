@@ -26,12 +26,13 @@ by Nicolai Tandrup. [Original author support](https://www.buymeacoffee.com/SianL
 > is still pending. Continue using the HACS custom-repository installation below.
 > [Catalog submission review package](docs/HACS_CATALOG_SUBMISSION.md).
 
-## v1.10.0-beta.4: minimal room controls
+## v1.10.0-beta.5: responsive room controls
 
 Add `collapsible: true` and a primary item in slot 0 to place a compact,
 responsive room control on a floorplan. Tap performs its action; hold expands.
-On phones the Hub automatically opens in a larger centered overlay. Tap its
-center to return. No extra sizing or mobile options are needed.
+On phones, tablets and PCs, the Hub opens at a comfortable size. It prefers
+space beside the floorplan, and fits safely in the viewport when there is no room.
+Tap its center to return. No extra sizing or positioning options are needed.
 
 ```yaml
 type: custom:honeycomb-persistent-hub
@@ -47,23 +48,26 @@ items:
 ```
 
 See [complete picture-elements examples and optional settings](docs/COLLAPSIBLE_HUB.md).
-Normal auto sizing caps at 82px; explicit numeric sizes are unchanged. Legacy
+Normal collapsed auto sizing caps at 82px; expanded cubes target 100px independently.
+Selected module cubes stay in place when their submenus fit; constrained views
+fall back to the expanded root center. Back restores the parent layout exactly.
+Explicit numeric sizes are unchanged. Legacy
 `collapsible.mobile` remains an alias for `small_screen`; conflicting values fail
 clearly. Hubs without `collapsible` keep their existing defaults.
 
 Sonos Join prefers trusted station artwork with room name and individual volume.
 Climate adjustments are ±1.0 and ±0.1 in HA's temperature unit; unsupported
 precision is disabled. Keyboard focus follows the hex, with no pointer rectangle.
-Enable beta versions in HACS and select v1.10.0-beta.4 after publication.
+Enable beta versions in HACS and select v1.10.0-beta.5 after publication.
 Latest stable remains v1.9.0; physical-device acceptance is separate from QA.
 
-## Climate beta testing — v1.10.0-beta.4
+## Climate beta testing — v1.10.0-beta.5
 
 This cumulative beta adds generic Home Assistant Climate controls to the complete
 v1.9.0 stable feature set. It uses the same shared renderer and navigation.
 See the [Climate guide](docs/CLIMATE_MODULE.md), [Hub example](examples/climate-hub.yaml)
 and [standalone Control](examples/climate-control.yaml). Real HVAC acceptance is pending.
-Enable beta versions in HACS and select v1.10.0-beta.4 once the release is public.
+Enable beta versions in HACS and select v1.10.0-beta.5 once the release is public.
 Stable remains v1.9.0; no master merge is part of this beta.
 
 ## What you can build
@@ -74,7 +78,7 @@ Stable remains v1.9.0; no master merge is part of this beta.
 - Live Hub item visibility, reserved/preferred/free slots and stable placement.
 - Nested menus, drag-select and classic popup compatibility, templates and XY Pad.
 
-Climate is available in the **v1.10.0-beta.4 candidate**, cumulative with v1.9.0 stable.
+Climate is available in the **v1.10.0-beta.5 candidate**, cumulative with v1.9.0 stable.
 See the [Climate guide](docs/CLIMATE_MODULE.md) and [Hub example](examples/climate-hub.yaml).
 Car is not implemented. Charging automation remains external.
 Honeycomb calls configured HA actions; device automation belongs in Home Assistant.
@@ -214,12 +218,14 @@ command; a deliberate swatch tap applies it. Unknown/unavailable is never OFF.
 
 ### Bee version feedback and development updates
 
-Tap the golden bee to see a short label such as **v1.9.0 beta 6 inside the same
-hexagon** during the existing animation. It then returns to normal; reduced motion
-suppresses flight while retaining feedback. Full dev revision stays in diagnostics,
-not visual labels. [Permanent development resource, one-command installation and
-cache troubleshooting](docs/DEVELOPMENT_BUILDS.md). This is an unpublished candidate,
-not an announcement that beta.6 is available through HACS.
+Tap the standard Honeycomb Bee to reveal the actual installed version inside its
+hexagon for three seconds. Hold works too. At the expanded Collapsible root,
+short tap is Back/Collapse; hold or Shift+Enter reveals the same version without
+collapsing. Enter/Space remains Back. Alt+V provides keyboard version inspection
+on Bee icons that retain another contextual action. Reduced motion suppresses
+flight while retaining readable version feedback. All use one canonical mascot
+asset and shared rendering/version code. [Shared Bee guide](docs/SHARED_BEE.md).
+[Development installation and cache troubleshooting](docs/DEVELOPMENT_BUILDS.md).
 
 ### Canonical visual baseline: Light module
 

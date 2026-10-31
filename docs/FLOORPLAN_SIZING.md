@@ -1,4 +1,4 @@
-# Floorplan sizing — v1.10.0-beta.4
+# Floorplan sizing — v1.10.0-beta.5
 
 `size: auto` is opt-in for ordinary persistent Hub and Control inside Home Assistant
 `picture-elements`. It reads the **actual rendered image** in the nearest
@@ -130,3 +130,13 @@ Migration from beta.5: choose the normal intended floorplan display width once
 and copy that reference to every auto overlay. Do not copy the source bitmap
 resolution or generate a reference independently on each client. The 1536
 default is a predictable convention, not automatic knowledge of your design.
+
+## Expanded room Hubs
+
+`collapsible: true` keeps the compact image-relative cube but expands independently
+on phones, tablets and PCs. It reuses this image observer's visible image rectangle
+and the existing slot layout to prefer space below/above/beside the image. It fits
+the full visible group, not the scene's reserved empty rings or a single cube.
+Unsupported image geometry falls back to safe viewport placement. No second image
+observation pipeline or new floorplan calibration is introduced. See
+[automatic placement and overrides](COLLAPSIBLE_HUB.md).

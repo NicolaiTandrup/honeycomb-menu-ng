@@ -144,6 +144,8 @@ jobs:
 
       - name: Verify beta.4 minimal defaults, center Back, P4 volume and accessible hex focus
         run: python test/browser/beta4_defaults.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta4-defaults"
+      - name: Verify beta.5 universal expansion, free-image regions, promotion and shared Bee
+        run: python test/browser/beta5_geometry.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/beta5-geometry"
       - name: Validate documentation and complete YAML examples
         run: python test/docs/run.py --bundle honeycomb-menu-ng.js --button-card "$RUNNER_TEMP/button-card.js" --evidence-dir "$RUNNER_TEMP/cube-evidence/docs"
 

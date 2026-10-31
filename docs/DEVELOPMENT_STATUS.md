@@ -1,55 +1,65 @@
-# v1.10.0-beta.4 — mandatory validation in progress
+# v1.10.0-beta.5 — focused geometry and shared Bee, validation in progress
 
-Owner explicitly authorizes focused fixes for #146/#147/#148/#151 and guarded
-beta.4 publication after mandatory gates. No master merge, stable promotion,
-production HA work, cleanup or unrelated development.
+Owner explicitly authorizes beta.5 publication only after all mandatory gates.
+No master merge, stable promotion, production HA changes or unrelated features.
+Issue #154 repository-wide review is explicitly DEFERRED until beta.5 acceptance.
 
-Baseline: exact published beta.3 c50890d91b6236bd12ab07c8e0a378d1af0a7548;
-branch fix/v1.10-beta4-defaults. Previous handoff 09af0fa reviewed. GitHub API
-and push permissions verified. Read AGENTS.md, PR #150, latest issues/comments.
-Owner accepts beta.3 Android sizing; this path is preserved, no acceptance claim
-for new beta.4 behavior until owner tests actual devices.
+Baseline: exact published beta.4 d1afadf02b4f328ad92f6514faf206485686a507;
+branch feature/v1.10-beta5-geometry. Prior published handoff 317f6fe reviewed.
+Read AGENTS.md, latest issues #148/#153/#134 (including latest owner comments),
+PR #152 and relevant guides. API and push dry-run pass; managed runtime/network
+policy current, connected, API allowed, no VPN. Existing PRs/releases untouched.
 
-Changes:
-- Collapsible opt-in defaults to size:auto/logo:false; requires exactly one hard
-  slot-0 primary (no ambiguous first-item inference). Other Hub defaults unchanged.
-- Normal auto sizing keeps shared 1536px reference semantics, capped at 82px.
-  Explicit numeric sizes remain uncapped; unresolved image fallback stays 82px.
-- small_screen defaults true; mobile boolean alias retained; matching duplicate
-  settings accepted, contradictions rejected. Expanded overlay remains independent.
-- Expanded root center collapses immediately, preserving primary visuals or bee
-  policy. Separate rectangular Back removed. Nested Back/Escape follows parent
-  before collapse; original floorplan geometry restored on Back/timeout/rotation.
-- Climate explicit deltas ±1.0 and ±0.1 in reported HA unit, not step multiples.
-  Requested target must be exactly representable on min/step grid and within
-  single/dual bounds; otherwise disabled with an explicit precision/limit label.
-  Shared neutral fill, center, native services and acknowledgement guards preserved.
-- Sonos Join uses trusted existing Favorites/native Browse recognition per room,
-  including verified coordinator transport; own room volume never substituted.
-  Compact art/name/volume; state/full content accessible; concise fallback when
-  unrecognized; opening visual styling inherited, conflicting verified room source
-  wins over stale art, hidden icon/background overrides preserved.
-- Focus reproduced on exact beta.3: keyboard/programmatic focus then touch/mouse
-  on same cube retains focus-visible blue rectangular 2px outline in Chromium.
-  New SVG hex ring plus local input-modality cleanup retains keyboard navigation,
-  clears pointer focus paint and resets on detach. No global listener lifecycle.
+Implementation:
+- Expanded default sizing now targets 100px on every screen, independent of the
+  collapsed shared auto result/max82 or numeric override. Image/anchor watchers
+  cannot shrink or snap an expanded desktop scene back to floorplan geometry.
+- Extend the existing shared image observer (also for numeric collapsible Hubs)
+  with visible image rectangle from object-fit/position, clipped to image/card.
+  No competing image observer. Scroll/load/resize and cleanup remain shared.
+- Small expanded-layout helper consumes actual visible slot coordinates from
+  existing layout engine, including asymmetric/extended layouts and XY scene.
+  Enumerates below/above/left/right regions outside image with 12px separation;
+  rejects regions below 80% target or normal 80px usability threshold; deterministic
+  size/area selection plus retention hysteresis; center0 clamped near region center.
+  Safe viewport fallback includes visualViewport, safe insets and measurable fixed/
+  sticky header/sidebar geometry. Header resize/style observers clean up on close.
+- Shared nested navigation preserves selected center when full child fits; then
+  root anchor, usable image-free or safe viewport fitting. Saved parents keep
+  independent sizes; Back restores exact anchor/size. Resize reevaluates safely.
+- Backdrop collapse requires pointerdown to originate outside controls, preventing
+  post-resize synthetic clicks from dismissing a newly fitted child.
+- src/core/bee.js centralizes preset, colors, canonical asset/version references,
+  dimensions and reveal/flight timing. Existing renderer/formatter/asset pipeline
+  retained; no mascot redesign. Standard Bee tap/hold version; expanded root tap
+  Back, hold/Shift+Enter version (3 seconds). Alt+V supports functional Bee icons
+  without replacing their module actions/styles. Explicit styling retained.
+- Radio/Climate production modules unchanged. Exact beta.4/new-bundle pixel
+  comparisons at phone390 and desktop1440 pass for Climate and Radio.
 
-Focused validation: 441 Node passes with 3 existing stable-only skips; new exact
-C/F step/representability and alias tests. New 18 browser cases across phone390,
-tablet768 and desktop1800; fixed multi-Hub test overlap, focused alias pass.
-Existing assertions updated only for intentional labels/deltas/auto cap/center Back;
-service identity/group guards retained. Full local suite completed: 498 Chromium/documentation cases across 23 groups
-(including native/performance groups). Two viewport instances of one stale
-missing-volume expectation failed; corrected targeted desktop/phone reruns pass.
-All other groups pass. Node 441 passes/3 existing skips; 6 native contracts,
-HACS/package/actionlint/reproducibility pass. Exact final-head CI PENDING; no
-publication or CI success implied. Browser plugin absent; repository Playwright
-and installed Chromium used. Fixtures/services/artwork are synthetic, not actual
-HA payloads or physical Android acceptance. Evidence /tmp/honeycomb-beta4/.
+Compatibility clarification pending async optional user answer: beta.5 universal
+expansion conflicts with beta.4's explicit small_screen:false phone opt-out.
+Provisional assumption stated in commentary: retain explicit legacy false up to
+600px while default expansion and all desktop expansion remain universal. Legacy
+mobile alias/conflict validation preserved. Do not silently ignore a later reply.
 
-Next: finish full local Node/Chromium/native/docs/HACS/actionlint/release-integrity
-suite; resolve failures, create development PR, freeze final source, wait for exact
-head push/PR CI and official HACS. Dispatch unchanged guarded release.yml for a new
-v1.10.0-beta.4 tag only after gates pass. Independently download/verify assets,
-commit/provenance/checksums/HACS and prior release/tag/master/stable preservation.
-Write publication handoff separately without moving released head; stop afterward.
+Validation so far: Node 448 passes / 3 existing stable-only skips; focused pure
+geometry/image clipping/Bee tests pass. Initial beta.4 reproduction recorded 27px
+expanded desktop cubes and selected Sonos anchor snap; current desktop test shows
+100px, exact promotion and Back. Existing Bee tests pass with 3s readable version.
+New seven-viewport matrix: 390x844,430x932,800x1280,1280x800,1440x900,1920x1080,
+650x900; default placement, modules, Radio, Bee and lifecycle tests in progress.
+Added sparse hard/soft/priority and nested-rotation checks. Full mandatory local
+suite RUNNING (24 groups); no final CI or publication success implied.
+
+Evidence outside Git: /tmp/honeycomb-beta5/ (before/, before.json, current/,
+features*, radio/promotion reruns, comparison/verification.json, full/ logs).
+Browser plugin absent; repository Playwright/system Chromium. All services/states/
+thumbnail data are synthetic; no physical Android/PC or actual HA acceptance claim.
+
+Next: finish mandatory local suites, resolve failures, review source/docs together,
+create development PR and freeze final commit; green exact-head push/PR CI plus
+manual HACS readiness; unchanged guarded release.yml for new v1.10.0-beta.5 only.
+Independently verify public tag/source/assets/digests/provenance/HACS and all prior
+release/tag/stable/master preservation, smoke public bundle, record final handoff
+on separate docs branch without moving released head. Stop for owner acceptance.

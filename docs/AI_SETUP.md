@@ -928,3 +928,21 @@ depths. In a submenu, explicit `colors.center` takes precedence over background
 styles; without it, an explicit card/background style wins over the shared
 fallback. Root precedence remains unchanged. Module presentations may supply
 meaningful functional colors. No new public configuration option is required.
+
+## v1.10.0-beta.5 room controls and shared Bee
+
+Use minimal `collapsible: true` and a hard slot-0 primary. Collapsed auto sizing
+stays capped at 82px; expansion targets 100px on phones/tablets/PCs. It prefers
+usable regions outside the displayed image, with safe viewport fallback. No new
+YAML for region detection or fit-aware module promotion. The selected cube stays
+at its screen position when the child fits; otherwise try expanded root center
+and safe fitting. Back restores saved parent sizes/anchors. Explicit legacy
+small_screen:false/mobile:false retains the documented compact-phone opt-out.
+[Placement and overrides](COLLAPSIBLE_HUB.md).
+
+Use the [shared Bee preset and version interaction](SHARED_BEE.md), never copy
+mascot bytes, version strings or separate module-specific Bee styles. Standard
+Bee tap/hold reveals the installed version; expanded root Bee tap is Back, while
+hold or Shift+Enter reveals the same version for three seconds. Alt+V supports
+functional Bee icons without replacing their actions. Explicit styles remain.
+Issue #154 broad repository review stays deferred until owner beta.5 acceptance.

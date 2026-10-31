@@ -178,7 +178,24 @@ function canEstablishAnchor()
     return true; // Promotion may select a cell at any meaningful depth.
 }
 
+function fitExpandedMenu(context,menu,environment,root,{entering=false,preferred=null}={}) {
+    const geometry=require('./expanded-layout'),config=context.currentConfig;
+    const f=geometry.footprint(menu),layoutKey=JSON.stringify(f),prior=!entering && config._expanded_fit;
+    if(prior && prior.environment===environment.key && prior.layout===layoutKey){
+        menu.reanchor(config.anchor_x,config.anchor_y);return prior;
+    }
+    const wanted=prior?prior.preferred:preferred || readAnchor(config) || root;
+    const target=prior?prior.target:menu.sizes.item;
+    const result=geometry.submenu(f,environment.viewport,root,wanted,target,environment.image);
+    menu.resizeCubes(result.size,{preserveStack:true});menu.reanchor(result.x,result.y);
+    const state={environment:environment.key,layout:layoutKey,preferred:wanted,target,reason:result.reason};
+    config._expanded_fit=state;menu.config._expanded_fit=state;
+    context.moduleAnchor={x:result.x,y:result.y};
+    return state;
+}
+
 module.exports = {
+    fitExpandedMenu,
     HUB_ROOT_FLAG,
     createMenuContext,
     isHubRoot,

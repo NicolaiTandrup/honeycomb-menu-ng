@@ -221,6 +221,12 @@ function openHoneycombMenu(context, config)
         context.currentConfig = merge({}, honeycombConfig);
         context.honeycomb.replaceConfig(honeycombConfig);
 
+        if(context.owner && context.owner._hubExpanded) {
+            delete context.currentConfig._expanded_fit;
+            context.owner._fitExpansion({entering:true,preferred:navigationCore.readAnchor(honeycombConfig)});
+            return context.honeycomb;
+        }
+
         if(
             Number.isFinite(Number(honeycombConfig.anchor_x)) &&
             Number.isFinite(Number(honeycombConfig.anchor_y)) &&
@@ -457,6 +463,10 @@ function honeycombBack(context = manager, { interaction = true } = {})
         context.currentConfig = merge({}, previous.config);
         context.honeycomb.replaceConfig(previous.config);
         if (interaction) context.honeycomb._resetIdleTimeout();
+
+        if(context.owner && context.owner._hubExpanded) {
+            context.owner._fitExpansion();notifyContext(context);return true;
+        }
 
         if(
             Number.isFinite(Number(previous.config && previous.config.anchor_x)) &&
@@ -805,7 +815,7 @@ class HoneycombMenu extends LitElement
                     @honeycomb-ng-drag-end=${this._handleXYPad}>
                 </honeycomb-ng-xy-pad>`:''}
 
-            ${this.hasAttribute('popover') ? html`<div class="hub-shield" @click=${()=>this._menuContext.owner._collapseHub()}></div>`:''}
+            ${this.hasAttribute('popover') ? html`<div class="hub-shield" @click=${e=>this._menuContext.owner._handleExpansionOutside(e)}></div>`:''}
             <div id="honeycombs" class="honeycombs">
                 ${this.config.persistent_center ? html`
                     <honeycomb-persistent-control
@@ -997,11 +1007,11 @@ class HoneycombMenu extends LitElement
         this._scheduleIdleTimeout();
         this.requestUpdate();
         const owner=this._menuContext && this._menuContext.owner;
-        if(owner && owner._hubExpanded)queueMicrotask(()=>owner._fitExpansion());
+        if(owner && owner._hubExpanded && navigationCore.isHubRoot(this.config))queueMicrotask(()=>owner._fitExpansion());
     }
 
     // Geometry-only refresh: do not reset idle, rebuild navigation, or reopen actions.
-    resizeCubes(size)
+    resizeCubes(size,{preserveStack=false}={})
     {
         if(this.closing || !Number.isFinite(size) || size<=0)return;
         const ratio=size/this.sizes.item;
@@ -1009,7 +1019,7 @@ class HoneycombMenu extends LitElement
         const context=this._menuContext;
         const update=config=>{if(!config)return;config.size=size*3.586;if(config.persistent_center)config.persistent_center.size=size;};
         update(this.config);
-        if(context){update(context.currentConfig);for(const entry of context.stack)update(entry.config || entry);}
+        if(context){update(context.currentConfig);if(!preserveStack)for(const entry of context.stack)update(entry.config || entry);}
         this._setCssVars();
         if(this._anchorX!==null && this._anchorY!==null)this._setPosition(this._anchorX,this._anchorY);
         this.requestUpdate();

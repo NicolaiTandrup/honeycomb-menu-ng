@@ -8,6 +8,9 @@ const { moduleRegistry } = require('./modules/index.js');
 const { toCenterDescriptor } = require('./core/hub-launcher.js');
 const { VisibilityIndex } = require('./core/visibility.js');
 const collapsibleHub=require('./core/collapsible-hub');
+const expandedLayout=require('./core/expanded-layout');
+const bee=require('./core/bee');
+const navigationCore=require('./core/navigation-context');
 const { allocateHubSlots } = require('./core/hub-allocation.js');
 
 class HoneycombPersistentHub extends CubeElement
@@ -130,9 +133,12 @@ class HoneycombPersistentHub extends CubeElement
         return this.config.match_anchor_size===false || this.config.size==='auto' && this._imageAutoResolved ? this.size : rect.width;
     }
 
+    _observeImageGeometry() { return super._observeImageGeometry() || !!this._collapseOptions; }
+    _imageGeometryChanged() { if(this._hubExpanded)this._fitExpansion(); }
+
     _resizeAutoMenu(menu,size)
     {
-        if(this._hubExpanded && this._collapseOptions.small_screen && window.innerWidth<=600)this._fitExpansion();
+        if(this._hubExpanded)this._fitExpansion();
         else super._resizeAutoMenu(menu,size);
     }
 
@@ -146,7 +152,7 @@ class HoneycombPersistentHub extends CubeElement
             const rect = this.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
             const menu=this._menuContext.honeycomb;
-            if(this._hubExpanded && this._collapseOptions && this._collapseOptions.small_screen && window.innerWidth<=600){this._fitExpansion();return;}
+            if(this._hubExpanded && this._collapseOptions){this._fitExpansion();return;}
             const itemSize=this._collapseOptions && this.config.size==='auto'?this._floorplanSize(rect):menu.offsetParent?rect.width:this.size;
             if (this.config.match_anchor_size !== false && Math.abs(menu.sizes.item-itemSize)>.01)
                 menu.resizeCubes(itemSize);
@@ -293,20 +299,11 @@ class HoneycombPersistentHub extends CubeElement
 
         if( showLogo )
         {
-            menu.persistent_center = merge(
-                {},
-                menu.persistent_center || {},
-                {
-                    icon: 'honeycomb:bee',
-                    interactive: true,
-                    tap_action: { action: 'honeycomb-bee-flap' },
-                    show_brightness: 'never',
-                    mode: 'hub',
-                    _decorative_logo: true,
-                    colors: {fill_gradient: (this.config.colors || {}).fill_gradient === undefined ? (this._logoExplicitCenter ? false : {type:'radial'}) : this.config.colors.fill_gradient},
-                    face_mode: this.config.base_face_mode || 'cell'
-                }
-            );
+            menu.persistent_center=bee.descriptor(merge({},menu.persistent_center || {},{
+                colors:this.config.colors,border:this.config.border,styles:this.config.styles,interactive:true,
+                tap_action:{action:'honeycomb-bee-flap'},hold_action:{action:'honeycomb-bee-flap'},
+                face_mode:this.config.base_face_mode || 'cell'
+            }),{explicitCenter:this._logoExplicitCenter});
             menu.center_button = null;
         }
         else
@@ -355,8 +352,8 @@ class HoneycombPersistentHub extends CubeElement
                 menu.buttons=entries.filter(entry=>allocation.placements.has(entry.id)&&allocation.placements.get(entry.id)!==0)
                     .map(entry=>({...entry.launcher,slot:allocation.placements.get(entry.id),slot_mode:'hard',autoclose:false}));
                 if(this._collapseOptions.expanded_center==='bee') {
-                    menu.persistent_center={mode:'hub',icon:'honeycomb:bee',_decorative_logo:true,interactive:true,autoclose:false,
-                        colors:this.config.colors,tap_action:{action:'honeycomb-hub-collapse'},show_brightness:'never'};
+                    menu.persistent_center=bee.descriptor({colors:this.config.colors,border:this.config.border,styles:this.config.styles},
+                        {collapse:true,explicitCenter:this._logoExplicitCenter});
                     menu.center_button=null;
                 } else {
                     const center=menu.persistent_center || menu.center_button;
@@ -384,34 +381,63 @@ class HoneycombPersistentHub extends CubeElement
         if(window.visualViewport){visualViewport.addEventListener('resize',this._expansionResize);visualViewport.addEventListener('scroll',this._expansionResize);}
         this._expansionEscape=e=>{if(e.key==='Escape' && !e.defaultPrevented && !this._menuContext.info){e.preventDefault();window.honeycombNG.backInContext(this._menuContext);}};
         document.addEventListener('keydown',this._expansionEscape);
+        this._expansionChromeResize=new ResizeObserver(this._expansionResize);
+        this._expansionChromeMutation=new MutationObserver(this._expansionResize);
+        for(const el of [...expandedLayout.chromeElements(this),document.documentElement]){
+            this._expansionChromeResize.observe(el);this._expansionChromeMutation.observe(el,{attributes:true,attributeFilter:['class','style','hidden']});
+        }
         this._fitExpansion();
     }
 
-    _fitExpansion()
+    _expansionEnvironment() { return expandedLayout.environment(this._hubMenu,this,this._floorplanImageRect); }
+
+    _fitExpansion(options={})
     {
-        const menu=this._menuContext && this._menuContext.honeycomb;
-        if(!this._hubExpanded || !menu || menu.closing)return;
-        const mobile=this._collapseOptions.small_screen && window.innerWidth<=600;
-        if(mobile) {
-            if(!menu.hasAttribute('popover')) {
-                menu.setAttribute('popover','manual');
-                menu.style.cssText+=';margin:0;padding:0;border:0;overflow:visible;background:transparent;inset:auto;';
-                menu.showPopover();
-                const openedAt=Date.now();
-                this._expansionOutside=e=>{if(Date.now()-openedAt>500 && e.composedPath()[0]===menu)this._collapseHub();};
-                menu.addEventListener('click',this._expansionOutside);
-            }
-            const viewport=window.visualViewport || {width:innerWidth,height:innerHeight,offsetLeft:0,offsetTop:0};
-            const style=getComputedStyle(menu),safe=Object.fromEntries(['top','right','bottom','left'].map(side=>[side,parseFloat(style.getPropertyValue('--hub-safe-'+side))||0]));
-            const geometry=collapsibleHub.mobileGeometry(menu,viewport,this._collapseOptions.expanded_size,safe);
-            menu.resizeCubes(geometry.size);
-            menu.reanchor(geometry.x,geometry.y);
-        } else {
-            this._hideExpansionPopover(menu);
-            const rect=this.getBoundingClientRect();
-            menu.resizeCubes(this._floorplanSize(rect));
-            menu.reanchor(rect.left+rect.width/2,rect.top+rect.height/2);
+        const context=this._menuContext,menu=context && context.honeycomb;
+        if(!this._hubExpanded || !menu || menu.closing || context.info)return;
+        // Only an explicit legacy opt-out retains the old compact phone mode.
+        // Default enlargement and desktop fitting never depend on a breakpoint.
+        const compact=this._collapseOptions.small_screen===false && window.innerWidth<=600;
+        if(compact)this._hideExpansionPopover(menu);
+        else if(!menu.hasAttribute('popover')) {
+            menu.setAttribute('popover','manual');
+            menu.style.cssText+=';margin:0;padding:0;border:0;overflow:visible;background:transparent;inset:auto;';
+            menu.showPopover();
+            const openedAt=Date.now();
+            this._expansionOutside=e=>{if(Date.now()-openedAt>500)this._handleExpansionOutside(e);};
+            this._expansionPointerStart=e=>{const target=e.composedPath()[0];this._expansionOutsideDown=target===menu || !!(target.classList && target.classList.contains('hub-shield'));};
+            menu.addEventListener('pointerdown',this._expansionPointerStart,true);
+            menu.addEventListener('click',this._expansionOutside);
         }
+        const environment=this._expansionEnvironment();
+        if(navigationCore.isHubRoot(context.currentConfig)) {
+            const f=expandedLayout.footprint(menu),rect=this.getBoundingClientRect(),key=environment.key+JSON.stringify(f)+(compact?JSON.stringify([rect.left,rect.top,this.size]):'');
+            if(this._expandedRoot && this._expandedRoot.key===key && !options.entering){
+                if(Math.abs(menu.sizes.item-this._expandedRoot.size)>.001)menu.resizeCubes(this._expandedRoot.size,{preserveStack:true});
+                menu.reanchor(this._expandedRoot.x,this._expandedRoot.y);return;
+            }
+            const result=compact?{x:rect.left+rect.width/2,y:rect.top+rect.height/2,size:this._floorplanSize(rect),region:{...environment.viewport,key:'compact'}}:expandedLayout.place(f,environment.viewport,environment.image,this._collapseOptions.expanded_size,this._expandedRoot);
+            this._expandedRoot={...result,footprint:f,key};
+            menu.resizeCubes(result.size,{preserveStack:true});menu.reanchor(result.x,result.y);
+        } else {
+            const root=this._expandedRoot;
+            if(!root)return;
+            const rect=this.getBoundingClientRect(),key=environment.key+JSON.stringify(root.footprint)+(compact?JSON.stringify([rect.left,rect.top,this.size]):'');
+            if(root.key!==key) {
+                const result=compact?{x:rect.left+rect.width/2,y:rect.top+rect.height/2,size:this._floorplanSize(rect),region:{...environment.viewport,key:'compact'}}:expandedLayout.place(root.footprint,environment.viewport,environment.image,this._collapseOptions.expanded_size,root);
+                this._expandedRoot={...result,footprint:root.footprint,key};
+                const base=context.stack[0] && (context.stack[0].config || context.stack[0]);
+                if(base){base.anchor_x=this._expandedRoot.x;base.anchor_y=this._expandedRoot.y;base.size=this._expandedRoot.size*3.586;if(base.persistent_center)base.persistent_center.size=this._expandedRoot.size;}
+            }
+            navigationCore.fitExpandedMenu(context,menu,environment,this._expandedRoot,options);
+        }
+    }
+
+    _handleExpansionOutside(event)
+    {
+        const menu=this._menuContext && this._menuContext.honeycomb,target=event.composedPath()[0];
+        const outside=target===menu || !!(target.classList && target.classList.contains('hub-shield'));
+        if(outside && this._expansionOutsideDown){this._expansionOutsideDown=false;this._collapseHub();}
     }
 
     _hideExpansionPopover(menu)
@@ -419,17 +445,20 @@ class HoneycombPersistentHub extends CubeElement
         if(menu && menu.hasAttribute('popover')) {
             menu.hidePopover();menu.removeAttribute('popover');
             menu.removeEventListener('click',this._expansionOutside);
+            menu.removeEventListener('pointerdown',this._expansionPointerStart,true);this._expansionOutsideDown=false;
         }
     }
 
     _clearExpansion()
     {
+        if(this._expansionChromeResize)this._expansionChromeResize.disconnect();
+        if(this._expansionChromeMutation)this._expansionChromeMutation.disconnect();
         window.removeEventListener('resize',this._expansionResize);
         if(window.visualViewport){visualViewport.removeEventListener('resize',this._expansionResize);visualViewport.removeEventListener('scroll',this._expansionResize);}
         document.removeEventListener('keydown',this._expansionEscape);
         this._hideExpansionPopover(this._menuContext && this._menuContext.honeycomb);
         if(this._hubMenu)this._hubMenu.removeEventListener('click',this._expansionCapture,true);
-        this._hubExpanded=false;
+        this._hubExpanded=false;this._expandedRoot=null;
     }
 
     _collapseHub()
@@ -583,6 +612,7 @@ class HoneycombPersistentHub extends CubeElement
         if (!this._hasHassProvider) { this._hasHassProvider=true; provideHass(this); }
         const next = merge({}, config);
         this._logoExplicitCenter=!!(config.colors && config.colors.center && config.colors.center!=='auto');
+        next._bee_explicit_center=this._logoExplicitCenter;
 
         _defaults(next, {
             mode: 'hub',
@@ -595,12 +625,7 @@ class HoneycombPersistentHub extends CubeElement
             base_face_mode: 'cell',
             tap_action: { action: 'honeycomb-bee-flap' },
             show_brightness: 'never',
-            colors: {
-                center: '#f2b705',
-                inner_border: '#17191c',
-                outer_border: '#34383d',
-                unavailable: '#20262d'
-            }
+            colors: bee.COLORS
         });
 
         this._hubBaseFaceMode = next.base_face_mode || 'cell';

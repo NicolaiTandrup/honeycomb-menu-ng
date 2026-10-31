@@ -20,10 +20,12 @@ function expandedAllocation(entries,primary,options,previous=new Map()) {
     if(result.diagnostics.some(d=>['hard-collision','invalid-slot','overflow'].includes(d.code)))throw Error('collapsible expanded slot conflict: '+JSON.stringify(result.diagnostics));
     return result;
 }
+// Compatibility adapter for the former container-based helper. Active expanded
+// scenes use the actual visible footprint and the same shared placement solver.
 function mobileGeometry(menu,viewport,desired=100,safe={}) {
-    const width=menu.sizes.containerWidth/menu.sizes.item,height=menu.sizes.containerHeight/menu.sizes.item;
-    const left=16+(safe.left||0),right=16+(safe.right||0),top=16+(safe.top||0),bottom=16+(safe.bottom||0);
-    const size=Math.min(desired,(viewport.width-left-right)/width,(viewport.height-top-bottom)/height);
-    return {size:Math.max(1,size),x:viewport.offsetLeft+left+(viewport.width-left-right)/2,y:viewport.offsetTop+top+(viewport.height-top-bottom)/2};
+    const geometry=require('./expanded-layout'),w=menu.sizes.containerWidth/menu.sizes.item,h=menu.sizes.containerHeight/menu.sizes.item;
+    return geometry.place({left:-w/2,right:w/2,top:-h/2,bottom:h/2},
+        {left:viewport.offsetLeft+16+(safe.left||0),right:viewport.offsetLeft+viewport.width-16-(safe.right||0),
+        top:viewport.offsetTop+16+(safe.top||0),bottom:viewport.offsetTop+viewport.height-16-(safe.bottom||0)},null,desired);
 }
 module.exports={settings,expandedAllocation,mobileGeometry};

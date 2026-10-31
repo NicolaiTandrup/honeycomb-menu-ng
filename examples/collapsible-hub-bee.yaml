@@ -1,11 +1,8 @@
 type: custom:honeycomb-persistent-hub
 name: Room A
-size: 82
-logo: false
 collapsible:
   expanded_center: bee
   primary_slot: 1
-  idle_timeout: 30000
 items:
   - type: light
     entity: light.room_a

@@ -55,10 +55,10 @@ class DevBuild(Navigation):
         self.assertTrue(bee.locator('.bee-icon').evaluate('e=>e.classList.contains("flap")'))
         self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-issue138-bee-version.png'))
         self.assertEqual(self.controls().evaluate_all('els=>els.map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height]})'),before)
-        self.page.clock.run_for(500);self.assertEqual(label.count(),0);self.assertFalse(bee.locator('.bee-icon').evaluate('e=>e.classList.contains("flap")'))
+        self.page.clock.run_for(3100);self.assertEqual(label.count(),0);self.assertFalse(bee.locator('.bee-icon').evaluate('e=>e.classList.contains("flap")'))
         for key in ['Enter','Space']:
             target.press(key);self.page.clock.run_for(35);self.assertEqual(' '.join(label.text_content().split()),expected)
-            self.page.clock.run_for(500);self.assertEqual(label.count(),0)
+            self.page.clock.run_for(3100);self.assertEqual(label.count(),0)
         self.assertEqual(self.page.evaluate('ng.version'),technical);self.assert_no_commands()
     def test_reduced_motion_feedback_and_pending_frame_cleanup(self):
         self.page.emulate_media(reduced_motion='reduce');self.hub({'logo':True,'items':[{'type':'light','entity':'light.zone_a','slot':1}]});self.settle()
@@ -66,7 +66,7 @@ class DevBuild(Navigation):
         bee=self.cell(0);bee.locator('.interaction-surface').press('Enter');self.page.clock.run_for(35)
         self.assertEqual(bee.locator('.bee-icon').evaluate('e=>getComputedStyle(e).animationName'),'none')
         self.assertEqual(bee.locator('.bee-version').get_attribute('aria-label'),self.expected_label())
-        self.page.clock.run_for(500);self.assertEqual(bee.locator('.bee-version').count(),0)
+        self.page.clock.run_for(3100);self.assertEqual(bee.locator('.bee-version').count(),0)
         bee.evaluate('e=>{window.removedBee=e;e._flapBee();e.remove()}');self.page.clock.run_for(35)
         self.assertEqual(self.page.evaluate('({flapping:removedBee._beeFlapping,timer:removedBee._beeFlapTimer,frame:removedBee._beeAnimationFrame})'),{'flapping':False,'timer':None,'frame':None})
         self.assert_no_commands()
@@ -77,7 +77,7 @@ class DevBuild(Navigation):
         self.assertEqual(bee.locator('.bee-version').count(),1)
         self.page.clock.run_for(300);bee.locator('.interaction-surface').press('Enter');self.page.clock.run_for(35)
         self.page.clock.run_for(200);self.assertEqual(bee.locator('.bee-version').count(),1)
-        self.page.clock.run_for(250);self.assertEqual(bee.locator('.bee-version').count(),0)
+        self.page.clock.run_for(2900);self.assertEqual(bee.locator('.bee-version').count(),0)
         self.assertEqual(bee.evaluate('e=>[e._beeFlapTimer,e._beeAnimationFrame]'),[None,None]);self.assert_no_commands()
     def test_version_text_inside_actual_fill_at_sizes_and_animation_frames(self):
         self.page.clock.install()
@@ -99,7 +99,7 @@ class DevBuild(Navigation):
                 self.assertEqual(bee.bounding_box(),box)
             self.assertEqual(' '.join(bee.locator('.bee-version').text_content().split()),self.expected_label())
             self.page.screenshot(path=str(self.evidence/f'{self.viewport["width"]}-issue138-contained-{size}.png'))
-            self.page.clock.run_for(150);self.assertEqual(bee.locator('.bee-version').count(),0)
+            self.page.clock.run_for(2800);self.assertEqual(bee.locator('.bee-version').count(),0)
             self.page.clock.resume()
         self.assert_no_commands()
 

@@ -35,6 +35,12 @@ function imageFrame({width,height,naturalWidth,naturalHeight,fit='cover',objectP
     const x=position(parts[0],width-renderedWidth),y=position(parts[1],height-renderedHeight);
     return x===null||y===null?null:{scale,width:renderedWidth,height:renderedHeight,x,y};
 }
+function displayedRect(frame,rect,clip=rect) {
+    if(!frame || !rect || !clip)return null;
+    const left=Math.max(rect.left,rect.left+frame.x,clip.left),top=Math.max(rect.top,rect.top+frame.y,clip.top);
+    const right=Math.min(rect.right,rect.left+frame.x+frame.width,clip.right),bottom=Math.min(rect.bottom,rect.top+frame.y+frame.height,clip.bottom);
+    return right>left && bottom>top?{left,top,right,bottom}:null;
+}
 function composedParent(node){return node.parentElement || (node.getRootNode && node.getRootNode().host);}
 function pictureCard(host){for(let node=composedParent(host);node;node=composedParent(node))if(node.localName==='hui-picture-elements-card')return node;return null;}
 const records=new WeakMap();
@@ -93,12 +99,12 @@ function createRecord(card){
                 }
             }
             const bounds=card.getBoundingClientRect();
-            callback({resolved:!!frame,size:effectiveSize(frame,(host.config || {}).auto_reference_width),dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
+            callback({imageRect:displayedRect(frame,rect,bounds),resolved:!!frame,size:effectiveSize(frame,(host.config || {}).auto_reference_width),dx,dy,visible:bounds.width>0 && bounds.height>0 && !['hidden','collapse'].includes(getComputedStyle(card).visibility)});
         }
     }
     resize.observe(card);mutation.observe(card,{childList:true});
     if(card.shadowRoot)mutation.observe(card.shadowRoot,{childList:true,subtree:true});
-    window.addEventListener('resize',schedule);document.addEventListener('visibilitychange',schedule);
-    return {clients,schedule,watchClient,rewatch:()=>watch(true),dispose(){if(raf!==null)cancelAnimationFrame(raf);resize.disconnect();mutation.disconnect();if(image)image.removeEventListener('load',schedule);window.removeEventListener('resize',schedule);document.removeEventListener('visibilitychange',schedule);}};
+    window.addEventListener('resize',schedule);document.addEventListener('visibilitychange',schedule);document.addEventListener('scroll',schedule,true);
+    return {clients,schedule,watchClient,rewatch:()=>watch(true),dispose(){if(raf!==null)cancelAnimationFrame(raf);resize.disconnect();mutation.disconnect();if(image)image.removeEventListener('load',schedule);window.removeEventListener('resize',schedule);document.removeEventListener('visibilitychange',schedule);document.removeEventListener('scroll',schedule,true);}};
 }
-module.exports={numericSize,imageFrame,effectiveSize,referenceWidth,DEFAULT_REFERENCE_WIDTH,observeImage,pictureCard,diagnostics:()=>({imageObservers:activeRecords})};
+module.exports={numericSize,imageFrame,displayedRect,effectiveSize,referenceWidth,DEFAULT_REFERENCE_WIDTH,observeImage,pictureCard,diagnostics:()=>({imageObservers:activeRecords})};

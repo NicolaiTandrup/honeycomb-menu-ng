@@ -74,11 +74,14 @@ No resource URL or `?v=` edit is needed between development builds.
 
 ## Verify what is actually running
 
-Tap/click the golden bee or focus it and press Enter/Space. During its existing
-430 ms interaction, **`v1.9.0 beta 7` appears inside that same cell**, then the
+Tap/click the golden bee or focus it and press Enter/Space. In current beta.5,
+**the actual installed version appears inside that same cell for three seconds**,
+while flight motion lasts 430ms, then the
 normal bee returns. This visual label deliberately omits `-dev`, commits and build
 metadata. Future stable/beta versions are derived automatically, not hardcoded.
 Reduced-motion users see the contained version feedback without flight motion.
+The expanded Collapsible root Bee uses short tap for Back and hold/Shift+Enter
+for version inspection. See [shared Bee behavior](SHARED_BEE.md).
 
 For exact diagnostics use the browser console:
 

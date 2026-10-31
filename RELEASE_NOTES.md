@@ -1,3 +1,27 @@
+# Honeycomb NG v1.10.0-beta.5 — responsive expansion, promotion and shared Bee
+
+Cumulative from exact published beta.4. No stable promotion or master merge.
+
+- Minimal Collapsible Hubs expand comfortably on desktop, tablet and phone.
+  The complete visible footprint prefers usable image-free viewport regions;
+  safe viewport fallback prevents clipping and excessive shrinking into strips.
+- Shared promotion preserves the selected cube's physical position when the child
+  fits, then tries expanded root center and safe fitting. Larger children resize
+  independently; Back restores parent sizes/anchors. Gesture-origin backdrop
+  handling prevents a follow-up click from collapsing a just-fitted submenu.
+- One Bee preset/asset/version system: standard tap/hold reveals version; expanded
+  root tap is Back, hold/Shift+Enter reveals version for three seconds. Explicit
+  styles and functional generic Bee-icon actions remain supported.
+- Approved Radio/Climate appearance and services, Light, Charger, Info Cube,
+  allocation, keyboard focus and non-collapsible behavior are protected.
+- Numeric collapsed sizing and legacy mobile/small_screen overrides remain;
+  only explicit false retains the compact-phone opt-out. Default expansion has
+  no device-width eligibility rule.
+
+Chromium uses synthetic HA; physical Android/PC acceptance remains separate.
+Modern Popover API and existing very-large-Hub limits remain. Issue #154's broad
+post-beta.5 review is deferred until owner acceptance. No production HA changes.
+
 # Honeycomb NG v1.10.0-beta.4 — minimal room controls
 
 Cumulative from exact published beta.3. Hubs without collapsible keep their
